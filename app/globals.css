@@ -123,4 +123,33 @@ body {
   text-align: center;
   padding: 20px;
   font-size: 14px;
+}/* Mobile-first responsiveness */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 36px;
+  }
+
+  .hero-subtitle {
+    font-size: 18px;
+  }
+
+  .hero-description {
+    font-size: 16px;
+    max-width: 90%;
+  }
+
+  .cta-buttons {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .features {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .feature {
+    width: 90%;
+    margin: 0 auto;
+  }
 }
