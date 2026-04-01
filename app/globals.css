@@ -1,26 +1,247 @@
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* BASE */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: linear-gradient(to bottom right, #f8fafc, #eef2ff);
+  color: #111827;
+}
+
+/* HERO */
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 120px 80px 40px 80px; /* Increased top padding for spacing */
+}
+
+.hero h1 {
+  font-size: 56px;
+  line-height: 1.1;
+}
+
+.hero p {
+  font-size: 18px;
+  color: #6b7280;
+}
+
+/* BUTTONS */
+.primary-btn {
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.secondary-btn {
+  border: 1px solid #d1d5db;
+  padding: 12px 22px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #374151;
+}
+
+/* CTA BUTTON GROUP */
+.cta-buttons {
+  margin-top: 30px;
+  display: flex;
+  gap: 12px;
+}
+
+/* FEATURES */
+.features {
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.features h2 {
+  font-size: 36px;
+  margin-bottom: 40px;
+}
+
+/* FLOATING BUBBLES */
+.feature-grid {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.feature-bubble {
+  width: 280px;
+  padding: 30px;
+  border-radius: 20px;
+  background: white;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+  transition: all 0.25s ease;
+}
+
+.feature-bubble:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 30px 60px rgba(0,0,0,0.12);
+}
+
+.feature-bubble h4 {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.feature-bubble p {
+  color: #6b7280;
+}
+
+/* CTA SECTION */
+.cta-section {
+  padding: 80px 20px;
+  text-align: center;
+}
+
+.cta-section h2 {
+  font-size: 36px;
+}
+
+.cta-section p {
+  color: #6b7280;
+  margin-bottom: 30px;
+}
+
+/* ===== ADD ONLY THIS BELOW (DO NOT TOUCH ANYTHING ABOVE) ===== */
+.topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 40px;
+  z-index: 100;
+}
+
+/* BIGGER LOGO */
+.logo {
+  height: 200px;        /* Reduced height to 200px */
+  margin: 0 auto;       /* Center the logo */
+  display: block;       /* Needed for centering */
+}
+
+/* LOGIN BUTTON (Positioned at far right) */
+.login-btn {
+  position: absolute;
+  top: 20px;
+  right: 40px;
+  font-size: 16px;      /* Slightly bigger font */
+  padding: 12px 22px;  /* Slightly bigger padding */
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: white;
+  border-radius: 10px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* CENTER WHOLE PAGE */
+.homepage {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* HERO (FIXED SPACING + CENTERED) */
+.hero {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.hero h1 {
+  font-size: 48px;
+  line-height: 1.1;
+}
+
+.hero p {
+  font-size: 18px;
+  color: #6b7280;
+  max-width: 600px;
+  margin: 20px auto 0;
+}
+
+/* BUTTON GROUP CENTERED */
+.cta-buttons {
+  margin-top: 25px;
+  display: flex;
+  justify-content: center;
+}
+
+/* FEATURES (LESS GAP) */
+.features {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.features h2 {
+  font-size: 32px;
+  margin-bottom: 30px;
+}
+
+/* BUBBLES SPACING TIGHTER */
+.feature-grid {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+/* CTA SECTION (LESS GAP) */
+.cta-section {
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.cta-section h2 {
+  font-size: 32px;
+}
+
+.cta-section p {
+  color: #6b7280;
+  margin-bottom: 25px;
+}
+
+/* === NEW ADDITION === */
+
+/* Flexbox for the Analyze Page Layout */
+.analyze-grid {
+  display: flex;
+  gap: 20px;
+  justify-content: center; /* Center both sides horizontally */
+}
+
+.input-panel, .result-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column; /* Stack content vertically */
+  align-items: center;     /* Center content horizontally */
+  justify-content: center; /* Center content vertically */
+  padding: 20px;           /* Add padding around the content */
+}
+
+.input-panel h3, .result-panel h3 {
+  text-align: center; /* Ensure headings are centered */
+}
+
+.input-panel textarea {
+  width: 100%; /* Ensure the textarea takes the full width of its section */
+  max-width: 500px; /* Limit the max-width to prevent it stretching too wide */
+}
+
+.upload-box {
+  width: 100%; /* Ensure file inputs take up the full width of the panel */
+  max-width: 500px; /* Limit the file input box size */
+}
+
+.result-panel .result-box {
+  width: 100%; /* Ensure result box takes full width */
+  max-width: 500px; /* Limit the result box size */
+  word-wrap: break-word; /* Make sure text wraps inside the result box */
 }
