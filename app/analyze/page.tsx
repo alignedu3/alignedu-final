@@ -1,82 +1,87 @@
 "use client";
 
-import { useState } from "react";
-
-export default function Analyze() {
-  const [lecture, setLecture] = useState("");
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
-
-  const analyzeLecture = async () => {
-    if (!lecture) return;
-
-    const userMessage = { role: "user", content: lecture };
-    setMessages((prev) => [...prev, userMessage]);
-
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ lecture }),
-    });
-
-    const data = await res.json();
-
-    const aiMessage = { role: "ai", content: data.result };
-    setMessages((prev) => [...prev, aiMessage]);
-
-    setLecture("");
-  };
-
+export default function Home() {
   return (
-    <main className="min-h-screen bg-gray-900 text-white flex flex-col">
+    <main className="min-h-screen bg-white text-gray-900">
 
-      {/* HEADER */}
-      <div className="p-4 border-b border-gray-700 text-lg font-semibold">
-        AlignEDU AI
-      </div>
-
-      {/* CHAT AREA */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 max-w-3xl w-full mx-auto">
-
-        {messages.length === 0 && (
-          <div className="text-gray-400 text-center mt-20">
-            Paste your lecture and start learning smarter.
-          </div>
-        )}
-
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`p-4 rounded-xl max-w-xl ${
-              msg.role === "user"
-                ? "bg-blue-600 ml-auto"
-                : "bg-gray-800"
-            }`}
-          >
-            {msg.content}
-          </div>
-        ))}
-      </div>
-
-      {/* INPUT */}
-      <div className="p-4 border-t border-gray-700 flex gap-2 max-w-3xl w-full mx-auto">
-
-        <textarea
-          className="flex-1 p-3 rounded-lg bg-gray-800 text-white border border-gray-700 focus:outline-none"
-          placeholder="Paste lecture..."
-          value={lecture}
-          onChange={(e) => setLecture(e.target.value)}
-        />
-
-        <button
-          onClick={analyzeLecture}
-          className="bg-white text-black px-6 rounded-lg font-medium hover:bg-gray-200"
+      {/* NAVBAR */}
+      <nav className="flex justify-between items-center px-8 py-6 max-w-6xl mx-auto">
+        <h1 className="text-xl font-bold">AlignEDU</h1>
+        <a
+          href="/analyze"
+          className="bg-black text-white px-5 py-2 rounded-lg text-sm hover:bg-gray-800 transition"
         >
-          Send
-        </button>
+          Try It Free
+        </a>
+      </nav>
 
-      </div>
+      {/* HERO */}
+      <section className="flex flex-col items-center text-center px-6 mt-24">
+
+        <h1 className="text-5xl md:text-6xl font-bold max-w-3xl leading-tight mb-6">
+          Learn Faster with AI
+        </h1>
+
+        <p className="text-lg text-gray-600 max-w-xl mb-10">
+          AlignEDU helps you break down lectures, understand concepts,
+          and study smarter using AI.
+        </p>
+
+        <a
+          href="/analyze"
+          className="bg-black text-white px-8 py-4 rounded-xl text-lg hover:bg-gray-800 transition"
+        >
+          Get Started
+        </a>
+
+      </section>
+
+      {/* FEATURES */}
+      <section className="grid md:grid-cols-3 gap-8 mt-32 px-8 max-w-6xl mx-auto">
+
+        <div className="p-6 border rounded-2xl hover:shadow-md transition">
+          <h3 className="font-semibold mb-2">Instant Summaries</h3>
+          <p className="text-gray-600 text-sm">
+            Turn long lectures into simple explanations instantly.
+          </p>
+        </div>
+
+        <div className="p-6 border rounded-2xl hover:shadow-md transition">
+          <h3 className="font-semibold mb-2">Better Understanding</h3>
+          <p className="text-gray-600 text-sm">
+            Break down complex topics into clear insights.
+          </p>
+        </div>
+
+        <div className="p-6 border rounded-2xl hover:shadow-md transition">
+          <h3 className="font-semibold mb-2">Learn Faster</h3>
+          <p className="text-gray-600 text-sm">
+            Save time and study more efficiently.
+          </p>
+        </div>
+
+      </section>
+
+      {/* CTA */}
+      <section className="flex flex-col items-center text-center mt-32 px-6">
+
+        <h2 className="text-3xl font-bold mb-6">
+          Start learning smarter today
+        </h2>
+
+        <a
+          href="/analyze"
+          className="bg-black text-white px-8 py-4 rounded-xl text-lg hover:bg-gray-800 transition"
+        >
+          Try AlignEDU Free
+        </a>
+
+      </section>
+
+      {/* FOOTER */}
+      <footer className="text-center text-gray-400 mt-24 pb-10 text-sm">
+        © {new Date().getFullYear()} AlignEDU
+      </footer>
 
     </main>
   );

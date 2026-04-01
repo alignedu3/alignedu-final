@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-  const { lecture } = await req.json();
+  try {
+    const { lecture } = await req.json();
 
-  return NextResponse.json({
-    result: `Summary:\n\n${lecture.slice(0, 200)}...`,
-  });
+    // Simple test response (works now)
+    return NextResponse.json({
+      result: `Summary:\n\n${lecture.slice(0, 200)}...`,
+    });
+
+  } catch (error) {
+    return NextResponse.json(
+      { result: "Error analyzing lecture." },
+      { status: 500 }
+    );
+  }
 }
