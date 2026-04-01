@@ -1,247 +1,622 @@
-/* BASE */
+/* Global styles for the entire site */
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: linear-gradient(to bottom right, #f8fafc, #eef2ff);
-  color: #111827;
+    font-family: Arial, sans-serif; /* Your preferred global font */
+    background-color: #f0f0f0; /* Light gray background */
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column; /* Ensures everything stacks vertically */
 }
 
-/* HERO */
-.hero {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 120px 80px 40px 80px; /* Increased top padding for spacing */
+/* Global header styles */
+h1, h2 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
-.hero h1 {
-  font-size: 56px;
-  line-height: 1.1;
+/* Buttons for Analyze and Login, centered at the top */
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px; /* Adds space between the buttons */
+    margin-bottom: 30px; /* Ensures space between the buttons and "What We Offer" section */
 }
 
-.hero p {
-  font-size: 18px;
-  color: #6b7280;
+.main-button {
+    padding: 12px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 18px;
+    cursor: pointer;
 }
 
-/* BUTTONS */
-.primary-btn {
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-  padding: 12px 22px;
-  border-radius: 10px;
-  font-weight: 500;
-  text-decoration: none;
-  display: inline-block;
+.main-button:hover {
+    background-color: #0056b3;
 }
 
-.secondary-btn {
-  border: 1px solid #d1d5db;
-  padding: 12px 22px;
-  border-radius: 10px;
-  text-decoration: none;
-  color: #374151;
+/* General input and button styles (login and other forms) */
+input {
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    width: 100%;
 }
 
-/* CTA BUTTON GROUP */
-.cta-buttons {
-  margin-top: 30px;
-  display: flex;
-  gap: 12px;
+button {
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 18px;
+    cursor: pointer;
+    width: 100%;
 }
 
-/* FEATURES */
-.features {
-  padding: 80px 20px;
-  text-align: center;
+button:hover {
+    background-color: #0056b3;
 }
 
-.features h2 {
-  font-size: 36px;
-  margin-bottom: 40px;
+/* Centered form container with a box-shadow */
+.container {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
 }
 
-/* FLOATING BUBBLES */
-.feature-grid {
-  display: flex;
-  justify-content: center;
-  gap: 40px;
-  flex-wrap: wrap;
+/* Ensures responsiveness for smaller screens */
+@media (max-width: 768px) {
+    .container {
+        width: 80%;
+        padding: 20px;
+    }
 }
 
-.feature-bubble {
-  width: 280px;
-  padding: 30px;
-  border-radius: 20px;
-  background: white;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-  transition: all 0.25s ease;
+/* Bubbles for "What We Offer" section */
+.what-we-offer {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-top: 50px;
 }
 
-.feature-bubble:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 30px 60px rgba(0,0,0,0.12);
+.bubble {
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    width: 150px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
 }
 
-.feature-bubble h4 {
-  font-size: 20px;
-  margin-bottom: 10px;
+.bubble:hover {
+    transform: scale(1.1); /* Slight zoom effect on hover */
 }
 
-.feature-bubble p {
-  color: #6b7280;
+.bubble button {
+    background-color: transparent;
+    color: white;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
 }
 
-/* CTA SECTION */
-.cta-section {
-  padding: 80px 20px;
-  text-align: center;
+.bubble button:hover {
+    text-decoration: underline;
 }
 
-.cta-section h2 {
-  font-size: 36px;
+/* Keep the login form centered below the bubbles */
+.login-container {
+    margin-top: 50px;
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
 }
 
-.cta-section p {
-  color: #6b7280;
-  margin-bottom: 30px;
+/* Responsive design for mobile screens */
+@media (max-width: 768px) {
+    .login-container {
+        width: 80%;
+        padding: 20px;
+    }
+}/* Global styles for the entire site */
+body {
+    font-family: Arial, sans-serif; /* Your preferred global font */
+    background-color: #f0f0f0; /* Light gray background */
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column; /* Stack items vertically */
 }
 
-/* ===== ADD ONLY THIS BELOW (DO NOT TOUCH ANYTHING ABOVE) ===== */
-.topbar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 40px;
-  z-index: 100;
+/* Logo container and styling */
+.logo-container {
+    text-align: center; /* Centers the logo horizontally */
+    margin-bottom: 30px; /* Space between logo and the rest of the content */
 }
 
-/* BIGGER LOGO */
 .logo {
-  height: 200px;        /* Reduced height to 200px */
-  margin: 0 auto;       /* Center the logo */
-  display: block;       /* Needed for centering */
+    width: 250px; /* Size of the logo */
+    height: auto; /* Maintain aspect ratio */
 }
 
-/* LOGIN BUTTON (Positioned at far right) */
-.login-btn {
-  position: absolute;
-  top: 20px;
-  right: 40px;
-  font-size: 16px;      /* Slightly bigger font */
-  padding: 12px 22px;  /* Slightly bigger padding */
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: white;
-  border-radius: 10px;
-  font-weight: 500;
-  text-decoration: none;
+/* Global header styles */
+h1, h2 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
-/* CENTER WHOLE PAGE */
-.homepage {
-  max-width: 1100px;
-  margin: 0 auto;
+/* Buttons for Analyze and Login, centered at the top */
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px; /* Adds space between the buttons */
+    margin-bottom: 30px; /* Ensures space between the buttons and "What We Offer" section */
 }
 
-/* HERO (FIXED SPACING + CENTERED) */
-.hero {
-  display: flex;
-  justify-content: center;
-  text-align: center;
-  padding: 60px 20px;
+.main-button {
+    padding: 12px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 18px;
+    cursor: pointer;
 }
 
-.hero h1 {
-  font-size: 48px;
-  line-height: 1.1;
+.main-button:hover {
+    background-color: #0056b3;
 }
 
-.hero p {
-  font-size: 18px;
-  color: #6b7280;
-  max-width: 600px;
-  margin: 20px auto 0;
+/* General input and button styles (login and other forms) */
+input {
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    width: 100%;
 }
 
-/* BUTTON GROUP CENTERED */
-.cta-buttons {
-  margin-top: 25px;
-  display: flex;
-  justify-content: center;
+button {
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 18px;
+    cursor: pointer;
+    width: 100%;
 }
 
-/* FEATURES (LESS GAP) */
-.features {
-  padding: 60px 20px;
-  text-align: center;
+button:hover {
+    background-color: #0056b3;
 }
 
-.features h2 {
-  font-size: 32px;
-  margin-bottom: 30px;
+/* Box shadow and form layout styles for your page */
+.container {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
 }
 
-/* BUBBLES SPACING TIGHTER */
-.feature-grid {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  flex-wrap: wrap;
+/* Ensures responsiveness for smaller screens */
+@media (max-width: 768px) {
+    .container {
+        width: 80%;
+        padding: 20px;
+    }
 }
 
-/* CTA SECTION (LESS GAP) */
-.cta-section {
-  padding: 60px 20px;
-  text-align: center;
+/* Bubbles for "What We Offer" section */
+.what-we-offer {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-top: 50px;
 }
 
-.cta-section h2 {
-  font-size: 32px;
+.bubble {
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    width: 150px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
 }
 
-.cta-section p {
-  color: #6b7280;
-  margin-bottom: 25px;
+.bubble:hover {
+    transform: scale(1.1); /* Slight zoom effect on hover */
 }
 
-/* === NEW ADDITION === */
-
-/* Flexbox for the Analyze Page Layout */
-.analyze-grid {
-  display: flex;
-  gap: 20px;
-  justify-content: center; /* Center both sides horizontally */
+.bubble button {
+    background-color: transparent;
+    color: white;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
 }
 
-.input-panel, .result-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column; /* Stack content vertically */
-  align-items: center;     /* Center content horizontally */
-  justify-content: center; /* Center content vertically */
-  padding: 20px;           /* Add padding around the content */
+.bubble button:hover {
+    text-decoration: underline;
 }
 
-.input-panel h3, .result-panel h3 {
-  text-align: center; /* Ensure headings are centered */
+/* Keep the login form centered below the bubbles */
+.login-container {
+    margin-top: 50px;
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
 }
 
-.input-panel textarea {
-  width: 100%; /* Ensure the textarea takes the full width of its section */
-  max-width: 500px; /* Limit the max-width to prevent it stretching too wide */
+/* Responsive design for mobile screens */
+@media (max-width: 768px) {
+    .login-container {
+        width: 80%;
+        padding: 20px;
+    }
+}/* Global styles for the entire site */
+body {
+    font-family: Arial, sans-serif; /* Your preferred global font */
+    background-color: #f0f0f0; /* Light gray background */
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column; /* Stack items vertically */
 }
 
-.upload-box {
-  width: 100%; /* Ensure file inputs take up the full width of the panel */
-  max-width: 500px; /* Limit the file input box size */
+/* Logo container and styling */
+.logo-container {
+    text-align: center; /* Centers the logo horizontally */
+    margin-bottom: 30px; /* Space between logo and the rest of the content */
 }
 
-.result-panel .result-box {
-  width: 100%; /* Ensure result box takes full width */
-  max-width: 500px; /* Limit the result box size */
-  word-wrap: break-word; /* Make sure text wraps inside the result box */
+.logo {
+    width: 250px; /* Size of the logo */
+    height: auto; /* Maintain aspect ratio */
+}
+
+/* Global header styles */
+h1, h2 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Buttons for Analyze and Login, centered at the top */
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px; /* Adds space between the buttons */
+    margin-bottom: 30px; /* Ensures space between the buttons and "What We Offer" section */
+}
+
+.main-button {
+    padding: 12px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.main-button:hover {
+    background-color: #0056b3;
+}
+
+/* General input and button styles (login and other forms) */
+input {
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+button {
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 18px;
+    cursor: pointer;
+    width: 100%;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Box shadow and form layout styles for your page */
+.container {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+}
+
+/* Ensures responsiveness for smaller screens */
+@media (max-width: 768px) {
+    .container {
+        width: 80%;
+        padding: 20px;
+    }
+}
+
+/* Bubbles for "What We Offer" section */
+.what-we-offer {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-top: 50px;
+}
+
+.bubble {
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    width: 150px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
+}
+
+.bubble:hover {
+    transform: scale(1.1); /* Slight zoom effect on hover */
+}
+
+.bubble button {
+    background-color: transparent;
+    color: white;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.bubble button:hover {
+    text-decoration: underline;
+}
+
+/* Keep the login form centered below the bubbles */
+.login-container {
+    margin-top: 50px;
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+/* Responsive design for mobile screens */
+@media (max-width: 768px) {
+    .login-container {
+        width: 80%;
+        padding: 20px;
+    }
+}/* Global styles for the entire site */
+body {
+    font-family: Arial, sans-serif; /* Your preferred global font */
+    background-color: #f0f0f0; /* Light gray background */
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column; /* Stack items vertically */
+}
+
+/* Logo container and styling */
+.logo-container {
+    text-align: center; /* Centers the logo horizontally */
+    margin-bottom: 30px; /* Space between logo and the rest of the content */
+}
+
+.logo {
+    width: 250px; /* Size of the logo */
+    height: auto; /* Maintain aspect ratio */
+}
+
+/* Global header styles */
+h1, h2 {
+    font-size: 36px;
+    font-weight: 700;
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Buttons for Analyze and Login, centered at the top */
+.button-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px; /* Adds space between the buttons */
+    margin-bottom: 30px; /* Ensures space between the buttons and "What We Offer" section */
+}
+
+.main-button {
+    padding: 12px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.main-button:hover {
+    background-color: #0056b3;
+}
+
+/* General input and button styles (login and other forms) */
+input {
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    width: 100%;
+}
+
+button {
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 18px;
+    cursor: pointer;
+    width: 100%;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+/* Box shadow and form layout styles for your page */
+.container {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+}
+
+/* Ensures responsiveness for smaller screens */
+@media (max-width: 768px) {
+    .container {
+        width: 80%;
+        padding: 20px;
+    }
+}
+
+/* Bubbles for "What We Offer" section */
+.what-we-offer {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-top: 50px;
+}
+
+.bubble {
+    background-color: #007bff;
+    color: white;
+    border-radius: 50%;
+    width: 150px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    margin: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
+}
+
+.bubble:hover {
+    transform: scale(1.1); /* Slight zoom effect on hover */
+}
+
+.bubble button {
+    background-color: transparent;
+    color: white;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.bubble button:hover {
+    text-decoration: underline;
+}
+
+/* Keep the login form centered below the bubbles */
+.login-container {
+    margin-top: 50px;
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+/* Responsive design for mobile screens */
+@media (max-width: 768px) {
+    .login-container {
+        width: 80%;
+        padding: 20px;
+    }
 }
