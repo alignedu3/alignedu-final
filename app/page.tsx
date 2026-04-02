@@ -1,5 +1,5 @@
 // app/analyze/Login/page.tsx
-"use client";  // Ensure this is the very first line in the file
+"use client";  // Ensure this is at the very top
 
 import React, { useState } from 'react';
 
@@ -8,17 +8,16 @@ const LoginPage = () => {
 
   return (
     <div>
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Enter your email"
+      <input 
+        type="email" 
+        value={email} 
+        onChange={(e) => setEmail(e.target.value)} 
+        placeholder="Enter your email" 
       />
       <button>Login</button>
     </div>
   );
-};
-
+export default LoginPage;
 export default LoginPage;
 // app/page.tsx
 import React from 'react';
