@@ -123,7 +123,9 @@ body {
   text-align: center;
   padding: 20px;
   font-size: 14px;
-}/* Mobile-first responsiveness */
+}
+
+/* Mobile-first responsiveness */
 @media (max-width: 768px) {
   .hero-title {
     font-size: 36px;
@@ -151,14 +153,10 @@ body {
   .feature {
     width: 90%;
     margin: 0 auto;
-  }/* Add these to your globals.css */
-body {
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background-color: #f8f8f8;
+  }
 }
 
+/* Additional General Styles */
 header {
   display: flex;
   justify-content: space-between;
@@ -205,5 +203,4 @@ button {
 
 button:hover {
   background-color: #004c8c;
-}
 }
