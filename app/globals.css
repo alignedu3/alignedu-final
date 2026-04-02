@@ -151,5 +151,59 @@ body {
   .feature {
     width: 90%;
     margin: 0 auto;
-  }
+  }/* Add these to your globals.css */
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f8f8f8;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: #0a0a23;
+}
+
+header img {
+  height: 60px;
+}
+
+.main-section {
+  padding: 40px;
+  text-align: center;
+  background-color: #0056b3;
+  color: white;
+}
+
+.features-container {
+  display: flex;
+  justify-content: space-around;
+  padding: 40px 20px;
+  background-color: #fff;
+}
+
+.features-container .feature {
+  width: 30%;
+  padding: 20px;
+  background-color: #e6e6e6;
+  margin: 10px;
+  border-radius: 10px;
+}
+
+button {
+  padding: 12px 30px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  background-color: #0a0a23;
+  color: white;
+  border-radius: 5px;
+}
+
+button:hover {
+  background-color: #004c8c;
+}
 }
