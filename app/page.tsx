@@ -1,3 +1,5 @@
+// app/analyze/Login/page.tsx
+"use client";  // Add this line to mark the component as a Client Component
 import React from 'react';
 import './globals.css'; // Import global CSS
 
