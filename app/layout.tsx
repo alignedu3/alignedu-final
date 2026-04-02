@@ -28,4 +28,18 @@ export default function RootLayout({
       </body>
     </html>
   );
+}import Image from 'next/image';
+
+export default function Layout({ children }) {
+  return (
+    <div>
+      <header>
+        <Image src="/logo.png" alt="AlignEDU Logo" width={100} height={60} />
+        <nav>
+          <button>Login</button>
+        </nav>
+      </header>
+      <main>{children}</main>
+    </div>
+  );
 }
