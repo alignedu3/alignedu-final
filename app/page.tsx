@@ -93,4 +93,32 @@ export default function AnalyzePage() {
             )}
         </div>
     );
+}export default function Page() {
+  return (
+    <div>
+      <section className="main-section">
+        <h1>AlignEDU</h1>
+        <p>AI that turns lectures into clear understanding. Improve student outcomes and teaching effectiveness with real-time insights.</p>
+        <div>
+          <button>Try it Free</button>
+          <button>See Demo</button>
+        </div>
+      </section>
+
+      <section className="features-container">
+        <div className="feature">
+          <h3>Real-Time Analysis</h3>
+          <p>Get instant feedback on classroom instruction to make improvements on the fly.</p>
+        </div>
+        <div className="feature">
+          <h3>Curriculum Alignment</h3>
+          <p>Ensure lessons are on track with curriculum standards like TEKS and Common Core.</p>
+        </div>
+        <div className="feature">
+          <h3>Actionable Insights</h3>
+          <p>Receive summarized feedback to enhance teaching strategies and engagement.</p>
+        </div>
+      </section>
+    </div>
+  );
 }
