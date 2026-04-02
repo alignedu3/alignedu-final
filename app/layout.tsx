@@ -1,5 +1,7 @@
+// app/layout.tsx
 import './globals.css';  // Import global CSS file
 import React from 'react';
+import Image from 'next/image';
 
 export const metadata = {
   title: "AlignEDU",
@@ -20,26 +22,19 @@ export default function RootLayout({
       <body>
         {/* Logo centered at 250px */}
         <div className="logo-container">
-          <img src="/logo.png" alt="AlignEDU Logo" className="logo" />
+          <Image src="/logo.png" alt="AlignEDU Logo" width={250} height={auto} />
         </div>
 
+        {/* Navigation Bar */}
+        <header>
+          <nav>
+            <button>Login</button>
+          </nav>
+        </header>
+
         {/* Add children here for each page */}
-        {children}
+        <main>{children}</main>
       </body>
     </html>
-  );
-}import Image from 'next/image';
-
-export default function Layout({ children }) {
-  return (
-    <div>
-      <header>
-        <Image src="/logo.png" alt="AlignEDU Logo" width={100} height={60} />
-        <nav>
-          <button>Login</button>
-        </nav>
-      </header>
-      <main>{children}</main>
-    </div>
   );
 }
