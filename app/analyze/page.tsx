@@ -1,7 +1,9 @@
-"use client";
+// app/analyze/Login/page.tsx
+"use client";  // Ensure this is at the very top
 
-import { useState } from "react";
+import React, { useState } from 'react';
 
+<<<<<<< HEAD
 export default function AnalyzePage() {
   const [result, setResult] = useState("");
   const [lessonNotes, setLessonNotes] = useState("");
@@ -113,6 +115,22 @@ No curriculum or textbook provided. Analysis based on general teaching quality.
         </div>
       </div>
 
+=======
+const LoginPage = () => {
+  const [email, setEmail] = useState('');
+
+  return (
+    <div>
+      <input 
+        type="email" 
+        value={email} 
+        onChange={(e) => setEmail(e.target.value)} 
+        placeholder="Enter your email" 
+      />
+      <button>Login</button>
+>>>>>>> e9aea9952896125bedd91a1b4f9a9b1a35fef8bd
     </div>
   );
-}
+};
+
+export default LoginPage;

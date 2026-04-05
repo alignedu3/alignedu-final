@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /* Global Styles */
 :root {
   --background: #F8FAFC;
@@ -17,6 +18,213 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   overflow-x: hidden;
+=======
+/* General Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  background-color: #f9f9f9;
+  color: #333;
+  line-height: 1.6;
+}
+
+/* Hero Section */
+.hero-section {
+  background-color: #007bff;  /* AlignEDU brand color */
+  color: #fff;
+  text-align: center;
+  padding: 100px 20px;
+  min-height: 100vh; /* Full screen height */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo {
+  width: 250px;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.hero-title {
+  font-size: 64px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.hero-subtitle {
+  font-size: 24px;
+  font-weight: 500;
+  margin-bottom: 20px;
+}
+
+.hero-description {
+  font-size: 18px;
+  font-weight: 300;
+  max-width: 800px;
+  margin: 0 auto 30px;
+  line-height: 1.6;
+}
+
+/* Call-to-Action Buttons */
+.cta-buttons {
+  display: flex;
+  gap: 20px;
+}
+
+.cta-button {
+  padding: 12px 30px;
+  font-size: 18px;
+  font-weight: bold;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.cta-button.primary {
+  background-color: #00ccff; /* Light blue for primary button */
+  color: #fff;
+}
+
+.cta-button.primary:hover {
+  background-color: #0099cc;
+}
+
+.cta-button.secondary {
+  background-color: #fff;
+  color: #007bff;
+  border: 2px solid #007bff;
+}
+
+.cta-button.secondary:hover {
+  background-color: #f0f0f0;
+}
+
+/* Features Section */
+.features {
+  display: flex;
+  justify-content: center;
+  gap: 50px;
+  margin-top: 80px;
+  text-align: center;
+  padding: 50px 20px;
+}
+
+.feature {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  width: 300px;
+  text-align: center;
+}
+
+.feature-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.feature-description {
+  font-size: 16px;
+  font-weight: 300;
+  color: #555;
+}
+
+/* Footer Section */
+.footer {
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+  font-size: 14px;
+}
+
+/* Mobile-first responsiveness */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: 36px;
+  }
+
+  .hero-subtitle {
+    font-size: 18px;
+  }
+
+  .hero-description {
+    font-size: 16px;
+    max-width: 90%;
+  }
+
+  .cta-buttons {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .features {
+    flex-direction: column;
+    gap: 30px;
+  }
+
+  .feature {
+    width: 90%;
+    margin: 0 auto;
+  }
+}
+
+/* Additional General Styles */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: #0a0a23;
+}
+
+header img {
+  height: 60px;
+}
+
+.main-section {
+  padding: 40px;
+  text-align: center;
+  background-color: #0056b3;
+  color: white;
+}
+
+.features-container {
+  display: flex;
+  justify-content: space-around;
+  padding: 40px 20px;
+  background-color: #fff;
+}
+
+.features-container .feature {
+  width: 30%;
+  padding: 20px;
+  background-color: #e6e6e6;
+  margin: 10px;
+  border-radius: 10px;
+}
+
+button {
+  padding: 12px 30px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  background-color: #0a0a23;
+  color: white;
+  border-radius: 5px;
+}
+
+button:hover {
+  background-color: #004c8c;
+>>>>>>> e9aea9952896125bedd91a1b4f9a9b1a35fef8bd
 }
 
 /* Hero Section */

@@ -1,5 +1,5 @@
 /* layout.tsx */
-import "./globals.css";  // ✅ FIXED path
+import "./globals.css";
 
 export const metadata = {
   title: "AlignEDU",
@@ -21,7 +21,7 @@ export default function RootLayout({
           <a href="/login" className="login-btn">Login</a>
         </div>
 
-        {/* Main content of the page */}
+        {/* Main content */}
         {children}
 
       </body>
