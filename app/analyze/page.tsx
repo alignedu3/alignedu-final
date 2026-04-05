@@ -2,80 +2,117 @@
 
 import { useState } from "react";
 
-export default function Analyze() {
-  const [lecture, setLecture] = useState("");
-  const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
+export default function AnalyzePage() {
+  const [result, setResult] = useState("");
+  const [lessonNotes, setLessonNotes] = useState("");
+  const [files, setFiles] = useState({
+    curriculum: null,
+    textbook: null,
+    lessonPlan: null,
+    audio: null,
+  });
 
-  const analyzeLecture = async () => {
-    if (!lecture) return;
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    fileType: string
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFiles((prev) => ({
+        ...prev,
+        [fileType]: file,
+      }));
+    }
+  };
 
-    const userMessage = { role: "user", content: lecture };
-    setMessages((prev) => [...prev, userMessage]);
+  const analyze = () => {
+    setResult(`
+Alignment Score: 82%
 
-    const res = await fetch("/api/analyze", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ lecture }),
-    });
+Strengths:
+- Clear explanation of topic
+- Strong structure
 
-    const data = await res.json();
+Improvements:
+- Add more student engagement
+- Improve pacing in middle section
 
-    const aiMessage = { role: "ai", content: data.result };
-    setMessages((prev) => [...prev, aiMessage]);
+Suggestions:
+- Include interactive questions
+- Add real-world examples
 
-    setLecture("");
+Note:
+No curriculum or textbook provided. Analysis based on general teaching quality.
+    `);
   };
 
   return (
-    <main className="min-h-screen bg-gray-900 text-white flex flex-col">
+    <div className="analyze-page">
 
-      <div className="p-4 border-b border-gray-700 text-lg font-semibold">
-        AlignEDU AI
-      </div>
+      {/* LEFT SIDE */}
+      <div className="analyze-left">
+        <div className="panel">
+          <h2>Lesson Input</h2>
+          <p className="subtitle">
+            Upload materials or paste your lesson for analysis.
+          </p>
 
-      <div className="flex-1 overflow-y-auto p-10 space-y-6 max-w-3xl w-full mx-auto">
+          <textarea
+            placeholder="Paste lesson notes or transcript..."
+            value={lessonNotes}
+            onChange={(e) => setLessonNotes(e.target.value)}
+            className="text-input"
+          />
 
-        {messages.length === 0 && (
-          <div className="text-gray-400 text-center mt-20">
-            Paste your lecture and start learning smarter.
+          <div className="divider">Materials</div>
+
+          <div className="upload-group">
+            <label>Curriculum</label>
+            <input type="file" onChange={(e) => handleFileChange(e, "curriculum")} />
           </div>
-        )}
 
-        {messages.map((msg, index) => (
-          <div
-            key={index}
-            className={`p-4 rounded-2xl max-w-xl ${
-              msg.role === "user"
-                ? "bg-blue-600 ml-auto"
-                : "bg-gray-800"
-            }`}
-          >
-            {msg.content}
+          <div className="upload-group">
+            <label>Textbook</label>
+            <input type="file" onChange={(e) => handleFileChange(e, "textbook")} />
           </div>
-        ))}
 
+          <div className="upload-group">
+            <label>Lesson Plan</label>
+            <input type="file" onChange={(e) => handleFileChange(e, "lessonPlan")} />
+          </div>
+
+          <div className="upload-group">
+            <label>Audio Recording</label>
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={(e) => handleFileChange(e, "audio")}
+            />
+          </div>
+
+          <button className="analyze-btn" onClick={analyze}>
+            Analyze Lesson
+          </button>
+        </div>
       </div>
 
-      <div className="p-4 border-t border-gray-700 flex gap-2 max-w-3xl w-full mx-auto">
+      {/* RIGHT SIDE */}
+      <div className="analyze-right">
+        <div className="panel">
+          <h2>AI Feedback</h2>
 
-        <textarea
-          className="flex-1 p-4 rounded-xl bg-gray-800 text-white border border-gray-700 focus:outline-none focus:ring-2 focus:ring-white"
-          placeholder="Paste lecture..."
-          value={lecture}
-          onChange={(e) => setLecture(e.target.value)}
-        />
-
-        <button
-          onClick={analyzeLecture}
-          className="bg-white text-black px-6 rounded-xl font-medium hover:bg-gray-200"
-        >
-          Send
-        </button>
-
+          {result ? (
+            <div className="result-box">
+              <pre>{result}</pre>
+            </div>
+          ) : (
+            <div className="results-placeholder">
+              Your analysis will appear here after submission.
+            </div>
+          )}
+        </div>
       </div>
 
-    </main>
+    </div>
   );
 }
