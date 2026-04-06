@@ -60,22 +60,6 @@ export default function HomePage() {
         <p style={{ marginTop: '15px', fontSize: '14px' }}>
           Upload a lecture and see instant results
         </p>
-
-        {/* Light/Dark Mode Toggle Button */}
-        <button onClick={toggleTheme} style={{
-          position: 'fixed', 
-          top: '20px', 
-          right: '20px', 
-          padding: '10px 20px', 
-          fontSize: '14px', 
-          cursor: 'pointer',
-          backgroundColor: '#facc15',
-          color: '#1e293b',
-          borderRadius: '8px',
-          border: 'none'
-        }}>
-          Toggle {isDarkMode ? 'Light' : 'Dark'} Mode
-        </button>
       </section>
 
       {/* FEATURES */}
@@ -178,6 +162,22 @@ export default function HomePage() {
         <p>AlignEDU</p>
         <p>support@alignedu.net</p>
       </footer>
+
+      {/* Light/Dark Mode Toggle Button */}
+      <button onClick={toggleTheme} style={{
+        position: 'fixed', 
+        bottom: '20px', 
+        left: '20px', 
+        padding: '10px 20px', 
+        fontSize: '14px', 
+        cursor: 'pointer',
+        backgroundColor: '#facc15',
+        color: '#1e293b',
+        borderRadius: '8px',
+        border: 'none'
+      }}>
+        Toggle {isDarkMode ? 'Light' : 'Dark'} Mode
+      </button>
 
     </main>
   );
