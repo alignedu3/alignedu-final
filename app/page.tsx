@@ -59,7 +59,7 @@ export default function HomePage() {
             { icon: '📋', title: 'Curriculum Alignment', desc: 'Verify TEKS and standards automatically with every lesson.' },
             { icon: '💡', title: 'Actionable Insights', desc: 'Get clear, immediate feedback to improve teaching quality.' },
           ].map(({ icon, title, desc }) => (
-            <div key={title} style={{ background: 'white', borderRadius: '16px', padding: '36px 28px', flex: '1', minWidth: '240px', maxWidth: '320px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', textAlign: 'center' }}>
+            <div key={title} style={{ background: 'white', borderRadius: '16px', padding: '36px 28px', flex: '1', minWidth: '240px', maxWidth: '320px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{ fontSize: '36px', marginBottom: '16px' }}>{icon}</div>
               <h3 style={{ fontSize: '20px', marginBottom: '10px', color: '#0f172a' }}>{title}</h3>
               <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
