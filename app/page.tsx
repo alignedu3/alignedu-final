@@ -114,7 +114,7 @@ export default function HomePage() {
           ].map(({ icon, title, desc }) => (
             <div key={title} style={featureBubble}>
               <div style={{ fontSize: '64px', marginBottom: '16px' }}>{icon}</div>
-              <h3 style={{ fontSize: '22px', marginBottom: '10px', color: 'white' }}>{title}</h3>
+              <h3 style={{ fontSize: '24px', marginBottom: '10px', color: 'white' }}>{title}</h3>
               <p style={{ color: '#94a3b8', lineHeight: '1.6', fontSize: '16px' }}>{desc}</p>
             </div>
           ))}
