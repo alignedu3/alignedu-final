@@ -47,109 +47,111 @@ export default function HomePage() {
       </section>
 
       {/* FEATURES */}
-      <section style={{ padding: '100px 20px', textAlign: 'center' }}>
-        <h2>Improve Teaching Automatically</h2>
-
-        <div style={flexRow}>
-          <div style={card}>
-            <h3>AI-Powered Lesson Analysis</h3>
-            <p>Analyze classroom instruction instantly with AI.</p>
-          </div>
-
-          <div style={card}>
-            <h3>Curriculum Alignment</h3>
-            <p>Verify TEKS and standards automatically.</p>
-          </div>
-
-          <div style={card}>
-            <h3>Actionable Insights</h3>
-            <p>Get instant insights to improve teaching.</p>
-          </div>
+      {/* FEATURES */}
+      <section style={{ padding: '80px 20px', background: '#f8fafc', textAlign: 'center' }}>
+        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', fontSize: '13px' }}>What We Do</p>
+        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: '#0f172a' }}>Improve Teaching Automatically</h2>
+        <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', flexWrap: 'wrap', maxWidth: '1100px', margin: '0 auto' }}>
+          {[
+            { icon: '🧠', title: 'AI-Powered Analysis', desc: 'Analyze classroom instruction instantly with cutting-edge AI.' },
+            { icon: '📋', title: 'Curriculum Alignment', desc: 'Verify TEKS and standards automatically with every lesson.' },
+            { icon: '💡', title: 'Actionable Insights', desc: 'Get clear, immediate feedback to improve teaching quality.' },
+          ].map(({ icon, title, desc }) => (
+            <div key={title} style={{ background: 'white', borderRadius: '16px', padding: '36px 28px', flex: '1', minWidth: '240px', maxWidth: '320px', boxShadow: '0 2px 16px rgba(0,0,0,0.07)', textAlign: 'left' }}>
+              <div style={{ fontSize: '36px', marginBottom: '16px' }}>{icon}</div>
+              <h3 style={{ fontSize: '18px', marginBottom: '10px', color: '#0f172a' }}>{title}</h3>
+              <p style={{ color: '#64748b', lineHeight: '1.6' }}>{desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{ padding: '100px 20px', textAlign: 'center' }}>
-        <h2>From Lecture to Insight in Seconds</h2>
+      <section style={{ padding: '80px 20px', textAlign: 'center', background: 'white' }}>
+        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', fontSize: '13px' }}>How It Works</p>
+        <h2 style={{ fontSize: '32px', marginBottom: '60px', color: '#0f172a' }}>From Lecture to Insight in Seconds</h2>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', flexWrap: 'wrap', maxWidth: '900px', margin: '0 auto' }}>
+          {[
+            { step: '1', icon: '📤', title: 'Upload Lecture', desc: 'Record live or upload an audio/video file of your lesson.' },
+            { step: '2', icon: '⚙️', title: 'AI Analysis', desc: 'Our AI evaluates instruction, pacing, and curriculum alignment.' },
+            { step: '3', icon: '📊', title: 'Get Feedback', desc: 'Receive instant, actionable insights and alignment scores.' },
+          ].map(({ step, icon, title, desc }, i) => (
+            <div key={step} style={{ display: 'flex', alignItems: 'flex-start' }}>
+              <div style={{ textAlign: 'center', padding: '0 30px', maxWidth: '260px' }}>
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #16a34a)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '28px' }}>{icon}</div>
+                <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#16a34a', marginBottom: '6px' }}>STEP {step}</div>
+                <h3 style={{ fontSize: '18px', marginBottom: '8px', color: '#0f172a' }}>{title}</h3>
+                <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '14px' }}>{desc}</p>
+              </div>
+              {i < 2 && <div style={{ fontSize: '28px', color: '#cbd5e1', marginTop: '18px' }}>→</div>}
+            </div>
+          ))}
+        </div>
+      </section>
 
-        <div style={flexRow}>
-          <div>
-            <h3>1. Upload Lecture</h3>
-            <p>Paste or upload your lesson</p>
+      {/* WHO IT'S FOR */}
+      <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #0f172a, #1e3a5f)', textAlign: 'center' }}>
+        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', fontSize: '13px' }}>{"Who It's For"}</p>
+        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: 'white' }}>Built for Educators and Administrators</h2>
+        <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', flexWrap: 'wrap', maxWidth: '1000px', margin: '0 auto' }}>
+          {[
+            { icon: '👩‍🏫', title: 'Teachers', desc: 'Improve lesson delivery with instant, personalized feedback after every class.' },
+            { icon: '🏫', title: 'Administrators', desc: 'Evaluate classrooms consistently and identify areas for improvement at scale.' },
+            { icon: '🏙️', title: 'Districts', desc: 'Ensure curriculum coverage and instructional quality across every school.' },
+          ].map(({ icon, title, desc }) => (
+            <div key={title} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '16px', padding: '36px 28px', flex: '1', minWidth: '240px', maxWidth: '300px', textAlign: 'left' }}>
+              <div style={{ fontSize: '36px', marginBottom: '14px' }}>{icon}</div>
+              <h3 style={{ fontSize: '18px', marginBottom: '10px', color: 'white' }}>{title}</h3>
+              <p style={{ color: '#94a3b8', lineHeight: '1.6', fontSize: '14px' }}>{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* BEFORE / AFTER */}
+      <section style={{ padding: '80px 20px', background: '#f8fafc', textAlign: 'center' }}>
+        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', fontSize: '13px' }}>The Difference</p>
+        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: '#0f172a' }}>Why AlignEDU Exists</h2>
+        <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', flexWrap: 'wrap', maxWidth: '800px', margin: '0 auto' }}>
+          <div style={{ flex: '1', minWidth: '280px', background: 'white', borderRadius: '16px', padding: '36px', boxShadow: '0 2px 16px rgba(0,0,0,0.06)', textAlign: 'left' }}>
+            <h3 style={{ color: '#ef4444', marginBottom: '20px', fontSize: '20px' }}>❌ Before AlignEDU</h3>
+            {['Inconsistent evaluations', 'Limited classroom visibility', 'Delayed feedback', 'No curriculum verification'].map(item => (
+              <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', color: '#64748b' }}>
+                <span style={{ color: '#ef4444' }}>✕</span> {item}
+              </div>
+            ))}
           </div>
-
-          <div>
-            <h3>2. AI Analysis</h3>
-            <p>AI evaluates and processes your lesson</p>
-          </div>
-
-          <div>
-            <h3>3. Get Feedback</h3>
-            <p>Receive instant insights and alignment</p>
+          <div style={{ flex: '1', minWidth: '280px', background: 'white', borderRadius: '16px', padding: '36px', boxShadow: '0 2px 16px rgba(0,0,0,0.06)', textAlign: 'left' }}>
+            <h3 style={{ color: '#16a34a', marginBottom: '20px', fontSize: '20px' }}>✅ With AlignEDU</h3>
+            {['Real-time insights', 'Standardized evaluation', 'Immediate feedback', 'Verified alignment'].map(item => (
+              <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px', color: '#64748b' }}>
+                <span style={{ color: '#16a34a' }}>✓</span> {item}
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* WHO IT’S FOR */}
-      <section style={{ padding: '100px 20px', textAlign: 'center' }}>
-        <h2>Built for Educators and Administrators</h2>
-
-        <div style={flexRow}>
-          <div>
-            <h3>Teachers</h3>
-            <p>Improve lesson delivery with instant feedback.</p>
-          </div>
-
-          <div>
-            <h3>Administrators</h3>
-            <p>Evaluate classrooms with consistent insights.</p>
-          </div>
-
-          <div>
-            <h3>Districts</h3>
-            <p>Ensure curriculum coverage across schools.</p>
-          </div>
+      {/* PLATFORM FEATURES */}
+      <section style={{ padding: '80px 20px', background: 'white', textAlign: 'center' }}>
+        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', fontSize: '13px' }}>Platform</p>
+        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: '#0f172a' }}>The Only Platform That Does It All</h2>
+        <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap', maxWidth: '900px', margin: '0 auto' }}>
+          {[
+            { icon: '🎙️', text: 'Real-time AI lecture analysis' },
+            { icon: '📚', text: 'Curriculum alignment verification' },
+            { icon: '⚡', text: 'Automated feedback and insights' },
+            { icon: '🏫', text: 'Built for teachers, admins, and districts' },
+          ].map(({ icon, text }) => (
+            <div key={text} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: '#f1f5f9', borderRadius: '12px', padding: '16px 24px', minWidth: '280px', flex: '1', maxWidth: '400px' }}>
+              <span style={{ fontSize: '24px' }}>{icon}</span>
+              <span style={{ color: '#0f172a', fontWeight: '500' }}>{text}</span>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* DIFFERENTIATION */}
-      <section style={{ padding: '100px 20px', textAlign: 'center' }}>
-        <h2>The Only Platform That Does It All</h2>
-
-        <ul style={{ marginTop: '30px', lineHeight: '2' }}>
-          <li>Real-time AI lecture analysis</li>
-          <li>Curriculum alignment verification</li>
-          <li>Automated feedback and insights</li>
-          <li>Built for teachers, administrators, and districts</li>
-        </ul>
-      </section>
-
-      {/* PROBLEM / SOLUTION */}
-      <section style={{ padding: '100px 20px' }}>
-        <h2 style={{ textAlign: 'center' }}>Why AlignEDU Exists</h2>
-
-        <div style={flexRow}>
-          <div>
-            <h3>Before</h3>
-            <ul>
-              <li>Inconsistent evaluations</li>
-              <li>Limited classroom visibility</li>
-              <li>Delayed feedback</li>
-              <li>No curriculum verification</li>
-            </ul>
-          </div>
-
-          <div>
-            <h3>With AlignEDU</h3>
-            <ul>
-              <li>Real-time insights</li>
-              <li>Standardized evaluation</li>
-              <li>Immediate feedback</li>
-              <li>Verified alignment</li>
-            </ul>
-          </div>
-        </div>
-      </section>
+      
 
       {/* FINAL CTA */}
       <section style={{
