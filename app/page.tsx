@@ -36,7 +36,7 @@ export default function HomePage() {
             Try It Now
           </button>
 
-          <a href="mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU." style={{ ...primaryBtn, textDecoration: 'none', display: 'inline-block', backgroundColor: 'white' }}>
+          <a href="mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU." style={{ backgroundColor: 'white', color: '#1e293b', padding: '12px 25px', borderRadius: '8px', border: 'none', fontWeight: 'bold', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', lineHeight: '1', boxSizing: 'border-box', height: '45px' }}>
             Book Demo
           </a>
         </div>
@@ -203,7 +203,10 @@ const primaryBtn = {
   padding: '12px 25px',
   borderRadius: '8px',
   border: 'none',
-  fontWeight: 'bold'
+  fontWeight: 'bold',
+  fontSize: '14px',
+  height: '45px',
+  cursor: 'pointer'
 };
 
 const secondaryBtn = {
