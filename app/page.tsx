@@ -37,7 +37,7 @@ export default function HomePage() {
             Try It Now
           </button>
 
-          <a href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU." style={{ backgroundColor: 'white', color: '#1e293b', padding: '12px 25px', borderRadius: '8px', border: 'none', fontWeight: 'bold', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', lineHeight: '1', boxSizing: 'border-box', height: '45px' }}>
+          <a href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=Hi%20AlignEDU%20Team%2C%0A%0AI'd%20love%20to%20schedule%20a%20demo%20or%20quick%20call%20to%20learn%20how%20AlignEDU%20can%20help%20our%20school%20improve%20instruction%20with%20AI." style={{ backgroundColor: 'white', color: '#1e293b', padding: '12px 25px', borderRadius: '8px', border: 'none', fontWeight: 'bold', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', lineHeight: '1', boxSizing: 'border-box', height: '45px' }}>
             Book Demo
           </a>
         </div>
@@ -177,7 +177,7 @@ export default function HomePage() {
           Join schools using AI to improve instruction.
         </p>
 
-        <a href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU." style={{ ...primaryBtn, textDecoration: 'none', padding: '12px 25px', borderRadius: '8px', display: 'inline-block' }}>
+        <a href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=Hi%20AlignEDU%20Team%2C%0A%0AI'd%20love%20to%20schedule%20a%20demo%20or%20quick%20call%20to%20learn%20how%20AlignEDU%20can%20help%20our%20school%20improve%20instruction%20with%20AI." style={{ ...primaryBtn, textDecoration: 'none', padding: '12px 25px', borderRadius: '8px', display: 'inline-block' }}>
           Book Demo
         </a>
       </section>
