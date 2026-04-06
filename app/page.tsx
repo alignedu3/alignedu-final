@@ -183,5 +183,4 @@ const secondaryBtn = {
   color: '#1e293b', 
   padding: '12px 25px',
   borderRadius: '8px', 
-  border: 'none'
-};
+  border: '
