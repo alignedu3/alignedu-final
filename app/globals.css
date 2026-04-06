@@ -105,5 +105,74 @@ body {
 
 .login-button-top:hover {
   background-color: #15803d;
+}/* Analysis Page Styling */
+.analysis-container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: #f7f9fb;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  font-family: 'Arial', sans-serif;
+}
+
+h1 {
+  font-size: 32px;
+  text-align: center;
+  margin-bottom: 30px;
+  color: #2d3748;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  color: #4a5568;
+}
+
+select, input[type="text"], input[type="file"] {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+.recording-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.start-btn, .stop-btn, .submit-btn {
+  background-color: #3182ce;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  transition: background-color 0.3s ease;
+}
+
+.start-btn:hover, .stop-btn:hover, .submit-btn:hover {
+  background-color: #2b6cb0;
+}
+
+.audio-preview {
+  margin-top: 10px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+button {
+  cursor: pointer;
+}
+
+input[type="text"], select {
+  font-size: 16px;
 }
 /* force redeploy */
