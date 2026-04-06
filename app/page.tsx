@@ -105,7 +105,7 @@ export default function HomePage() {
             { icon: '🏫', title: 'Administrators', desc: 'Evaluate classrooms consistently and identify areas for improvement at scale.' },
             { icon: '🏙️', title: 'Districts', desc: 'Ensure curriculum coverage and instructional quality across every school.' },
           ].map(({ icon, title, desc }) => (
-            <div key={title} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '16px', padding: '36px 28px', flex: '1', minWidth: '240px', maxWidth: '300px', textAlign: 'center' }}>
+            <div key={title} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '16px', padding: '36px 28px', flex: '1', minWidth: '240px', maxWidth: '300px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <div style={{ fontSize: '36px', marginBottom: '14px' }}>{icon}</div>
               <h3 style={{ fontSize: '20px', marginBottom: '10px', color: 'white' }}>{title}</h3>
               <p style={{ color: '#94a3b8', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
