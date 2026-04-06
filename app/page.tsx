@@ -32,7 +32,13 @@ export default function HomePage() {
           <button onClick={() => { router.push("/analyze"); }} style={primaryBtn}>
             Try It Now
           </button>
-          <button onClick={() => { window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; }} style={primaryBtn}>
+          {/* Updated Book Demo button to open email client */}
+          <button 
+            onClick={() => { 
+              window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; 
+            }} 
+            style={primaryBtn}
+          >
             Book Demo
           </button>
         </div>
@@ -130,7 +136,12 @@ export default function HomePage() {
           Join schools using AI to improve instruction.
         </p>
         
-        <button onClick={() => { window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; }} style={primaryBtn}>
+        <button 
+          onClick={() => { 
+            window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; 
+          }} 
+          style={primaryBtn}
+        >
           Book Demo
         </button>
       </section>
@@ -173,14 +184,4 @@ const primaryBtn: React.CSSProperties = {
   height: '45px',    
   cursor: 'pointer', 
   display: 'inline-flex',
-  alignItems: 'center',  
-  justifyContent: 'center',
-  lineHeight: '1',
-};
-
-const secondaryBtn = {
-  backgroundColor: 'white',
-  color: '#1e293b', 
-  padding: '12px 25px',
-  borderRadius: '8px', 
-  border: '
+ 
