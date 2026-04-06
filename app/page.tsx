@@ -33,7 +33,7 @@ export default function HomePage() {
           gap: '15px',
           flexWrap: 'wrap'
         }}>
-          <button onClick={() => { router.push("/analyze"); }} className="demo-button" style={primaryBtn}>
+          <button onClick={() => { router.push("/analyze"); }} style={primaryBtn}>
             Try It Now
           </button>
 
@@ -218,7 +218,12 @@ const primaryBtn = {
   fontWeight: 'bold',
   fontSize: '14px',
   height: '45px',
-  cursor: 'pointer'
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  lineHeight: '1',
+  boxSizing: 'border-box'
 };
 
 const secondaryBtn = {
