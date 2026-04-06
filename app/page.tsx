@@ -1,18 +1,11 @@
 "use client";
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
 
 export default function HomePage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);  // For loading state if needed
 
   const handleBookDemo = () => {
-    console.log('Book Demo button clicked!');
-    try {
-      window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo.";
-    } catch (error) {
-      console.error('Error opening mailto:', error);
-    }
+    window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo.";
   };
 
   return (
@@ -21,11 +14,11 @@ export default function HomePage() {
       {/* HERO */}
       <section style={{
         textAlign: 'center',
-        padding: '120px 20px',
+        padding: '100px 20px',
         background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
         color: 'white'
       }}>
-        <h1 style={{ fontSize: '44px', marginBottom: '20px' }}>
+        <h1 style={{ fontSize: '40px', marginBottom: '20px' }}>
           Turn Every Lecture Into Measurable Teaching Insight
         </h1>
         
@@ -43,10 +36,7 @@ export default function HomePage() {
           <button onClick={() => { router.push("/analyze"); }} style={primaryBtn}>
             Try It Now
           </button>
-          <button 
-            onClick={handleBookDemo}  // Using the handleBookDemo function here
-            style={primaryBtn}
-          >
+          <button onClick={handleBookDemo} style={primaryBtn}>
             Book Demo
           </button>
         </div>
@@ -57,22 +47,22 @@ export default function HomePage() {
       </section>
 
       {/* FEATURES */}
-      <section style={{ padding: '80px 20px', background: '#f8fafc', textAlign: 'center' }}>
+      <section style={{ padding: '60px 20px', background: '#f8fafc', textAlign: 'center' }}>
         <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>Key Features</p>
         <h2 style={{ fontSize: '32px', marginBottom: '50px', color: '#0f172a' }}>
           What We Offer
         </h2>
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: '24px',
           justifyContent: 'center',
-          flexWrap: 'wrap'
+          gap: '2rem',
+          flexWrap: 'wrap',
+          alignItems: 'center'
         }}>
           {[{ icon: '🧠', title: 'AI-Powered Analysis', desc: 'Analyze classroom performance with AI.' },
             { icon: '📋', title: 'Curriculum Alignment', desc: 'Verify TEKS and state standards coverage.' },
             { icon: '💡', title: 'Actionable Insights', desc: 'Get clear, immediate feedback.' }].map(({ icon, title, desc }) => (
-            <div key={title} style={{ background: 'white', borderRadius: '16px', padding: '20px', width: '250px' }}>
+            <div key={title} style={featureBubble}>
               <div style={{ fontSize: '36px', marginBottom: '16px' }}>{icon}</div>
               <h3 style={{ fontSize: '20px', marginBottom: '10px', color: '#0f172a' }}>{title}</h3>
               <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
@@ -82,22 +72,22 @@ export default function HomePage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{ padding: '80px 20px', textAlign: 'center', background: '#e5e7eb' }}>
+      <section style={{ padding: '60px 20px', textAlign: 'center', background: '#e5e7eb' }}>
         <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>How It Works</p>
         <h2 style={{ fontSize: '32px', marginBottom: '60px', color: '#0f172a' }}>Simple 3-Step Process</h2>
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: '24px',
           justifyContent: 'center',
-          flexWrap: 'wrap'
+          gap: '2rem',
+          flexWrap: 'wrap',
+          alignItems: 'center'
         }}>
           {[
             { step: '1', icon: '📤', title: 'Upload Lecture', desc: 'Record live lectures or upload pre-recorded content.' },
             { step: '2', icon: '⚙️', title: 'AI Analysis', desc: 'Our AI evaluates the content for insights and alignment.' },
             { step: '3', icon: '📊', title: 'Get Feedback', desc: 'Receive immediate feedback and suggestions.' }
           ].map(({ step, icon, title, desc }) => (
-            <div key={step} style={{ display: 'flex', alignItems: 'center', flexDirection: 'column', textAlign: 'center' }}>
+            <div key={step} style={featureBubble}>
               <div style={{ fontSize: '36px', marginBottom: '16px' }}>{icon}</div>
               <h3 style={{ fontSize: '18px', marginBottom: '8px', color: '#0f172a' }}>{title}</h3>
               <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '14px' }}>{desc}</p>
@@ -107,22 +97,22 @@ export default function HomePage() {
       </section>
 
       {/* WHO IT'S FOR */}
-      <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white' }}>
+      <section style={{ padding: '60px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white' }}>
         <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>Who It’s For</p>
         <h2 style={{ fontSize: '32px', marginBottom: '50px' }}>For Teachers, Admins, and Districts</h2>
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: '24px',
           justifyContent: 'center',
-          flexWrap: 'wrap'
+          gap: '2rem',
+          flexWrap: 'wrap',
+          alignItems: 'center'
         }}>
           {[
             { icon: '👩‍🏫', title: 'Teachers', desc: 'Improve lesson delivery with real-time feedback.' },
             { icon: '🏫', title: 'Administrators', desc: 'Evaluate classrooms with AI-driven analysis.' },
             { icon: '🏙️', title: 'Districts', desc: 'Ensure curriculum coverage across multiple schools.' }
           ].map(({ icon, title, desc }) => (
-            <div key={title} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '16px', padding: '20px', width: '250px' }}>
+            <div key={title} style={featureBubble}>
               <div style={{ fontSize: '36px', marginBottom: '16px' }}>{icon}</div>
               <h3 style={{ fontSize: '20px', marginBottom: '10px', color: 'white' }}>{title}</h3>
               <p style={{ color: '#94a3b8', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
@@ -134,7 +124,7 @@ export default function HomePage() {
       {/* FINAL CTA */}
       <section style={{
         textAlign: 'center',
-        padding: '100px 20px',
+        padding: '60px 20px',
         background: '#111827',
         color: 'white'
       }}>
@@ -144,10 +134,7 @@ export default function HomePage() {
           Join schools using AI to improve instruction.
         </p>
         
-        <button 
-          onClick={handleBookDemo}  // Reuse the same handleBookDemo function
-          style={primaryBtn}
-        >
+        <button onClick={handleBookDemo} style={primaryBtn}>
           Book Demo
         </button>
       </section>
@@ -162,21 +149,19 @@ export default function HomePage() {
   );
 }
 
-const flexRow = {
+const featureBubble = {
+  backgroundColor: 'white',
+  padding: '2rem',
+  borderRadius: '1rem',
+  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+  width: '250px',
+  textAlign: 'center',
+  transition: 'transform 0.2s ease',
+  margin: '0 auto',
   display: 'flex',
+  flexDirection: 'column',
   alignItems: 'center',
-  justifyContent: 'center',
-  gap: '40px',
-  marginTop: '40px',
-  flexWrap: 'wrap' as const
-};
-
-const card = {
-  background: 'white',
-  padding: '30px',
-  borderRadius: '10px',
-  width: '260px',
-  boxShadow: '0 8px 20px rgba(0,0,0,0.15)'
+  justifyContent: 'center'
 };
 
 const primaryBtn: React.CSSProperties = {
