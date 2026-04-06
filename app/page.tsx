@@ -149,7 +149,7 @@ export default function HomePage() {
   );
 }
 
-const featureBubble = {
+const featureBubble: React.CSSProperties = {
   backgroundColor: 'white',
   padding: '2rem',
   borderRadius: '1rem',
