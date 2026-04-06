@@ -106,7 +106,13 @@ export default function AnalysisPage() {
 
   return (
     <div className="analysis-container">
-      <h1>Lesson Plan & Audio Analysis</h1>
+      {/* Updated Header with "Book Demo" Button */}
+      <header className="analysis-header">
+        <h1>Lesson Analysis</h1> {/* Changed from Lesson Plan & Audio Analysis */}
+        <button className="book-demo-btn">
+          Book Demo
+        </button>
+      </header>
 
       {/* Grade Selection */}
       <label htmlFor="grade">Grade</label>
@@ -115,15 +121,15 @@ export default function AnalysisPage() {
         <option value="1">Grade 1</option>
         <option value="2">Grade 2</option>
         <option value="3">Grade 3</option>
-         <option value="4">Grade 4</option>
-          <option value="5">Grade 5</option>
-          <option value="6">Grade 6</option>
-          <option value="7">Grade 7</option>
-          <option value="8">Grade 8</option>
-          <option value="9">Grade 9</option>
-          <option value="10">Grade 10</option>
-          <option value="11">Grade 11</option>
-          <option value="12">Grade 12</option>
+        <option value="4">Grade 4</option>
+        <option value="5">Grade 5</option>
+        <option value="6">Grade 6</option>
+        <option value="7">Grade 7</option>
+        <option value="8">Grade 8</option>
+        <option value="9">Grade 9</option>
+        <option value="10">Grade 10</option>
+        <option value="11">Grade 11</option>
+        <option value="12">Grade 12</option>
         {/* Add more grades as needed */}
       </select>
 

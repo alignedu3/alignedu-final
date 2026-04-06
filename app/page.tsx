@@ -25,20 +25,20 @@ export default function HomePage() {
   };
 
   return (
-    <main style={{ fontFamily: 'Arial, sans-serif' }}>
+    <main style={{ fontFamily: 'Roboto, Arial, sans-serif' }}>
 
       {/* HERO */}
       <section style={{
         textAlign: 'center',
         padding: '120px 20px',
-        background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
+        background: 'linear-gradient(135deg, #0078d4, #00aaff)',
         color: isDarkMode ? 'white' : '#111827'
       }}>
-        <h1 style={{ fontSize: '44px', marginBottom: '20px' }}>
-          Turn Every Lecture Into Measurable Teaching Insight
+        <h1 style={{ fontSize: '48px', marginBottom: '20px', fontWeight: '600' }}>
+          Transform Every Lecture Into Measurable Insight
         </h1>
         
-        <p style={{ fontSize: '18px', maxWidth: '700px', margin: '0 auto 30px' }}>
+        <p style={{ fontSize: '18px', maxWidth: '700px', margin: '0 auto 30px', color: isDarkMode ? '#d1d5db' : '#374151' }}>
           AI-powered classroom analysis that helps schools improve instruction, verify curriculum coverage, and drive student outcomes.
         </p>
         
@@ -46,7 +46,7 @@ export default function HomePage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: '15px',
+          gap: '20px',
           flexWrap: 'wrap'
         }}>
           <button onClick={() => { router.push("/analyze"); }} style={primaryBtn}>
@@ -57,15 +57,15 @@ export default function HomePage() {
           </button>
         </div>
         
-        <p style={{ marginTop: '15px', fontSize: '14px' }}>
+        <p style={{ marginTop: '15px', fontSize: '14px', color: isDarkMode ? '#d1d5db' : '#6b7280' }}>
           Upload a lecture and see instant results
         </p>
       </section>
 
       {/* FEATURES */}
-      <section style={{ padding: '80px 20px', background: isDarkMode ? '#1f2937' : '#f8fafc', textAlign: 'center' }}>
-        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>Key Features</p>
-        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: isDarkMode ? 'white' : '#0f172a' }}>
+      <section style={{ padding: '80px 20px', background: isDarkMode ? '#1f2937' : '#f9fafb', textAlign: 'center' }}>
+        <p style={{ color: '#4caf50', fontWeight: 'bold', letterSpacing: '1px' }}>Key Features</p>
+        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: isDarkMode ? 'white' : '#1f2937' }}>
           What We Offer
         </h2>
         <div style={{
@@ -80,7 +80,7 @@ export default function HomePage() {
             { icon: '💡', title: 'Actionable Insights', desc: 'Get clear, immediate feedback.' }].map(({ icon, title, desc }) => (
             <div key={title} style={featureBubble}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>{icon}</div>
-              <h3 style={{ fontSize: '20px', marginBottom: '10px', color: isDarkMode ? '#0f172a' : '#0f172a' }}>{title}</h3>
+              <h3 style={{ fontSize: '20px', marginBottom: '10px', color: isDarkMode ? '#fefefe' : '#111827' }}>{title}</h3>
               <p style={{ color: isDarkMode ? '#94a3b8' : '#64748b', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
             </div>
           ))}
@@ -88,9 +88,9 @@ export default function HomePage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{ padding: '80px 20px', textAlign: 'center', background: '#e5e7eb' }}>
-        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>How It Works</p>
-        <h2 style={{ fontSize: '32px', marginBottom: '60px', color: '#0f172a' }}>Simple 3-Step Process</h2>
+      <section style={{ padding: '80px 20px', textAlign: 'center', background: '#f1f5f9' }}>
+        <p style={{ color: '#4caf50', fontWeight: 'bold', letterSpacing: '1px' }}>How It Works</p>
+        <h2 style={{ fontSize: '32px', marginBottom: '60px', color: '#111827' }}>Simple 3-Step Process</h2>
         <div style={{
           display: 'flex',
           justifyContent: 'center',
@@ -105,16 +105,16 @@ export default function HomePage() {
           ].map(({ step, icon, title, desc }) => (
             <div key={step} style={featureBubble}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>{icon}</div>
-              <h3 style={{ fontSize: '18px', marginBottom: '8px', color: '#0f172a' }}>{title}</h3>
-              <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '14px' }}>{desc}</p>
+              <h3 style={{ fontSize: '18px', marginBottom: '8px', color: '#111827' }}>{title}</h3>
+              <p style={{ color: '#6b7280', lineHeight: '1.6', fontSize: '14px' }}>{desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* WHO IT'S FOR */}
-      <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white' }}>
-        <h2 style={{ fontSize: '56px', marginBottom: '50px', textAlign: 'center', fontWeight: '600', color: '#16a34a' }}>
+      <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #3498db, #2ecc71)', color: 'white' }}>
+        <h2 style={{ fontSize: '56px', marginBottom: '50px', textAlign: 'center', fontWeight: '600' }}>
           Who It's For
         </h2>
         <div style={{
@@ -142,7 +142,7 @@ export default function HomePage() {
       <section style={{
         textAlign: 'center',
         padding: '80px 20px',
-        background: '#111827',
+        background: '#2d3748',
         color: 'white'
       }}>
         <h2>Ready to Transform Teaching?</h2>
@@ -198,8 +198,8 @@ const featureBubble: React.CSSProperties = {
 };
 
 const primaryBtn: React.CSSProperties = {
-  backgroundColor: '#facc15',
-  color: '#1e293b',
+  backgroundColor: '#ff6b00',
+  color: '#ffffff',
   padding: '12px 25px',
   borderRadius: '8px', 
   border: 'none',
