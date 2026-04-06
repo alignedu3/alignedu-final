@@ -19,22 +19,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <h2 style={{ cursor: 'pointer' }}>AlignEDU</h2>
           </Link>
 
-          {/* BOOK DEMO BUTTON */}
+          {/* LOGIN BUTTON */}
           <button
-            onClick={() =>
-              window.location.href =
-                'mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello,%0A%0AI would like to request a demo of AlignEDU.%0A%0ASchool/District:%0ARole:%0A%0AAdditional Details:%0A'
-            }
+            onClick={() => { window.location.href = '/login'; }}
             style={{
               backgroundColor: '#facc15',
               color: '#1e293b',
               padding: '8px 20px',
               borderRadius: '8px',
               border: 'none',
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              cursor: 'pointer'
             }}
           >
-            Book Demo
+            Login
           </button>
 
         </header>

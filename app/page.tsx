@@ -32,17 +32,11 @@ export default function HomePage() {
           gap: '15px',
           flexWrap: 'wrap'
         }}>
-          <button onClick={() => {console.log("Demo Button Clicked!"); router.push("/analyze");}} className="demo-button" style={primaryBtn} onClick={() => {console.log("Demo Button Clicked!"); router.push("/analyze");}} className="demo-button" style={primaryBtn} onClick={() => router.push('/analyze')} style={primaryBtn}>
+          <button onClick={() => { router.push("/analyze"); }} className="demo-button" style={primaryBtn}>
             Try It Now
           </button>
 
-          <button onClick={() => {console.log("Demo Button Clicked!"); router.push("/analyze");}} className="demo-button" style={primaryBtn} onClick={() => {console.log("Demo Button Clicked!"); router.push("/analyze");}} className="demo-button" style={primaryBtn}
-            onClick={() =>
-              window.location.href =
-                'mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello,%0A%0AI would like to request a demo of AlignEDU.%0A%0ASchool/District:%0ARole:%0A%0AAdditional Details:%0A'
-            }
-            style={{ ...secondaryBtn, fontWeight: "bold" }}
-          >
+          <button onClick={() => { window.location.href = 'mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU.'; }} style={{ ...secondaryBtn, fontWeight: "bold" }}>
             Book Demo
           </button>
         </div>
@@ -170,8 +164,8 @@ export default function HomePage() {
           Join schools using AI to improve instruction.
         </p>
 
-        <button onClick={() => {console.log("Demo Button Clicked!"); router.push("/analyze");}} className="demo-button" style={primaryBtn} onClick={() => {console.log("Demo Button Clicked!"); router.push("/analyze");}} className="demo-button" style={primaryBtn} onClick={() => router.push('/analyze')} style={primaryBtn}>
-          Try It Now
+        <button onClick={() => { window.location.href = 'mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU.'; }} style={primaryBtn}>
+          Book Demo
         </button>
       </section>
 
