@@ -1,16 +1,16 @@
 "use client";  // Ensure this is at the very top to use hooks like `useState` and `useEffect`
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef } from 'react';
 
 export default function AnalysisPage() {
-  const [lessonNotes, setLessonNotes] = useState<string>("");
+  const [lessonNotes, setLessonNotes] = useState<string>('');
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
-  const [grade, setGrade] = useState<string>("");
-  const [subject, setSubject] = useState<string>("");
+  const [grade, setGrade] = useState<string>('');
+  const [subject, setSubject] = useState<string>('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioUrlRef = useRef<string>("");
+  const audioUrlRef = useRef<string>('');
 
   // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,17 +105,18 @@ export default function AnalysisPage() {
   };
 
   return (
-    <div className="analysis-container">
+    <div className="container">
       <h1>Lesson Plan & Audio Analysis</h1>
 
       {/* Grade Selection */}
       <label htmlFor="grade">Grade</label>
       <select value={grade} onChange={handleGradeChange} id="grade">
         <option value="">Select Grade</option>
-        <option value="1">Grade 1</option>
-        <option value="2">Grade 2</option>
-        <option value="3">Grade 3</option>
-        {/* Add more grades as needed */}
+        {Array.from({ length: 12 }, (_, index) => (
+          <option key={index} value={index + 1}>
+            Grade {index + 1}
+          </option>
+        ))}
       </select>
 
       {/* Subject Selection */}
@@ -129,46 +130,27 @@ export default function AnalysisPage() {
       </select>
 
       {/* File Upload Section */}
-      <label htmlFor="audioUpload">Upload Audio</label>
-      <input type="file" onChange={handleFileUpload} id="audioUpload" accept="audio/*" />
+      <input type="file" onChange={handleFileUpload} />
 
       {/* Text Input for Lesson Notes */}
-      <label htmlFor="lessonNotes">Lesson Notes</label>
       <input
         type="text"
-        id="lessonNotes"
         value={lessonNotes}
         onChange={handleTextChange}
         placeholder="Enter lesson notes"
       />
 
       {/* Audio Recording Section */}
-      <div className="recording-section">
+      <div>
         {isRecording ? (
-          <button onClick={handleStopRecording} className="stop-btn">
-            Stop Recording
-          </button>
+          <button onClick={handleStopRecording}>Stop Recording</button>
         ) : (
-          <button onClick={handleStartRecording} className="start-btn">
-            Start Recording
-          </button>
-        )}
-
-        {/* Display recorded audio */}
-        {recordedBlob && (
-          <div className="audio-preview">
-            <audio controls>
-              <source src={audioUrlRef.current} type="audio/wav" />
-              Your browser does not support the audio element.
-            </audio>
-          </div>
+          <button onClick={handleStartRecording}>Start Recording</button>
         )}
       </div>
 
       {/* Submit Button */}
-      <button onClick={handleSubmit} className="submit-btn">
-        Submit for Analysis
-      </button>
+      <button onClick={handleSubmit}>Submit</button>
     </div>
   );
 }
