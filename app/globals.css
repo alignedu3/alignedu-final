@@ -95,7 +95,7 @@ body {
 
 .feature-bubble p {
   font-size: 0.95rem;
-  color: var(--secondary-text-light);
+  color: #111827; /* Dark color for better contrast in the white bubble */
 }
 
 /* Site Header */
@@ -167,4 +167,27 @@ select, input[type="text"], input[type="file"] {
 /* Light/Dark Mode Toggle */
 button {
   cursor: pointer;
+}
+
+/* Section for 'Who It's For' */
+.who-it-for-section {
+  padding: 80px 20px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+}
+
+.who-it-for-section p {
+  color: #16a34a;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.who-it-for-section h2 {
+  font-size: 56px;
+  margin-bottom: 50px;
+  text-align: center;
+  font-weight: 600;
+  color: white;
 }
