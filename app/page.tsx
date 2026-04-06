@@ -93,23 +93,17 @@ export default function HomePage() {
       </section>
 
       {/* WHO IT'S FOR */}
-      <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white' }}>
-        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>Who It’s For</p>
-        <h2 style={{ fontSize: '32px', marginBottom: '50px' }}>For Teachers, Admins, and Districts</h2>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '24px',
-          justifyContent: 'center',
-          flexWrap: 'wrap'
-        }}>
+      <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #0f172a, #1e3a5f)', textAlign: 'center' }}>
+        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', fontSize: '13px' }}>{"Who It's For"}</p>
+        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: 'white' }}>Built for Educators and Administrators</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', justifyContent: 'center', flexWrap: 'wrap', maxWidth: '1000px', margin: '0 auto' }}>
           {[
-            { icon: '👩‍🏫', title: 'Teachers', desc: 'Improve lesson delivery with real-time feedback.' },
-            { icon: '🏫', title: 'Administrators', desc: 'Evaluate classrooms with AI-driven analysis.' },
-            { icon: '🏙️', title: 'Districts', desc: 'Ensure curriculum coverage across multiple schools.' }
+            { icon: '👩‍🏫', title: 'Teachers', desc: 'Improve lesson delivery with instant, personalized feedback after every class.' },
+            { icon: '🏫', title: 'Administrators', desc: 'Evaluate classrooms consistently and identify areas for improvement at scale.' },
+            { icon: '🏙️', title: 'Districts', desc: 'Ensure curriculum coverage and instructional quality across every school.' },
           ].map(({ icon, title, desc }) => (
-            <div key={title} style={{ background: 'rgba(255,255,255,0.07)', borderRadius: '16px', padding: '20px', width: '250px' }}>
-              <div style={{ fontSize: '36px', marginBottom: '16px' }}>{icon}</div>
+            <div key={title} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '16px', padding: '36px 28px', flex: '1', minWidth: '240px', maxWidth: '300px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ fontSize: '36px', marginBottom: '14px' }}>{icon}</div>
               <h3 style={{ fontSize: '20px', marginBottom: '10px', color: 'white' }}>{title}</h3>
               <p style={{ color: '#94a3b8', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
             </div>
