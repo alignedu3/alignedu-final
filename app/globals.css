@@ -119,3 +119,15 @@ body, html {
 .demo-button:hover {
   background-color: #15803d; /* darker green on hover */
 }
+.demo-button {
+  background-color: #16a34a; /* green like demo button */
+  padding: 10px 20px;
+  color: white;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.demo-button:hover {
+  background-color: #15803d; /* darker green on hover */
+}
