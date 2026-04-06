@@ -130,8 +130,10 @@ export default function HomePage() {
 
       {/* WHO IT'S FOR */}
       <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white' }}>
-        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>Who It’s For</p>
-        <h2 style={{ fontSize: '48px', marginBottom: '50px', textAlign: 'center', fontWeight: '600' }}>For Teachers, Admins, and Districts</h2>
+        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px', textAlign: 'center' }}>Who It’s For</p>
+        <h2 style={{ fontSize: '56px', marginBottom: '50px', textAlign: 'center', fontWeight: '600', color: 'white' }}>
+          For Teachers, Admins, and Districts
+        </h2>
         <div style={{
           display: 'flex',
           justifyContent: 'center',
