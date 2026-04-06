@@ -130,9 +130,9 @@ export default function HomePage() {
           Join schools using AI to improve instruction.
         </p>
         
-        <a href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo.">
+        <button onClick={() => { window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; }} style={primaryBtn}>
           Book Demo
-        </a>
+        </button>
       </section>
       
       {/* FOOTER */}
