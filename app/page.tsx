@@ -32,9 +32,9 @@ export default function HomePage() {
           <button onClick={() => { router.push("/analyze"); }} style={primaryBtn}>
             Try It Now
           </button>
-          <a href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo.">
+          <button onClick={() => { window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; }} style={primaryBtn}>
             Book Demo
-          </a>
+          </button>
         </div>
         
         <p style={{ marginTop: '15px', fontSize: '14px' }}>
