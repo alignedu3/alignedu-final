@@ -36,7 +36,7 @@ export default function HomePage() {
             Try It Now
           </button>
 
-          <a href="mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU." style={{ ...secondaryBtn, fontWeight: "bold", textDecoration: 'none', padding: '12px 25px', borderRadius: '8px', display: 'inline-block' }}>
+          <a href="mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU." style={{ ...primaryBtn, textDecoration: 'none', display: 'inline-block', backgroundColor: 'white' }}>
             Book Demo
           </a>
         </div>
