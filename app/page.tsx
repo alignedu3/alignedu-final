@@ -1,8 +1,19 @@
 "use client";
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function HomePage() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);  // For loading state if needed
+
+  const handleBookDemo = () => {
+    console.log('Book Demo button clicked!');
+    try {
+      window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo.";
+    } catch (error) {
+      console.error('Error opening mailto:', error);
+    }
+  };
 
   return (
     <main style={{ fontFamily: 'Arial, sans-serif' }}>
@@ -33,9 +44,7 @@ export default function HomePage() {
             Try It Now
           </button>
           <button 
-            onClick={() => { 
-              window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; 
-            }} 
+            onClick={handleBookDemo}  // Using the handleBookDemo function here
             style={primaryBtn}
           >
             Book Demo
@@ -136,9 +145,7 @@ export default function HomePage() {
         </p>
         
         <button 
-          onClick={() => { 
-            window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; 
-          }} 
+          onClick={handleBookDemo}  // Reuse the same handleBookDemo function
           style={primaryBtn}
         >
           Book Demo
