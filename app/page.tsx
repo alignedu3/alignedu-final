@@ -1,8 +1,24 @@
 "use client";
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const router = useRouter();
+
+  // On page load, check for saved theme preference
+  useEffect(() => {
+    const savedMode = localStorage.getItem('theme');
+    setIsDarkMode(savedMode === 'dark' || (savedMode === null && window.matchMedia('(prefers-color-scheme: dark)').matches));
+  }, []);
+
+  // Toggle theme and save it in localStorage
+  const toggleTheme = () => {
+    const newMode = isDarkMode ? 'light' : 'dark';
+    setIsDarkMode(!isDarkMode);
+    localStorage.setItem('theme', newMode);
+    document.documentElement.setAttribute('data-theme', newMode); // Update the theme on the root element
+  };
 
   const handleBookDemo = () => {
     window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo.";
@@ -16,7 +32,7 @@ export default function HomePage() {
         textAlign: 'center',
         padding: '120px 20px',
         background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-        color: 'white'
+        color: isDarkMode ? 'white' : '#111827'
       }}>
         <h1 style={{ fontSize: '44px', marginBottom: '20px' }}>
           Turn Every Lecture Into Measurable Teaching Insight
@@ -44,12 +60,28 @@ export default function HomePage() {
         <p style={{ marginTop: '15px', fontSize: '14px' }}>
           Upload a lecture and see instant results
         </p>
+
+        {/* Light/Dark Mode Toggle Button */}
+        <button onClick={toggleTheme} style={{
+          position: 'fixed', 
+          top: '20px', 
+          right: '20px', 
+          padding: '10px 20px', 
+          fontSize: '14px', 
+          cursor: 'pointer',
+          backgroundColor: '#facc15',
+          color: '#1e293b',
+          borderRadius: '8px',
+          border: 'none'
+        }}>
+          Toggle {isDarkMode ? 'Light' : 'Dark'} Mode
+        </button>
       </section>
 
       {/* FEATURES */}
-      <section style={{ padding: '80px 20px', background: '#f8fafc', textAlign: 'center' }}>
+      <section style={{ padding: '80px 20px', background: isDarkMode ? '#1f2937' : '#f8fafc', textAlign: 'center' }}>
         <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>Key Features</p>
-        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: '#0f172a' }}>
+        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: isDarkMode ? 'white' : '#0f172a' }}>
           What We Offer
         </h2>
         <div style={{
@@ -64,8 +96,8 @@ export default function HomePage() {
             { icon: '💡', title: 'Actionable Insights', desc: 'Get clear, immediate feedback.' }].map(({ icon, title, desc }) => (
             <div key={title} style={featureBubble}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>{icon}</div>
-              <h3 style={{ fontSize: '20px', marginBottom: '10px', color: '#0f172a' }}>{title}</h3>
-              <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
+              <h3 style={{ fontSize: '20px', marginBottom: '10px', color: isDarkMode ? '#0f172a' : '#0f172a' }}>{title}</h3>
+              <p style={{ color: isDarkMode ? '#94a3b8' : '#64748b', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
             </div>
           ))}
         </div>
