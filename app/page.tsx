@@ -88,7 +88,7 @@ export default function HomePage() {
                 <h3 style={{ fontSize: '18px', marginBottom: '8px', color: '#0f172a' }}>{title}</h3>
                 <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '14px' }}>{desc}</p>
               </div>
-              {i < 2 && <div style={{ fontSize: '28px', color: '#cbd5e1', marginTop: '18px' }}>→</div>}
+              
             </div>
           ))}
         </div>
