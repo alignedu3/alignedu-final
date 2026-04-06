@@ -32,7 +32,6 @@ export default function HomePage() {
           <button onClick={() => { router.push("/analyze"); }} style={primaryBtn}>
             Try It Now
           </button>
-          {/* Updated Book Demo button to open email client */}
           <button 
             onClick={() => { 
               window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; 
@@ -184,4 +183,7 @@ const primaryBtn: React.CSSProperties = {
   height: '45px',    
   cursor: 'pointer', 
   display: 'inline-flex',
- 
+  alignItems: 'center',  
+  justifyContent: 'center',
+  lineHeight: '1'
+};
