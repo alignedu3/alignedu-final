@@ -36,9 +36,9 @@ export default function HomePage() {
             Try It Now
           </button>
 
-          <button onClick={() => { window.location.href = 'mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU.'; }} style={{ ...secondaryBtn, fontWeight: "bold" }}>
+          <a href="mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU." style={{ ...secondaryBtn, fontWeight: "bold", textDecoration: 'none', padding: '12px 25px', borderRadius: '8px', display: 'inline-block' }}>
             Book Demo
-          </button>
+          </a>
         </div>
 
         <p style={{ marginTop: '15px', fontSize: '14px' }}>
@@ -164,9 +164,9 @@ export default function HomePage() {
           Join schools using AI to improve instruction.
         </p>
 
-        <button onClick={() => { window.location.href = 'mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU.'; }} style={primaryBtn}>
+        <a href="mailto:ryan@alignedu.net?subject=AlignEDU Demo Request&body=Hello, I would like to book a demo for AlignEDU." style={{ ...primaryBtn, textDecoration: 'none', padding: '12px 25px', borderRadius: '8px', display: 'inline-block' }}>
           Book Demo
-        </button>
+        </a>
       </section>
 
       {/* FOOTER */}
