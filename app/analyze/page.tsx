@@ -1,136 +1,161 @@
-// app/analyze/Login/page.tsx
-"use client";  // Ensure this is at the very top
+'use client';
+import { useState, useRef } from 'react';
 
-import React, { useState } from 'react';
-
-<<<<<<< HEAD
 export default function AnalyzePage() {
-  const [result, setResult] = useState("");
-  const [lessonNotes, setLessonNotes] = useState("");
-  const [files, setFiles] = useState({
-    curriculum: null,
-    textbook: null,
-    lessonPlan: null,
-    audio: null,
-  });
+  const [file, setFile] = useState<File | null>(null);
+  const [feedback, setFeedback] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleFileChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    fileType: string
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setFiles((prev) => ({
-        ...prev,
-        [fileType]: file,
-      }));
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+
+  const MAX_SECONDS = 900;
+
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startRecording = async () => {
+    if (!mediaRecorderRef.current) {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
+    } else {
+      mediaRecorderRef.current.resume();
+    }
+
+    setIsRecording(true);
+    setIsPaused(false);
+
+    timerRef.current = setInterval(() => {
+      setSeconds((prev) => {
+        if (prev >= MAX_SECONDS) {
+          stopRecording(true);
+          return MAX_SECONDS;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+  };
+
+  const pauseRecording = () => {
+    mediaRecorderRef.current?.pause();
+    setIsPaused(true);
+    clearInterval(timerRef.current ?? undefined); timerRef.current = null;
+  };
+
+  const stopRecording = (auto = false) => {
+    mediaRecorderRef.current?.stop();
+
+    mediaRecorderRef.current!.onstop = () => {
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      const audioFile = new File([audioBlob], 'recording.webm');
+      setFile(audioFile);
+    };
+
+    clearInterval(timerRef.current ?? undefined); timerRef.current = null;
+
+    setIsRecording(false);
+    setIsPaused(false);
+
+    if (auto) {
+      alert('15 minute limit reached. Recording stopped.');
     }
   };
 
-  const analyze = () => {
-    setResult(`
-Alignment Score: 82%
+  const resetRecording = () => {
+    mediaRecorderRef.current = null;
+    audioChunksRef.current = [];
+    setFile(null);
+    setSeconds(0);
+    clearInterval(timerRef.current ?? undefined); timerRef.current = null;
+    setIsRecording(false);
+    setIsPaused(false);
+  };
 
-Strengths:
-- Clear explanation of topic
-- Strong structure
+  const formatTime = (sec: number) => {
+    const min = Math.floor(sec / 60);
+    const s = sec % 60;
+    return min.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
+  };
 
-Improvements:
-- Add more student engagement
-- Improve pacing in middle section
+  const handleAnalyze = async () => {
+    try {
+      setLoading(true);
+      setFeedback('');
 
-Suggestions:
-- Include interactive questions
-- Add real-world examples
+      const formData = new FormData();
+      if (file) formData.append('file', file);
 
-Note:
-No curriculum or textbook provided. Analysis based on general teaching quality.
-    `);
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      setFeedback(data.result);
+    } catch (err) {
+      console.error(err);
+      setFeedback('Error analyzing lesson.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="analyze-page">
+    <main style={{ padding: '40px', display: 'flex', justifyContent: 'center' }}>
+      <div style={{ maxWidth: '800px', width: '100%', padding: '30px' }}>
 
-      {/* LEFT SIDE */}
-      <div className="analyze-left">
-        <div className="panel">
-          <h2>Lesson Input</h2>
-          <p className="subtitle">
-            Upload materials or paste your lesson for analysis.
-          </p>
+        <h1 style={{ textAlign: 'center' }}>Analyze Lesson</h1>
 
-          <textarea
-            placeholder="Paste lesson notes or transcript..."
-            value={lessonNotes}
-            onChange={(e) => setLessonNotes(e.target.value)}
-            className="text-input"
-          />
+        <p style={{ textAlign: 'center', fontWeight: 'bold' }}>
+          {formatTime(seconds)} / 15:00
+        </p>
 
-          <div className="divider">Materials</div>
-
-          <div className="upload-group">
-            <label>Curriculum</label>
-            <input type="file" onChange={(e) => handleFileChange(e, "curriculum")} />
-          </div>
-
-          <div className="upload-group">
-            <label>Textbook</label>
-            <input type="file" onChange={(e) => handleFileChange(e, "textbook")} />
-          </div>
-
-          <div className="upload-group">
-            <label>Lesson Plan</label>
-            <input type="file" onChange={(e) => handleFileChange(e, "lessonPlan")} />
-          </div>
-
-          <div className="upload-group">
-            <label>Audio Recording</label>
-            <input
-              type="file"
-              accept="audio/*"
-              onChange={(e) => handleFileChange(e, "audio")}
-            />
-          </div>
-
-          <button className="analyze-btn" onClick={analyze}>
-            Analyze Lesson
-          </button>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
+          {!isRecording && <button onClick={startRecording} style={btn}>🎙 Start</button>}
+          {isRecording && !isPaused && <button onClick={pauseRecording} style={btn}>⏸ Pause</button>}
+          {isPaused && <button onClick={startRecording} style={btn}>▶️ Resume</button>}
+          {isRecording && <button onClick={() => stopRecording(false)} style={btn}>⏹ Finish</button>}
+          <button onClick={resetRecording} style={btn}>🔁 Reset</button>
         </div>
+
+        {file && <p style={{ textAlign: 'center' }}>Recording ready</p>}
+
+        <button onClick={handleAnalyze} style={{ ...btn, width: '100%', marginTop: '20px' }}>
+          Analyze Lesson
+        </button>
+
+        {loading && <p style={{ textAlign: 'center' }}>Analyzing...</p>}
+
+        {feedback && (
+          <div style={{ marginTop: '20px', padding: '15px', background: '#f3f4f6' }}>
+            <h3>Feedback</h3>
+            <p style={{ whiteSpace: 'pre-wrap' }}>{feedback}</p>
+          </div>
+        )}
+
       </div>
-
-      {/* RIGHT SIDE */}
-      <div className="analyze-right">
-        <div className="panel">
-          <h2>AI Feedback</h2>
-
-          {result ? (
-            <div className="result-box">
-              <pre>{result}</pre>
-            </div>
-          ) : (
-            <div className="results-placeholder">
-              Your analysis will appear here after submission.
-            </div>
-          )}
-        </div>
-      </div>
-
-=======
-const LoginPage = () => {
-  const [email, setEmail] = useState('');
-
-  return (
-    <div>
-      <input 
-        type="email" 
-        value={email} 
-        onChange={(e) => setEmail(e.target.value)} 
-        placeholder="Enter your email" 
-      />
-      <button>Login</button>
->>>>>>> e9aea9952896125bedd91a1b4f9a9b1a35fef8bd
-    </div>
+    </main>
   );
-};
+}
 
-export default LoginPage;
+const btn = {
+  padding: '10px 15px',
+  borderRadius: '8px',
+  border: 'none',
+  backgroundColor: '#16a34a',
+  color: 'white',
+  fontWeight: 'bold'
+};

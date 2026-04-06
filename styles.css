@@ -61,3 +61,279 @@ button {
 button:hover {
     background-color: #0056b3;
 }
+
+/* Global Section Styling */
+section {
+  padding: 60px 0;
+  background-color: white;
+  transition: background-color 0.5s ease-in-out;
+}
+
+/* Alternating section background colors */
+section:nth-child(odd) {
+  background-color: #f7f7f7;
+}
+
+section:nth-child(even) {
+  background: linear-gradient(to bottom, #ffffff, #f0f0f0);
+}
+
+/* Increase spacing between sections */
+section {
+  margin-bottom: 40px;
+}
+
+/* Card styling: Rounded corners and shadows */
+.card {
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Fade-in animation on scroll */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn 1s ease-out;
+}
+
+/* Text styling */
+h2 {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+p {
+  font-size: 1rem;
+  line-height: 1.5;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Button styling */
+button {
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+
+/* Floating Button Style */
+.floating-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #0066cc;
+  color: white;
+  border-radius: 50%;
+  padding: 15px;
+  font-size: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+}
+
+.floating-button:hover {
+  background-color: #004999;
+}
+
+
+/* Floating Button Style */
+.floating-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #0066cc;
+  color: white;
+  border-radius: 50%;
+  padding: 15px;
+  font-size: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+}
+
+.floating-button:hover {
+  background-color: #004999;
+}
+
+
+/* Button Styling */
+button.primary {
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 12px 24px;
+}
+
+button.secondary {
+  background-color: transparent;
+  color: #0066cc;
+  border: 2px solid #0066cc;
+  border-radius: 5px;
+  padding: 12px 24px;
+}
+
+button.primary:hover, button.secondary:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+
+/* Global Section Styling */
+section {
+  padding: 60px 0;
+  background-color: white;
+  transition: background-color 0.5s ease-in-out;
+}
+
+/* Alternating section background colors */
+section:nth-child(odd) {
+  background-color: #f7f7f7;
+}
+
+section:nth-child(even) {
+  background: linear-gradient(to bottom, #ffffff, #f0f0f0);
+}
+
+/* Increase spacing between sections */
+section {
+  margin-bottom: 40px;
+}
+
+/* Card styling: Rounded corners and shadows */
+.card {
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* Fade-in animation on scroll */
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.fade-in {
+  animation: fadeIn 1s ease-out;
+}
+
+/* Text styling */
+h2 {
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+p {
+  font-size: 1rem;
+  line-height: 1.5;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Button styling */
+button {
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+
+/* Floating Button Style */
+.floating-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #0066cc;
+  color: white;
+  border-radius: 50%;
+  padding: 15px;
+  font-size: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+}
+
+.floating-button:hover {
+  background-color: #004999;
+}
+
+
+/* Floating Button Style */
+.floating-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #0066cc;
+  color: white;
+  border-radius: 50%;
+  padding: 15px;
+  font-size: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+}
+
+.floating-button:hover {
+  background-color: #004999;
+}
+
+
+/* Floating Button Style */
+.floating-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #0066cc;
+  color: white;
+  border-radius: 50%;
+  padding: 15px;
+  font-size: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+}
+
+.floating-button:hover {
+  background-color: #004999;
+}
+
+
+.floating-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #007BFF;
+  color: white;
+  border-radius: 50%;
+  padding: 15px;
+  font-size: 16px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+}
+
+.floating-button:hover {
+  background-color: #004999;
+}
+
