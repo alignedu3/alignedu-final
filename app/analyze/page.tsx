@@ -109,22 +109,46 @@ export default function AnalysisPage() {
       <h1>Lesson Plan & Audio Analysis</h1>
 
       {/* Grade Selection */}
-      
+      <label htmlFor="grade">Grade</label>
+      <select value={grade} onChange={handleGradeChange} id="grade">
+        <option value="">Select Grade</option>
+        <option value="1">Grade 1</option>
+        <option value="2">Grade 2</option>
+        {/* Add more grades as needed */}
+      </select>
+
       {/* Subject Selection */}
-      
+      <label htmlFor="subject">Subject</label>
+      <select value={subject} onChange={handleSubjectChange} id="subject">
+        <option value="">Select Subject</option>
+        <option value="math">Math</option>
+        <option value="science">Science</option>
+        <option value="history">History</option>
+        {/* Add more subjects as needed */}
+      </select>
+
       {/* File Upload Section */}
-      
+      <input type="file" onChange={handleFileUpload} />
+
       {/* Text Input for Lesson Notes */}
-      
+      <input
+        type="text"
+        value={lessonNotes}
+        onChange={handleTextChange}
+        placeholder="Enter lesson notes"
+      />
+
       {/* Audio Recording Section */}
+      <div>
+        {isRecording ? (
+          <button onClick={handleStopRecording}>Stop Recording</button>
+        ) : (
+          <button onClick={handleStartRecording}>Start Recording</button>
+        )}
+      </div>
+
       {/* Submit Button */}
+      <button onClick={handleSubmit}>Submit</button>
     </div>
   );
 }
-}
-
-const handleGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  setGrade(e.target.value);
-};
-
-const handleSubjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
