@@ -114,9 +114,8 @@ export default function HomePage() {
 
       {/* WHO IT'S FOR */}
       <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white' }}>
-        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px', textAlign: 'center', fontSize: '18px' }}>Who It’s For</p>
-        <h2 style={{ fontSize: '56px', marginBottom: '50px', textAlign: 'center', fontWeight: '600', color: 'white' }}>
-          Who It’s For
+        <h2 style={{ fontSize: '56px', marginBottom: '50px', textAlign: 'center', fontWeight: '600', color: '#16a34a' }}>
+          Who It's For
         </h2>
         <div style={{
           display: 'flex',
@@ -133,7 +132,7 @@ export default function HomePage() {
             <div key={title} style={featureBubble}>
               <div style={{ fontSize: '64px', marginBottom: '16px' }}>{icon}</div>
               <h3 style={{ fontSize: '24px', marginBottom: '10px', color: 'white' }}>{title}</h3>
-              <p style={{ color: '#94a3b8', lineHeight: '1.6', fontSize: '16px' }}>{desc}</p>
+              <p style={{ color: '#ffffff', lineHeight: '1.6', fontSize: '16px' }}>{desc}</p>
             </div>
           ))}
         </div>
