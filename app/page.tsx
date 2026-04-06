@@ -1,3 +1,4 @@
+import Link from "next/link";
 "use client";
 import { useRouter } from 'next/navigation';
 
@@ -29,12 +30,12 @@ export default function HomePage() {
           gap: '15px',
           flexWrap: 'wrap'
         }}>
-          <button onClick={() => { router.push("/analyze"); }} style={primaryBtn}>
-            Try It Now
-          </button>
-          <button onClick={() => { window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; }} style={primaryBtn}>
-            Book Demo
-          </button>
+          <Link href="/analyze">
+            <a style={primaryBtn}>Try It Now</a>
+          </Link>
+          <Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&</a></Link>">
+            <Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<a style={primaryBtn}>Book Demo</a></a></Link>"><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link></a></Link>"><Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<a style={primaryBtn}>Book Demo</a></a></Link>"><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link></Link></a></Link>"><Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<a style={primaryBtn}>Book Demo</a></a></Link>"><a style={primaryBtn}>Book Demo</a></Link></a></Link>"><Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<a style={primaryBtn}>Book Demo</a></a></Link>"><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link></Link></Link>
+          </Link>
         </div>
         
         <p style={{ marginTop: '15px', fontSize: '14px' }}>
@@ -124,9 +125,9 @@ export default function HomePage() {
           Join schools using AI to improve instruction.
         </p>
         
-        <button onClick={() => { window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; }} style={primaryBtn}>
-          Book Demo
-        </button>
+        <Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&</a></Link>">
+          <Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<a style={primaryBtn}>Book Demo</a></a></Link>"><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link></a></Link>"><Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<a style={primaryBtn}>Book Demo</a></a></Link>"><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link></Link></a></Link>"><Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Linkbody=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link</a></Link> href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<a style={primaryBtn}>Book Demo</a></a></Link>"><a style={primaryBtn}>Book Demo</a></Link></a></Link>"><Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<Link href="mailto:support@alignedu.net?subject=AlignEDU Demo Request<a style={primaryBtn}>Book Demo</a></a></Link>"><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link>body=I would like to schedule a demo."><a style={primaryBtn}>Book Demo</a></Link></Link></Link>
+        </Link>
       </section>
       
       {/* FOOTER */}
@@ -138,23 +139,6 @@ export default function HomePage() {
     </main>
   );
 }
-
-const flexRow = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '40px',
-  marginTop: '40px',
-  flexWrap: 'wrap' as const
-};
-
-const card = {
-  background: 'white',
-  padding: '30px',
-  borderRadius: '10px',
-  width: '260px',
-  boxShadow: '0 8px 20px rgba(0,0,0,0.15)'
-};
 
 const primaryBtn: React.CSSProperties = {
   backgroundColor: '#facc15',
@@ -170,12 +154,4 @@ const primaryBtn: React.CSSProperties = {
   alignItems: 'center',  
   justifyContent: 'center',
   lineHeight: '1',
-};
-
-const secondaryBtn = {
-  backgroundColor: 'white',
-  color: '#1e293b', 
-  padding: '12px 25px',
-  borderRadius: '8px', 
-  border: 'none'
 };

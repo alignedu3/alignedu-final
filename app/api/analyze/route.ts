@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
       const file = formData.get('file') as File;
-
       grade = formData.get('grade') as string;
       subject = formData.get('subject') as string;
 
@@ -29,22 +28,26 @@ export async function POST(req: NextRequest) {
       if (file.type.includes('audio')) {
         const transcription = await openai.audio.transcriptions.create({
           file,
-          model: 'gpt-4o-transcribe',
+          model: 'gpt-4.0-transcribe',
         });
 
         lectureText = transcription.text;
       } else {
         lectureText = await file.text();
       }
-    }
-
-    if (contentType.includes('application/json')) {
+    } else if (contentType.includes('application/json')) {
+      // For JSON payload
       const body = await req.json();
       lectureText = body.lecture;
       grade = body.grade;
       subject = body.subject;
     }
 
+    if (!lectureText) {
+      return NextResponse.json({ result: 'No lesson text available for analysis.' }, { status: 400 });
+    }
+
+    // Get feedback from OpenAI (This is your analysis against TEKS or other standards)
     const feedback = await getChatGPTFeedback(
       `Grade: ${grade}, Subject: ${subject}\n\nLesson:\n${lectureText}`
     );

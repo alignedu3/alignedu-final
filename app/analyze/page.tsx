@@ -1,181 +1,136 @@
-"use client";
-import { useRouter } from 'next/navigation';
+"use client";  // Ensure this is at the very top to use hooks like `useState` and `useEffect`
 
-export default function HomePage() {
-  const router = useRouter();
+import React, { useState, useRef } from 'react';
+
+export default function AnalysisPage() {
+  const [lessonNotes, setLessonNotes] = useState<string>('');
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [grade, setGrade] = useState<string>('');
+  const [subject, setSubject] = useState<string>('');
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioUrlRef = useRef<string>('');
+
+  // Handle file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setAudioFile(file);
+    }
+  };
+
+  // Handle text change
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLessonNotes(e.target.value);
+  };
+
+  // Handle grade change
+  const handleGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setGrade(e.target.value);
+  };
+
+  // Handle subject change
+  const handleSubjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSubject(e.target.value);
+  };
+
+  // Handle start recording
+  const handleStartRecording = () => {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((stream) => {
+          mediaRecorderRef.current = new MediaRecorder(stream);
+          mediaRecorderRef.current.ondataavailable = (e) => {
+            setRecordedBlob(e.data);
+            audioUrlRef.current = URL.createObjectURL(e.data);
+          };
+          mediaRecorderRef.current.start();
+          setIsRecording(true);
+        })
+        .catch((error) => {
+          console.error("Error accessing the microphone:", error);
+        });
+    }
+  };
+
+  // Handle stop recording
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Handle form submission
+  const handleSubmit = () => {
+    if (!lessonNotes && !audioFile && !recordedBlob) {
+      alert("Please provide lesson notes or upload an audio file.");
+      return;
+    }
+
+    if (!grade || !subject) {
+      alert("Please select a grade and subject.");
+      return;
+    }
+
+    // Prepare form data to send
+    const formData = new FormData();
+    formData.append("lessonNotes", lessonNotes);
+    formData.append("grade", grade);
+    formData.append("subject", subject);
+
+    if (audioFile) {
+      formData.append("audioFile", audioFile);
+    } else if (recordedBlob) {
+      const audioBlob = new Blob([recordedBlob], { type: "audio/wav" });
+      formData.append("audioFile", audioBlob);
+    }
+
+    // Send the form data to the server for analysis
+    fetch("/api/analyze", {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Analysis result:", data);
+        alert("Analysis complete!");
+      })
+      .catch((error) => {
+        console.error("Error during analysis:", error);
+        alert("An error occurred.");
+      });
+  };
 
   return (
-    <main style={{ fontFamily: 'Arial, sans-serif' }}>
+    <div className="container">
+      <h1>Lesson Plan & Audio Analysis</h1>
 
-      {/* HERO */}
-      <section style={{
-        textAlign: 'center',
-        padding: '120px 20px',
-        background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-        color: 'white'
-      }}>
-        <h1 style={{ fontSize: '44px', marginBottom: '20px' }}>
-          Turn Every Lecture Into Measurable Teaching Insight
-        </h1>
-        
-        <p style={{ fontSize: '18px', maxWidth: '700px', margin: '0 auto 30px' }}>
-          AI-powered classroom analysis that helps schools improve instruction, verify curriculum coverage, and drive student outcomes.
-        </p>
-        
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '15px',
-          flexWrap: 'wrap'
-        }}>
-          <button onClick={() => { router.push("/analyze"); }} style={primaryBtn}>
-            Try It Now
-          </button>
-          <button onClick={() => { window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; }} style={primaryBtn}>
-            Book Demo
-          </button>
-        </div>
-        
-        <p style={{ marginTop: '15px', fontSize: '14px' }}>
-          Upload a lecture and see instant results
-        </p>
-      </section>
-
-      {/* FEATURES */}
-      <section style={{ padding: '80px 20px', background: '#f8fafc', textAlign: 'center' }}>
-        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>Key Features</p>
-        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: '#0f172a' }}>
-          What We Offer
-        </h2>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '24px',
-          justifyContent: 'center',
-          flexWrap: 'wrap'
-        }}>
-          {[{ icon: '🧠', title: 'AI-Powered Analysis', desc: 'Analyze classroom performance with AI.' },
-            { icon: '📋', title: 'Curriculum Alignment', desc: 'Verify TEKS and state standards coverage.' },
-            { icon: '💡', title: 'Actionable Insights', desc: 'Get clear, immediate feedback.' }].map(({ icon, title, desc }) => (
-            <div key={title} style={{ background: 'white', borderRadius: '16px', padding: '20px', width: '250px' }}>
-              <div style={{ fontSize: '36px', marginBottom: '16px' }}>{icon}</div>
-              <h3 style={{ fontSize: '20px', marginBottom: '10px', color: '#0f172a' }}>{title}</h3>
-              <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section style={{ padding: '80px 20px', textAlign: 'center', background: '#e5e7eb' }}>
-        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>How It Works</p>
-        <h2 style={{ fontSize: '32px', marginBottom: '60px', color: '#0f172a' }}>Simple 3-Step Process</h2>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '24px',
-          justifyContent: 'center',
-          flexWrap: 'wrap'
-        }}>
-          {[
-            { step: '1', icon: '📤', title: 'Upload Lecture', desc: 'Record live lectures or upload pre-recorded content.' },
-            { step: '2', icon: '⚙️', title: 'AI Analysis', desc: 'Our AI evaluates the content for insights and alignment.' },
-            { step: '3', icon: '📊', title: 'Get Feedback', desc: 'Receive immediate feedback and suggestions.' }
-          ].map(({ step, icon, title, desc }) => (
-            <div key={step} style={{ display: 'flex', alignItems: 'center', flexDirection: 'column', textAlign: 'center' }}>
-              <div style={{ fontSize: '36px', marginBottom: '16px' }}>{icon}</div>
-              <h3 style={{ fontSize: '18px', marginBottom: '8px', color: '#0f172a' }}>{title}</h3>
-              <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '14px' }}>{desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* WHO IT'S FOR */}
-      <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #0f172a, #1e3a5f)', textAlign: 'center' }}>
-        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px', textTransform: 'uppercase', fontSize: '13px' }}>{"Who It's For"}</p>
-        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: 'white' }}>Built for Educators and Administrators</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', justifyContent: 'center', flexWrap: 'wrap', maxWidth: '1000px', margin: '0 auto' }}>
-          {[
-            { icon: '👩‍🏫', title: 'Teachers', desc: 'Improve lesson delivery with instant, personalized feedback after every class.' },
-            { icon: '🏫', title: 'Administrators', desc: 'Evaluate classrooms consistently and identify areas for improvement at scale.' },
-            { icon: '🏙️', title: 'Districts', desc: 'Ensure curriculum coverage and instructional quality across every school.' },
-          ].map(({ icon, title, desc }) => (
-            <div key={title} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '16px', padding: '36px 28px', flex: '1', minWidth: '240px', maxWidth: '300px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ fontSize: '36px', marginBottom: '14px' }}>{icon}</div>
-              <h3 style={{ fontSize: '20px', marginBottom: '10px', color: 'white' }}>{title}</h3>
-              <p style={{ color: '#94a3b8', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FINAL CTA */}
-      <section style={{
-        textAlign: 'center',
-        padding: '100px 20px',
-        background: '#111827',
-        color: 'white'
-      }}>
-        <h2>Ready to Transform Teaching?</h2>
-        
-        <p style={{ marginBottom: '20px' }}>
-          Join schools using AI to improve instruction.
-        </p>
-        
-        <button onClick={() => { window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo."; }} style={primaryBtn}>
-          Book Demo
-        </button>
-      </section>
+      {/* Grade Selection */}
       
-      {/* FOOTER */}
-      <footer style={{ textAlign: 'center', padding: '40px' }}>
-        <p>AlignEDU</p>
-        <p>support@alignedu.net</p>
-      </footer>
-
-    </main>
+      {/* Subject Selection */}
+      
+      {/* File Upload Section */}
+      
+      {/* Text Input for Lesson Notes */}
+      
+      {/* Audio Recording Section */}
+        )}
+      </div>
+      
+      {/* Submit Button */}
+    </div>
   );
 }
+}
 
-const flexRow = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: '40px',
-  marginTop: '40px',
-  flexWrap: 'wrap' as const
+const handleGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  setGrade(e.target.value);
 };
 
-const card = {
-  background: 'white',
-  padding: '30px',
-  borderRadius: '10px',
-  width: '260px',
-  boxShadow: '0 8px 20px rgba(0,0,0,0.15)'
+const handleSubjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  setSubject(e.target.value);
 };
 
-const primaryBtn: React.CSSProperties = {
-  backgroundColor: '#facc15',
-  color: '#1e293b',
-  padding: '12px 25px',
-  borderRadius: '8px', 
-  border: 'none',
-  fontWeight: 'bold', 
-  fontSize: '14px',  
-  height: '45px',    
-  cursor: 'pointer', 
-  display: 'inline-flex',
-  alignItems: 'center',  
-  justifyContent: 'center',
-  lineHeight: '1',
-};
-
-const secondaryBtn = {
-  backgroundColor: 'white',
-  color: '#1e293b', 
-  padding: '12px 25px',
-  borderRadius: '8px', 
-  border: 'none'
-};
