@@ -1,3 +1,4 @@
+/* globals.css */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -9,6 +10,45 @@ body {
   font-family: Arial, sans-serif;
 }
 
+:root {
+  --primary-bg-light: #ffffff;
+  --primary-bg-dark: #111827;
+
+  --primary-text-light: #0f172a;
+  --primary-text-dark: #ffffff;
+
+  --primary-btn-light: #facc15;
+  --primary-btn-dark: #facc15;
+
+  --secondary-text-light: #64748b;
+  --secondary-text-dark: #94a3b8;
+
+  --card-bg-light: #f8fafc;
+  --card-bg-dark: #1f2937;
+
+  --section-bg-light: #f1f5f9;   /* Soft gray background for light mode */
+  --section-bg-dark: #1f2937;    /* Dark gray background for dark mode */
+
+  --button-bg-light: #facc15;
+  --button-bg-dark: #2563eb;
+
+  --header-text-light: #0f172a;
+  --header-text-dark: #ffffff;
+}
+
+/* Light Mode */
+[data-theme='light'] {
+  background-color: var(--primary-bg-light);
+  color: var(--primary-text-light);
+}
+
+/* Dark Mode */
+[data-theme='dark'] {
+  background-color: var(--primary-bg-dark);
+  color: var(--primary-text-dark);
+}
+
+/* Hero Section */
 .hero {
   background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: white;
@@ -16,19 +56,10 @@ body {
   padding: 4rem 2rem;
 }
 
-.hero h1 {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-}
-
-.hero p {
-  font-size: 1.2rem;
-  margin-bottom: 2rem;
-}
-
+/* Buttons */
 .demo-button {
-  background-color: #facc15;
-  color: #111827;
+  background-color: var(--button-bg-light);
+  color: var(--primary-text-light);
   padding: 12px 25px;
   border-radius: 8px;
   font-weight: bold;
@@ -36,26 +67,18 @@ body {
   border: none;
   font-size: 14px;
   height: 45px;
-  margin-top: 0;
 }
 
 .demo-button:hover {
   background-color: #e6b800;
 }
 
-.features {
-  display: flex;
-  justify-content: center;
-  gap: 2rem;
-  margin-top: -2rem;
-  flex-wrap: wrap;
-}
-
+/* Feature Bubbles */
 .feature-bubble {
   background-color: white;
   padding: 2rem;
   border-radius: 1rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   width: 250px;
   text-align: center;
   transition: transform 0.2s ease;
@@ -67,14 +90,15 @@ body {
 
 .feature-bubble h3 {
   margin-bottom: 0.5rem;
-  color: #2563eb;
+  color: var(--primary-btn-light); /* Color based on light mode */
 }
 
 .feature-bubble p {
   font-size: 0.95rem;
-  color: #374151;
+  color: var(--secondary-text-light);
 }
 
+/* Site Header */
 .site-header {
   display: flex;
   justify-content: space-between;
@@ -105,7 +129,9 @@ body {
 
 .login-button-top:hover {
   background-color: #15803d;
-}/* Analysis Page Styling */
+}
+
+/* Analysis Page Styling */
 .analysis-container {
   max-width: 800px;
   margin: 40px auto;
@@ -138,304 +164,7 @@ select, input[type="text"], input[type="file"] {
   font-size: 16px;
 }
 
-.recording-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.start-btn, .stop-btn, .submit-btn {
-  background-color: #3182ce;
-  color: #fff;
-  padding: 12px 20px;
-  border-radius: 8px;
-  border: none;
-  font-size: 16px;
-  cursor: pointer;
-  margin-bottom: 20px;
-  transition: background-color 0.3s ease;
-}
-
-.start-btn:hover, .stop-btn:hover, .submit-btn:hover {
-  background-color: #2b6cb0;
-}
-
-.audio-preview {
-  margin-top: 10px;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
+/* Light/Dark Mode Toggle */
 button {
   cursor: pointer;
-}Updated Color Scheme and Styles:
-/* styles/globals.css */
-:root {
-  --primary-bg-light: #ffffff;
-  --primary-bg-dark: #111827;
-
-  --primary-text-light: #0f172a;
-  --primary-text-dark: #ffffff;
-
-  --primary-btn-light: #facc15;
-  --primary-btn-dark: #facc15;
-
-  --secondary-text-light: #64748b;
-  --secondary-text-dark: #94a3b8;
-
-  --card-bg-light: #f8fafc;
-  --card-bg-dark: #1f2937;
-
-  --section-bg-light: #f1f5f9;   /* Soft gray background for light mode */
-  --section-bg-dark: #1f2937;    /* Dark gray background for dark mode */
-
-  --button-bg-light: #facc15;
-  --button-bg-dark: #2563eb;
-
-  --header-text-light: #0f172a;
-  --header-text-dark: #ffffff;
 }
-
-[data-theme='light'] {
-  background-color: var(--primary-bg-light);
-  color: var(--primary-text-light);
-}
-
-[data-theme='dark'] {
-  background-color: var(--primary-bg-dark);
-  color: var(--primary-text-dark);
-}
-
-/* Additional theme-specific styles can be added here */
-Updated React Component with New Colors
-
-This updated version incorporates the colors that should work well in both light and dark modes:
-
-"use client";
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-
-export default function HomePage() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const router = useRouter();
-
-  // On page load, check for saved theme preference
-  useEffect(() => {
-    const savedMode = localStorage.getItem('theme');
-    setIsDarkMode(savedMode === 'dark' || (savedMode === null && window.matchMedia('(prefers-color-scheme: dark)').matches));
-  }, []);
-
-  // Toggle theme and save it in localStorage
-  const toggleTheme = () => {
-    const newMode = isDarkMode ? 'light' : 'dark';
-    setIsDarkMode(!isDarkMode);
-    localStorage.setItem('theme', newMode);
-    document.documentElement.setAttribute('data-theme', newMode); // Update the theme on the root element
-  };
-
-  const handleBookDemo = () => {
-    window.location.href = "mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo.";
-  };
-
-  return (
-    <main style={{ fontFamily: 'Arial, sans-serif' }}>
-
-      {/* HERO */}
-      <section style={{
-        textAlign: 'center',
-        padding: '120px 20px',
-        background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
-        color: isDarkMode ? 'white' : '#111827'
-      }}>
-        <h1 style={{ fontSize: '44px', marginBottom: '20px' }}>
-          Turn Every Lecture Into Measurable Teaching Insight
-        </h1>
-        
-        <p style={{ fontSize: '18px', maxWidth: '700px', margin: '0 auto 30px' }}>
-          AI-powered classroom analysis that helps schools improve instruction, verify curriculum coverage, and drive student outcomes.
-        </p>
-        
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '15px',
-          flexWrap: 'wrap'
-        }}>
-          <button onClick={() => { router.push("/analyze"); }} style={primaryBtn}>
-            Try It Now
-          </button>
-          <button onClick={handleBookDemo} style={primaryBtn}>
-            Book Demo
-          </button>
-        </div>
-        
-        <p style={{ marginTop: '15px', fontSize: '14px' }}>
-          Upload a lecture and see instant results
-        </p>
-      </section>
-
-      {/* FEATURES */}
-      <section style={{ padding: '80px 20px', background: isDarkMode ? '#1f2937' : '#f8fafc', textAlign: 'center' }}>
-        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>Key Features</p>
-        <h2 style={{ fontSize: '32px', marginBottom: '50px', color: isDarkMode ? 'white' : '#0f172a' }}>
-          What We Offer
-        </h2>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '2rem',
-          flexWrap: 'wrap',
-          alignItems: 'center'
-        }}>
-          {[{ icon: '🧠', title: 'AI-Powered Analysis', desc: 'Analyze classroom performance with AI.' },
-            { icon: '📋', title: 'Curriculum Alignment', desc: 'Verify TEKS and state standards coverage.' },
-            { icon: '💡', title: 'Actionable Insights', desc: 'Get clear, immediate feedback.' }].map(({ icon, title, desc }) => (
-            <div key={title} style={featureBubble}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>{icon}</div>
-              <h3 style={{ fontSize: '20px', marginBottom: '10px', color: isDarkMode ? '#0f172a' : '#0f172a' }}>{title}</h3>
-              <p style={{ color: isDarkMode ? '#94a3b8' : '#64748b', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section style={{ padding: '80px 20px', textAlign: 'center', background: '#e5e7eb' }}>
-        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>How It Works</p>
-        <h2 style={{ fontSize: '32px', marginBottom: '60px', color: '#0f172a' }}>Simple 3-Step Process</h2>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '2rem',
-          flexWrap: 'wrap',
-          alignItems: 'center'
-        }}>
-          {[
-            { step: '1', icon: '📤', title: 'Upload Lecture', desc: 'Record live lectures or upload pre-recorded content.' },
-            { step: '2', icon: '⚙️', title: 'AI Analysis', desc: 'Our AI evaluates the content for insights and alignment.' },
-            { step: '3', icon: '📊', title: 'Get Feedback', desc: 'Receive immediate feedback and suggestions.' }
-          ].map(({ step, icon, title, desc }) => (
-            <div key={step} style={featureBubble}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>{icon}</div>
-              <h3 style={{ fontSize: '18px', marginBottom: '8px', color: '#0f172a' }}>{title}</h3>
-              <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '14px' }}>{desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* WHO IT'S FOR */}
-      <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white' }}>
-        <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px', textAlign: 'center', fontSize: '18px' }}>Who It’s For</p>
-        <h2 style={{ fontSize: '56px', marginBottom: '50px', textAlign: 'center', fontWeight: '600', color: 'white' }}>
-          For Teachers, Admins, and Districts
-        </h2>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: '3rem',
-          flexWrap: 'wrap',
-          alignItems: 'center'
-        }}>
-          {[
-            { icon: '👩‍🏫', title: 'Teachers', desc: 'Improve lesson delivery with real-time feedback.' },
-            { icon: '🏫', title: 'Administrators', desc: 'Evaluate classrooms with AI-driven analysis.' },
-            { icon: '🏙️', title: 'Districts', desc: 'Ensure curriculum coverage across multiple schools.' }
-          ].map(({ icon, title, desc }) => (
-            <div key={title} style={featureBubble}>
-              <div style={{ fontSize: '64px', marginBottom: '16px' }}>{icon}</div>
-              <h3 style={{ fontSize: '24px', marginBottom: '10px', color: 'white' }}>{title}</h3>
-              <p style={{ color: '#94a3b8', lineHeight: '1.6', fontSize: '16px' }}>{desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FINAL CTA */}
-      <section style={{
-        textAlign: 'center',
-        padding: '80px 20px',
-        background: '#111827',
-        color: 'white'
-      }}>
-        <h2>Ready to Transform Teaching?</h2>
-        
-        <p style={{ marginBottom: '20px' }}>
-          Join schools using AI to improve instruction.
-        </p>
-        
-        <button onClick={handleBookDemo} style={primaryBtn}>
-          Book Demo
-        </button>
-      </section>
-      
-      {/* FOOTER */}
-      <footer style={{ textAlign: 'center', padding: '40px' }}>
-        <p>AlignEDU</p>
-        <p>support@alignedu.net</p>
-      </footer>
-
-      {/* Light/Dark Mode Toggle Button */}
-      <button onClick={toggleTheme} style={{
-        position: 'fixed', 
-        bottom: '20px', 
-        left: '20px', 
-        padding: '10px 20px', 
-        fontSize: '14px', 
-        cursor: 'pointer',
-        backgroundColor: '#facc15',
-        color: '#1e293b',
-        borderRadius: '8px',
-        border: 'none'
-      }}>
-        Toggle {isDarkMode ? 'Light' : 'Dark'} Mode
-      </button>
-
-    </main>
-  );
-}
-
-const featureBubble: React.CSSProperties = {
-  backgroundColor: 'white',
-  padding: '2rem',
-  borderRadius: '1rem',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-  width: '250px',
-  textAlign: 'center',
-  transition: 'transform 0.2s ease',
-  margin: '0 auto',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const primaryBtn: React.CSSProperties = {
-  backgroundColor: '#facc15',
-  color: '#1e293b',
-  padding: '12px 25px',
-  borderRadius: '8px', 
-  border: 'none',
-  fontWeight: 'bold', 
-  fontSize: '14px',  
-  height: '45px',    
-  cursor: 'pointer', 
-  display: 'inline-flex',
-  alignItems: 'center',  
-  justifyContent: 'center',
-  lineHeight: '1'
-};
-Key Points:
-Color Scheme Adjustments: Buttons, text, and background now have higher contrast, especially for dark mode.
-Text Visibility: Colors for text within sections, especially for "Teachers", "Administrators", and "Districts" have been adjusted for clarity.
-Light/Dark Mode Toggle now works effectively throughout the whole site.
-
-If everything looks good, you can redeploy your site. Let me know if any adjustments are needed!
-
-input[type="text"], select {
-  font-size: 16px;
-}
-/* force redeploy */
