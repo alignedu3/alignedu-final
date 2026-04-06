@@ -14,11 +14,11 @@ export default function HomePage() {
       {/* HERO */}
       <section style={{
         textAlign: 'center',
-        padding: '100px 20px',
+        padding: '120px 20px',
         background: 'linear-gradient(135deg, #2563eb, #3b82f6)',
         color: 'white'
       }}>
-        <h1 style={{ fontSize: '40px', marginBottom: '20px' }}>
+        <h1 style={{ fontSize: '44px', marginBottom: '20px' }}>
           Turn Every Lecture Into Measurable Teaching Insight
         </h1>
         
@@ -47,7 +47,7 @@ export default function HomePage() {
       </section>
 
       {/* FEATURES */}
-      <section style={{ padding: '60px 20px', background: '#f8fafc', textAlign: 'center' }}>
+      <section style={{ padding: '80px 20px', background: '#f8fafc', textAlign: 'center' }}>
         <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>Key Features</p>
         <h2 style={{ fontSize: '32px', marginBottom: '50px', color: '#0f172a' }}>
           What We Offer
@@ -63,7 +63,7 @@ export default function HomePage() {
             { icon: '📋', title: 'Curriculum Alignment', desc: 'Verify TEKS and state standards coverage.' },
             { icon: '💡', title: 'Actionable Insights', desc: 'Get clear, immediate feedback.' }].map(({ icon, title, desc }) => (
             <div key={title} style={featureBubble}>
-              <div style={{ fontSize: '36px', marginBottom: '16px' }}>{icon}</div>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>{icon}</div>
               <h3 style={{ fontSize: '20px', marginBottom: '10px', color: '#0f172a' }}>{title}</h3>
               <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
             </div>
@@ -72,7 +72,7 @@ export default function HomePage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section style={{ padding: '60px 20px', textAlign: 'center', background: '#e5e7eb' }}>
+      <section style={{ padding: '80px 20px', textAlign: 'center', background: '#e5e7eb' }}>
         <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>How It Works</p>
         <h2 style={{ fontSize: '32px', marginBottom: '60px', color: '#0f172a' }}>Simple 3-Step Process</h2>
         <div style={{
@@ -88,7 +88,7 @@ export default function HomePage() {
             { step: '3', icon: '📊', title: 'Get Feedback', desc: 'Receive immediate feedback and suggestions.' }
           ].map(({ step, icon, title, desc }) => (
             <div key={step} style={featureBubble}>
-              <div style={{ fontSize: '36px', marginBottom: '16px' }}>{icon}</div>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>{icon}</div>
               <h3 style={{ fontSize: '18px', marginBottom: '8px', color: '#0f172a' }}>{title}</h3>
               <p style={{ color: '#64748b', lineHeight: '1.6', fontSize: '14px' }}>{desc}</p>
             </div>
@@ -97,9 +97,9 @@ export default function HomePage() {
       </section>
 
       {/* WHO IT'S FOR */}
-      <section style={{ padding: '60px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white' }}>
+      <section style={{ padding: '80px 20px', background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white' }}>
         <p style={{ color: '#16a34a', fontWeight: 'bold', letterSpacing: '1px' }}>Who It’s For</p>
-        <h2 style={{ fontSize: '32px', marginBottom: '50px' }}>For Teachers, Admins, and Districts</h2>
+        <h2 style={{ fontSize: '32px', marginBottom: '50px', textAlign: 'center' }}>For Teachers, Admins, and Districts</h2>
         <div style={{
           display: 'flex',
           justifyContent: 'center',
@@ -113,7 +113,7 @@ export default function HomePage() {
             { icon: '🏙️', title: 'Districts', desc: 'Ensure curriculum coverage across multiple schools.' }
           ].map(({ icon, title, desc }) => (
             <div key={title} style={featureBubble}>
-              <div style={{ fontSize: '36px', marginBottom: '16px' }}>{icon}</div>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>{icon}</div>
               <h3 style={{ fontSize: '20px', marginBottom: '10px', color: 'white' }}>{title}</h3>
               <p style={{ color: '#94a3b8', lineHeight: '1.6', fontSize: '15px' }}>{desc}</p>
             </div>
@@ -124,7 +124,7 @@ export default function HomePage() {
       {/* FINAL CTA */}
       <section style={{
         textAlign: 'center',
-        padding: '60px 20px',
+        padding: '80px 20px',
         background: '#111827',
         color: 'white'
       }}>
@@ -161,7 +161,7 @@ const featureBubble: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
-  justifyContent: 'center'
+  justifyContent: 'center',
 };
 
 const primaryBtn: React.CSSProperties = {
