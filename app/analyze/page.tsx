@@ -117,9 +117,6 @@ export default function AnalysisPage() {
       {/* Text Input for Lesson Notes */}
       
       {/* Audio Recording Section */}
-        )}
-      </div>
-      
       {/* Submit Button */}
     </div>
   );
@@ -131,6 +128,3 @@ const handleGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
 };
 
 const handleSubjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-  setSubject(e.target.value);
-};
-
