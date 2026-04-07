@@ -14,7 +14,13 @@ body {
 
 :root {
   --primary-bg-light: #ffffff;
+<<<<<<< HEAD
   --primary-text-light: #1D4ED8; /* All text is now blue */
+=======
+
+  --primary-text-light: #1D4ED8; /* All text is now blue */
+
+>>>>>>> ef40c69 (Updated text color to blue and button colors to green)
   --primary-btn-light: #16A34A; /* Green buttons */
   --secondary-text-light: #64748b;
   --card-bg-light: #f8fafc;
@@ -184,7 +190,11 @@ select, input[type="text"], input[type="file"] {
 }
 
 .who-it-for-section p {
+<<<<<<< HEAD
   color: #1D4ED8; /* Blue color for text */
+=======
+  color: #1D4ED8; /* Greenish text */
+>>>>>>> ef40c69 (Updated text color to blue and button colors to green)
   font-weight: bold;
   letter-spacing: 1px;
   text-align: center;
