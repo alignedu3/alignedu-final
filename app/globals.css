@@ -125,6 +125,12 @@ body {
   color: #111827;
 }
 
+/* Ensure text in white bubbles is always visible */
+.feature-bubble h3,
+.feature-bubble p {
+  color: #111827; /* Dark text for better visibility inside white bubbles */
+}
+
 /* Site Header */
 .site-header {
   display: flex;
@@ -191,11 +197,6 @@ select, input[type="text"], input[type="file"] {
   font-size: 16px;
 }
 
-/* Light/Dark Mode Toggle */
-button {
-  cursor: pointer;
-}
-
 /* Section for 'Who It's For' */
 .who-it-for-section {
   padding: 80px 20px;
@@ -224,12 +225,6 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Hover Effects for Cards */
-.feature-bubble:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 24px var(--shadow-color);
-}
-
 /* Mobile Optimization */
 @media screen and (max-width: 768px) {
   .feature-bubble {
@@ -240,7 +235,7 @@ html {
   h1, h2 {
     font-size: 28px;
   }
-  
+
   .who-it-for-section h2 {
     font-size: 48px;
   }
