@@ -295,4 +295,23 @@ select {
 audio {
   width: 100%;
   margin-top: 10px;
+}/* In global.css */
+.submitBtn {
+  background-color: #0284c7;
+  color: white;
+  padding: 12px 25px;
+  border-radius: 8px;
+  border: none;
+  font-weight: bold;
+  font-size: 14px;
+  height: 45px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
 }
+
+.submitBtn:hover {
+  background-color: #0ea5e9;
+  transform: translateY(-2px);
+}x<button onClick={handleSubmit} className="submitBtn">
+  Submit for Analysis
+</button>
