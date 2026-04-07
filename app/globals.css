@@ -212,7 +212,7 @@ select, input[type="text"], input[type="file"] {
 }
 
 .who-it-for-section h3 {
-  color: white;
+  color: white; /* Ensure the titles (Teachers, Administrators, Districts) remain white */
 }
 
 /* Smooth Scrolling */
