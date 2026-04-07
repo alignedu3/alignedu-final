@@ -179,36 +179,4 @@ export default function HomePage() {
       </button>
 
     </main>
-  );
-}
-
-const featureBubble: React.CSSProperties = {
-  backgroundColor: 'white',
-  padding: '2rem',
-  borderRadius: '1rem',
-  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-  width: '250px',
-  textAlign: 'center',
-  transition: 'transform 0.2s ease',
-  margin: '0 auto',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const primaryBtn: React.CSSProperties = {
-  backgroundColor: '#ff6b00',
-  color: '#ffffff',
-  padding: '12px 25px',
-  borderRadius: '8px', 
-  border: 'none',
-  fontWeight: 'bold', 
-  fontSize: '14px',  
-  height: '45px',    
-  cursor: 'pointer', 
-  display: 'inline-flex',
-  alignItems: 'center',  
-  justifyContent: 'center',
-  lineHeight: '1'
-};
+ 
