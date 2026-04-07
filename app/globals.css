@@ -9,44 +9,43 @@ body {
   background-color: #f5f7fa;
   font-family: 'Arial', sans-serif;
   line-height: 1.6;  /* Increased line height for better readability */
-  color: #1D4ED8; /* Set all text color to blue */
+  color: #E5E7EB; /* Update text color to match the primary color */
 }
 
 :root {
-  --primary-bg-light: #ffffff;
-  --primary-text-light: #1D4ED8; /* All text is now blue */
-  --primary-btn-light: #16A34A; /* Green buttons */
-  --secondary-text-light: #64748b;
-  --card-bg-light: #f8fafc;
-  --section-bg-light: #f1f5f9;   /* Soft gray background for light mode */
-  --button-bg-light: #16A34A; /* Green button background */
-  --header-text-light: #1D4ED8; /* All header text is blue */
-  --hover-effect: rgba(0, 0, 0, 0.1);
-  --shadow-color: rgba(0, 0, 0, 0.15); /* For softer shadows */
+  --bg-primary: #0B1220;
+  --bg-secondary: #111827;
+  --border: #1F2937;
+
+  --text-primary: #E5E7EB;
+  --text-secondary: #9CA3AF;
+
+  --accent: #38BDF8;
+  --accent-hover: #0EA5E9;
 }
 
 /* Remove Light/Dark Mode Toggle Styles */
 body {
-  background-color: var(--primary-bg-light);
-  color: var(--primary-text-light);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 /* Hero Section */
 .hero {
   background: linear-gradient(135deg, #2563eb, #3b82f6);
-  color: #1D4ED8; /* Hero text is blue */
+  color: var(--text-primary);
   text-align: center;
   padding: 120px 20px;
   border-radius: 10px;
 }
 
-/* Buttons */
+/* Buttons (Retain existing functionality) */
 .demo-button {
-  background-color: var(--button-bg-light);
-  color: white; /* Button text should remain white for contrast */
+  background-color: var(--accent);
+  color: white;
   padding: 12px 25px;
-  border-radius: 8px;
-  font-weight: bold;
+  border-radius: 12px;
+  font-weight: 600;
   cursor: pointer;
   border: none;
   font-size: 14px;
@@ -55,17 +54,17 @@ body {
 }
 
 .demo-button:hover {
-  background-color: #15803d; /* Darker green on hover */
+  background-color: var(--accent-hover);
   transform: translateY(-2px);
 }
 
 /* Book Demo Button */
 .book-demo-btn {
-  background-color: #16A34A; /* Green buttons */
-  color: white; /* Button text remains white */
+  background-color: var(--accent);
+  color: white;
   padding: 12px 25px;
-  border-radius: 8px;
-  font-weight: bold;
+  border-radius: 12px;
+  font-weight: 600;
   cursor: pointer;
   border: none;
   font-size: 16px;
@@ -74,13 +73,13 @@ body {
 }
 
 .book-demo-btn:hover {
-  background-color: #15803d; /* Darker green on hover */
+  background-color: var(--accent-hover);
   transform: translateY(-2px);
 }
 
 /* Feature Bubbles */
 .feature-bubble {
-  background-color: white;
+  background-color: var(--bg-secondary);
   padding: 2rem;
   border-radius: 1rem;
   box-shadow: 0 4px 12px var(--shadow-color);
@@ -94,20 +93,9 @@ body {
   box-shadow: 0 8px 24px var(--shadow-color);
 }
 
-.feature-bubble h3 {
-  margin-bottom: 0.5rem;
-  color: #1D4ED8; /* Set title color to blue */
-}
-
-.feature-bubble p {
-  font-size: 0.95rem;
-  color: #1D4ED8; /* Set paragraph text color to blue */
-}
-
-/* Ensure text in white bubbles is always visible */
 .feature-bubble h3,
 .feature-bubble p {
-  color: #1D4ED8; /* Dark blue text for better visibility inside white bubbles */
+  color: var(--text-primary); /* Ensure readability */
 }
 
 /* Site Header */
@@ -116,8 +104,8 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 2rem;
-  background-color: #0f172a;
-  color: #1D4ED8; /* Header text is blue */
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -129,7 +117,7 @@ body {
 }
 
 .login-button-top {
-  background-color: #16a34a;
+  background-color: var(--accent);
   color: white;
   padding: 0.5rem 1.5rem;
   border-radius: 0.5rem;
@@ -140,7 +128,7 @@ body {
 }
 
 .login-button-top:hover {
-  background-color: #15803d;
+  background-color: var(--accent-hover);
 }
 
 /* Analysis Page Styling */
@@ -151,20 +139,19 @@ body {
   background-color: #f7f9fb;
   border-radius: 10px;
   box-shadow: 0 4px 8px var(--shadow-color);
-  font-family: 'Arial', sans-serif;
 }
 
 h1 {
   font-size: 32px;
   text-align: center;
   margin-bottom: 30px;
-  color: #1D4ED8; /* Blue text for the title */
+  color: var(--text-primary);
 }
 
 label {
   display: block;
   margin-bottom: 8px;
-  color: #1D4ED8; /* Blue text for labels */
+  color: var(--text-primary);
 }
 
 select, input[type="text"], input[type="file"] {
@@ -179,12 +166,12 @@ select, input[type="text"], input[type="file"] {
 /* Section for 'Who It's For' */
 .who-it-for-section {
   padding: 80px 20px;
-  background: linear-gradient(135deg, #3b82f6, #2563eb); /* Gradient background remains */
-  color: #1D4ED8; /* Text inside this section is now blue */
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: var(--text-primary);
 }
 
 .who-it-for-section p {
-  color: #1D4ED8; /* Blue color for text */
+  color: var(--text-primary);
   font-weight: bold;
   letter-spacing: 1px;
   text-align: center;
@@ -196,21 +183,21 @@ select, input[type="text"], input[type="file"] {
   margin-bottom: 50px;
   text-align: center;
   font-weight: 600;
-  color: #1D4ED8; /* Set titles to blue */
+  color: var(--text-primary);
 }
 
 /* Updated text color for "Who It's For" section descriptions */
 .who-it-for-section .who-it-for-text {
-  color: #1D4ED8; /* Blue color for all description text */
+  color: var(--text-primary);
 }
 
 /* Ensure the title color stays blue */
 .who-it-for-section h3 {
-  color: #1D4ED8; /* Titles are now blue */
+  color: var(--text-primary);
 }
 
 .who-it-for-section .who-it-for-text p {
-  color: #1D4ED8; /* Blue color for text */
+  color: var(--text-primary);
 }
 
 /* Smooth Scrolling */
