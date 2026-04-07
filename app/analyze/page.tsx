@@ -66,7 +66,7 @@ export default function AnalysisPage() {
   // Handle form submission
   const handleSubmit = () => {
     if (!lessonNotes && !audioFile && !recordedBlob) {
-      alert("Notes");
+      alert("Please provide lesson notes or an audio file.");
       return;
     }
 
@@ -108,54 +108,51 @@ export default function AnalysisPage() {
     <div className="analysis-container">
       {/* Updated Header with "Book Demo" Button */}
       <header className="analysis-header">
-        <h1>Lesson Analysis</h1> {/* Changed from Lesson Plan & Audio Analysis */}
+        <h1>Lesson Analysis</h1>
         <button className="book-demo-btn">
           Book Demo
         </button>
       </header>
 
       {/* Grade Selection */}
-      <label htmlFor="grade">Grade</label>
-      <select value={grade} onChange={handleGradeChange} id="grade">
-        <option value="">Select Grade</option>
-        <option value="1">Grade 1</option>
-        <option value="2">Grade 2</option>
-        <option value="3">Grade 3</option>
-        <option value="4">Grade 4</option>
-        <option value="5">Grade 5</option>
-        <option value="6">Grade 6</option>
-        <option value="7">Grade 7</option>
-        <option value="8">Grade 8</option>
-        <option value="9">Grade 9</option>
-        <option value="10">Grade 10</option>
-        <option value="11">Grade 11</option>
-        <option value="12">Grade 12</option>
-        {/* Add more grades as needed */}
-      </select>
+      <div className="form-group">
+        <label htmlFor="grade">Grade</label>
+        <select value={grade} onChange={handleGradeChange} id="grade">
+          <option value="">Select Grade</option>
+          {[...Array(12).keys()].map(i => (
+            <option key={i + 1} value={i + 1}>Grade {i + 1}</option>
+          ))}
+        </select>
+      </div>
 
       {/* Subject Selection */}
-      <label htmlFor="subject">Subject</label>
-      <select value={subject} onChange={handleSubjectChange} id="subject">
-        <option value="">Select Subject</option>
-        <option value="math">Math</option>
-        <option value="science">Science</option>
-        <option value="history">History</option>
-        {/* Add more subjects as needed */}
-      </select>
+      <div className="form-group">
+        <label htmlFor="subject">Subject</label>
+        <select value={subject} onChange={handleSubjectChange} id="subject">
+          <option value="">Select Subject</option>
+          <option value="math">Math</option>
+          <option value="science">Science</option>
+          <option value="history">History</option>
+        </select>
+      </div>
 
       {/* File Upload Section */}
-      <label htmlFor="audioUpload">Upload Audio</label>
-      <input type="file" onChange={handleFileUpload} id="audioUpload" accept="audio/*" />
+      <div className="form-group">
+        <label htmlFor="audioUpload">Upload Audio</label>
+        <input type="file" onChange={handleFileUpload} id="audioUpload" accept="audio/*" />
+      </div>
 
       {/* Text Input for Lesson Notes */}
-      <label htmlFor="lessonNotes">Lesson Notes</label>
-      <input
-        type="text"
-        id="lessonNotes"
-        value={lessonNotes}
-        onChange={handleTextChange}
-        placeholder="Enter lesson notes"
-      />
+      <div className="form-group">
+        <label htmlFor="lessonNotes">Lesson Notes</label>
+        <input
+          type="text"
+          id="lessonNotes"
+          value={lessonNotes}
+          onChange={handleTextChange}
+          placeholder="Enter lesson notes"
+        />
+      </div>
 
       {/* Audio Recording Section */}
       <div className="recording-section">
@@ -181,9 +178,11 @@ export default function AnalysisPage() {
       </div>
 
       {/* Submit Button */}
-      <button onClick={handleSubmit} className="submit-btn">
-        Submit for Analysis
-      </button>
+      <div className="submit-btn-container">
+        <button onClick={handleSubmit} className="submit-btn">
+          Submit for Analysis
+        </button>
+      </div>
     </div>
   );
 }
