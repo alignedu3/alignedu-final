@@ -206,6 +206,15 @@ select, input[type="text"], input[type="file"] {
   color: white;
 }
 
+/* Updated text color for "Who It's For" section descriptions */
+.who-it-for-section .who-it-for-text {
+  color: #111827; /* Dark color for better visibility */
+}
+
+.who-it-for-section h3 {
+  color: white;
+}
+
 /* Smooth Scrolling */
 html {
   scroll-behavior: smooth;
