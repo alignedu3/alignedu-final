@@ -13,43 +13,29 @@ body {
 
 :root {
   --primary-bg-light: #ffffff;
-  --primary-bg-dark: #111827;
 
   --primary-text-light: #0f172a;
-  --primary-text-dark: #ffffff;
 
   --primary-btn-light: #facc15;
-  --primary-btn-dark: #facc15;
 
   --secondary-text-light: #64748b;
-  --secondary-text-dark: #94a3b8;
 
   --card-bg-light: #f8fafc;
-  --card-bg-dark: #1f2937;
 
   --section-bg-light: #f1f5f9;   /* Soft gray background for light mode */
-  --section-bg-dark: #1f2937;    /* Dark gray background for dark mode */
 
   --button-bg-light: #facc15;
-  --button-bg-dark: #2563eb;
 
   --header-text-light: #0f172a;
-  --header-text-dark: #ffffff;
 
   --hover-effect: rgba(0, 0, 0, 0.1);
   --shadow-color: rgba(0, 0, 0, 0.15); /* For softer shadows */
 }
 
-/* Light Mode */
-[data-theme='light'] {
+/* Remove Light/Dark Mode Toggle Styles */
+body {
   background-color: var(--primary-bg-light);
   color: var(--primary-text-light);
-}
-
-/* Dark Mode */
-[data-theme='dark'] {
-  background-color: var(--primary-bg-dark);
-  color: var(--primary-text-dark);
 }
 
 /* Hero Section */
