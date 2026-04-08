@@ -1,6 +1,6 @@
 export const handleBookDemo = () => {
   const email = 'ryan@alignedu.net';
-  const subject = encodeURIComponent('AlignEDU Demo Request');
+  const subject = encodeURIComponent('AlignEDU Demo – Instructional Insight Platform');
 
   const body = encodeURIComponent(
 `Hi,
