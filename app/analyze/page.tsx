@@ -1,134 +1,108 @@
-"use client";  // Ensure this is at the very top to use hooks like `useState` and `useEffect`
+"use client";
 
 import React, { useState, useRef } from "react";
 
 export default function AnalysisPage() {
-  const [lessonNotes, setLessonNotes] = useState<string>("");
+  const [lessonNotes, setLessonNotes] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
-  const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
-  const [grade, setGrade] = useState<string>("");
-  const [subject, setSubject] = useState<string>("");
+  const [grade, setGrade] = useState("");
+  const [subject, setSubject] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState("");
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioUrlRef = useRef<string>("");
 
-  // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setAudioFile(file);
+    if (e.target.files?.[0]) {
+      setAudioFile(e.target.files[0]);
     }
   };
 
-  // Handle text change
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLessonNotes(e.target.value);
+  const handleStartRecording = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+
+    recorder.ondataavailable = (e) => {
+      setRecordedBlob(e.data);
+      audioUrlRef.current = URL.createObjectURL(e.data);
+    };
+
+    recorder.start();
+    mediaRecorderRef.current = recorder;
+    setIsRecording(true);
   };
 
-  // Handle grade change
-  const handleGradeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setGrade(e.target.value);
-  };
-
-  // Handle subject change
-  const handleSubjectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSubject(e.target.value);
-  };
-
-  // Handle start recording
-  const handleStartRecording = () => {
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      navigator.mediaDevices
-        .getUserMedia({ audio: true })
-        .then((stream) => {
-          mediaRecorderRef.current = new MediaRecorder(stream);
-          mediaRecorderRef.current.ondataavailable = (e) => {
-            setRecordedBlob(e.data);
-            audioUrlRef.current = URL.createObjectURL(e.data);
-          };
-          mediaRecorderRef.current.start();
-          setIsRecording(true);
-        })
-        .catch((error) => {
-          console.error("Error accessing the microphone:", error);
-        });
-    }
-  };
-
-  // Handle stop recording
   const handleStopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
   };
 
-  // Handle form submission
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!lessonNotes && !audioFile && !recordedBlob) {
-      alert("Please provide lesson notes or an audio file.");
+      alert("Provide notes or audio");
       return;
     }
 
     if (!grade || !subject) {
-      alert("Please select a grade and subject.");
+      alert("Select grade and subject");
       return;
     }
 
-    // Prepare form data to send
+    setLoading(true);
+    setResult("");
+
     const formData = new FormData();
-    formData.append("lessonNotes", lessonNotes);
     formData.append("grade", grade);
     formData.append("subject", subject);
 
+    // ✅ FIXED FIELD NAMES
+    if (lessonNotes) formData.append("lecture", lessonNotes);
+
     if (audioFile) {
-      formData.append("audioFile", audioFile);
+      formData.append("file", audioFile);
     } else if (recordedBlob) {
-      const audioBlob = new Blob([recordedBlob], { type: "audio/wav" });
-      formData.append("audioFile", audioBlob);
+      const blob = new Blob([recordedBlob], { type: "audio/wav" });
+      formData.append("file", blob);
     }
 
-    // Send the form data to the server for analysis
-    fetch("/api/analyze", {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        console.log("Analysis result:", data);
-        alert("Analysis complete!");
-      })
-      .catch((error) => {
-        console.error("Error during analysis:", error);
-        alert("An error occurred.");
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        body: formData,
       });
+
+      const data = await res.json();
+      setResult(data.result);
+    } catch (err) {
+      console.error(err);
+      alert("Error analyzing lesson");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="analysis-container">
-      {/* Updated Header with "Book Demo" Button */}
-      <header className="analysis-header">
-        <h1>Lesson Analysis</h1>
-        <button className="book-demo-btn">
-          Book Demo
-        </button>
-      </header>
+      <h1>Analyze Your Lesson</h1>
 
-      {/* Grade Selection */}
       <div className="form-group">
-        <label htmlFor="grade">Grade</label>
-        <select value={grade} onChange={handleGradeChange} id="grade">
+        <label>Grade</label>
+        <select value={grade} onChange={(e) => setGrade(e.target.value)}>
           <option value="">Select Grade</option>
-          {[...Array(12).keys()].map(i => (
-            <option key={i + 1} value={i + 1}>Grade {i + 1}</option>
+          {[...Array(12)].map((_, i) => (
+            <option key={i} value={i + 1}>
+              Grade {i + 1}
+            </option>
           ))}
         </select>
       </div>
 
-      {/* Subject Selection */}
       <div className="form-group">
-        <label htmlFor="subject">Subject</label>
-        <select value={subject} onChange={handleSubjectChange} id="subject">
+        <label>Subject</label>
+        <select value={subject} onChange={(e) => setSubject(e.target.value)}>
           <option value="">Select Subject</option>
           <option value="math">Math</option>
           <option value="science">Science</option>
@@ -136,53 +110,35 @@ export default function AnalysisPage() {
         </select>
       </div>
 
-      {/* File Upload Section */}
-      <div className="form-group">
-        <label htmlFor="audioUpload">Upload Audio</label>
-        <input type="file" onChange={handleFileUpload} id="audioUpload" accept="audio/*" />
-      </div>
+      <textarea
+        placeholder="Paste lesson notes..."
+        value={lessonNotes}
+        onChange={(e) => setLessonNotes(e.target.value)}
+      />
 
-      {/* Text Input for Lesson Notes */}
-      <div className="form-group">
-        <label htmlFor="lessonNotes">Lesson Notes</label>
-        <input
-          type="text"
-          id="lessonNotes"
-          value={lessonNotes}
-          onChange={handleTextChange}
-          placeholder="Enter lesson notes"
-        />
-      </div>
+      <input type="file" onChange={handleFileUpload} />
 
-      {/* Audio Recording Section */}
-      <div className="recording-section">
+      <div className="recording">
         {isRecording ? (
-          <button onClick={handleStopRecording} className="stop-btn">
-            Stop Recording
-          </button>
+          <button onClick={handleStopRecording}>Stop Recording</button>
         ) : (
-          <button onClick={handleStartRecording} className="start-btn">
-            Start Recording
-          </button>
-        )}
-
-        {/* Display recorded audio */}
-        {recordedBlob && (
-          <div className="audio-preview">
-            <audio controls>
-              <source src={audioUrlRef.current} type="audio/wav" />
-              Your browser does not support the audio element.
-            </audio>
-          </div>
+          <button onClick={handleStartRecording}>Start Recording</button>
         )}
       </div>
 
-      {/* Submit Button */}
-      <div className="submit-btn-container">
-        <button onClick={handleSubmit} className="submit-btn">
-          Submit for Analysis
-        </button>
-      </div>
+      {recordedBlob && <audio controls src={audioUrlRef.current} />}
+
+      <button onClick={handleSubmit}>
+        {loading ? "Analyzing..." : "Analyze Lesson"}
+      </button>
+
+      {/* ✅ RESULTS */}
+      {result && (
+        <div className="result-box">
+          <h2>Analysis Results</h2>
+          <pre>{result}</pre>
+        </div>
+      )}
     </div>
   );
 }
