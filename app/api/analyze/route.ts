@@ -73,9 +73,9 @@ export async function POST(req: NextRequest) {
       `Grade: ${grade}, Subject: ${subject}\n\nLesson:\n${lectureText}`
     );
 
-    const coverageRaw = extractField(feedback, 'Coverage Score');
-    const clarityRaw = extractField(feedback, 'Clarity Rating');
-    const gapsRaw = extractField(feedback, 'Gaps Detected');
+    const coverageRaw = extractField(feedback || "", 'Coverage Score');
+    const clarityRaw = extractField(feedback || "", 'Clarity Rating');
+    const gapsRaw = extractField(feedback || "", 'Gaps Detected');
 
     const coverageScore = coverageRaw ? parseInt(coverageRaw.replace('%', '').trim(), 10) : null;
     const gapsDetected = gapsRaw ? parseInt(gapsRaw.trim(), 10) : null;
