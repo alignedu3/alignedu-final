@@ -622,8 +622,12 @@ export default function HomePage() {
               style={{
                 display: 'flex',
                 justifyContent: 'center',
+                alignItems: 'center',
                 gap: '14px',
                 flexWrap: 'wrap',
+                width: '100%',
+                margin: '0 auto',
+                maxWidth: '400px',
               }}
             >
               <button
