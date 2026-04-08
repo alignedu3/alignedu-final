@@ -85,7 +85,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {error ? <p style={errorText}>{error}</p> : null}
+          {error ? <p style={errorText}>{error}</p> : null}<a href="/forgot-password" style={{display: "block", marginTop: "8px", color: "#7dd3fc", fontSize: "14px", textAlign: "left"}}>Forgot password?</a>
 
           <button
             type="submit"

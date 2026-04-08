@@ -25,7 +25,11 @@ export default function DashboardPage() {
   const trendData = getTrendData(reports);
 
   const latestReport = reports[reports.length - 1];
+  const previousReport = reports.length > 1 ? reports[reports.length - 2] : null;
+
   const latestScore = latestReport ? calculateLessonScore(latestReport) : 0;
+  const previousScore = previousReport ? calculateLessonScore(previousReport) : 0;
+  const scoreDelta = latestScore - previousScore;
 
   const insight =
     latestScore >= 90
@@ -90,7 +94,7 @@ export default function DashboardPage() {
               whiteSpace: 'nowrap',
             }}
           >
-            ↑ +4 from last lesson
+            {scoreDelta >= 0 ? `↑ +${scoreDelta}` : `↓ ${scoreDelta}`} from last lesson
           </div>
         </div>
         <p style={{ marginTop: 10, fontSize: 16, lineHeight: 1.5, maxWidth: 720 }}>

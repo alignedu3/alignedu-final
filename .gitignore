@@ -1,5 +1,25 @@
-node_modules
-.next
-.env
+.env*
+*.bak
+*.swp
+*.backup
 .vercel
-.env*.local
+node_modules/
+.next/
+out/
+.DS_Store# env files
+.env*
+
+# backups & temp files
+*.bak
+*.swp
+*.backup
+
+# node
+node_modules/
+
+# next build
+.next/
+out/
+
+# mac
+.DS_Store
