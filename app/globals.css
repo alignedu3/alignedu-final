@@ -725,5 +725,21 @@ audio {
 
 .analysis-report-card:nth-child(5) {
   border-left: 3px solid #a78bfa;
+}.logo {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.logo-align {
+  color: #38bdf8;
+}
+
+.logo-edu {
+  color: #f97316;
+  margin-left: 2px;
 }
 }
