@@ -7,7 +7,7 @@ const openai = new OpenAI({
 export async function getChatGPTFeedback(text: string) {
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4',
+      model: 'gpt-4o',
       temperature: 0.3,
       max_tokens: 1100,
       messages: [
@@ -58,8 +58,8 @@ Your goal is to provide more objective, consistent instructional feedback based 
     });
 
     return response.choices[0]?.message?.content || 'No analysis returned.';
-  } catch (error) {
-    console.error('Error with OpenAI API:', error);
-    return 'Error analyzing lesson plan.';
+  } catch (error: any) {
+    console.error('OpenAI error:', error?.status, error?.message, error);
+    return `Error analyzing lesson plan: ${error?.message || 'Unknown error'}`;
   }
 }
