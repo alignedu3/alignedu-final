@@ -9,14 +9,12 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // 1. Invite user
   const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email);
 
   if (inviteError) {
     return NextResponse.json({ error: inviteError.message }, { status: 500 });
   }
 
-  // 2. Assign role + admin
   const { error: updateError } = await supabase
     .from("profiles")
     .update({
