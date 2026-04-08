@@ -184,14 +184,6 @@ export default function HomePage() {
                 >
                   Book Demo
                 </button>
-
-                <button
-                  onClick={() => router.push('/login')}
-                  style={primaryBtn}
-                  className="hero-cta hero-cta-unified"
-                >
-                  Login
-                </button>
               </div>
 
               <p
@@ -634,13 +626,6 @@ export default function HomePage() {
                 flexWrap: 'wrap',
               }}
             >
-              <button
-                onClick={() => router.push('/analyze')}
-                style={primaryBtn}
-                className="hero-cta"
-              >
-                Try It Now
-              </button>
               <button
                 onClick={handleBookDemo}
                 style={primaryBtn}
