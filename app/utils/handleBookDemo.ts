@@ -1,16 +1,18 @@
 export const handleBookDemo = () => {
   const email = 'ryan@alignedu.net';
-  const subject = encodeURIComponent('Book a Demo');
-  const body = encodeURIComponent(`
-    Hi,
+  const subject = encodeURIComponent('AlignEDU Demo Request');
 
-    I would like to schedule a call to learn more about the services you provide and discuss how your solutions can help my campus or district achieve its goals. I’m interested in exploring how we can work together to improve outcomes and streamline processes.
+  const body = encodeURIComponent(
+`Hi,
 
-    Looking forward to your response.
+I’d like to schedule a demo of AlignEDU to learn more about how it can support instructional visibility and curriculum alignment at my campus/district.
 
-    Best regards,
-    [Your Name]
-  `);
+Please let me know your availability.
+
+Best regards,
+[Your Name]
+[School/District]`
+  );
 
   window.open(`mailto:${email}?subject=${subject}&body=${body}`);
 };
