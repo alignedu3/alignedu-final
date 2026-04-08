@@ -1,9 +1,9 @@
-// utils/openai.ts
+// utils/openaiClient.ts
 
-import OpenAI from 'openai';  // Correct import
+import OpenAI from 'openaiClient';  // Correct import
 
 // Create an instance of the OpenAIApi client with your API key
-const openai = new OpenAI({
+const openaiClient = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,  // Get the API key from the environment variables
 });
 
@@ -11,7 +11,7 @@ const openai = new OpenAI({
 export async function getChatGPTFeedback(text: string) {
   try {
     // Create a chat completion request to OpenAI
-    const response = await openai.chat.completions.create({
+    const response = await openaiClient.chat.completions.create({
       model: 'gpt-4', // You can change this to 'gpt-3.5' if you prefer
       messages: [
         {
