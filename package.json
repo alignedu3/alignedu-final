@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
+    "@supabase/ssr": "^0.10.0",
+    "@supabase/supabase-js": "^2.102.1",
     "@tailwindcss/postcss": "^4.2.2",
     "busboy": "^1.6.0",
     "express": "^5.2.1",

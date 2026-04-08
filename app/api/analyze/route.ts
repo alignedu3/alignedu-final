@@ -1,10 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { OpenAI } from 'openai';
 import { getChatGPTFeedback } from '../../../utils/openai';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+function extractField(result: string, heading: string) {
+  const lines = result.split('\n').map((line) => line.trim());
+  const headingIndex = lines.findIndex(
+    (line) => line.replace(/:$/, '').toLowerCase() === heading.toLowerCase()
+  );
+
+  if (headingIndex === -1 || headingIndex + 1 >= lines.length) return null;
+
+  return lines[headingIndex + 1] || null;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,27 +29,26 @@ export async function POST(req: NextRequest) {
 
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
-      const file = formData.get('file') as File;
-      grade = formData.get('grade') as string;
-      subject = formData.get('subject') as string;
+      const file = formData.get('file') as File | null;
+      grade = (formData.get('grade') as string) || '';
+      subject = (formData.get('subject') as string) || '';
 
-      if (!file) {
-        return NextResponse.json({ result: 'No file uploaded.' }, { status: 400 });
-      }
-
-      // 🔥 If audio → transcribe
-      if (file.type.includes('audio')) {
+      if (file && file.type.includes('audio')) {
         const transcription = await openai.audio.transcriptions.create({
           file,
-          model: 'gpt-4.0-transcribe',
+          model: 'gpt-4o-transcribe',
         });
 
         lectureText = transcription.text;
-      } else {
+      } else if (file) {
         lectureText = await file.text();
       }
+
+      const directLecture = formData.get('lecture') as string | null;
+      if (!lectureText && directLecture) {
+        lectureText = directLecture;
+      }
     } else if (contentType.includes('application/json')) {
-      // For JSON payload
       const body = await req.json();
       lectureText = body.lecture;
       grade = body.grade;
@@ -44,18 +56,76 @@ export async function POST(req: NextRequest) {
     }
 
     if (!lectureText) {
-      return NextResponse.json({ result: 'No lesson text available for analysis.' }, { status: 400 });
+      return NextResponse.json(
+        { result: 'No lesson text available for analysis.' },
+        { status: 400 }
+      );
     }
 
-    // Get feedback from OpenAI (This is your analysis against TEKS or other standards)
     const feedback = await getChatGPTFeedback(
       `Grade: ${grade}, Subject: ${subject}\n\nLesson:\n${lectureText}`
     );
 
-    return NextResponse.json({ result: feedback });
+    const coverageRaw = extractField(feedback, 'Coverage Score');
+    const clarityRaw = extractField(feedback, 'Clarity Rating');
+    const gapsRaw = extractField(feedback, 'Gaps Detected');
 
+    const coverageScore = coverageRaw ? parseInt(coverageRaw.replace('%', '').trim(), 10) : null;
+    const gapsDetected = gapsRaw ? parseInt(gapsRaw.trim(), 10) : null;
+    const clarityRating = clarityRaw || null;
+
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            } catch {}
+          },
+        },
+      }
+    );
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      const title =
+        `${subject || 'Lesson'} ${grade ? `- Grade ${grade}` : ''}`.trim() || 'Untitled Lesson';
+
+      await supabase.from('analyses').insert({
+        user_id: user.id,
+        title,
+        grade,
+        subject,
+        lesson_text: lectureText,
+        analysis_result: feedback,
+        coverage_score: Number.isNaN(coverageScore) ? null : coverageScore,
+        clarity_rating: clarityRating,
+        gaps_detected: Number.isNaN(gapsDetected) ? null : gapsDetected,
+      });
+    }
+
+    return NextResponse.json({ result: feedback });
   } catch (error) {
-    console.error(error);
-    return NextResponse.json({ result: 'Error analyzing lesson.' }, { status: 500 });
+    console.error('ANALYZE ROUTE ERROR:', error);
+
+    const message =
+      error instanceof Error ? error.message : 'Unknown error analyzing lesson.';
+
+    return NextResponse.json(
+      { result: `Error analyzing lesson: ${message}` },
+      { status: 500 }
+    );
   }
 }

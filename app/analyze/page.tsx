@@ -24,6 +24,7 @@ export default function AnalysisPage() {
   const [grade, setGrade] = useState("");
   const [subject, setSubject] = useState("");
   const [loading, setLoading] = useState(false);
+  const [processingStep, setProcessingStep] = useState("");
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
 
@@ -78,6 +79,7 @@ export default function AnalysisPage() {
     }
 
     setLoading(true);
+    setProcessingStep('Preparing lesson for analysis...');
     setResult("");
     setError("");
 
@@ -97,23 +99,28 @@ export default function AnalysisPage() {
     }
 
     try {
+      setProcessingStep('Uploading and transcribing lecture...');
+
       const res = await fetch("/api/analyze", {
         method: "POST",
         body: formData,
       });
 
       const data = await res.json();
+      setProcessingStep('Generating instructional insights...');
 
       if (!res.ok) {
         throw new Error(data?.result || "Error analyzing lesson.");
       }
 
+      setProcessingStep('Saving analysis...');
       setResult(data?.result || "Analysis completed, but no result was returned.");
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Error analyzing lesson.");
     } finally {
       setLoading(false);
+      setProcessingStep('');
     }
   };
 
@@ -256,7 +263,7 @@ export default function AnalysisPage() {
             {loading ? (
               <div className="analysis-loading">
                 <div className="analysis-loading-dot" />
-                <span>Running AI analysis...</span>
+                <span>{processingStep || 'Running AI analysis...'}</span>
               </div>
             ) : result ? (
               <>
