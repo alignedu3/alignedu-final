@@ -17,7 +17,8 @@ export default function RootLayout({
       <body>
         <header className="site-header">
           <Link href="/" className="logo">
-            AlignEDU
+            <span className="logo-align">Align</span>
+            <span className="logo-edu">EDU</span>
           </Link>
 
           <nav
