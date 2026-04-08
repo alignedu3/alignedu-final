@@ -2,17 +2,42 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isHovered, setIsHovered] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Email:', email, 'Password:', password);
-    router.push('/analyze');
+    setError('');
+    setLoading(true);
+
+    try {
+      const supabase = createClient();
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+
+      router.push('/dashboard');
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+      setError('Something went wrong while logging in.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -60,28 +85,27 @@ export default function LoginPage() {
             />
           </div>
 
+          {error ? <p style={errorText}>{error}</p> : null}
+
           <button
             type="submit"
+            disabled={loading}
             style={{
               ...submitBtn,
-              transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
-              boxShadow: isHovered
-                ? '0 18px 36px rgba(249, 115, 22, 0.30)'
-                : '0 14px 30px rgba(249, 115, 22, 0.22)',
+              opacity: loading ? 0.85 : 1,
+              transform: isHovered && !loading ? 'translateY(-2px)' : 'translateY(0)',
+              boxShadow:
+                isHovered && !loading
+                  ? '0 18px 36px rgba(249, 115, 22, 0.30)'
+                  : '0 14px 30px rgba(249, 115, 22, 0.22)',
+              cursor: loading ? 'not-allowed' : 'pointer',
             }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            Login
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-
-        <p style={footerText}>
-          Don&apos;t have an account?{' '}
-          <a href="/signup" style={signupLink}>
-            Sign Up
-          </a>
-        </p>
       </section>
     </main>
   );
@@ -208,20 +232,14 @@ const submitBtn: React.CSSProperties = {
   fontSize: '15px',
   borderRadius: '14px',
   border: 'none',
-  cursor: 'pointer',
   fontWeight: 700,
   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
   marginTop: '6px',
 };
 
-const footerText: React.CSSProperties = {
-  marginTop: '22px',
+const errorText: React.CSSProperties = {
+  margin: 0,
+  color: '#fca5a5',
   fontSize: '14px',
-  color: '#94a3b8',
-};
-
-const signupLink: React.CSSProperties = {
-  color: '#38bdf8',
-  textDecoration: 'none',
-  fontWeight: 700,
+  textAlign: 'left',
 };
