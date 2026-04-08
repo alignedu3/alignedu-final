@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import { NextRequest, NextResponse } from 'next/server';
 import { OpenAI } from 'openai';
 import { getChatGPTFeedback } from '../../../utils/openai';
