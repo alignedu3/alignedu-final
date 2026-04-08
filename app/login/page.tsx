@@ -20,7 +20,7 @@ export default function LoginPage() {
     try {
       const supabase = createClient();
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -31,7 +31,19 @@ export default function LoginPage() {
         return;
       }
 
-      router.push('/dashboard');
+      // Check role and redirect accordingly
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profile?.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
+
       router.refresh();
     } catch (err) {
       console.error(err);
@@ -85,7 +97,8 @@ export default function LoginPage() {
             />
           </div>
 
-          {error ? <p style={errorText}>{error}</p> : null}<a href="/forgot-password" style={{display: "block", marginTop: "8px", color: "#7dd3fc", fontSize: "14px", textAlign: "left"}}>Forgot password?</a>
+          {error ? <p style={errorText}>{error}</p> : null}
+          <a href="/forgot-password" style={{display: "block", marginTop: "8px", color: "#7dd3fc", fontSize: "14px", textAlign: "left"}}>Forgot password?</a>
 
           <button
             type="submit"
