@@ -242,7 +242,61 @@ export default function HomePage() {
                       }}
                     >
                       <div style={dashboardStatCard}>
-                        <div style={statLabel}>Coverage</div>
+                        
+
+<div style={{
+  marginBottom: '18px',
+  padding: '18px 20px',
+  borderRadius: '18px',
+  background: 'linear-gradient(135deg, rgba(15,23,42,0.92), rgba(30,41,59,0.88))',
+  border: '1px solid rgba(148,163,184,0.18)',
+  boxShadow: '0 12px 32px rgba(15,23,42,0.12)'
+}}>
+  <div style={{
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '16px',
+    flexWrap: 'wrap'
+  }}>
+    <div>
+      <div style={{
+        fontSize: '11px',
+        fontWeight: 700,
+        letterSpacing: '0.10em',
+        color: '#94a3b8',
+        marginBottom: '8px'
+      }}>
+        INSTRUCTIONAL SCORE
+      </div>
+      <div style={{
+        fontSize: '34px',
+        fontWeight: 800,
+        lineHeight: 1,
+        color: '#f8fafc'
+      }}>
+        87/100
+      </div>
+    </div>
+
+    <div style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      padding: '8px 12px',
+      borderRadius: '999px',
+      background: 'rgba(34,197,94,0.12)',
+      border: '1px solid rgba(34,197,94,0.20)',
+      color: '#16a34a',
+      fontSize: '13px',
+      fontWeight: 700,
+      whiteSpace: 'nowrap'
+    }}>
+      ↑ +5 from last lesson
+    </div>
+  </div>
+</div>
+
+<div style={statLabel}>Coverage</div>
                         <div style={statValue}>87%</div>
                       </div>
                       <div style={dashboardStatCard}>
