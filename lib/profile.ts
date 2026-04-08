@@ -1,27 +1,43 @@
 import { createClient } from './supabase/server';
 
-export async function ensureProfile() {
+type EnsuredUser = {
+  id: string;
+  email: string | null;
+};
+
+export async function ensureProfile(): Promise<EnsuredUser | null> {
   const supabase = await createClient();
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) return null;
-
-  const { data: existingProfile } = await supabase
-    .from('profiles')
-    .select('id')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  if (!existingProfile) {
-    await supabase.from('profiles').insert({
-      id: user.id,
-      email: user.email,
-      role: 'teacher',
-    });
+  if (userError) {
+    console.error('ensureProfile getUser error:', userError);
+    return null;
   }
 
-  return user;
+  if (!user) {
+    return null;
+  }
+
+  const { error: profileError } = await supabase.from('profiles').upsert(
+    {
+      id: user.id,
+      email: user.email ?? null,
+    },
+    {
+      onConflict: 'id',
+    }
+  );
+
+  if (profileError) {
+    console.error('ensureProfile upsert error:', profileError);
+  }
+
+  return {
+    id: user.id,
+    email: user.email ?? null,
+  };
 }
