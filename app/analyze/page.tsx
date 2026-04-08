@@ -7,6 +7,15 @@ type ParsedSection = {
   content: string[];
 };
 
+type ParsedAnalysis = {
+  metrics: {
+    coverageScore?: string;
+    clarityRating?: string;
+    gapsDetected?: string;
+  };
+  sections: ParsedSection[];
+};
+
 export default function AnalysisPage() {
   const [lessonNotes, setLessonNotes] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -21,12 +30,13 @@ export default function AnalysisPage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioUrlRef = useRef<string>("");
 
-  const parsedSections = useMemo(() => parseAnalysisResult(result), [result]);
+  const parsedAnalysis = useMemo(() => parseAnalysisResult(result), [result]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       setAudioFile(e.target.files[0]);
       setError("");
+      setRecordedBlob(null);
     }
   };
 
@@ -107,6 +117,8 @@ export default function AnalysisPage() {
     }
   };
 
+  const { metrics, sections } = parsedAnalysis;
+
   return (
     <main className="analysis-wrapper">
       <div className="analysis-shell">
@@ -144,6 +156,7 @@ export default function AnalysisPage() {
                         Grade {i + 1}
                       </option>
                     ))}
+                    <option value="Higher Ed">Higher Ed</option>
                   </select>
                 </div>
 
@@ -160,6 +173,10 @@ export default function AnalysisPage() {
                     <option value="history">History</option>
                     <option value="english">English</option>
                     <option value="biology">Biology</option>
+                    <option value="chemistry">Chemistry</option>
+                    <option value="physics">Physics</option>
+                    <option value="social studies">Social Studies</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
               </div>
@@ -214,6 +231,7 @@ export default function AnalysisPage() {
               <h3>What this report includes</h3>
               <ul className="analysis-side-list">
                 <li>Overall lesson summary</li>
+                <li>Coverage and clarity indicators</li>
                 <li>Instructional strengths</li>
                 <li>Instructional gaps</li>
                 <li>Recommendations for improvement</li>
@@ -221,8 +239,8 @@ export default function AnalysisPage() {
               </ul>
 
               <div className="analysis-side-note">
-                For the strongest demo, use a clear lesson summary or a short classroom
-                recording with a selected grade and subject.
+                AlignEDU helps move schools from subjective observation to more objective,
+                consistent instructional feedback based on the lesson content analyzed.
               </div>
             </div>
           </div>
@@ -241,33 +259,60 @@ export default function AnalysisPage() {
                 <span>Running AI analysis...</span>
               </div>
             ) : result ? (
-              parsedSections.length > 0 ? (
-                <div className="analysis-report-grid">
-                  {parsedSections.map((section) => (
-                    <div key={section.title} className="analysis-report-card">
-                      <h3 className="analysis-report-title">{section.title}</h3>
-
-                      {section.content.some((item) => item.trim().startsWith("-")) ? (
-                        <ul className="analysis-report-list">
-                          {section.content.map((item, index) => (
-                            <li key={`${section.title}-${index}`}>
-                              {item.replace(/^-+\s*/, "").trim()}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div className="analysis-report-text">
-                          {section.content.map((item, index) => (
-                            <p key={`${section.title}-${index}`}>{item}</p>
-                          ))}
-                        </div>
-                      )}
+              <>
+                {(metrics.coverageScore || metrics.clarityRating || metrics.gapsDetected) && (
+                  <div className="analysis-metrics-grid">
+                    <div className="analysis-metric-card">
+                      <div className="analysis-metric-label">Coverage Score</div>
+                      <div className="analysis-metric-value">
+                        {metrics.coverageScore || "—"}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="analysis-result-text">{result}</div>
-              )
+
+                    <div className="analysis-metric-card">
+                      <div className="analysis-metric-label">Clarity Rating</div>
+                      <div className="analysis-metric-value">
+                        {metrics.clarityRating || "—"}
+                      </div>
+                    </div>
+
+                    <div className="analysis-metric-card">
+                      <div className="analysis-metric-label">Gaps Detected</div>
+                      <div className="analysis-metric-value">
+                        {metrics.gapsDetected || "—"}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {sections.length > 0 ? (
+                  <div className="analysis-report-grid">
+                    {sections.map((section) => (
+                      <div key={section.title} className="analysis-report-card">
+                        <h3 className="analysis-report-title">{section.title}</h3>
+
+                        {section.content.some((item) => item.trim().startsWith("-")) ? (
+                          <ul className="analysis-report-list">
+                            {section.content.map((item, index) => (
+                              <li key={`${section.title}-${index}`}>
+                                {item.replace(/^-+\s*/, "").trim()}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="analysis-report-text">
+                            {section.content.map((item, index) => (
+                              <p key={`${section.title}-${index}`}>{item}</p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="analysis-result-text">{result}</div>
+                )}
+              </>
             ) : (
               <div className="analysis-empty-state">
                 Upload a lesson, recording, or notes to generate a client-ready instructional report.
@@ -280,16 +325,27 @@ export default function AnalysisPage() {
   );
 }
 
-function parseAnalysisResult(result: string): ParsedSection[] {
-  if (!result.trim()) return [];
+function parseAnalysisResult(result: string): ParsedAnalysis {
+  if (!result.trim()) {
+    return {
+      metrics: {},
+      sections: [],
+    };
+  }
 
   const knownHeadings = [
     "Overall Summary",
+    "Coverage Score",
+    "Clarity Rating",
+    "Gaps Detected",
     "Instructional Strengths",
     "Instructional Gaps",
     "Recommendations",
     "Curriculum Alignment Notes",
+    "Objective Feedback Note",
   ];
+
+  const metricHeadings = ["Coverage Score", "Clarity Rating", "Gaps Detected"];
 
   const normalizedLines = result
     .split("\n")
@@ -297,7 +353,9 @@ function parseAnalysisResult(result: string): ParsedSection[] {
     .filter(Boolean);
 
   const sections: ParsedSection[] = [];
+  const metrics: ParsedAnalysis["metrics"] = {};
   let currentSection: ParsedSection | null = null;
+  let currentHeading: string | null = null;
 
   for (const line of normalizedLines) {
     const cleaned = line.replace(/:$/, "");
@@ -306,8 +364,36 @@ function parseAnalysisResult(result: string): ParsedSection[] {
     );
 
     if (matchedHeading) {
-      if (currentSection) sections.push(currentSection);
+      if (currentSection) {
+        sections.push(currentSection);
+        currentSection = null;
+      }
+
+      currentHeading = matchedHeading;
+
+      if (metricHeadings.includes(matchedHeading)) {
+        continue;
+      }
+
       currentSection = { title: matchedHeading, content: [] };
+      continue;
+    }
+
+    if (currentHeading === "Coverage Score" && !metrics.coverageScore) {
+      metrics.coverageScore = line;
+      currentHeading = null;
+      continue;
+    }
+
+    if (currentHeading === "Clarity Rating" && !metrics.clarityRating) {
+      metrics.clarityRating = line;
+      currentHeading = null;
+      continue;
+    }
+
+    if (currentHeading === "Gaps Detected" && !metrics.gapsDetected) {
+      metrics.gapsDetected = line;
+      currentHeading = null;
       continue;
     }
 
@@ -318,7 +404,12 @@ function parseAnalysisResult(result: string): ParsedSection[] {
     currentSection.content.push(line);
   }
 
-  if (currentSection) sections.push(currentSection);
+  if (currentSection) {
+    sections.push(currentSection);
+  }
 
-  return sections.filter((section) => section.content.length > 0);
+  return {
+    metrics,
+    sections: sections.filter((section) => section.content.length > 0),
+  };
 }
