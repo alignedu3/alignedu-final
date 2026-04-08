@@ -4,6 +4,12 @@ import { OpenAI } from 'openai';
 import { getChatGPTFeedback } from '../../../utils/openai';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+const userUsageMap = new Map();
+
+const DAILY_RECORDING_LIMIT = 8;
+const DAILY_SECONDS_LIMIT = 7 * 60 * 60; // 7 hours
+
+
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -99,6 +105,37 @@ export async function POST(req: NextRequest) {
     const {
       data: { user },
     } = await supabase.auth.getUser();
+
+    const today = new Date().toISOString().slice(0, 10);
+    const recordingSeconds = Math.floor(lectureText.length / 15); // rough estimate
+
+    if (user) {
+      const usageKey = `${user.id}-${today}`;
+      const existing = userUsageMap.get(usageKey) || { count: 0, seconds: 0 };
+
+      const nextCount = existing.count + 1;
+      const nextSeconds = existing.seconds + recordingSeconds;
+
+      if (nextCount > DAILY_RECORDING_LIMIT) {
+        return NextResponse.json(
+          { result: 'You can upload up to 8 recordings per day.' },
+          { status: 429 }
+        );
+      }
+
+      if (nextSeconds > DAILY_SECONDS_LIMIT) {
+        return NextResponse.json(
+          { result: 'You can upload up to 7 total hours per day.' },
+          { status: 429 }
+        );
+      }
+
+      userUsageMap.set(usageKey, {
+        count: nextCount,
+        seconds: nextSeconds,
+      });
+    }
+
 
     if (user) {
       const title =
