@@ -1,6 +1,6 @@
 export const runtime = "nodejs";
 import { NextRequest, NextResponse } from 'next/server';
-import { OpenAI } from 'openai';
+import OpenAI from 'openai';
 import { getChatGPTFeedback } from '../../../utils/openai';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';

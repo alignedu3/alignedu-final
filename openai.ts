@@ -1,6 +1,6 @@
 // utils/openai.ts
 
-import { OpenAI } from 'openai';  // Correct import
+import OpenAI from 'openai';  // Correct import
 
 // Create an instance of the OpenAIApi client with your API key
 const openai = new OpenAI({
