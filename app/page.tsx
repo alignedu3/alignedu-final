@@ -119,6 +119,34 @@ export default function HomePage() {
           padding: '110px 20px 90px',
         }}
       >
+        <div className="hero-nav-shell">
+          <div className="hero-nav">
+            <div className="hero-nav-logo">AlignEDU</div>
+            <div className="hero-nav-actions">
+              <button
+                onClick={() => router.push('/analyze')}
+                style={primaryBtn}
+                className="header-cta"
+              >
+                Try It Now
+              </button>
+              <button
+                onClick={handleBookDemo}
+                style={secondaryBtnDark}
+                className="header-cta header-book-demo"
+              >
+                Book Demo
+              </button>
+              <button
+                onClick={() => router.push('/login')}
+                style={loginBtnDark}
+                className="header-cta header-login"
+              >
+                Login
+              </button>
+            </div>
+          </div>
+        </div>
         <div style={container}>
           <div
             style={{
@@ -160,6 +188,7 @@ export default function HomePage() {
               </p>
 
               <div
+                className="hero-cta-row"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -168,11 +197,19 @@ export default function HomePage() {
                   marginBottom: '18px',
                 }}
               >
-                <button onClick={() => router.push('/analyze')} style={primaryBtn}>
+                <button
+                  onClick={() => router.push('/analyze')}
+                  style={primaryBtn}
+                  className="hero-cta"
+                >
                   Try It Now
                 </button>
 
-                <button onClick={handleBookDemo} style={secondaryBtnDark}>
+                <button
+                  onClick={handleBookDemo}
+                  style={secondaryBtnDark}
+                  className="hero-cta"
+                >
                   Book Demo
                 </button>
               </div>
@@ -609,6 +646,7 @@ export default function HomePage() {
             </p>
 
             <div
+              className="hero-cta-row"
               style={{
                 display: 'flex',
                 justifyContent: 'center',
@@ -616,10 +654,18 @@ export default function HomePage() {
                 flexWrap: 'wrap',
               }}
             >
-              <button onClick={() => router.push('/analyze')} style={primaryBtn}>
+              <button
+                onClick={() => router.push('/analyze')}
+                style={primaryBtn}
+                className="hero-cta"
+              >
                 Try It Now
               </button>
-              <button onClick={handleBookDemo} style={secondaryBtnDark}>
+              <button
+                onClick={handleBookDemo}
+                style={secondaryBtnDark}
+                className="hero-cta"
+              >
                 Book Demo
               </button>
             </div>
@@ -661,6 +707,107 @@ export default function HomePage() {
       >
         {isDarkMode ? 'Light Mode' : 'Dark Mode'}
       </button>
+
+      <style jsx>{`
+        .hero-nav-shell {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 20;
+          padding: 18px 20px 0;
+        }
+
+        .hero-nav {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+        }
+
+        .hero-nav-logo {
+          font-size: 20px;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: #ffffff;
+          white-space: nowrap;
+        }
+
+        .hero-nav-actions {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 12px;
+          flex-wrap: nowrap;
+        }
+
+        .header-cta,
+        .hero-cta {
+          white-space: nowrap !important;
+        }
+
+        @media (max-width: 1024px) {
+          .hero-nav-shell {
+            padding: 16px 18px 0;
+          }
+
+          .hero-nav-actions {
+            gap: 10px;
+          }
+        }
+
+        @media (max-width: 767px) {
+          .hero-nav-shell {
+            padding: 14px 14px 0;
+          }
+
+          .hero-nav {
+            gap: 10px;
+          }
+
+          .hero-nav-logo {
+            font-size: 18px;
+          }
+
+          .hero-nav-actions {
+            gap: 8px;
+          }
+
+          .header-cta,
+          .hero-cta {
+            height: 42px !important;
+            min-width: auto !important;
+            padding: 0 14px !important;
+            font-size: 14px !important;
+            border-radius: 12px !important;
+          }
+
+          .header-book-demo {
+            display: none !important;
+          }
+
+          .hero-cta-row {
+            gap: 10px !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .hero-nav-shell {
+            padding: 12px 12px 0;
+          }
+
+          .hero-nav-logo {
+            font-size: 17px;
+          }
+
+          .header-cta {
+            padding: 0 12px !important;
+            font-size: 14px !important;
+          }
+        }
+      `}</style>
     </main>
   );
 }
@@ -744,6 +891,25 @@ const secondaryBtnDark: React.CSSProperties = {
   fontSize: '15px',
   height: '52px',
   minWidth: '160px',
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  lineHeight: '1',
+  whiteSpace: 'nowrap',
+  backdropFilter: 'blur(8px)',
+};
+
+const loginBtnDark: React.CSSProperties = {
+  background: 'transparent',
+  color: '#ffffff',
+  padding: '0 18px',
+  borderRadius: '12px',
+  border: '1px solid rgba(255,255,255,0.14)',
+  fontWeight: 600,
+  fontSize: '14px',
+  height: '48px',
+  minWidth: '84px',
   cursor: 'pointer',
   display: 'inline-flex',
   alignItems: 'center',
