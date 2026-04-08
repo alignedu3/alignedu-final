@@ -1,1 +1,351 @@
 
+'use client';
+
+import { useMemo, useState } from 'react';
+
+type Role = 'teacher' | 'admin';
+
+type TeacherReport = {
+  id: number;
+  lesson: string;
+  subject: string;
+  grade: string;
+  coverage: number;
+  clarity: 'Strong' | 'Moderate' | 'Needs Support';
+  gaps: number;
+  date: string;
+};
+
+type TeacherSummary = {
+  name: string;
+  reportsSubmitted: number;
+  avgCoverage: number;
+  avgClarity: string;
+  flaggedGaps: number;
+};
+
+const teacherReports: TeacherReport[] = [
+  {
+    id: 1,
+    lesson: 'Cellular Respiration Overview',
+    subject: 'Biology',
+    grade: '10',
+    coverage: 88,
+    clarity: 'Strong',
+    gaps: 2,
+    date: '2026-04-08',
+  },
+  {
+    id: 2,
+    lesson: 'Photosynthesis and Energy Transfer',
+    subject: 'Biology',
+    grade: '10',
+    coverage: 82,
+    clarity: 'Moderate',
+    gaps: 3,
+    date: '2026-04-06',
+  },
+  {
+    id: 3,
+    lesson: 'DNA Replication Basics',
+    subject: 'Biology',
+    grade: '10',
+    coverage: 91,
+    clarity: 'Strong',
+    gaps: 1,
+    date: '2026-04-03',
+  },
+];
+
+const adminTeacherSummaries: TeacherSummary[] = [
+  {
+    name: 'Ms. Johnson',
+    reportsSubmitted: 8,
+    avgCoverage: 86,
+    avgClarity: 'Strong',
+    flaggedGaps: 9,
+  },
+  {
+    name: 'Mr. Davis',
+    reportsSubmitted: 6,
+    avgCoverage: 79,
+    avgClarity: 'Moderate',
+    flaggedGaps: 12,
+  },
+  {
+    name: 'Ms. Ramirez',
+    reportsSubmitted: 10,
+    avgCoverage: 91,
+    avgClarity: 'Strong',
+    flaggedGaps: 5,
+  },
+  {
+    name: 'Mr. Lee',
+    reportsSubmitted: 5,
+    avgCoverage: 74,
+    avgClarity: 'Moderate',
+    flaggedGaps: 11,
+  },
+];
+
+export default function DashboardPage() {
+  const [role, setRole] = useState<Role>('teacher');
+
+  const teacherStats = useMemo(() => {
+    const totalReports = teacherReports.length;
+    const avgCoverage =
+      totalReports > 0
+        ? Math.round(
+            teacherReports.reduce((sum, report) => sum + report.coverage, 0) / totalReports
+          )
+        : 0;
+
+    const totalGaps = teacherReports.reduce((sum, report) => sum + report.gaps, 0);
+
+    const clarityScoreMap = {
+      Strong: 3,
+      Moderate: 2,
+      'Needs Support': 1,
+    } as const;
+
+    const avgClarityScore =
+      totalReports > 0
+        ? teacherReports.reduce((sum, report) => sum + clarityScoreMap[report.clarity], 0) /
+          totalReports
+        : 0;
+
+    let avgClarity = 'Moderate';
+    if (avgClarityScore >= 2.5) avgClarity = 'Strong';
+    else if (avgClarityScore < 1.75) avgClarity = 'Needs Support';
+
+    return {
+      totalReports,
+      avgCoverage,
+      totalGaps,
+      avgClarity,
+    };
+  }, []);
+
+  const adminStats = useMemo(() => {
+    const totalTeachers = adminTeacherSummaries.length;
+    const totalReports = adminTeacherSummaries.reduce(
+      (sum, teacher) => sum + teacher.reportsSubmitted,
+      0
+    );
+    const avgCoverage =
+      totalTeachers > 0
+        ? Math.round(
+            adminTeacherSummaries.reduce((sum, teacher) => sum + teacher.avgCoverage, 0) /
+              totalTeachers
+          )
+        : 0;
+    const totalGaps = adminTeacherSummaries.reduce(
+      (sum, teacher) => sum + teacher.flaggedGaps,
+      0
+    );
+
+    return {
+      totalTeachers,
+      totalReports,
+      avgCoverage,
+      totalGaps,
+    };
+  }, []);
+
+  return (
+    <main className="analysis-wrapper">
+      <div className="analysis-shell">
+        <div className="analysis-header">
+          <div className="analysis-badge">Dashboard</div>
+          <h1 className="analysis-title">AlignEDU Dashboard</h1>
+          <p className="analysis-subtitle">
+            View instructional insights, track lesson analysis trends, and monitor objective
+            feedback across classrooms.
+          </p>
+        </div>
+
+        <section className="analysis-results-card" style={{ marginBottom: '24px' }}>
+          <div className="analysis-results-header">
+            <h2>Dashboard View</h2>
+            <p>Switch between teacher and administrator views.</p>
+          </div>
+
+          <div className="dashboard-role-toggle">
+            <button
+              type="button"
+              className={`dashboard-role-button ${role === 'teacher' ? 'active' : ''}`}
+              onClick={() => setRole('teacher')}
+            >
+              Teacher View
+            </button>
+            <button
+              type="button"
+              className={`dashboard-role-button ${role === 'admin' ? 'active' : ''}`}
+              onClick={() => setRole('admin')}
+            >
+              Admin View
+            </button>
+          </div>
+        </section>
+
+        {role === 'teacher' ? (
+          <>
+            <div className="analysis-metrics-grid" style={{ marginBottom: '24px' }}>
+              <div className="analysis-metric-card">
+                <div className="analysis-metric-label">Total Analyses</div>
+                <div className="analysis-metric-value">{teacherStats.totalReports}</div>
+              </div>
+
+              <div className="analysis-metric-card">
+                <div className="analysis-metric-label">Average Coverage</div>
+                <div className="analysis-metric-value">{teacherStats.avgCoverage}%</div>
+              </div>
+
+              <div className="analysis-metric-card">
+                <div className="analysis-metric-label">Average Clarity</div>
+                <div className="analysis-metric-value">{teacherStats.avgClarity}</div>
+              </div>
+
+              <div className="analysis-metric-card">
+                <div className="analysis-metric-label">Gaps Flagged</div>
+                <div className="analysis-metric-value">{teacherStats.totalGaps}</div>
+              </div>
+            </div>
+
+            <section className="analysis-panel">
+              <div className="analysis-panel-grid">
+                <div className="analysis-form-card">
+                  <div className="analysis-section-top">
+                    <h2>Recent Lesson Reports</h2>
+                    <p>Your most recent lesson analyses and instructional insight history.</p>
+                  </div>
+
+                  <div className="dashboard-table-wrap">
+                    <table className="dashboard-table">
+                      <thead>
+                        <tr>
+                          <th>Lesson</th>
+                          <th>Subject</th>
+                          <th>Grade</th>
+                          <th>Coverage</th>
+                          <th>Clarity</th>
+                          <th>Gaps</th>
+                          <th>Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {teacherReports.map((report) => (
+                          <tr key={report.id}>
+                            <td>{report.lesson}</td>
+                            <td>{report.subject}</td>
+                            <td>{report.grade}</td>
+                            <td>{report.coverage}%</td>
+                            <td>{report.clarity}</td>
+                            <td>{report.gaps}</td>
+                            <td>{report.date}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="analysis-side-card">
+                  <h3>Recommended Next Step</h3>
+                  <div className="analysis-side-note" style={{ marginBottom: '16px' }}>
+                    Revisit lessons with lower clarity or higher gap counts and strengthen
+                    checks for understanding in those areas.
+                  </div>
+
+                  <h3>Why this matters</h3>
+                  <ul className="analysis-side-list">
+                    <li>Track improvement over time</li>
+                    <li>Identify recurring instructional gaps</li>
+                    <li>Support more objective lesson reflection</li>
+                    <li>Turn feedback into next-step action</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+          </>
+        ) : (
+          <>
+            <div className="analysis-metrics-grid" style={{ marginBottom: '24px' }}>
+              <div className="analysis-metric-card">
+                <div className="analysis-metric-label">Teachers Reviewed</div>
+                <div className="analysis-metric-value">{adminStats.totalTeachers}</div>
+              </div>
+
+              <div className="analysis-metric-card">
+                <div className="analysis-metric-label">Total Reports</div>
+                <div className="analysis-metric-value">{adminStats.totalReports}</div>
+              </div>
+
+              <div className="analysis-metric-card">
+                <div className="analysis-metric-label">Average Coverage</div>
+                <div className="analysis-metric-value">{adminStats.avgCoverage}%</div>
+              </div>
+
+              <div className="analysis-metric-card">
+                <div className="analysis-metric-label">Flagged Gaps</div>
+                <div className="analysis-metric-value">{adminStats.totalGaps}</div>
+              </div>
+            </div>
+
+            <section className="analysis-panel">
+              <div className="analysis-panel-grid">
+                <div className="analysis-form-card">
+                  <div className="analysis-section-top">
+                    <h2>Teacher Overview</h2>
+                    <p>Schoolwide snapshot of instructional analysis activity.</p>
+                  </div>
+
+                  <div className="dashboard-table-wrap">
+                    <table className="dashboard-table">
+                      <thead>
+                        <tr>
+                          <th>Teacher</th>
+                          <th>Reports</th>
+                          <th>Avg Coverage</th>
+                          <th>Avg Clarity</th>
+                          <th>Flagged Gaps</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminTeacherSummaries.map((teacher) => (
+                          <tr key={teacher.name}>
+                            <td>{teacher.name}</td>
+                            <td>{teacher.reportsSubmitted}</td>
+                            <td>{teacher.avgCoverage}%</td>
+                            <td>{teacher.avgClarity}</td>
+                            <td>{teacher.flaggedGaps}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="analysis-side-card">
+                  <h3>Admin Insight</h3>
+                  <div className="analysis-side-note" style={{ marginBottom: '16px' }}>
+                    AlignEDU helps administrators move from subjective observation to more
+                    consistent, evidence-based instructional review.
+                  </div>
+
+                  <h3>Recurring Focus Areas</h3>
+                  <ul className="analysis-side-list">
+                    <li>Lesson closure and assessment checks</li>
+                    <li>Explicit reinforcement of core concepts</li>
+                    <li>Consistency in curriculum coverage</li>
+                    <li>Clarity of modeled instruction</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+          </>
+        )}
+      </div>
+    </main>
+  );
+}
