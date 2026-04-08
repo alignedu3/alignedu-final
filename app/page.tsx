@@ -618,7 +618,7 @@ export default function HomePage() {
             </p>
 
             <div
-              className="hero-cta-row"
+              className="bottom-demo-row"
               style={{
                 display: 'flex',
                 justifyContent: 'center',
@@ -706,6 +706,20 @@ export default function HomePage() {
             font-size: 14px !important;
             border-radius: 12px !important;
             justify-content: center !important;
+          }
+
+          .bottom-demo-row {
+            display: flex !important;
+            justify-content: center !important;
+            align-items: center !important;
+            width: 100% !important;
+            max-width: 400px !important;
+            margin: 0 auto !important;
+          }
+
+          .bottom-demo-row .hero-cta {
+            width: auto !important;
+            min-width: 160px !important;
           }
         }
 
