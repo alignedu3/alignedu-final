@@ -741,5 +741,48 @@ audio {
 .logo-edu {
   color: #f97316;
   margin-left: 2px;
+}/* ===== ANALYSIS METRICS ===== */
+
+.analysis-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.analysis-metric-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+.analysis-metric-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.analysis-metric-value {
+  color: var(--text-primary);
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+.analysis-metric-card:nth-child(1) {
+  border-left: 3px solid var(--accent-blue);
+}
+
+.analysis-metric-card:nth-child(2) {
+  border-left: 3px solid var(--accent-green);
+}
+
+.analysis-metric-card:nth-child(3) {
+  border-left: 3px solid var(--accent);
 }
 }
