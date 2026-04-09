@@ -4,7 +4,6 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { sampleReports, getDashboardSummary, getTrendData, calculateLessonScore } from '@/lib/dashboardData';
-import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
   const [dbReports, setDbReports] = useState<any[]>([]);
@@ -19,6 +18,7 @@ export default function AdminDashboard() {
         
         if (!user) {
           console.log('No user found. Redirecting...');
+          // Handle redirection if no user is logged in
           setReady(true);
           return;
         }
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
-        setReady(true);
+        setReady(true); // Make sure to set ready to true even if there's an error
       }
     }
     
@@ -286,3 +286,17 @@ const td: React.CSSProperties = { padding: '12px', fontSize: 14, color: '#e2e8f0
 
 const badgeRed: React.CSSProperties = { backgroundColor: '#f87171', color: '#fff', borderRadius: 8, padding: '4px 8px' };
 const badgeGreen: React.CSSProperties = { backgroundColor: '#34d399', color: '#fff', borderRadius: 8, padding: '4px 8px' };
+
+// Loading Styles
+const loadingContainer: React.CSSProperties = {
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: '#07111f',
+};
+
+const loadingText: React.CSSProperties = {
+  color: '#94a3b8',
+  fontSize: 18,
+};
