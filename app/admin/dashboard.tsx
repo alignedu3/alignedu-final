@@ -1,5 +1,5 @@
 'use client';
-<h1 style={{ color: 'red' }}>ADMIN LIVE VERSION</h1>
+
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
@@ -18,7 +18,12 @@ export default function AdminDashboard() {
     async function loadData() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+
+      // ✅ FIX: prevent infinite loading
+      if (!user) {
+        setReady(true);
+        return;
+      }
 
       const { data: profileData } = await supabase.from('profiles').select('id, name');
       setProfiles(profileData || []);
@@ -61,6 +66,9 @@ export default function AdminDashboard() {
 
   return (
     <main style={page}>
+      {/* ✅ MOVED TEST LINE HERE */}
+      <h1 style={{ color: 'red' }}>ADMIN LIVE VERSION</h1>
+
       <div style={glow1} />
       <div style={glow2} />
 
@@ -167,28 +175,3 @@ export default function AdminDashboard() {
     </main>
   );
 }
-
-const page: React.CSSProperties = { minHeight: '100vh', background: 'radial-gradient(circle at top left, rgba(59,130,246,0.10), transparent 30%), linear-gradient(180deg, #07111f 0%, #081120 100%)', padding: '40px 20px', fontFamily: 'Inter, Roboto, Arial, sans-serif', position: 'relative', overflow: 'hidden' };
-const glow1: React.CSSProperties = { position: 'absolute', width: 400, height: 400, borderRadius: '999px', background: 'rgba(56,189,248,0.07)', filter: 'blur(80px)', top: '5%', left: '5%', pointerEvents: 'none' };
-const glow2: React.CSSProperties = { position: 'absolute', width: 350, height: 350, borderRadius: '999px', background: 'rgba(249,115,22,0.07)', filter: 'blur(80px)', bottom: '10%', right: '5%', pointerEvents: 'none' };
-const container: React.CSSProperties = { maxWidth: 1200, margin: '0 auto', position: 'relative', zIndex: 1 };
-const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32, flexWrap: 'wrap', gap: 16 };
-const badge: React.CSSProperties = { display: 'inline-flex', padding: '6px 12px', borderRadius: 999, background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.18)', fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 };
-const heading: React.CSSProperties = { fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', fontWeight: 800, color: '#f8fafc', margin: '0 0 8px', letterSpacing: '-0.02em' };
-const subheading: React.CSSProperties = { fontSize: 15, color: '#94a3b8', margin: 0, lineHeight: 1.7 };
-const analyzeBtn: React.CSSProperties = { background: 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', padding: '12px 24px', borderRadius: 14, fontWeight: 700, fontSize: 15, textDecoration: 'none', whiteSpace: 'nowrap', boxShadow: '0 8px 24px rgba(249,115,22,0.25)' };
-const secondaryBtn: React.CSSProperties = { background: 'rgba(255,255,255,0.06)', color: '#f8fafc', padding: '12px 24px', borderRadius: 14, fontWeight: 700, fontSize: 15, textDecoration: 'none', border: '1px solid rgba(148,163,184,0.16)' };
-const statsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 };
-const statCard: React.CSSProperties = { background: 'rgba(15,23,42,0.86)', border: '1px solid rgba(148,163,184,0.12)', borderRadius: 20, padding: '24px 28px', backdropFilter: 'blur(14px)' };
-const statLabel: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 };
-const statValue: React.CSSProperties = { fontSize: 36, fontWeight: 800, color: '#f8fafc', lineHeight: 1 };
-const statUnit: React.CSSProperties = { fontSize: 18, color: '#64748b', fontWeight: 600 };
-const card: React.CSSProperties = { background: 'rgba(15,23,42,0.86)', border: '1px solid rgba(148,163,184,0.12)', borderRadius: 20, padding: 28, marginBottom: 24, backdropFilter: 'blur(14px)' };
-const cardHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 };
-const cardTitle: React.CSSProperties = { fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: 0 };
-const table: React.CSSProperties = { width: '100%', borderCollapse: 'collapse' };
-const th: React.CSSProperties = { textAlign: 'left', padding: '10px 12px', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid rgba(148,163,184,0.1)' };
-const tr: React.CSSProperties = { borderBottom: '1px solid rgba(148,163,184,0.06)' };
-const td: React.CSSProperties = { padding: '14px 12px', fontSize: 14, color: '#e2e8f0' };
-const badgeGreen: React.CSSProperties = { background: 'rgba(34,197,94,0.12)', color: '#22c55e', padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700 };
-const badgeRed: React.CSSProperties = { background: 'rgba(239,68,68,0.12)', color: '#ef4444', padding: '4px 10px', borderRadius: 999, fontSize: 12, fontWeight: 700 };
