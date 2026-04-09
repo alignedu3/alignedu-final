@@ -170,13 +170,13 @@ export default function TeacherDashboard() {
               ↑ +5 from last lesson
             </div>
             <div style={summaryItem}>
-              Coverage: {summary.coverage}%
+              Coverage: {summary.averageCoverage}% {/* Corrected the coverage issue */}
             </div>
             <div style={summaryItem}>
-              Clarity: {summary.clarity || 'Strong'}
+              Clarity: {summary.averageClarity || 'Strong'}
             </div>
             <div style={summaryItem}>
-              Gaps Flagged: {summary.gapsFlagged}
+              Gaps Flagged: {summary.totalGaps}
             </div>
           </div>
         </div>
