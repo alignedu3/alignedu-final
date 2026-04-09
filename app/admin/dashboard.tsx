@@ -213,4 +213,26 @@ const page: React.CSSProperties = {
 const loadingText: React.CSSProperties = {
   color: '#94a3b8',
   fontSize: 18
+};const glow1: React.CSSProperties = {
+  position: 'absolute',
+  width: 420,
+  height: 420,
+  borderRadius: '999px',
+  background: 'rgba(56,189,248,0.06)',
+  filter: 'blur(100px)',
+  top: '4%',
+  left: '4%',
+  pointerEvents: 'none'
+};
+
+const glow2: React.CSSProperties = {
+  position: 'absolute',
+  width: 380,
+  height: 380,
+  borderRadius: '999px',
+  background: 'rgba(249,115,22,0.06)',
+  filter: 'blur(100px)',
+  bottom: '8%',
+  right: '6%',
+  pointerEvents: 'none'
 };
