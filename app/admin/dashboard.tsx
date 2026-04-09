@@ -19,7 +19,6 @@ export default function AdminDashboard() {
         
         if (!user) {
           console.log('No user found. Redirecting...');
-          // Handle redirection if no user is logged in
           setReady(true);
           return;
         }
@@ -233,4 +232,26 @@ const loadingText: React.CSSProperties = {
   fontSize: 18,
 };
 
-// Ensure you add any other style constants like `primaryBtn`, `statsGrid`, etc., if you were using them earlier in your styles.
+const primaryBtn: React.CSSProperties = {
+  padding: '10px 20px',
+  backgroundColor: '#3b82f6',
+  color: '#fff',
+  fontWeight: 600,
+  borderRadius: 8,
+  textDecoration: 'none',
+  textAlign: 'center',
+  cursor: 'pointer',
+};
+
+const secondaryBtn: React.CSSProperties = {
+  padding: '10px 20px',
+  backgroundColor: '#10b981',
+  color: '#fff',
+  fontWeight: 600,
+  borderRadius: 8,
+  textDecoration: 'none',
+  textAlign: 'center',
+  cursor: 'pointer',
+};
+
+// Make sure to define other styles like `statsGrid`, `statCard`, etc.
