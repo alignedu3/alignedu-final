@@ -2,15 +2,13 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, CartesianGrid,
-} from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { sampleReports, getDashboardSummary, getTrendData, calculateLessonScore } from '@/lib/dashboardData';
 import { createClient } from '@/lib/supabase/client';
 
 export default function TeacherDashboard() {
   const [userId, setUserId] = useState<string | null>(null);
+  const [teacherName, setTeacherName] = useState<string | null>(null); // To store teacher's name
   const [dbReports, setDbReports] = useState<any[]>([]);
   const [ready, setReady] = useState(false);
 
@@ -21,6 +19,15 @@ export default function TeacherDashboard() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         setUserId(user.id);
+
+        // Fetch the user's name (assuming there's a column called 'name' in your user data table)
+        const { data: userData } = await supabase
+          .from('users')
+          .select('name')
+          .eq('id', user.id)
+          .single();  // Assuming you only have one row for a user
+
+        setTeacherName(userData?.name || 'Teacher');  // Default to 'Teacher' if no name is found
 
         const { data } = await supabase
           .from('analyses')
@@ -38,19 +45,18 @@ export default function TeacherDashboard() {
     loadData();
   }, []);
 
-  if (!ready) return (
-    <div style={loadingContainer}>
-      <p style={loadingText}>Loading...</p>
-    </div>
-  );
-
+  // Ensure hooks are always called the same way during every render
   const reports = dbReports.length > 0
     ? dbReports
     : sampleReports.filter(r => r.teacher === userId);
 
-  const summary = getDashboardSummary(reports);
-  const trendData = getTrendData(reports);
+  // Memoize the trend data for performance optimization
+  const trendData = useMemo(() => getTrendData(reports), [reports]);
 
+  // Memoize the summary for performance optimization
+  const summary = useMemo(() => getDashboardSummary(reports), [reports]);
+
+  // Calculate "This Month" count (only when reports change)
   const thisMonthCount = useMemo(() => {
     const now = new Date();
     return reports.filter(r => {
@@ -58,6 +64,12 @@ export default function TeacherDashboard() {
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length;
   }, [reports]);
+
+  if (!ready) return (
+    <div style={loadingContainer}>
+      <p style={loadingText}>Loading...</p>
+    </div>
+  );
 
   return (
     <main style={page}>
@@ -68,8 +80,7 @@ export default function TeacherDashboard() {
         {/* HEADER */}
         <div style={header}>
           <div>
-            <div style={badge}>Teacher Dashboard</div>
-            <h1 style={heading}>Your Instructional Dashboard</h1>
+            <h1 style={heading}>{teacherName ? `${teacherName}'s Dashboard` : 'Teacher Dashboard'}</h1>
             <p style={subheading}>Track your lesson scores, trends, and instructional feedback.</p>
           </div>
           <Link href="/analyze" style={primaryBtn}>+ Analyze Lesson</Link>
@@ -176,12 +187,10 @@ const glow2: React.CSSProperties = {
 
 const container: React.CSSProperties = { maxWidth: 1240, margin: '0 auto', position: 'relative', zIndex: 1 };
 
-const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36, flexWrap: 'wrap', gap: 16 };
-const badge: React.CSSProperties = {
-  display: 'inline-flex', padding: '6px 14px', borderRadius: 999,
-  background: 'rgba(56,189,248,0.15)', color: '#7dd3fc',
-  fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10
+const header: React.CSSProperties = {
+  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36, flexWrap: 'wrap', gap: 16
 };
+
 const heading: React.CSSProperties = { fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 800, color: '#f8fafc', margin: '0 0 8px', letterSpacing: '-0.02em' };
 const subheading: React.CSSProperties = { fontSize: 15, color: '#94a3b8', margin: 0, lineHeight: 1.7 };
 
@@ -192,24 +201,40 @@ const primaryBtn: React.CSSProperties = {
   boxShadow: '0 10px 28px rgba(249,115,22,0.25)', whiteSpace: 'nowrap'
 };
 
+// Loading styles
+const loadingContainer: React.CSSProperties = {
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: '#07111f',
+};
+
+const loadingText: React.CSSProperties = {
+  color: '#94a3b8',
+  fontSize: 18,
+};
+
+// Summary card styles
 const statsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 28 };
 const statCard: React.CSSProperties = { background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(148,163,184,0.12)', borderRadius: 24, padding: '28px 32px', backdropFilter: 'blur(16px)' };
 const statLabel: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 };
 const statValue: React.CSSProperties = { fontSize: 38, fontWeight: 800, color: '#f8fafc', lineHeight: 1 };
 const statUnit: React.CSSProperties = { fontSize: 18, color: '#64748b', fontWeight: 600 };
 
+// Chart card styles
 const card: React.CSSProperties = { background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(148,163,184,0.12)', borderRadius: 24, padding: 30, marginBottom: 28, backdropFilter: 'blur(16px)' };
 const cardHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 };
 const cardTitle: React.CSSProperties = { fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: 0 };
+
+// Button styles
 const linkBtn: React.CSSProperties = { color: '#f97316', fontSize: 14, fontWeight: 600, textDecoration: 'none' };
 const emptyState: React.CSSProperties = { color: '#64748b', textAlign: 'center', padding: '50px 0', fontSize: 14 };
 const highlightLink: React.CSSProperties = { color: '#f97316', fontWeight: 600, textDecoration: 'none' };
 
+// Table styles
 const tableWrapper: React.CSSProperties = { overflowX: 'auto', borderRadius: 12 };
 const table: React.CSSProperties = { width: '100%', borderCollapse: 'collapse' };
 const th: React.CSSProperties = { textAlign: 'left', padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid rgba(148,163,184,0.1)' };
 const tr: React.CSSProperties = { borderBottom: '1px solid rgba(148,163,184,0.06)', transition: 'background 0.2s', cursor: 'default' };
 const td: React.CSSProperties = { padding: '14px 12px', fontSize: 14, color: '#e2e8f0' };
-
-const loadingContainer: React.CSSProperties = { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07111f' };
-const loadingText: React.CSSProperties = { color: '#94a3b8', fontSize: 18 };

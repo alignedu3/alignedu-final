@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { sampleReports, getDashboardSummary, getTrendData, calculateLessonScore } from '@/lib/dashboardData';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
   const [dbReports, setDbReports] = useState<any[]>([]);
@@ -27,38 +27,24 @@ export default function AdminDashboard() {
         if (profileError) throw profileError;
         
         setProfiles(profileData || []);
-        console.log('Profiles fetched:', profileData);
 
         const { data, error: reportError } = await supabase.from('analyses').select('*').order('created_at', { ascending: false });
         if (reportError) throw reportError;
 
         setDbReports(data || []);
-        console.log('Reports fetched:', data);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
-        setReady(true); // Make sure to set ready to true even if there's an error
+        setReady(true);
       }
     }
-    
+
     loadData();
   }, []);
 
-  if (!ready) {
-    return (
-      <div style={loadingContainer}>
-        <p style={loadingText}>Loading...</p>
-      </div>
-    );
-  }
-
-  const reports = dbReports.length > 0 ? dbReports : sampleReports;
-  const summary = getDashboardSummary(reports);
-  const trendData = getTrendData(reports);
-
   const teacherStats = useMemo(() => {
     const map: Record<string, any[]> = {};
-    reports.forEach((r: any) => {
+    dbReports.forEach((r: any) => {
       const key = r.user_id;
       if (!map[key]) map[key] = [];
       map[key].push(r);
@@ -73,7 +59,19 @@ export default function AdminDashboard() {
         needsAttention: avgScore < 75,
       };
     });
-  }, [reports, profiles]);
+  }, [dbReports, profiles]);
+
+  if (!ready) {
+    return (
+      <div style={loadingContainer}>
+        <p style={loadingText}>Loading...</p>
+      </div>
+    );
+  }
+
+  const reports = dbReports.length > 0 ? dbReports : sampleReports;
+  const summary = getDashboardSummary(reports);
+  const trendData = getTrendData(reports);
 
   return (
     <main style={page}>
@@ -84,11 +82,10 @@ export default function AdminDashboard() {
         {/* HEADER */}
         <div style={header}>
           <div>
-            <div style={badge}>Admin Control Center</div>
-            <h1 style={heading}>🛠 System Dashboard</h1>
+            <h1 style={heading}>Admin Dashboard</h1> {/* Updated heading */}
             <p style={subheading}>System-wide instructional insights across all teachers.</p>
           </div>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <div style={actionButtons}>
             <Link href="/analyze" style={primaryBtn}>+ Analyze Lesson</Link>
             <Link href="/admin/invite" style={secondaryBtn}>Invite Users</Link>
           </div>
@@ -115,7 +112,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* TEACHER PERFORMANCE */}
-        <div style={card}>
+        <div style={{ ...card, marginTop: '40px' }}> {/* Added marginTop to create space */}
           <div style={cardHeader}>
             <h2 style={cardTitle}>👩‍🏫 Teacher Performance</h2>
           </div>
@@ -211,47 +208,62 @@ const glow2: React.CSSProperties = {
 
 const container: React.CSSProperties = { maxWidth: 1240, margin: '0 auto', position: 'relative', zIndex: 1 };
 
-const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36, flexWrap: 'wrap', gap: 16 };
-const badge: React.CSSProperties = {
-  display: 'inline-flex', padding: '6px 14px', borderRadius: 999,
-  background: 'rgba(56,189,248,0.15)', color: '#7dd3fc',
-  fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10
-};
-const heading: React.CSSProperties = { fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 800, color: '#f8fafc', margin: '0 0 8px', letterSpacing: '-0.02em' };
-const subheading: React.CSSProperties = { fontSize: 15, color: '#94a3b8', margin: 0, lineHeight: 1.7 };
-const loadingContainer: React.CSSProperties = {
-  minHeight: '100vh',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: '#07111f',
+const header: React.CSSProperties = {
+  display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 24, marginBottom: 32
 };
 
-const loadingText: React.CSSProperties = {
-  color: '#94a3b8',
-  fontSize: 18,
-};
+const heading: React.CSSProperties = { fontSize: 40, fontWeight: 700, color: '#fff' };
+
+const subheading: React.CSSProperties = { fontSize: 18, color: '#94a3b8' };
 
 const primaryBtn: React.CSSProperties = {
-  padding: '10px 20px',
-  backgroundColor: '#3b82f6',
-  color: '#fff',
-  fontWeight: 600,
-  borderRadius: 8,
-  textDecoration: 'none',
-  textAlign: 'center',
-  cursor: 'pointer',
+  backgroundColor: '#f97316', color: '#fff', padding: '10px 24px', borderRadius: 8, fontSize: 16,
+  textDecoration: 'none', display: 'inline-block', cursor: 'pointer'
 };
 
 const secondaryBtn: React.CSSProperties = {
-  padding: '10px 20px',
-  backgroundColor: '#10b981',
-  color: '#fff',
-  fontWeight: 600,
-  borderRadius: 8,
-  textDecoration: 'none',
-  textAlign: 'center',
-  cursor: 'pointer',
+  backgroundColor: '#1f2937', color: '#fff', padding: '10px 24px', borderRadius: 8, fontSize: 16,
+  textDecoration: 'none', display: 'inline-block', cursor: 'pointer'
 };
 
-// Make sure to define other styles like `statsGrid`, `statCard`, etc.
+const actionButtons: React.CSSProperties = {
+  display: 'flex', gap: 14, flexWrap: 'wrap'
+};
+
+const statsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 };
+
+const statCard: React.CSSProperties = {
+  background: '#1f2937', borderRadius: 12, padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+};
+
+const statLabel: React.CSSProperties = { fontSize: 14, color: '#94a3b8' };
+
+const statValue: React.CSSProperties = { fontSize: 24, color: '#fff', fontWeight: 700 };
+
+const statUnit: React.CSSProperties = { fontSize: 18, color: '#94a3b8' };
+
+const card: React.CSSProperties = { background: '#1f2937', borderRadius: 12, padding: 24, marginBottom: 32 };
+
+const cardHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', marginBottom: 16 };
+
+const cardTitle: React.CSSProperties = { fontSize: 22, color: '#fff' };
+
+const tableWrapper: React.CSSProperties = { overflowX: 'auto', marginTop: 16 };
+
+const table: React.CSSProperties = { width: '100%', borderCollapse: 'collapse' };
+
+const th: React.CSSProperties = { padding: '12px 16px', textAlign: 'left', fontSize: 14, color: '#94a3b8' };
+
+const tr: React.CSSProperties = { borderBottom: '1px solid #e2e8f0' };
+
+const td: React.CSSProperties = { padding: '12px 16px', fontSize: 14, color: '#fff' };
+
+const badgeRed: React.CSSProperties = { color: '#ef4444' };
+
+const badgeGreen: React.CSSProperties = { color: '#22c55e' };
+
+const loadingContainer: React.CSSProperties = {
+  display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#0f172a'
+};
+
+const loadingText: React.CSSProperties = { fontSize: 24, color: '#fff' };
