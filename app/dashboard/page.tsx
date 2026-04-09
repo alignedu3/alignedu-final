@@ -68,7 +68,7 @@ export default function DashboardPage() {
       ? dbReports
       : role === 'admin'
       ? sampleReports
-      : sampleReports.filter(r => r.teacherId === userId);
+      : sampleReports.filter(r => r.teacher === userId);
 
   const summary = getDashboardSummary(reports);
   const trendData = getTrendData(reports);
