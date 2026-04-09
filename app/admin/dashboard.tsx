@@ -18,8 +18,6 @@ export default function AdminDashboard() {
     async function loadData() {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-
-      // ✅ FIX: prevent infinite loading
       if (!user) {
         setReady(true);
         return;
@@ -28,7 +26,7 @@ export default function AdminDashboard() {
       const { data: profileData } = await supabase.from('profiles').select('id, name');
       setProfiles(profileData || []);
 
-      const { data } = await supabase.from('analyses').select('*').order('created_at');
+      const { data } = await supabase.from('analyses').select('*').order('created_at', { ascending: false });
       setDbReports(data || []);
       setReady(true);
     }
@@ -36,8 +34,8 @@ export default function AdminDashboard() {
   }, []);
 
   if (!ready) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07111f' }}>
-      <p style={{ color: '#94a3b8', fontSize: 18 }}>Loading...</p>
+    <div style={loadingContainer}>
+      <p style={loadingText}>Loading...</p>
     </div>
   );
 
@@ -66,9 +64,6 @@ export default function AdminDashboard() {
 
   return (
     <main style={page}>
-      {/* ✅ MOVED TEST LINE HERE */}
-      <h1 style={{ color: 'red' }}>ADMIN LIVE VERSION</h1>
-
       <div style={glow1} />
       <div style={glow2} />
 
@@ -81,13 +76,13 @@ export default function AdminDashboard() {
             <h1 style={heading}>🛠 System Dashboard</h1>
             <p style={subheading}>System-wide instructional insights across all teachers.</p>
           </div>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <Link href="/analyze" style={analyzeBtn}>+ Analyze Lesson</Link>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            <Link href="/analyze" style={primaryBtn}>+ Analyze Lesson</Link>
             <Link href="/admin/invite" style={secondaryBtn}>Invite Users</Link>
           </div>
         </div>
 
-        {/* STATS */}
+        {/* SUMMARY CARDS */}
         <div style={statsGrid}>
           <div style={statCard}>
             <div style={statLabel}>System Avg Score</div>
@@ -107,44 +102,46 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* TEACHER TABLE */}
+        {/* TEACHER PERFORMANCE */}
         <div style={card}>
           <div style={cardHeader}>
             <h2 style={cardTitle}>👩‍🏫 Teacher Performance</h2>
           </div>
-          <table style={table}>
-            <thead>
-              <tr>{['Teacher', 'Avg Score', 'Lessons', 'Status'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
-            </thead>
-            <tbody>
-              {teacherStats.map((t) => (
-                <tr key={t.name} style={tr}>
-                  <td style={td}>{t.name}</td>
-                  <td style={td}>{t.avgScore}/100</td>
-                  <td style={td}>{t.count}</td>
-                  <td style={td}>
-                    <span style={t.needsAttention ? badgeRed : badgeGreen}>
-                      {t.needsAttention ? '⚠️ Needs Support' : '✅ Strong'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={tableWrapper}>
+            <table style={table}>
+              <thead>
+                <tr>{['Teacher', 'Avg Score', 'Lessons', 'Status'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {teacherStats.map((t) => (
+                  <tr key={t.name} style={tr}>
+                    <td style={td}>{t.name}</td>
+                    <td style={td}>{t.avgScore}/100</td>
+                    <td style={td}>{t.count}</td>
+                    <td style={td}>
+                      <span style={t.needsAttention ? badgeRed : badgeGreen}>
+                        {t.needsAttention ? '⚠️ Needs Support' : '✅ Strong'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* CHART */}
+        {/* SYSTEM TREND CHART */}
         <div style={card}>
           <div style={cardHeader}>
             <h2 style={cardTitle}>📈 System Score Trend</h2>
           </div>
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={280}>
             <LineChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
-              <XAxis dataKey="date" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-              <YAxis domain={[0, 100]} stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 12 }} />
-              <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 12, color: '#f8fafc' }} />
-              <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} dot={{ fill: '#f97316', r: 4 }} />
+              <XAxis dataKey="date" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 13 }} />
+              <YAxis domain={[0, 100]} stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 13 }} />
+              <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 12, color: '#f8fafc', padding: 10 }} />
+              <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} dot={{ fill: '#f97316', r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -154,24 +151,70 @@ export default function AdminDashboard() {
           <div style={cardHeader}>
             <h2 style={cardTitle}>📋 All Lessons</h2>
           </div>
-          <table style={table}>
-            <thead>
-              <tr>{['Title', 'Grade', 'Subject', 'Score'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
-            </thead>
-            <tbody>
-              {reports.slice(-15).reverse().map((r: any, i: number) => (
-                <tr key={i} style={tr}>
-                  <td style={td}>{r.title || 'Untitled'}</td>
-                  <td style={td}>{r.grade || '-'}</td>
-                  <td style={td}>{r.subject || '-'}</td>
-                  <td style={td}>{calculateLessonScore(r)}/100</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={tableWrapper}>
+            <table style={table}>
+              <thead>
+                <tr>{['Title', 'Grade', 'Subject', 'Score'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {reports.slice(0, 15).map((r: any, i: number) => (
+                  <tr key={i} style={tr}>
+                    <td style={td}>{r.title || 'Untitled'}</td>
+                    <td style={td}>{r.grade || '-'}</td>
+                    <td style={td}>{r.subject || '-'}</td>
+                    <td style={td}>{calculateLessonScore(r)}/100</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>
     </main>
   );
 }
+
+// ---------------- STYLES ----------------
+const page: React.CSSProperties = {
+  minHeight: '100vh',
+  background: 'radial-gradient(circle at top left, rgba(59,130,246,0.08), transparent 30%), linear-gradient(180deg, #07111f 0%, #081120 100%)',
+  padding: '40px 24px',
+  fontFamily: 'Inter, Roboto, Arial, sans-serif',
+  position: 'relative',
+  overflow: 'hidden'
+};
+
+const glow1: React.CSSProperties = { position: 'absolute', width: 420, height: 420, borderRadius: '999px', background: 'rgba(56,189,248,0.06)', filter: 'blur(100px)', top: '4%', left: '4%', pointerEvents: 'none' };
+const glow2: React.CSSProperties = { position: 'absolute', width: 380, height: 380, borderRadius: '999px', background: 'rgba(249,115,22,0.06)', filter: 'blur(100px)', bottom: '8%', right: '6%', pointerEvents: 'none' };
+const container: React.CSSProperties = { maxWidth: 1240, margin: '0 auto', position: 'relative', zIndex: 1 };
+
+const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36, flexWrap: 'wrap', gap: 16 };
+const badge: React.CSSProperties = { display: 'inline-flex', padding: '6px 14px', borderRadius: 999, background: 'rgba(56,189,248,0.15)', color: '#7dd3fc', fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 };
+const heading: React.CSSProperties = { fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 800, color: '#f8fafc', margin: '0 0 8px', letterSpacing: '-0.02em' };
+const subheading: React.CSSProperties = { fontSize: 15, color: '#94a3b8', margin: 0, lineHeight: 1.7 };
+
+const primaryBtn: React.CSSProperties = { background: 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', padding: '12px 26px', borderRadius: 16, fontWeight: 700, fontSize: 15, textDecoration: 'none', boxShadow: '0 10px 28px rgba(249,115,22,0.25)', whiteSpace: 'nowrap' };
+const secondaryBtn: React.CSSProperties = { background: 'rgba(255,255,255,0.06)', color: '#f97316', padding: '12px 22px', borderRadius: 16, fontWeight: 700, fontSize: 15, textDecoration: 'none', border: '1px solid rgba(249,115,22,0.3)' };
+
+const statsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 28 };
+const statCard: React.CSSProperties = { background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(148,163,184,0.12)', borderRadius: 24, padding: '28px 32px', backdropFilter: 'blur(16px)' };
+const statLabel: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 };
+const statValue: React.CSSProperties = { fontSize: 38, fontWeight: 800, color: '#f8fafc', lineHeight: 1 };
+const statUnit: React.CSSProperties = { fontSize: 18, color: '#64748b', fontWeight: 600 };
+
+const card: React.CSSProperties = { background: 'rgba(15,23,42,0.9)', border: '1px solid rgba(148,163,184,0.12)', borderRadius: 24, padding: 30, marginBottom: 28, backdropFilter: 'blur(16px)' };
+const cardHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 };
+const cardTitle: React.CSSProperties = { fontSize: 18, fontWeight: 700, color: '#f8fafc', margin: 0 };
+
+const tableWrapper: React.CSSProperties = { overflowX: 'auto', borderRadius: 12 };
+const table: React.CSSProperties = { width: '100%', borderCollapse: 'collapse' };
+const th: React.CSSProperties = { textAlign: 'left', padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid rgba(148,163,184,0.1)' };
+const tr: React.CSSProperties = { borderBottom: '1px solid rgba(148,163,184,0.06)', transition: 'background 0.2s', cursor: 'default' };
+const td: React.CSSProperties = { padding: '14px 12px', fontSize: 14, color: '#e2e8f0' };
+
+const badgeRed: React.CSSProperties = { display: 'inline-block', padding: '4px 10px', borderRadius: 999, background: 'rgba(248,113,113,0.15)', color: '#f87171', fontWeight: 700, fontSize: 12 };
+const badgeGreen: React.CSSProperties = { display: 'inline-block', padding: '4px 10px', borderRadius: 999, background: 'rgba(34,197,94,0.15)', color: '#22c55e', fontWeight: 700, fontSize: 12 };
+
+const loadingContainer: React.CSSProperties = { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07111f' };
+const loadingText: React.CSSProperties = { color: '#94a3b8', fontSize: 18 };
