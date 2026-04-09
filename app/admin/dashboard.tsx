@@ -219,5 +219,16 @@ const badge: React.CSSProperties = {
 };
 const heading: React.CSSProperties = { fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 800, color: '#f8fafc', margin: '0 0 8px', letterSpacing: '-0.02em' };
 const subheading: React.CSSProperties = { fontSize: 15, color: '#94a3b8', margin: 0, lineHeight: 1.7 };
+const loadingContainer: React.CSSProperties = {
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: '#07111f',
+};
 
+const loadingText: React.CSSProperties = {
+  color: '#94a3b8',
+  fontSize: 18,
+};
 // Add all other style constants you already had for `primaryBtn`, `statsGrid`, `statCard`, etc.
