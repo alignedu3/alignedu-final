@@ -1,28 +1,26 @@
 export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { OpenAI } from 'openai';
 import { getChatGPTFeedback } from '../../../utils/openai';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-const userUsageMap = new Map();
+
+const userUsageMap = new Map<string, { count: number; seconds: number }>();
 
 const DAILY_RECORDING_LIMIT = 8;
-const DAILY_SECONDS_LIMIT = 7 * 60 * 60; // 7 hours
-
-
+const DAILY_SECONDS_LIMIT = 7 * 60 * 60;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-function extractField(result: string, heading: string) {
+function extractField(result: string, heading: string): string | null {
   const lines = result.split('\n').map((line) => line.trim());
   const headingIndex = lines.findIndex(
     (line) => line.replace(/:$/, '').toLowerCase() === heading.toLowerCase()
   );
-
   if (headingIndex === -1 || headingIndex + 1 >= lines.length) return null;
-
   return lines[headingIndex + 1] || null;
 }
 
@@ -45,7 +43,6 @@ export async function POST(req: NextRequest) {
           file,
           model: 'gpt-4o-transcribe',
         });
-
         lectureText = transcription.text;
       } else if (file) {
         lectureText = await file.text();
@@ -57,9 +54,9 @@ export async function POST(req: NextRequest) {
       }
     } else if (contentType.includes('application/json')) {
       const body = await req.json();
-      lectureText = body.lecture;
-      grade = body.grade;
-      subject = body.subject;
+      lectureText = body.lecture || '';
+      grade = body.grade || '';
+      subject = body.subject || '';
     }
 
     if (!lectureText) {
@@ -69,13 +66,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const feedback = (await getChatGPTFeedback(
+    const feedback = await getChatGPTFeedback(
       `Grade: ${grade}, Subject: ${subject}\n\nLesson:\n${lectureText}`
     );
 
-    const coverageRaw = extractField(feedback || "", 'Coverage Score');
-    const clarityRaw = extractField(feedback || "", 'Clarity Rating');
-    const gapsRaw = extractField(feedback || "", 'Gaps Detected');
+    const coverageRaw = extractField(feedback || '', 'Coverage Score');
+    const clarityRaw = extractField(feedback || '', 'Clarity Rating');
+    const gapsRaw = extractField(feedback || '', 'Gaps Detected');
 
     const coverageScore = coverageRaw ? parseInt(coverageRaw.replace('%', '').trim(), 10) : null;
     const gapsDetected = gapsRaw ? parseInt(gapsRaw.trim(), 10) : null;
@@ -88,79 +85,62 @@ export async function POST(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
       {
         cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {}
+          getAll: () => cookieStore.getAll(),
+          setAll: (cookiesToSet) => {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
           },
         },
       }
     );
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated.');
 
     const today = new Date().toISOString().slice(0, 10);
-    const recordingSeconds = Math.floor(lectureText.length / 15); // rough estimate
+    const recordingSeconds = Math.floor(lectureText.length / 15);
 
-    if (user) {
-      const usageKey = `${user.id}-${today}`;
-      const existing = userUsageMap.get(usageKey) || { count: 0, seconds: 0 };
+    const usageKey = `${user.id}-${today}`;
+    const existingUsage = userUsageMap.get(usageKey) || { count: 0, seconds: 0 };
+    const nextCount = existingUsage.count + 1;
+    const nextSeconds = existingUsage.seconds + recordingSeconds;
 
-      const nextCount = existing.count + 1;
-      const nextSeconds = existing.seconds + recordingSeconds;
-
-      if (nextCount > DAILY_RECORDING_LIMIT) {
-        return NextResponse.json(
-          { result: 'You can upload up to 8 recordings per day.' },
-          { status: 429 }
-        );
-      }
-
-      if (nextSeconds > DAILY_SECONDS_LIMIT) {
-        return NextResponse.json(
-          { result: 'You can upload up to 7 total hours per day.' },
-          { status: 429 }
-        );
-      }
-
-      userUsageMap.set(usageKey, {
-        count: nextCount,
-        seconds: nextSeconds,
-      });
+    if (nextCount > DAILY_RECORDING_LIMIT) {
+      return NextResponse.json(
+        { result: 'You can upload up to 8 recordings per day.' },
+        { status: 429 }
+      );
     }
 
-
-    if (user) {
-      const title =
-        `${subject || 'Lesson'} ${grade ? `- Grade ${grade}` : ''}`.trim() || 'Untitled Lesson';
-
-      await supabase.from('analyses').insert({
-        user_id: user.id,
-        title,
-        grade,
-        subject,
-        lesson_text: lectureText,
-        analysis_result: feedback,
-        coverage_score: Number.isNaN(coverageScore) ? null : coverageScore,
-        clarity_rating: clarityRating,
-        gaps_detected: Number.isNaN(gapsDetected) ? null : gapsDetected,
-      });
+    if (nextSeconds > DAILY_SECONDS_LIMIT) {
+      return NextResponse.json(
+        { result: 'You can upload up to 7 total hours per day.' },
+        { status: 429 }
+      );
     }
+
+    userUsageMap.set(usageKey, { count: nextCount, seconds: nextSeconds });
+
+    const title =
+      `${subject || 'Lesson'} ${grade ? `- Grade ${grade}` : ''}`.trim() || 'Untitled Lesson';
+
+    await supabase.from('analyses').insert({
+      user_id: user.id,
+      title,
+      grade,
+      subject,
+      lesson_text: lectureText,
+      analysis_result: feedback,
+      coverage_score: Number.isNaN(coverageScore!) ? null : coverageScore,
+      clarity_rating: clarityRating,
+      gaps_detected: Number.isNaN(gapsDetected!) ? null : gapsDetected,
+    });
 
     return NextResponse.json({ result: feedback });
   } catch (error) {
     console.error('ANALYZE ROUTE ERROR:', error);
-
-    const message =
-      error instanceof Error ? error.message : 'Unknown error analyzing lesson.';
-
+    const message = error instanceof Error ? error.message : 'Unknown error analyzing lesson.';
     return NextResponse.json(
       { result: `Error analyzing lesson: ${message}` },
       { status: 500 }
