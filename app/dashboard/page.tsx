@@ -16,15 +16,24 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     async function loadData() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setUserId(user.id);
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        setUserId(user.id);
 
-      const { data } = await supabase
-        .from('analyses').select('*').order('created_at', { ascending: false }).eq('user_id', user.id);
-      setDbReports(data || []);
-      setReady(true);
+        const { data } = await supabase
+          .from('analyses')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .eq('user_id', user.id);
+
+        setDbReports(data || []);
+        setReady(true);
+      } catch (error) {
+        console.error('Error loading reports:', error);
+        setReady(true);
+      }
     }
     loadData();
   }, []);
@@ -92,8 +101,14 @@ export default function TeacherDashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
               <XAxis dataKey="date" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 13 }} />
               <YAxis domain={[0, 100]} stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 13 }} />
-              <Tooltip 
-                contentStyle={{ background: '#0f172a', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 12, color: '#f8fafc', padding: 10 }} 
+              <Tooltip
+                contentStyle={{
+                  background: '#0f172a',
+                  border: '1px solid rgba(148,163,184,0.2)',
+                  borderRadius: 12,
+                  color: '#f8fafc',
+                  padding: 10
+                }}
               />
               <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} dot={{ fill: '#f97316', r: 5 }} />
             </LineChart>
@@ -195,3 +210,6 @@ const table: React.CSSProperties = { width: '100%', borderCollapse: 'collapse' }
 const th: React.CSSProperties = { textAlign: 'left', padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid rgba(148,163,184,0.1)' };
 const tr: React.CSSProperties = { borderBottom: '1px solid rgba(148,163,184,0.06)', transition: 'background 0.2s', cursor: 'default' };
 const td: React.CSSProperties = { padding: '14px 12px', fontSize: 14, color: '#e2e8f0' };
+
+const loadingContainer: React.CSSProperties = { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#07111f' };
+const loadingText: React.CSSProperties = { color: '#94a3b8', fontSize: 18 };
