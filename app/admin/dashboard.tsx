@@ -19,7 +19,6 @@ export default function AdminDashboard() {
         
         if (!user) {
           console.log('No user found. Redirecting...');
-          // Handle redirection if no user is logged in
           setReady(true);
           return;
         }
@@ -38,7 +37,7 @@ export default function AdminDashboard() {
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
-        setReady(true); // Make sure to set ready to true even if there's an error
+        setReady(true);
       }
     }
     
@@ -220,20 +219,25 @@ const badge: React.CSSProperties = {
 };
 const heading: React.CSSProperties = { fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 800, color: '#f8fafc', margin: '0 0 8px', letterSpacing: '-0.02em' };
 const subheading: React.CSSProperties = { fontSize: 15, color: '#94a3b8', margin: 0, lineHeight: 1.7 };
-const loadingContainer: React.CSSProperties = {
-  minHeight: '100vh',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: '#07111f',
+
+const statsGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, 1fr)',
+  gap: '24px',
+  marginBottom: 36
 };
 
-const loadingText: React.CSSProperties = {
-  color: '#94a3b8',
-  fontSize: 18,
+const statCard: React.CSSProperties = {
+  background: '#111b27',
+  borderRadius: 12,
+  padding: 20,
+  boxShadow: '0 10px 28px rgba(0,0,0,0.15)',
 };
 
-// Missing button styles
+const statLabel: React.CSSProperties = { fontSize: 14, color: '#94a3b8', marginBottom: 8 };
+const statValue: React.CSSProperties = { fontSize: 24, fontWeight: 700, color: '#f8fafc' };
+const statUnit: React.CSSProperties = { fontSize: 14, color: '#94a3b8' };
+
 const primaryBtn: React.CSSProperties = {
   background: 'linear-gradient(135deg, #f97316, #ea580c)',
   color: '#fff',
@@ -257,4 +261,28 @@ const secondaryBtn: React.CSSProperties = {
   border: '1px solid rgba(249,115,22,0.3)',
 };
 
-// Add all other style constants you already had for `statsGrid`, `statCard`, etc.
+const card: React.CSSProperties = {
+  background: '#111b27',
+  borderRadius: 12,
+  padding: 24,
+  marginBottom: 24,
+  boxShadow: '0 10px 28px rgba(0,0,0,0.15)',
+};
+
+const cardHeader: React.CSSProperties = { marginBottom: 16 };
+const cardTitle: React.CSSProperties = { fontSize: 18, fontWeight: 700, color: '#f8fafc' };
+
+const tableWrapper: React.CSSProperties = { overflowX: 'auto' };
+const table: React.CSSProperties = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  marginTop: 16,
+  tableLayout: 'fixed'
+};
+
+const th: React.CSSProperties = { padding: '12px', textAlign: 'left', color: '#f8fafc', fontSize: 14, backgroundColor: '#1f2937' };
+const tr: React.CSSProperties = { borderBottom: '1px solid #2d3748' };
+const td: React.CSSProperties = { padding: '12px', fontSize: 14, color: '#e2e8f0' };
+
+const badgeRed: React.CSSProperties = { backgroundColor: '#f87171', color: '#fff', borderRadius: 8, padding: '4px 8px' };
+const badgeGreen: React.CSSProperties = { backgroundColor: '#34d399', color: '#fff', borderRadius: 8, padding: '4px 8px' };
