@@ -1,5 +1,5 @@
 'use client';
-
+<h1 style={{ color: 'red' }}>ADMIN LIVE VERSION</h1>
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
