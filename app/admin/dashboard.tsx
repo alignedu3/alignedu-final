@@ -13,36 +13,38 @@ export default function AdminDashboard() {
   const [dbReports, setDbReports] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
   const [ready, setReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
       try {
         const supabase = createClient();
 
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: userData, error: userError } = await supabase.auth.getUser();
 
-        // 🔥 DO NOT BLOCK UI IF USER FAILS
-        if (!user) {
-          console.warn('No user found');
+        if (userError) {
+          console.warn('Auth error:', userError);
         }
 
-        const { data: profileData, error: profileError } =
-          await supabase.from('profiles').select('id, name');
+        const user = userData?.user;
 
-        if (profileError) throw profileError;
+        // 🔥 DO NOT BLOCK UI
+        if (!user) {
+          console.warn('No user session — continuing');
+        }
+
+        const { data: profileData } =
+          await supabase.from('profiles').select('id, name');
 
         setProfiles(profileData || []);
 
-        const { data, error: reportError } =
-          await supabase.from('analyses').select('*').order('created_at', { ascending: false });
-
-        if (reportError) throw reportError;
+        const { data } =
+          await supabase.from('analyses')
+            .select('*')
+            .order('created_at', { ascending: false });
 
         setDbReports(data || []);
-      } catch (err: any) {
-        console.error('ADMIN DASHBOARD ERROR:', err);
-        setError(err.message || 'Something went wrong');
+      } catch (err) {
+        console.error('Dashboard error:', err);
       } finally {
         setReady(true);
       }
@@ -51,21 +53,11 @@ export default function AdminDashboard() {
     loadData();
   }, []);
 
-  if (!ready) {
-    return (
-      <div style={loadingContainer}>
-        <p style={loadingText}>Loading dashboard...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={loadingContainer}>
-        <p style={{ color: 'red' }}>Error: {error}</p>
-      </div>
-    );
-  }
+  if (!ready) return (
+    <div style={loadingContainer}>
+      <p style={loadingText}>Loading...</p>
+    </div>
+  );
 
   const reports = dbReports.length > 0 ? dbReports : sampleReports;
   const summary = getDashboardSummary(reports);
@@ -73,19 +65,14 @@ export default function AdminDashboard() {
 
   const teacherStats = useMemo(() => {
     const map: Record<string, any[]> = {};
-
     reports.forEach((r: any) => {
-      const key = r.user_id || 'unknown';
+      const key = r.user_id;
       if (!map[key]) map[key] = [];
       map[key].push(r);
     });
-
     return Object.entries(map).map(([id, reps]) => {
       const profile = profiles.find(p => p.id === id);
-
-      const avgScore =
-        reps.reduce((acc, r) => acc + calculateLessonScore(r), 0) / reps.length;
-
+      const avgScore = reps.reduce((acc, r) => acc + calculateLessonScore(r), 0) / reps.length;
       return {
         name: profile?.name || 'Unknown Teacher',
         avgScore: Math.round(avgScore),
@@ -97,45 +84,109 @@ export default function AdminDashboard() {
 
   return (
     <main style={page}>
+      <div style={glow1} />
+      <div style={glow2} />
+
       <div style={container}>
-
-        <h1 style={{ color: '#fff', marginBottom: 20 }}>
-          Admin Dashboard
-        </h1>
-
-        <p style={{ color: '#94a3b8', marginBottom: 20 }}>
-          System-wide insights
-        </p>
-
-        <div style={statsGrid}>
-          <div style={statCard}>
-            <p style={statLabel}>Avg Score</p>
-            <h2 style={statValue}>{summary.averageScore}/100</h2>
+        {/* HEADER */}
+        <div style={header}>
+          <div>
+            <div style={badge}>Admin Control Center</div>
+            <h1 style={heading}>🛠 System Dashboard</h1>
+            <p style={subheading}>System-wide instructional insights across all teachers.</p>
           </div>
-
-          <div style={statCard}>
-            <p style={statLabel}>Lessons</p>
-            <h2 style={statValue}>{reports.length}</h2>
-          </div>
-
-          <div style={statCard}>
-            <p style={statLabel}>Teachers</p>
-            <h2 style={statValue}>{teacherStats.length}</h2>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            <Link href="/analyze" style={primaryBtn}>+ Analyze Lesson</Link>
+            <Link href="/admin/invite" style={secondaryBtn}>Invite Users</Link>
           </div>
         </div>
 
-        <div style={card}>
-          <h2 style={cardTitle}>Score Trend</h2>
+        {/* SUMMARY CARDS */}
+        <div style={statsGrid}>
+          <div style={statCard}>
+            <div style={statLabel}>System Avg Score</div>
+            <div style={statValue}>{summary.averageScore}<span style={statUnit}>/100</span></div>
+          </div>
+          <div style={statCard}>
+            <div style={statLabel}>Total Lessons</div>
+            <div style={statValue}>{reports.length}</div>
+          </div>
+          <div style={statCard}>
+            <div style={statLabel}>Active Teachers</div>
+            <div style={statValue}>{teacherStats.length}</div>
+          </div>
+          <div style={statCard}>
+            <div style={statLabel}>Needing Support</div>
+            <div style={statValue}>{teacherStats.filter(t => t.needsAttention).length}</div>
+          </div>
+        </div>
 
-          <ResponsiveContainer width="100%" height={250}>
+        {/* TEACHER PERFORMANCE */}
+        <div style={card}>
+          <div style={cardHeader}>
+            <h2 style={cardTitle}>👩‍🏫 Teacher Performance</h2>
+          </div>
+          <div style={tableWrapper}>
+            <table style={table}>
+              <thead>
+                <tr>{['Teacher', 'Avg Score', 'Lessons', 'Status'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {teacherStats.map((t) => (
+                  <tr key={t.name} style={tr}>
+                    <td style={td}>{t.name}</td>
+                    <td style={td}>{t.avgScore}/100</td>
+                    <td style={td}>{t.count}</td>
+                    <td style={td}>
+                      <span style={t.needsAttention ? badgeRed : badgeGreen}>
+                        {t.needsAttention ? '⚠️ Needs Support' : '✅ Strong'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* SYSTEM TREND CHART */}
+        <div style={card}>
+          <div style={cardHeader}>
+            <h2 style={cardTitle}>📈 System Score Trend</h2>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
             <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis domain={[0, 100]} />
-              <Tooltip />
-              <Line type="monotone" dataKey="score" stroke="#f97316" />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
+              <XAxis dataKey="date" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 13 }} />
+              <YAxis domain={[0, 100]} stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 13 }} />
+              <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 12, color: '#f8fafc', padding: 10 }} />
+              <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} dot={{ fill: '#f97316', r: 5 }} />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+
+        {/* ALL LESSONS */}
+        <div style={card}>
+          <div style={cardHeader}>
+            <h2 style={cardTitle}>📋 All Lessons</h2>
+          </div>
+          <div style={tableWrapper}>
+            <table style={table}>
+              <thead>
+                <tr>{['Title', 'Grade', 'Subject', 'Score'].map(h => <th key={h} style={th}>{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {reports.slice(0, 15).map((r: any, i: number) => (
+                  <tr key={i} style={tr}>
+                    <td style={td}>{r.title || 'Untitled'}</td>
+                    <td style={td}>{r.grade || '-'}</td>
+                    <td style={td}>{r.subject || '-'}</td>
+                    <td style={td}>{calculateLessonScore(r)}/100</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>
@@ -143,60 +194,12 @@ export default function AdminDashboard() {
   );
 }
 
-/* STYLES */
-
+// ---------------- STYLES ----------------
 const page: React.CSSProperties = {
   minHeight: '100vh',
-  background: '#081120',
-  padding: '40px',
-};
-
-const container: React.CSSProperties = {
-  maxWidth: 1100,
-  margin: '0 auto',
-};
-
-const statsGrid: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(3, 1fr)',
-  gap: 16,
-  marginBottom: 30,
-};
-
-const statCard: React.CSSProperties = {
-  background: '#0f172a',
-  padding: 20,
-  borderRadius: 12,
-};
-
-const statLabel: React.CSSProperties = {
-  color: '#94a3b8',
-  fontSize: 12,
-};
-
-const statValue: React.CSSProperties = {
-  color: '#fff',
-  fontSize: 24,
-};
-
-const card: React.CSSProperties = {
-  background: '#0f172a',
-  padding: 20,
-  borderRadius: 12,
-};
-
-const cardTitle: React.CSSProperties = {
-  color: '#fff',
-  marginBottom: 10,
-};
-
-const loadingContainer: React.CSSProperties = {
-  height: '100vh',
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-};
-
-const loadingText: React.CSSProperties = {
-  color: '#94a3b8',
+  background: 'radial-gradient(circle at top left, rgba(59,130,246,0.08), transparent 30%), linear-gradient(180deg, #07111f 0%, #081120 100%)',
+  padding: '40px 24px',
+  fontFamily: 'Inter, Roboto, Arial, sans-serif',
+  position: 'relative',
+  overflow: 'hidden'
 };
