@@ -157,6 +157,54 @@ export default function TeacherDashboard() {
           )}
         </div>
 
+        {/* ALIGN EDU ANALYSIS PREVIEW */}
+        <div style={card}>
+          <div style={cardHeader}>
+            <h2 style={cardTitle}>AlignEDU Analysis Preview</h2>
+          </div>
+          <div style={analysisSummary}>
+            <div style={summaryItem}>
+              Instructional Score: {summary.averageScore}<span style={statUnit}>/100</span>
+            </div>
+            <div style={summaryItem}>
+              ↑ +5 from last lesson
+            </div>
+            <div style={summaryItem}>
+              Coverage: {summary.coverage}%
+            </div>
+            <div style={summaryItem}>
+              Clarity: {summary.clarity || 'Strong'}
+            </div>
+            <div style={summaryItem}>
+              Gaps Flagged: {summary.gapsFlagged}
+            </div>
+          </div>
+        </div>
+
+        {/* KEY FINDINGS */}
+        <div style={card}>
+          <div style={cardHeader}>
+            <h2 style={cardTitle}>Key Findings</h2>
+          </div>
+          <div style={keyFindings}>
+            <ul>
+              <li>Standards covered were clearly introduced and modeled.</li>
+              <li>Two supporting concepts need stronger reinforcement.</li>
+              <li>Lesson pacing was effective, but closure was limited.</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* SUGGESTED NEXT STEP */}
+        <div style={card}>
+          <div style={cardHeader}>
+            <h2 style={cardTitle}>Suggested Next Step</h2>
+          </div>
+          <div style={nextStep}>
+            <p>Revisit the missed concept in the next lesson and strengthen the closing check for understanding.</p>
+          </div>
+        </div>
+
       </div>
     </main>
   );
@@ -238,3 +286,10 @@ const table: React.CSSProperties = { width: '100%', borderCollapse: 'collapse' }
 const th: React.CSSProperties = { textAlign: 'left', padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid rgba(148,163,184,0.1)' };
 const tr: React.CSSProperties = { borderBottom: '1px solid rgba(148,163,184,0.06)', transition: 'background 0.2s', cursor: 'default' };
 const td: React.CSSProperties = { padding: '14px 12px', fontSize: 14, color: '#e2e8f0' };
+
+// New styles for Analysis Preview, Key Findings, and Suggested Next Step
+const analysisSummary: React.CSSProperties = { marginTop: 20 };
+const summaryItem: React.CSSProperties = { fontSize: 16, color: '#f8fafc', marginBottom: 12 };
+
+const keyFindings: React.CSSProperties = { marginTop: 20 };
+const nextStep: React.CSSProperties = { marginTop: 20, color: '#f8fafc', fontSize: 16 };
