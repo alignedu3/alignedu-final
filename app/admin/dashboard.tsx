@@ -2,12 +2,8 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, CartesianGrid,
-} from 'recharts';
-import { sampleReports, getDashboardSummary, getTrendData, calculateLessonScore } from '@/lib/dashboardData';
 import { createClient } from '@/lib/supabase/client';
+import { sampleReports, getDashboardSummary, getTrendData, calculateLessonScore } from '@/lib/dashboardData';
 
 export default function AdminDashboard() {
   const [dbReports, setDbReports] = useState<any[]>([]);
@@ -18,46 +14,43 @@ export default function AdminDashboard() {
     async function loadData() {
       try {
         const supabase = createClient();
-
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-
-        if (userError) {
-          console.warn('Auth error:', userError);
-        }
-
-        const user = userData?.user;
-
-        // 🔥 DO NOT BLOCK UI
+        const { data: { user } } = await supabase.auth.getUser();
+        
         if (!user) {
-          console.warn('No user session — continuing');
+          console.log('No user found. Redirecting...');
+          // Handle redirection if no user is logged in
+          setReady(true);
+          return;
         }
 
-        const { data: profileData } =
-          await supabase.from('profiles').select('id, name');
-
+        const { data: profileData, error: profileError } = await supabase.from('profiles').select('id, name');
+        if (profileError) throw profileError;
+        
         setProfiles(profileData || []);
+        console.log('Profiles fetched:', profileData);
 
-        const { data } =
-          await supabase.from('analyses')
-            .select('*')
-            .order('created_at', { ascending: false });
+        const { data, error: reportError } = await supabase.from('analyses').select('*').order('created_at', { ascending: false });
+        if (reportError) throw reportError;
 
         setDbReports(data || []);
-      } catch (err) {
-        console.error('Dashboard error:', err);
+        console.log('Reports fetched:', data);
+      } catch (error) {
+        console.error('Error loading data:', error);
       } finally {
-        setReady(true);
+        setReady(true); // Make sure to set ready to true even if there's an error
       }
     }
-
+    
     loadData();
   }, []);
 
-  if (!ready) return (
-    <div style={loadingContainer}>
-      <p style={loadingText}>Loading...</p>
-    </div>
-  );
+  if (!ready) {
+    return (
+      <div style={loadingContainer}>
+        <p style={loadingText}>Loading...</p>
+      </div>
+    );
+  }
 
   const reports = dbReports.length > 0 ? dbReports : sampleReports;
   const summary = getDashboardSummary(reports);
@@ -188,13 +181,13 @@ export default function AdminDashboard() {
             </table>
           </div>
         </div>
-
       </div>
     </main>
   );
 }
 
 // ---------------- STYLES ----------------
+
 const page: React.CSSProperties = {
   minHeight: '100vh',
   background: 'radial-gradient(circle at top left, rgba(59,130,246,0.08), transparent 30%), linear-gradient(180deg, #07111f 0%, #081120 100%)',
@@ -202,37 +195,29 @@ const page: React.CSSProperties = {
   fontFamily: 'Inter, Roboto, Arial, sans-serif',
   position: 'relative',
   overflow: 'hidden'
-};const loadingContainer: React.CSSProperties = {
-  minHeight: '100vh',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: '#07111f'
 };
 
-const loadingText: React.CSSProperties = {
-  color: '#94a3b8',
-  fontSize: 18
-};const glow1: React.CSSProperties = {
-  position: 'absolute',
-  width: 420,
-  height: 420,
-  borderRadius: '999px',
-  background: 'rgba(56,189,248,0.06)',
-  filter: 'blur(100px)',
-  top: '4%',
-  left: '4%',
-  pointerEvents: 'none'
+const glow1: React.CSSProperties = {
+  position: 'absolute', width: 420, height: 420, borderRadius: '999px',
+  background: 'rgba(56,189,248,0.06)', filter: 'blur(100px)',
+  top: '4%', left: '4%', pointerEvents: 'none'
 };
 
 const glow2: React.CSSProperties = {
-  position: 'absolute',
-  width: 380,
-  height: 380,
-  borderRadius: '999px',
-  background: 'rgba(249,115,22,0.06)',
-  filter: 'blur(100px)',
-  bottom: '8%',
-  right: '6%',
-  pointerEvents: 'none'
+  position: 'absolute', width: 380, height: 380, borderRadius: '999px',
+  background: 'rgba(249,115,22,0.06)', filter: 'blur(100px)',
+  bottom: '8%', right: '6%', pointerEvents: 'none'
 };
+
+const container: React.CSSProperties = { maxWidth: 1240, margin: '0 auto', position: 'relative', zIndex: 1 };
+
+const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36, flexWrap: 'wrap', gap: 16 };
+const badge: React.CSSProperties = {
+  display: 'inline-flex', padding: '6px 14px', borderRadius: 999,
+  background: 'rgba(56,189,248,0.15)', color: '#7dd3fc',
+  fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10
+};
+const heading: React.CSSProperties = { fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 800, color: '#f8fafc', margin: '0 0 8px', letterSpacing: '-0.02em' };
+const subheading: React.CSSProperties = { fontSize: 15, color: '#94a3b8', margin: 0, lineHeight: 1.7 };
+
+// Add all other style constants you already had for `primaryBtn`, `statsGrid`, `statCard`, etc.
