@@ -202,4 +202,15 @@ const page: React.CSSProperties = {
   fontFamily: 'Inter, Roboto, Arial, sans-serif',
   position: 'relative',
   overflow: 'hidden'
+};const loadingContainer: React.CSSProperties = {
+  minHeight: '100vh',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: '#07111f'
+};
+
+const loadingText: React.CSSProperties = {
+  color: '#94a3b8',
+  fontSize: 18
 };
