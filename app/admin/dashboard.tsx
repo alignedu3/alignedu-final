@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { sampleReports, getDashboardSummary, getTrendData, calculateLessonScore } from '@/lib/dashboardData';
+import { ResponsiveContainer, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, Line } from 'recharts'; // <-- Add this import
 
 export default function AdminDashboard() {
   const [dbReports, setDbReports] = useState<any[]>([]);
@@ -205,98 +206,4 @@ const glow1: React.CSSProperties = {
 
 const glow2: React.CSSProperties = {
   position: 'absolute', width: 380, height: 380, borderRadius: '999px',
-  background: 'rgba(249,115,22,0.06)', filter: 'blur(100px)',
-  bottom: '8%', right: '6%', pointerEvents: 'none'
-};
-
-const container: React.CSSProperties = { maxWidth: 1240, margin: '0 auto', position: 'relative', zIndex: 1 };
-
-const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 36, flexWrap: 'wrap', gap: 16 };
-const badge: React.CSSProperties = {
-  display: 'inline-flex', padding: '6px 14px', borderRadius: 999,
-  background: 'rgba(56,189,248,0.15)', color: '#7dd3fc',
-  fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10
-};
-const heading: React.CSSProperties = { fontSize: 'clamp(1.8rem, 3vw, 2.4rem)', fontWeight: 800, color: '#f8fafc', margin: '0 0 8px', letterSpacing: '-0.02em' };
-const subheading: React.CSSProperties = { fontSize: 15, color: '#94a3b8', margin: 0, lineHeight: 1.7 };
-
-const statsGrid: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(4, 1fr)',
-  gap: '24px',
-  marginBottom: 36
-};
-
-const statCard: React.CSSProperties = {
-  background: '#111b27',
-  borderRadius: 12,
-  padding: 20,
-  boxShadow: '0 10px 28px rgba(0,0,0,0.15)',
-};
-
-const statLabel: React.CSSProperties = { fontSize: 14, color: '#94a3b8', marginBottom: 8 };
-const statValue: React.CSSProperties = { fontSize: 24, fontWeight: 700, color: '#f8fafc' };
-const statUnit: React.CSSProperties = { fontSize: 14, color: '#94a3b8' };
-
-const primaryBtn: React.CSSProperties = {
-  background: 'linear-gradient(135deg, #f97316, #ea580c)',
-  color: '#fff',
-  padding: '12px 26px',
-  borderRadius: 16,
-  fontWeight: 700,
-  fontSize: 15,
-  textDecoration: 'none',
-  boxShadow: '0 10px 28px rgba(249,115,22,0.25)',
-  whiteSpace: 'nowrap',
-};
-
-const secondaryBtn: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.06)',
-  color: '#f97316',
-  padding: '12px 22px',
-  borderRadius: 16,
-  fontWeight: 700,
-  fontSize: 15,
-  textDecoration: 'none',
-  border: '1px solid rgba(249,115,22,0.3)',
-};
-
-const card: React.CSSProperties = {
-  background: '#111b27',
-  borderRadius: 12,
-  padding: 24,
-  marginBottom: 24,
-  boxShadow: '0 10px 28px rgba(0,0,0,0.15)',
-};
-
-const cardHeader: React.CSSProperties = { marginBottom: 16 };
-const cardTitle: React.CSSProperties = { fontSize: 18, fontWeight: 700, color: '#f8fafc' };
-
-const tableWrapper: React.CSSProperties = { overflowX: 'auto' };
-const table: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  marginTop: 16,
-  tableLayout: 'fixed'
-};
-
-const th: React.CSSProperties = { padding: '12px', textAlign: 'left', color: '#f8fafc', fontSize: 14, backgroundColor: '#1f2937' };
-const tr: React.CSSProperties = { borderBottom: '1px solid #2d3748' };
-const td: React.CSSProperties = { padding: '12px', fontSize: 14, color: '#e2e8f0' };
-
-const badgeRed: React.CSSProperties = { backgroundColor: '#f87171', color: '#fff', borderRadius: 8, padding: '4px 8px' };
-const badgeGreen: React.CSSProperties = { backgroundColor: '#34d399', color: '#fff', borderRadius: 8, padding: '4px 8px' };
-
-// Loading Styles
-const loadingContainer: React.CSSProperties = {
-  minHeight: '100vh',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: '#07111f',
-};
-
-const loadingText: React.CSSProperties = {
-  color: '#94a3b8',
-  fontSize: 18,
-};
+  background: 'rgba(249,115,22,0.06)', filter: 'blur(100px
