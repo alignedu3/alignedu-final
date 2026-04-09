@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { sampleReports, getDashboardSummary, getTrendData, calculateLessonScore } from '@/lib/dashboardData';
+import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 export default function AdminDashboard() {
   const [dbReports, setDbReports] = useState<any[]>([]);
@@ -231,4 +232,29 @@ const loadingText: React.CSSProperties = {
   color: '#94a3b8',
   fontSize: 18,
 };
-// Add all other style constants you already had for `primaryBtn`, `statsGrid`, `statCard`, etc.
+
+// Missing button styles
+const primaryBtn: React.CSSProperties = {
+  background: 'linear-gradient(135deg, #f97316, #ea580c)',
+  color: '#fff',
+  padding: '12px 26px',
+  borderRadius: 16,
+  fontWeight: 700,
+  fontSize: 15,
+  textDecoration: 'none',
+  boxShadow: '0 10px 28px rgba(249,115,22,0.25)',
+  whiteSpace: 'nowrap',
+};
+
+const secondaryBtn: React.CSSProperties = {
+  background: 'rgba(255,255,255,0.06)',
+  color: '#f97316',
+  padding: '12px 22px',
+  borderRadius: 16,
+  fontWeight: 700,
+  fontSize: 15,
+  textDecoration: 'none',
+  border: '1px solid rgba(249,115,22,0.3)',
+};
+
+// Add all other style constants you already had for `statsGrid`, `statCard`, etc.
