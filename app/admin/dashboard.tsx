@@ -19,7 +19,6 @@ import {
 } from '@/lib/dashboardData';
 import { createClient } from '@/lib/supabase/client';
 
-
 export default function DashboardPage() {
   const [role, setRole] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -34,7 +33,6 @@ export default function DashboardPage() {
 
       setUserId(user.id);
 
-      // Get role
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -44,14 +42,12 @@ export default function DashboardPage() {
       const userRole = profile?.role || 'teacher';
       setRole(userRole);
 
-      // Get ALL profiles (for names)
       const { data: profileData } = await supabase
         .from('profiles')
         .select('id, name');
 
       setProfiles(profileData || []);
 
-      // Get lesson data
       let query = supabase.from('analyses').select('*').order('created_at');
 
       if (userRole !== 'admin') {
@@ -72,12 +68,11 @@ export default function DashboardPage() {
       ? dbReports
       : role === 'admin'
       ? sampleReports
-      : sampleReports.filter(r => r.teacherId === userId);
+      : sampleReports.filter(r => r.teacher === userId);
 
   const summary = getDashboardSummary(reports);
   const trendData = getTrendData(reports);
 
-  // 🔥 ADMIN TEACHER GROUPING (REAL NAMES)
   const teacherStats = useMemo(() => {
     const map: Record<string, any[]> = {};
 
@@ -89,12 +84,11 @@ export default function DashboardPage() {
 
     return Object.entries(map).map(([id, reps]) => {
       const profile = profiles.find(p => p.id === id);
-
       const avgScore =
         reps.reduce((acc, r) => acc + calculateLessonScore(r), 0) / reps.length;
 
       return {
-        name: profile?.name || "Unknown Teacher",
+        name: profile?.name || 'Unknown Teacher',
         avgScore: Math.round(avgScore),
         count: reps.length,
         needsAttention: avgScore < 75,
@@ -104,14 +98,11 @@ export default function DashboardPage() {
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: 32 }}>
-
-      {/* 🔥 ADMIN PANEL */}
       {role === 'admin' && (
         <>
           <div style={{ background: '#111827', color: '#fff', padding: 20, borderRadius: 16 }}>
             <h1>🛠 Admin Control Center</h1>
             <p>System-wide instructional insights</p>
-
             <div style={{ display: 'flex', gap: 12 }}>
               <Link href="/dashboard">Teaching View</Link>
               <Link href="/admin">Invite Users</Link>
@@ -144,13 +135,11 @@ export default function DashboardPage() {
         </>
       )}
 
-      {/* 🔥 DASHBOARD */}
       <div style={{ marginTop: 20, padding: 20, background: '#0f172a', color: '#fff', borderRadius: 16 }}>
         <h1>{summary.averageScore}/100</h1>
         <Link href="/analyze">Analyze Lesson</Link>
       </div>
 
-      {/* 🔥 CHART */}
       <div style={{ marginTop: 20, background: '#fff', padding: 20 }}>
         <ResponsiveContainer width="100%" height={250}>
           <LineChart data={trendData}>
