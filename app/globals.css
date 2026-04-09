@@ -878,4 +878,254 @@ audio {
   color: var(--text-primary);
   line-height: 1.8;
   font-size: 15px;
+}/* =====================================
+   🔥 PREMIUM UI RESPONSIVE UPGRADE
+   (SAFE – NON-DESTRUCTIVE)
+===================================== */
+
+/* =========================
+   GLOBAL TYPE REFINEMENT
+========================= */
+
+/* Prevent oversized mobile text */
+h1 {
+  font-size: clamp(26px, 5vw, 40px);
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: clamp(22px, 4vw, 28px);
+  line-height: 1.2;
+}
+
+h3 {
+  font-size: clamp(16px, 3vw, 20px);
+}
+
+p {
+  font-size: clamp(14px, 2.5vw, 16px);
+  line-height: 1.6;
+}
+
+/* =========================
+   HEADER (LESS BULKY)
+========================= */
+
+.site-header {
+  padding: 10px 16px; /* reduced from 18px */
+}
+
+/* Tablet/Desktop refinement */
+@media (min-width: 768px) {
+  .site-header {
+    padding: 12px 24px;
+  }
+}
+
+/* =========================
+   BUTTON SYSTEM FIX
+========================= */
+
+/* Force all buttons to feel compact + premium */
+.demo-button,
+.book-demo-btn,
+.submitBtn,
+.submit-btn,
+.start-btn,
+.stop-btn,
+.analyze-btn,
+.login-button-top {
+  padding: 8px 14px !important;
+  min-height: 40px !important;
+  font-size: 13px !important;
+  border-radius: 10px !important;
+  white-space: nowrap;
+}
+
+/* Tablet+ slightly larger */
+@media (min-width: 768px) {
+  .demo-button,
+  .book-demo-btn,
+  .submitBtn,
+  .submit-btn,
+  .start-btn,
+  .stop-btn,
+  .analyze-btn,
+  .login-button-top {
+    padding: 10px 16px !important;
+    min-height: 42px !important;
+    font-size: 14px !important;
+  }
+}
+
+/* Prevent full-width chunky buttons unless needed */
+@media (max-width: 768px) {
+  .analysis-actions,
+  .submit-btn-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .analyze-btn,
+  .submit-btn,
+  .submitBtn {
+    width: 100%;
+  }
+}
+
+/* =========================
+   HERO FIX (LESS VERTICAL BLOAT)
+========================= */
+
+.hero {
+  padding: 72px 16px !important;
+}
+
+@media (min-width: 768px) {
+  .hero {
+    padding: 96px 20px !important;
+  }
+}
+
+/* =========================
+   CARD SYSTEM POLISH
+========================= */
+
+.card,
+.analysis-form-card,
+.analysis-side-card,
+.analysis-results-card {
+  padding: 20px !important;
+  border-radius: 18px !important;
+}
+
+/* Tablet */
+@media (min-width: 768px) {
+  .card,
+  .analysis-form-card,
+  .analysis-side-card,
+  .analysis-results-card {
+    padding: 24px !important;
+  }
+}
+
+/* Reduce oversized feel */
+.feature-bubble {
+  padding: 1.5rem !important;
+}
+
+/* =========================
+   DASHBOARD GRID IMPROVEMENT
+========================= */
+
+.analysis-panel-grid {
+  gap: 18px !important;
+}
+
+/* Tablet layout = intentional */
+@media (min-width: 768px) {
+  .analysis-panel-grid {
+    grid-template-columns: 1.2fr 0.8fr !important;
+  }
+}
+
+/* Mobile stacking */
+@media (max-width: 900px) {
+  .analysis-panel-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* =========================
+   FORM + INPUT CLEANUP
+========================= */
+
+input,
+textarea,
+select {
+  padding: 12px 14px !important;
+  font-size: 14px !important;
+}
+
+/* =========================
+   TITLE + TEXT BALANCE
+========================= */
+
+.title,
+.analysis-title {
+  font-size: clamp(26px, 5vw, 42px) !important;
+  line-height: 1.1 !important;
+}
+
+.subtitle,
+.analysis-subtitle {
+  font-size: clamp(14px, 2.5vw, 16px) !important;
+  margin-bottom: 28px !important;
+}
+
+/* =========================
+   SPACING CONSISTENCY
+========================= */
+
+.analysis-wrapper {
+  padding: 56px 16px 80px !important;
+}
+
+@media (min-width: 768px) {
+  .analysis-wrapper {
+    padding: 72px 20px 100px !important;
+  }
+}
+
+/* =========================
+   TABLE / OVERFLOW FIX
+========================= */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Prevent ugly overflow */
+.table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* =========================
+   TABLET EXPERIENCE BOOST
+========================= */
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .analysis-container,
+  .analysis-shell {
+    max-width: 90%;
+  }
+
+  .dashboard-action-card,
+  .dashboard-pill-card {
+    padding: 18px;
+  }
+}
+
+/* =========================
+   MICRO POLISH (PREMIUM FEEL)
+========================= */
+
+/* Slightly smoother hover */
+.card:hover,
+.analysis-form-card:hover,
+.analysis-side-card:hover {
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+}
+
+/* Improve readability */
+.analysis-report-text p {
+  line-height: 1.75;
+}
+
+/* Prevent awkward wrapping */
+h1, h2, h3 {
+  word-break: keep-all;
 }

@@ -1,8 +1,9 @@
-"use client";
+'use client';
 
 import { useState } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from '@supabase/supabase-js';
 
+// ✅ Initialize Supabase client properly
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -38,9 +39,7 @@ export default function ResetPasswordPage() {
         onChange={(e) => setPassword(e.target.value)}
       />
 
-      <button onClick={handleUpdate}>
-        Set Password
-      </button>
+      <button onClick={handleUpdate}>Set Password</button>
 
       <p>{message}</p>
     </div>
