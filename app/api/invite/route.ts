@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   });
 
   // Send invite email
-  const { error } = await supabase.auth.admin.inviteUserByEmail(email);
+  const { error } = await supabase.auth.admin.inviteUserByEmail(email, { redirectTo: 'https://alignedu-final-e21pwk9tv-alignedu3s-projects.vercel.app/auth/handle-auth' });
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
