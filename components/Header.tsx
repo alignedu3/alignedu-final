@@ -98,7 +98,7 @@ export default function Header() {
   );
 }
 
-const userBtn = {
+const userBtn: React.CSSProperties = {
   background: 'rgba(255,255,255,0.08)',
   color: '#fff',
   padding: '10px 16px',
@@ -108,7 +108,7 @@ const userBtn = {
   cursor: 'pointer'
 };
 
-const dropdown = {
+const dropdown: React.CSSProperties = {
   position: 'absolute',
   right: 0,
   top: '110%',
@@ -121,7 +121,7 @@ const dropdown = {
   zIndex: 1000
 };
 
-const dropdownItem = {
+const dropdownItem: React.CSSProperties = {
   display: 'block',
   width: '100%',
   padding: '12px 14px',
