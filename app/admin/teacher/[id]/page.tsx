@@ -16,7 +16,7 @@ import {
 import { calculateLessonScore } from '@/lib/dashboardData';
 
 export default function TeacherDetailPage() {
-  const { id } = useParams();
+  const { id } = useParams(); // Get the teacher ID from the URL params
   const [reports, setReports] = useState<any[]>([]);
   const [name, setName] = useState('');
 
@@ -24,6 +24,7 @@ export default function TeacherDetailPage() {
     async function load() {
       const supabase = createClient();
 
+      // Fetch teacher profile based on the ID
       const { data: profile } = await supabase
         .from('profiles')
         .select('name')
@@ -32,6 +33,7 @@ export default function TeacherDetailPage() {
 
       setName(profile?.name || 'Teacher');
 
+      // Fetch analyses data for the teacher based on the ID
       const { data: analyses } = await supabase
         .from('analyses')
         .select('*')
