@@ -1128,4 +1128,122 @@ table {
 /* Prevent awkward wrapping */
 h1, h2, h3 {
   word-break: keep-all;
+}/* ---------- RESPONSIVE DASHBOARD FIXES ---------- */
+
+/* Container padding */
+@media (max-width: 768px) {
+  main {
+    padding: 20px !important;
+  }
+}
+
+/* Header stack */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+}
+
+/* Stats grid responsiveness */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Card padding smaller on mobile */
+@media (max-width: 640px) {
+  .card {
+    padding: 20px !important;
+    border-radius: 18px !important;
+  }
+}
+
+/* Chart height smaller on mobile */
+@media (max-width: 640px) {
+  .chart-container {
+    height: 220px !important;
+  }
+}
+
+/* Table scroll fix */
+.table-wrapper {
+  overflow-x: auto;
+}
+
+/* Smaller text on mobile */
+@media (max-width: 640px) {
+  h1 {
+    font-size: 1.6rem !important;
+  }
+
+  h2 {
+    font-size: 1.2rem !important;
+  }
+
+  p {
+    font-size: 14px !important;
+  }
+}
+
+/* Buttons full width on mobile */
+@media (max-width: 640px) {
+  .primary-btn {
+    width: 100%;
+    text-align: center;
+  }
+}/* =====================================
+   DASHBOARD MOBILE + SWIPE (SAFE)
+   Only applies when class is used
+===================================== */
+
+/* Default (desktop stays EXACTLY same) */
+.dashboard-stats-scroll {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .dashboard-stats-scroll {
+    gap: 18px;
+  }
+}
+
+/* Mobile + Tablet → swipe cards */
+@media (max-width: 900px) {
+  .dashboard-stats-scroll {
+    display: flex !important;
+    overflow-x: auto;
+    gap: 16px;
+    padding-bottom: 10px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .dashboard-stats-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .dashboard-stats-scroll > div {
+    min-width: 260px;
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+}
+
+/* Small mobile polish */
+@media (max-width: 640px) {
+  .dashboard-card {
+    padding: 22px !important;
+  }
 }

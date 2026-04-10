@@ -14,7 +14,7 @@
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/auth-helpers-react": "^0.15.0",
     "@supabase/ssr": "^0.10.0",
-    "@supabase/supabase-js": "^2.102.1",
+    "@supabase/supabase-js": "^2.103.0",
     "@tailwindcss/postcss": "^4.2.2",
     "busboy": "^1.6.0",
     "express": "^5.2.1",
