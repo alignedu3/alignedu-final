@@ -1,46 +1,52 @@
-import { NextResponse, type NextRequest } from 'next/server';
-import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import type { NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
-  const response = NextResponse.next();
+export async function proxy(req: NextRequest) {
+  const res = NextResponse.next()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
+        getAll: () => req.cookies.getAll(),
+        setAll: (cookiesToSet) => {
+          cookiesToSet.forEach(({ name, value }) =>
+            res.cookies.set(name, value)
+          )
         },
       },
     }
-  );
+  )
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await supabase.auth.getUser()
 
-  const pathname = request.nextUrl.pathname;
-  const protectedPaths = ['/dashboard', '/admin'];
+  const path = req.nextUrl.pathname
 
-  const isProtected = protectedPaths.some(
-    (path) => pathname === path || pathname.startsWith(path + '/')
-  );
-
-  if (isProtected && !user) {
-    const loginUrl = new URL('/login', request.url);
-    loginUrl.searchParams.set('redirectedFrom', pathname);
-    return NextResponse.redirect(loginUrl);
+  // Block admin routes if not logged in
+  if (!user && path.startsWith('/admin')) {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
-  return response;
+  // Role check
+  if (user && path.startsWith('/admin')) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.role !== 'admin') {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+  }
+
+  return res
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/admin/:path*'],
-};
+  matcher: ['/admin/:path*'],
+}
