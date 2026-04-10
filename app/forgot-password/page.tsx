@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
 
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://www.alignedu.net/auth/callback?next=/reset-password',
+      redirectTo: 'https://www.alignedu.net/auth/handle-auth?next=/reset-password',
     });
 
     if (error) {
