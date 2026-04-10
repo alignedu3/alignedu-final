@@ -44,7 +44,7 @@ export default function UserMenu({ role }: { role: string }) {
 
       {open && (
         <div style={menuStyle}>
-          <Link href="/dashboard" style={itemStyle}>Dashboard</Link>
+          <Link href="/dashboard" style={itemStyle}>Teacher Dashboard</Link>
 
           {role === 'admin' && (
             <>

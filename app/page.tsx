@@ -228,7 +228,7 @@ export default function HomePage() {
                       fontWeight: 600,
                     }}
                   >
-                    <span>AlignEDU Analysis Preview</span>
+                    <span>Analysis Preview</span>
                     <span style={{ color: '#93c5fd' }}>Lesson Summary</span>
                   </div>
 

@@ -103,7 +103,7 @@ export default function Header() {
                   style={dropdownItem}
                   onClick={() => setOpen(false)}
                 >
-                  Dashboard
+                  Teacher Dashboard
                 </Link>
 
                 {profile?.role === "admin" && (
@@ -113,7 +113,7 @@ export default function Header() {
                       style={dropdownItem}
                       onClick={() => setOpen(false)}
                     >
-                      Admin
+                      Admin Dashboard
                     </Link>
 
                     <Link

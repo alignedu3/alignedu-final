@@ -27,6 +27,7 @@
   --radius-lg: 24px;
 
   --max-width: 1200px;
+  --site-header-height: 64px;
 }
 
 * {
@@ -48,6 +49,7 @@ body {
   font-family: Inter, Arial, Helvetica, sans-serif;
   line-height: 1.6;
   min-height: 100vh;
+  padding-top: var(--site-header-height);
 }
 
 button,
@@ -153,11 +155,15 @@ button:disabled {
   padding: 18px 24px;
   background: rgba(8, 17, 32, 0.82);
   color: var(--text-primary);
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   z-index: 1000;
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
+  height: var(--site-header-height);
 }
 
 .site-header .logo {
@@ -973,6 +979,61 @@ p {
   }
 }
 
+/* Make analyze button the same visual size as the Invite Users button (compact) */
+.analyze-btn {
+  padding: 10px 14px !important;
+  min-height: 40px !important;
+  font-size: 14px !important;
+}
+
+/* Compact primary / secondary button utilities for consistent sizing */
+.primary-btn {
+  padding: 10px 14px;
+  min-height: 40px;
+  font-size: 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 14px 30px rgba(249, 115, 22, 0.25);
+  transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.primary-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* focus styles for keyboard users */
+.primary-btn:focus-visible,
+.secondary-btn:focus-visible,
+button:focus-visible {
+  outline: 3px solid rgba(56, 189, 248, 0.18);
+  outline-offset: 3px;
+}
+
+/* Theme toggle button */
+/* removed theme toggle and light-theme overrides per user request */
+
+.secondary-btn {
+  padding: 10px 14px;
+  min-height: 40px;
+  font-size: 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid rgba(148,163,184,0.3);
+}
+
 /* =========================
    HERO FIX (LESS VERTICAL BLOAT)
 ========================= */
@@ -1245,5 +1306,12 @@ h1, h2, h3 {
 @media (max-width: 640px) {
   .dashboard-card {
     padding: 22px !important;
+  }
+}
+
+/* Reduce fixed header height on small screens so spacing stays balanced */
+@media (max-width: 640px) {
+  :root {
+    --site-header-height: 56px;
   }
 }
