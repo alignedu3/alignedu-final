@@ -68,7 +68,7 @@ export default function InvitePage() {
 }
 
 // styles
-const page = {
+const page: React.CSSProperties = {
   minHeight: '100vh',
   padding: '40px 24px',
   background:
@@ -76,23 +76,23 @@ const page = {
   fontFamily: 'Inter, Roboto, Arial, sans-serif',
 };
 
-const container = {
+const container: React.CSSProperties = {
   maxWidth: 600,
   margin: '0 auto',
 };
 
-const heading = {
+const heading: React.CSSProperties = {
   fontSize: 36,
   color: '#fff',
   marginBottom: 10,
 };
 
-const subheading = {
+const subheading: React.CSSProperties = {
   color: '#94a3b8',
   marginBottom: 24,
 };
 
-const card = {
+const card: React.CSSProperties = {
   background: '#1f2937',
   padding: 24,
   borderRadius: 12,
@@ -101,7 +101,7 @@ const card = {
   gap: 14,
 };
 
-const input = {
+const input: React.CSSProperties = {
   padding: '12px 14px',
   borderRadius: 8,
   border: '1px solid #374151',
@@ -109,7 +109,7 @@ const input = {
   color: '#fff',
 };
 
-const button = {
+const button: React.CSSProperties = {
   background: '#f97316',
   color: '#fff',
   padding: '10px 20px',
