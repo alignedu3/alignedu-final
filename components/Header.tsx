@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
@@ -8,6 +8,8 @@ export default function Header() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [open, setOpen] = useState(false);
+
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const supabase = createClient();
@@ -40,6 +42,23 @@ export default function Header() {
     };
   }, []);
 
+  // ✅ close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    if (open) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -48,12 +67,15 @@ export default function Header() {
 
   return (
     <header className="site-header">
-      <div className="logo">
-        <span className="logo-align">Align</span>
-        <span className="logo-edu">EDU</span>
-      </div>
+      {/* LOGO */}
+      <Link href="/" style={{ textDecoration: 'none' }}>
+        <div className="logo">
+          <span className="logo-align">Align</span>
+          <span className="logo-edu">EDU</span>
+        </div>
+      </Link>
 
-      <div style={{ position: 'relative' }}>
+      <div ref={menuRef} style={{ position: 'relative' }}>
         {!user && (
           <div style={{ display: 'flex', gap: 12 }}>
             <Link href="/login" className="login-button-top">
@@ -76,17 +98,38 @@ export default function Header() {
 
             {open && (
               <div style={dropdown}>
-                <Link href="/dashboard" style={dropdownItem}>
+                <Link
+                  href="/dashboard"
+                  style={dropdownItem}
+                  onClick={() => setOpen(false)}
+                >
                   Dashboard
                 </Link>
 
-                {profile?.role === 'admin' && (
-                  <Link href="/admin" style={dropdownItem}>
-                    Admin
-                  </Link>
+                {profile?.role === "admin" && (
+                  <>
+                    <Link
+                      href="/admin"
+                      style={dropdownItem}
+                      onClick={() => setOpen(false)}
+                    >
+                      Admin
+                    </Link>
+
+                    <Link
+                      href="/admin/invite"
+                      style={dropdownItem}
+                      onClick={() => setOpen(false)}
+                    >
+                      Add User
+                    </Link>
+                  </>
                 )}
 
-                <button onClick={handleLogout} style={dropdownItem}>
+                <button
+                  onClick={handleLogout}
+                  style={dropdownItem}
+                >
                   Logout
                 </button>
               </div>
@@ -111,12 +154,12 @@ const userBtn: React.CSSProperties = {
 const dropdown: React.CSSProperties = {
   position: 'absolute',
   right: 0,
-  top: '110%',
+  top: 'calc(100% + 10px)',
   background: '#1f2937',
   borderRadius: 12,
   border: '1px solid rgba(148,163,184,0.2)',
   boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
-  minWidth: 160,
+  minWidth: 170,
   overflow: 'hidden',
   zIndex: 1000
 };
