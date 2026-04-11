@@ -2,12 +2,14 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 export default function Header() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [open, setOpen] = useState(false);
+  const router = useRouter();
 
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -65,15 +67,43 @@ export default function Header() {
     window.location.href = '/';
   };
 
+  const handleLogoClick = async () => {
+    if (!user) {
+      router.push('/');
+    } else {
+      // Fetch fresh profile data if not already loaded
+      const supabase = createClient();
+      let userRole = profile?.role;
+      
+      if (!userRole) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        userRole = profileData?.role;
+      }
+
+      if (userRole === 'admin') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
+    }
+  };
+
   return (
     <header className="site-header">
       {/* LOGO */}
-      <Link href="/" style={{ textDecoration: 'none' }}>
+      <div
+        onClick={handleLogoClick}
+        style={{ textDecoration: 'none', cursor: 'pointer' }}
+      >
         <div className="logo">
           <span className="logo-align">Align</span>
           <span className="logo-edu">EDU</span>
         </div>
-      </Link>
+      </div>
 
       <div ref={menuRef} style={{ position: 'relative' }}>
         {!user && (

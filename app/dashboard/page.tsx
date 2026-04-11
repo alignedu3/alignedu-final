@@ -275,11 +275,11 @@ export default function TeacherDashboard() {
 
 const page: React.CSSProperties = { minHeight: '100vh', background: '#081120', padding: 40 };
 const container: React.CSSProperties = { maxWidth: 1200, margin: '0 auto' };
-const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', marginBottom: 24 };
-const heading: React.CSSProperties = { color: '#fff', fontSize: 28 };
-const subheading: React.CSSProperties = { color: '#94a3b8' };
-const buttonGroup: React.CSSProperties = { display: 'flex', gap: 10 };
-const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '10px 16px', borderRadius: 8 };
+const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 };
+const heading: React.CSSProperties = { color: '#fff', fontSize: 28, margin: '0 0 4px 0' };
+const subheading: React.CSSProperties = { color: '#94a3b8', margin: 0 };
+const buttonGroup: React.CSSProperties = { display: 'flex', gap: 10, alignItems: 'center' };
+const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '10px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
 
 const card: React.CSSProperties = { background: '#111827', padding: 20, borderRadius: 12, marginBottom: 20 };
 const cardTitle: React.CSSProperties = { color: '#fff', marginBottom: 10 };

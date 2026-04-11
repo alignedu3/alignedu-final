@@ -25,26 +25,8 @@ export default function AdminDashboard() {
   const [ready, setReady] = useState(false);
   const router = useRouter();
 
-  const handleAddTeacher = async () => {
-    const email = prompt("Enter teacher email:");
-    const firstName = prompt("Enter teacher first name:"); const lastName = prompt("Enter teacher last name:"); const name = `${firstName?.trim()} ${lastName?.trim()}`.trim();
-
-    if (!email || !name) return;
-
-    const res = await fetch('/api/create-teacher', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name }),
-    });
-
-    const data = await res.json();
-
-    if (data.success) {
-      alert("Teacher added successfully");
-      window.location.reload();
-    } else {
-      alert("Error: " + data.error);
-    }
+  const handleAddTeacher = () => {
+    router.push('/admin/invite');
   };
 
   useEffect(() => {
@@ -316,6 +298,7 @@ const container: React.CSSProperties = {
 const header: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
+  alignItems: 'flex-start',
   gap: 16,
   flexWrap: 'wrap',
   marginBottom: 28
@@ -323,31 +306,42 @@ const header: React.CSSProperties = {
 
 const heading: React.CSSProperties = {
   color: '#fff',
-  fontSize: 28
+  fontSize: 28,
+  margin: '0 0 4px 0'
 };
 
 const subheading: React.CSSProperties = {
-  color: '#94a3b8'
+  color: '#94a3b8',
+  margin: 0
 };
 
 const actions: React.CSSProperties = {
   display: 'flex',
   gap: 10,
-  flexWrap: 'wrap'
+  flexWrap: 'wrap',
+  alignItems: 'center'
 };
 
 const btn: React.CSSProperties = {
   background: '#f97316',
   color: '#fff',
-  padding: 10,
-  borderRadius: 8
+  padding: '10px 16px',
+  borderRadius: 8,
+  border: 'none',
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 14
 };
 
 const btnAlt: React.CSSProperties = {
   background: '#1f2937',
   color: '#fff',
-  padding: 10,
-  borderRadius: 8
+  padding: '10px 16px',
+  borderRadius: 8,
+  border: 'none',
+  cursor: 'pointer',
+  fontWeight: 600,
+  fontSize: 14
 };
 
 const card: React.CSSProperties = {
