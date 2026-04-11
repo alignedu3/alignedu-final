@@ -27,7 +27,7 @@ export default function AdminDashboard() {
 
   const handleAddTeacher = async () => {
     const email = prompt("Enter teacher email:");
-    const name = prompt("Enter teacher name:");
+    const firstName = prompt("Enter teacher first name:"); const lastName = prompt("Enter teacher last name:"); const name = `${firstName?.trim()} ${lastName?.trim()}`.trim();
 
     if (!email || !name) return;
 
