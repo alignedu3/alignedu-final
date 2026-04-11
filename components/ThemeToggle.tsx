@@ -21,6 +21,7 @@ export default function AnalysisPage() {
     const ffmpegModule = await import("@ffmpeg/ffmpeg");
     const { FFmpeg } = ffmpegModule;
     const ffmpeg = new FFmpeg();
+
     setProcessingStep("Loading audio splitter...");
     await ffmpeg.load();
 
@@ -38,9 +39,7 @@ export default function AnalysisPage() {
       const currentChunkSeconds = Math.min(chunkSeconds, duration - start);
       const segmentName = `segment-${index}.wav`;
 
-      setProcessingStep(
-        `Creating chunk ${index + 1} of ${chunkCount}...`
-      );
+      setProcessingStep(`Creating chunk ${index + 1} of ${chunkCount}...`);
 
       await ffmpeg.exec([
         "-ss",
@@ -63,15 +62,17 @@ export default function AnalysisPage() {
         segmentData instanceof Uint8Array
           ? segmentData
           : new TextEncoder().encode(segmentData);
-      const segmentBlob = new Blob([
-        segmentBytes.buffer as ArrayBuffer,
-      ], { type: "audio/wav" });
+
+      const segmentBlob = new Blob([segmentBytes.buffer as ArrayBuffer], {
+        type: "audio/wav",
+      });
 
       chunks.push(
         new File([segmentBlob], segmentName, {
           type: "audio/wav",
         })
       );
+
       await ffmpeg.deleteFile(segmentName);
     }
 
@@ -81,6 +82,7 @@ export default function AnalysisPage() {
 
   const transcribeChunk = async (chunk: File, index: number, total: number) => {
     setProcessingStep(`Transcribing chunk ${index + 1} of ${total}...`);
+
     const chunkForm = new FormData();
     chunkForm.append("file", chunk);
 
@@ -90,6 +92,7 @@ export default function AnalysisPage() {
     });
 
     const chunkData = await chunkRes.json();
+
     if (!chunkRes.ok) {
       throw new Error(chunkData?.error || "Chunk transcription failed.");
     }
@@ -138,12 +141,14 @@ export default function AnalysisPage() {
         const chunks = await splitAudioIntoChunks(audioFile, audioDuration);
 
         const spokenParts: string[] = [];
+
         for (let index = 0; index < chunks.length; index += 1) {
           const spokenText = await transcribeChunk(chunks[index], index, chunks.length);
           if (spokenText) spokenParts.push(spokenText);
         }
 
         const spokenText = spokenParts.join("\n\n");
+
         if (spokenText) {
           transcriptText = transcriptText
             ? `${transcriptText}\n\nAudio Transcript:\n${spokenText}`
@@ -172,9 +177,7 @@ export default function AnalysisPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(
-          data?.error || data?.details || "Analysis failed, but system recovered."
-        );
+        setError(data?.error || data?.details || "Analysis failed, but system recovered.");
         setResult(data?.result || "");
         setLoading(false);
         setProcessingStep("");
@@ -199,110 +202,106 @@ export default function AnalysisPage() {
   return (
     <main className="analysis-wrapper">
       <div className="analysis-container">
+
+        {/* HEADER */}
         <div className="analysis-header">
-          <span className="analysis-badge">Premium AI Insights</span>
-          <h1 className="analysis-title">Lesson Analysis for Next-Level Teaching</h1>
-          <p className="analysis-subtitle">
-            Upload notes or audio and get an instructor-ready review with teaching scores, engagement signals, and targeted next steps.
-          </p>
+          <h1>AI Lesson Analysis</h1>
+          <p>Analyze your lesson with AI-powered instructional feedback.</p>
         </div>
 
-        <div className="analysis-shell">
-          <div className="analysis-panel-grid">
-            <section className="analysis-form-card">
-              <div className="analysis-section-top">
-                <h2>Lesson submission</h2>
-                <p>
-                  Share your lesson details or audio recording and let our AI produce a polished coaching report.
-                </p>
-              </div>
+        {/* INPUT CARD */}
+        <div className="analysis-card">
 
-              <div className="analysis-field-group">
-                <label className="analysis-label">Grade</label>
-                <input
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                  placeholder="e.g. 5"
-                />
-              </div>
-
-              <div className="analysis-field-group">
-                <label className="analysis-label">Subject</label>
-                <input
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="e.g. Math"
-                />
-              </div>
-
-              <div className="analysis-field-group">
-                <label className="analysis-label">Lesson Notes</label>
-                <textarea
-                  value={lessonNotes}
-                  onChange={(e) => setLessonNotes(e.target.value)}
-                  placeholder="Paste lesson here..."
-                />
-              </div>
-
-              <div className="analysis-field-group">
-                <label className="analysis-label">Audio Upload</label>
-                <label className="upload-zone">
-                  <input
-                    className="upload-input"
-                    type="file"
-                    accept="audio/*"
-                    onChange={(e) => handleAudioChange(e.target.files?.[0] || null)}
-                  />
-                  <div className="upload-zone-content">
-                    <div className="upload-icon">🎙️</div>
-                    <p>Click to upload your audio file.</p>
-                    <p style={{ fontSize: 13, color: "#94a3b8" }}>
-                      Max 90 minutes. Longer files are split automatically.
-                    </p>
-                  </div>
-                </label>
-                {audioDuration !== null && (
-                  <p style={{ marginTop: 8, color: "#94a3b8", fontSize: 14 }}>
-                    Audio duration: {Math.round(audioDuration)} seconds
-                  </p>
-                )}
-              </div>
-
-              <div className="analysis-actions">
-                <button className="analyze-btn" onClick={handleSubmit} disabled={loading}>
-                  {loading ? processingStep || "Analyzing..." : "Analyze Lesson"}
-                </button>
-              </div>
-
-              {error && <div className="analysis-error">{error}</div>}
-            </section>
-
-            <aside className="analysis-side-card">
-              <h3>What you get</h3>
-              <p>
-                A premium report with instructional feedback, equity checks, and strategic next steps.
-              </p>
-              <ul className="analysis-side-list">
-                <li>Instructional Score</li>
-                <li>Coverage & clarity assessment</li>
-                <li>Engagement and student signals</li>
-                <li>Gaps, missed opportunities, and next steps</li>
-              </ul>
-            </aside>
+          <div className="analysis-section-title">
+            Lesson Input
           </div>
 
-          {result && (
-            <section className="analysis-results-card">
-              <div className="analysis-results-header">
-                <h2>AI Analysis Result</h2>
-                <p>Review the full coaching summary below.</p>
-              </div>
-              <div className="result-box analysis-results-body">
-                <pre className="analysis-result-text">{result}</pre>
-              </div>
-            </section>
-          )}
+          <p className="analysis-subtitle">
+            Provide your lesson in any format below.
+          </p>
+
+          {/* GRID INPUTS */}
+          <div className="analysis-grid">
+
+            <div className="analysis-field">
+              <label>Grade</label>
+              <input
+                value={grade}
+                onChange={(e) => setGrade(e.target.value)}
+                placeholder="Select Grade"
+              />
+            </div>
+
+            <div className="analysis-field">
+              <label>Subject</label>
+              <input
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="e.g. Math, ELA, Science"
+              />
+            </div>
+
+          </div>
+
+          <div className="analysis-field">
+            <label>Lesson Notes</label>
+            <textarea
+              value={lessonNotes}
+              onChange={(e) => setLessonNotes(e.target.value)}
+              placeholder="Paste your lesson plan or notes..."
+            />
+          </div>
+
+          {/* AUDIO */}
+          <div className="analysis-field">
+            <label>Upload Audio</label>
+
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={(e) =>
+                handleAudioChange(e.target.files?.[0] || null)
+              }
+            />
+
+            <div className="analysis-audio-meta">
+              {audioDuration !== null && (
+                <p>Audio duration: {Math.round(audioDuration)} seconds</p>
+              )}
+              <p>Max 90 minutes. Audio is auto-split if needed.</p>
+            </div>
+
+            {/* UI ONLY BUTTON (no logic attached) */}
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {}}
+            >
+              Start Recording
+            </button>
+          </div>
+
+          {/* ACTION */}
+          <button
+            className="primary-button"
+            onClick={handleSubmit}
+            disabled={loading}
+          >
+            {loading ? processingStep || "Analyzing..." : "Analyze Lesson"}
+          </button>
+
+          {error && <div className="error-text">{error}</div>}
+
         </div>
+
+        {/* RESULTS */}
+        {result && (
+          <div className="analysis-results">
+            <h2>Results</h2>
+            <pre>{result}</pre>
+          </div>
+        )}
+
       </div>
     </main>
   );

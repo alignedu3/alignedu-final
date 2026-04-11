@@ -16,7 +16,9 @@ import {
 import { calculateLessonScore } from '@/lib/dashboardData';
 
 export default function TeacherDetailPage() {
-  const { id } = useParams(); // Get the teacher ID from the URL params
+  const params = useParams<{ id: string }>();
+  const id = params?.id;
+
   const [reports, setReports] = useState<any[]>([]);
   const [name, setName] = useState('');
 
@@ -28,8 +30,8 @@ export default function TeacherDetailPage() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('name')
-        .eq('id', id)
-        .single();
+        .eq('id', id as string) // ✅ FIX
+        .maybeSingle();
 
       setName(profile?.name || 'Teacher');
 
@@ -37,10 +39,27 @@ export default function TeacherDetailPage() {
       const { data: analyses } = await supabase
         .from('analyses')
         .select('*')
-        .eq('user_id', id)
+        .eq('user_id', id as string) // ✅ FIX
         .order('created_at', { ascending: false });
 
       setReports(analyses || []);
+
+      // ── DEBUG: log profile + analyses fetch results ──
+      const { data: profileDebug, error: profileError } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', id as string)
+        .maybeSingle();
+      console.log('[debug] id param:', id);
+      console.log('[debug] profile fetch →', profileDebug, '| error:', profileError);
+
+      const { data: analysesDebug, error: analysesError } = await supabase
+        .from('analyses')
+        .select('*')
+        .eq('user_id', id as string)
+        .limit(1);
+      console.log('[debug] analyses fetch →', analysesDebug, '| error:', analysesError);
+      // ── END DEBUG ──
     }
 
     if (id) load();
@@ -111,7 +130,6 @@ export default function TeacherDetailPage() {
     let recommendation = "";
     let summary = "";
 
-    // Strengths
     if (avg >= 85) {
       strengths.push("Strong instructional delivery");
       strengths.push("Clear lesson execution");
@@ -121,7 +139,6 @@ export default function TeacherDetailPage() {
       strengths.push("Basic instructional structure present");
     }
 
-    // Weaknesses
     if (avg < 75) {
       weaknesses.push("Weak lesson closure");
       weaknesses.push("Inconsistent concept reinforcement");
@@ -135,7 +152,6 @@ export default function TeacherDetailPage() {
       strengths.push("Strong improvement trend");
     }
 
-    // Recommendation
     if (avg < 70) {
       recommendation =
         "Immediate coaching required: focus on clarity, pacing, and student comprehension checks.";
@@ -202,7 +218,7 @@ export default function TeacherDetailPage() {
           </div>
         </div>
 
-        {/* AI INSIGHT (UPDATED) */}
+        {/* AI INSIGHT */}
         <div style={cardFull}>
           <h2 style={title}>AI Coaching Insight</h2>
 

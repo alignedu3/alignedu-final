@@ -131,7 +131,7 @@ export default function TeacherDashboard() {
 
             <div>
               <div style={label}>Gaps</div>
-              <div style={value}>{summary.totalGaps}</div>
+              <div style={value}>{summary.totalGaps || 0}</div>
             </div>
           </div>
         </div>

@@ -1,149 +1,141 @@
-export const runtime = "nodejs";
+import OpenAI from "openai";
 
-import { NextRequest, NextResponse } from 'next/server';
-import { OpenAI } from 'openai';
-import { getChatGPTFeedback } from '../../../utils/openai';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 
-const userUsageMap = new Map<string, { count: number; seconds: number }>();
-
-const DAILY_RECORDING_LIMIT = 8;
-const DAILY_SECONDS_LIMIT = 7 * 60 * 60;
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY!,
 });
 
-function extractField(result: string, heading: string): string | null {
-  const lines = result.split('\n').map((line) => line.trim());
-  const headingIndex = lines.findIndex(
-    (line) => line.replace(/:$/, '').toLowerCase() === heading.toLowerCase()
-  );
-  if (headingIndex === -1 || headingIndex + 1 >= lines.length) return null;
-  return lines[headingIndex + 1] || null;
+function safeJson(data: any, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 }
 
-export async function POST(req: NextRequest) {
+async function callOpenAI(messages: any[]) {
+  return await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages,
+    temperature: 0.3,
+  });
+}
+
+export async function POST(req: Request) {
   try {
-    let lectureText = '';
-    let grade = '';
-    let subject = '';
+    const formData = await req.formData();
 
-    const contentType = req.headers.get('content-type') || '';
+    const grade = String(formData.get("grade") || "");
+    const subject = String(formData.get("subject") || "");
+    const lectureText = String(formData.get("lecture") || "").trim();
+    const audioDurationValue = formData.get("audioDuration");
+    const audioDuration = audioDurationValue
+      ? Number(audioDurationValue)
+      : undefined;
 
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await req.formData();
-      const file = formData.get('file') as File | null;
-      grade = (formData.get('grade') as string) || '';
-      subject = (formData.get('subject') as string) || '';
+    const files = formData
+      .getAll("file")
+      .filter(
+        (entry): entry is File => entry instanceof File && entry.size > 0
+      );
 
-      if (file && file.type.includes('audio')) {
+    if (audioDuration && audioDuration > 5400) {
+      return safeJson(
+        {
+          result: null,
+          error: "Audio is too long. Please upload a file shorter than 90 minutes.",
+        },
+        400
+      );
+    }
+
+    let transcript = lectureText;
+
+    if (files.length > 0) {
+      const spokenParts: string[] = [];
+
+      for (const file of files) {
         const transcription = await openai.audio.transcriptions.create({
           file,
-          model: 'gpt-4o-transcribe',
+          model: "whisper-1",
         });
-        lectureText = transcription.text;
-      } else if (file) {
-        lectureText = await file.text();
+
+        const spokenText = String((transcription as any).text || "").trim();
+        if (spokenText) spokenParts.push(spokenText);
       }
 
-      const directLecture = formData.get('lecture') as string | null;
-      if (!lectureText && directLecture) {
-        lectureText = directLecture;
+      const spokenText = spokenParts.join("\n\n");
+      if (spokenText) {
+        transcript = transcript
+          ? `${transcript}\n\nAudio Transcript:\n${spokenText}`
+          : spokenText;
       }
-    } else if (contentType.includes('application/json')) {
-      const body = await req.json();
-      lectureText = body.lecture || '';
-      grade = body.grade || '';
-      subject = body.subject || '';
     }
 
-    if (!lectureText) {
-      return NextResponse.json(
-        { result: 'No lesson text available for analysis.' },
-        { status: 400 }
-      );
-    }
-
-    const feedback = await getChatGPTFeedback(
-      `Grade: ${grade}, Subject: ${subject}\n\nLesson:\n${lectureText}`
-    );
-
-    const coverageRaw = extractField(feedback || '', 'Coverage Score');
-    const clarityRaw = extractField(feedback || '', 'Clarity Rating');
-    const gapsRaw = extractField(feedback || '', 'Gaps Detected');
-
-    const coverageScore = coverageRaw ? parseInt(coverageRaw.replace('%', '').trim(), 10) : null;
-    const gapsDetected = gapsRaw ? parseInt(gapsRaw.trim(), 10) : null;
-    const clarityRating = clarityRaw || null;
-
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
-      {
-        cookies: {
-          getAll: () => cookieStore.getAll(),
-          setAll: (cookiesToSet) => {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          },
+    if (!transcript || transcript.trim().length < 10) {
+      return safeJson(
+        {
+          result: null,
+          error: "Please provide lesson notes or upload an audio file for transcription.",
         },
-      }
-    );
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated.');
-
-    const today = new Date().toISOString().slice(0, 10);
-    const recordingSeconds = Math.floor(lectureText.length / 15);
-
-    const usageKey = `${user.id}-${today}`;
-    const existingUsage = userUsageMap.get(usageKey) || { count: 0, seconds: 0 };
-    const nextCount = existingUsage.count + 1;
-    const nextSeconds = existingUsage.seconds + recordingSeconds;
-
-    if (nextCount > DAILY_RECORDING_LIMIT) {
-      return NextResponse.json(
-        { result: 'You can upload up to 8 recordings per day.' },
-        { status: 429 }
+        400
       );
     }
 
-    if (nextSeconds > DAILY_SECONDS_LIMIT) {
-      return NextResponse.json(
-        { result: 'You can upload up to 7 total hours per day.' },
-        { status: 429 }
-      );
-    }
+    const systemPrompt = `
+You are an elite instructional coach analyzing classroom teaching.
+Be specific, evidence-based, and actionable.
+`;
 
-    userUsageMap.set(usageKey, { count: nextCount, seconds: nextSeconds });
+    const userPrompt = `
+Grade: ${grade}
+Subject: ${subject}
 
-    const title =
-      `${subject || 'Lesson'} ${grade ? `- Grade ${grade}` : ''}`.trim() || 'Untitled Lesson';
+Analyze this lesson transcript:
 
-    await supabase.from('analyses').insert({
-      user_id: user.id,
-      title,
-      grade,
-      subject,
-      lesson_text: lectureText,
-      analysis_result: feedback,
-      coverage_score: Number.isNaN(coverageScore!) ? null : coverageScore,
-      clarity_rating: clarityRating,
-      gaps_detected: Number.isNaN(gapsDetected!) ? null : gapsDetected,
+Return:
+- Instructional Score (0-100)
+- Coverage
+- Clarity
+- Engagement
+- Gaps Flagged
+- Key Findings
+- Missed Opportunities
+- Student Signals
+- Suggested Next Steps
+
+Transcript:
+${transcript}
+`;
+
+    const completion = await callOpenAI([
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ]);
+
+    const result =
+      completion.choices[0]?.message?.content || "No result returned";
+
+    return safeJson({
+      result,
+      error: null,
     });
+  } catch (err: any) {
+    console.error("ANALYZE ERROR:", err);
 
-    return NextResponse.json({ result: feedback });
-  } catch (error) {
-    console.error('ANALYZE ROUTE ERROR:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error analyzing lesson.';
-    return NextResponse.json(
-      { result: `Error analyzing lesson: ${message}` },
-      { status: 500 }
+    const message = err?.message || "Analysis failed";
+    const userError = message.includes("longer than")
+      ? "Audio is too long for transcription. Please upload a file under 90 minutes."
+      : message;
+
+    return safeJson(
+      {
+        result: null,
+        error: userError,
+      },
+      400
     );
   }
 }
