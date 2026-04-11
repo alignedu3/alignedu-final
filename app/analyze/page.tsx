@@ -29,7 +29,7 @@ export default function AnalysisPage() {
     const fileData = new Uint8Array(await file.arrayBuffer());
     await ffmpeg.writeFile(inputName, fileData);
 
-    const chunkSeconds = 300;
+    const chunkSeconds = 60;
     const chunkCount = Math.ceil(duration / chunkSeconds);
     const chunks: File[] = [];
 
@@ -79,6 +79,15 @@ export default function AnalysisPage() {
     return chunks;
   };
 
+  const parseJsonOrText = async (res: Response) => {
+    const text = await res.text();
+    try {
+      return JSON.parse(text);
+    } catch {
+      return { error: text, transcript: "", result: null };
+    }
+  };
+
   const transcribeChunk = async (chunk: File, index: number, total: number) => {
     setProcessingStep(`Transcribing chunk ${index + 1} of ${total}...`);
     const chunkForm = new FormData();
@@ -89,9 +98,14 @@ export default function AnalysisPage() {
       body: chunkForm,
     });
 
-    const chunkData = await chunkRes.json();
+    const chunkData = await parseJsonOrText(chunkRes);
     if (!chunkRes.ok) {
-      throw new Error(chunkData?.error || "Chunk transcription failed.");
+      const message =
+        chunkRes.status === 413 ||
+        String(chunkData?.error || "").includes("Request Entity Too Large")
+          ? "Audio chunk is too large. Try a shorter recording or smaller chunk size."
+          : chunkData?.error || chunkData?.result || "Chunk transcription failed.";
+      throw new Error(message);
     }
 
     return String(chunkData.transcript || "");
@@ -169,11 +183,11 @@ export default function AnalysisPage() {
         body: analysisForm,
       });
 
-      const data = await res.json();
+      const data = await parseJsonOrText(res);
 
       if (!res.ok) {
         setError(
-          data?.error || data?.details || "Analysis failed, but system recovered."
+          data?.error || data?.details || data?.result || "Analysis failed, but system recovered."
         );
         setResult(data?.result || "");
         setLoading(false);
