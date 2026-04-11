@@ -345,6 +345,7 @@ const btnAlt: React.CSSProperties = {
 };
 
 const card: React.CSSProperties = {
+
   background: '#111827',
   padding: 20,
   borderRadius: 12,

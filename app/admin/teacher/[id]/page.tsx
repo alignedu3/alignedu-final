@@ -264,14 +264,18 @@ export default function TeacherDetailPage() {
           <h2 style={title}>Lesson History</h2>
 
           {reports.map((r, i) => (
-            <div key={i} style={item}>
+            <a
+              key={i}
+              href={`/admin/teacher/${id}/lesson/${r.id}`}
+              style={{ ...item, textDecoration: 'none', display: 'block', cursor: 'pointer' }}
+            >
               <div>
                 Score: <b>{calculateLessonScore(r)}</b>
               </div>
               <div style={muted}>
                 {new Date(r.created_at).toLocaleDateString()}
               </div>
-            </div>
+            </a>
           ))}
         </div>
 
