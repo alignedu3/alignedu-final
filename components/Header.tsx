@@ -139,7 +139,7 @@ export default function Header() {
                 {profile?.role === "admin" && (
                   <>
                     <Link
-                      href="/admin"
+                      href="/admin/dashboard"
                       style={dropdownItem}
                       onClick={() => setOpen(false)}
                     >

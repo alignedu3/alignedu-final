@@ -388,10 +388,12 @@ export default function AnalysisPage() {
       setProcessingStep("Finalizing results...");
       setResult(data?.result || "No result returned");
 
-      // ── FIX 2: always redirect regardless of save status ──
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 1500);
+      // ── FIX 2: only redirect if logged in and saved ──
+      if (data?.saved) {
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 1500);
+      }
       // ── END FIX 2 ──
 
     } catch (err: any) {
