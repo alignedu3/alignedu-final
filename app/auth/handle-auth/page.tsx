@@ -14,8 +14,24 @@ export default function AuthCallback() {
       const { data } = await supabase.auth.getSession();
 
       if (data.session) {
-        // user is authenticated via invite
-        router.push('/reset-password');
+        const user = data.session.user;
+
+        // 🔥 Get user role from profiles
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        // 🔥 Redirect based on role
+        if (profile?.role === 'admin') {
+          router.push('/admin');
+        } else if (profile?.role === 'teacher') {
+          router.push('/teacher');
+        } else {
+          // fallback (in case role is missing)
+          router.push('/');
+        }
       } else {
         router.push('/');
       }
