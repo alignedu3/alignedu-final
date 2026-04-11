@@ -1,16 +1,21 @@
 import OpenAI from "openai";
 
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: "50mb",
-    },
-  },
-};
+function getOpenAIKey() {
+  const apiKey = process.env.OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    console.error("Missing OPENAI_API_KEY environment variable in server runtime.");
+    throw new Error("Server configuration error: OPENAI_API_KEY is not set.");
+  }
+  if (!apiKey.startsWith("sk-") || apiKey.length < 40) {
+    console.error("Malformed OPENAI_API_KEY environment variable in server runtime.");
+    throw new Error("Server configuration error: OPENAI_API_KEY appears malformed.");
+  }
+  return apiKey;
+}
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+function createOpenAIClient() {
+  return new OpenAI({ apiKey: getOpenAIKey() });
+}
 
 function safeJson(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -23,6 +28,7 @@ function safeJson(data: any, status = 200) {
 
 export async function POST(req: Request) {
   try {
+    const openai = createOpenAIClient();
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
 

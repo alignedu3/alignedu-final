@@ -11,11 +11,139 @@ export default function AnalysisPage() {
   const [lessonNotes, setLessonNotes] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
+  const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [processingStep, setProcessingStep] = useState("");
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
+
+  const filePreviewCardStyle: React.CSSProperties = {
+    background: '#0f172a',
+    border: '1px solid rgba(148,163,184,0.14)',
+    borderRadius: 18,
+    padding: 20,
+    marginTop: 18,
+    boxShadow: '0 24px 80px rgba(15,23,42,0.22)',
+  };
+
+  const filePreviewHeaderStyle: React.CSSProperties = {
+    color: '#f97316',
+    fontSize: 13,
+    letterSpacing: '0.16em',
+    marginBottom: 14,
+    textTransform: 'uppercase',
+    fontWeight: 700,
+  };
+
+  const filePreviewBodyStyle: React.CSSProperties = {
+    display: 'grid',
+    gap: 12,
+  };
+
+  const fileTextStyle: React.CSSProperties = {
+    color: '#fff',
+    fontSize: 16,
+    lineHeight: 1.5,
+  };
+
+  const fileMetaStyle: React.CSSProperties = {
+    color: '#94a3b8',
+    fontSize: 13,
+  };
+
+  const resultCardStyle: React.CSSProperties = {
+    background: '#0f172a',
+    border: '1px solid rgba(148,163,184,0.18)',
+    borderRadius: 20,
+    padding: 22,
+    marginTop: 26,
+    boxShadow: '0 24px 80px rgba(15,23,42,0.18)',
+  };
+
+  const resultSectionStyle: React.CSSProperties = {
+    background: '#111827',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 18,
+    border: '1px solid rgba(148,163,184,0.08)',
+  };
+
+  const resultHeaderStyle: React.CSSProperties = {
+    color: '#f97316',
+    marginBottom: 10,
+    fontSize: 14,
+    letterSpacing: '0.12em',
+    textTransform: 'uppercase',
+  };
+
+  const resultTitleStyle: React.CSSProperties = {
+    color: '#fff',
+    fontSize: 18,
+    marginBottom: 10,
+  };
+
+  const resultTextStyle: React.CSSProperties = {
+    color: '#cbd5e1',
+    lineHeight: 1.75,
+    fontSize: 15,
+    whiteSpace: 'pre-wrap',
+  };
+
+  const resultListStyle: React.CSSProperties = {
+    color: '#cbd5e1',
+    paddingLeft: 20,
+    margin: 0,
+    fontSize: 15,
+    lineHeight: 1.7,
+  };
+
+  const resultItemStyle: React.CSSProperties = {
+    marginBottom: 8,
+  };
+
+  const resultLabelStyle: React.CSSProperties = {
+    color: '#94a3b8',
+    marginBottom: 6,
+    fontSize: 13,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+  };
+
+  const summaryBarStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+    gap: 16,
+    marginBottom: 18,
+  };
+
+  const metricCardStyle: React.CSSProperties = {
+    background: '#111827',
+    border: '1px solid rgba(148,163,184,0.1)',
+    borderRadius: 16,
+    padding: 16,
+    textAlign: 'center',
+  };
+
+  const metricLabelStyle: React.CSSProperties = {
+    color: '#94a3b8',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    marginBottom: 8,
+  };
+
+  const metricValueStyle: React.CSSProperties = {
+    color: '#fff',
+    fontSize: 22,
+    fontWeight: 700,
+  };
+
+  const metricSubtextStyle: React.CSSProperties = {
+    color: '#94a3b8',
+    fontSize: 13,
+    marginTop: 6,
+  };
 
   const splitAudioIntoChunks = async (file: File, duration: number) => {
     const ffmpegModule = await import("@ffmpeg/ffmpeg");
@@ -88,6 +216,55 @@ export default function AnalysisPage() {
     }
   };
 
+  const parseAnalysisResult = (text: string) => {
+    if (!text) return [];
+
+    const groups = text
+      .split(/\n{2,}/)
+      .map((chunk) => chunk.trim())
+      .filter(Boolean);
+
+    return groups.map((chunk) => {
+      const lines = chunk
+        .split(/\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      const firstLine = lines[0] || "";
+      const titleCandidate = firstLine.replace(/^[-•*]\s*/, "");
+      const isTitle = lines.length > 1 && !/^[-•*\s]/.test(firstLine);
+
+      return {
+        title: isTitle ? titleCandidate : "Summary",
+        content: isTitle ? lines.slice(1).join("\n") : lines.join("\n"),
+      };
+    });
+  };
+
+  // ── FIX 1: updated regex to handle "(0-100)" in label ──
+  const parseAnalysisMetrics = (text: string) => {
+    const stringValue = (match: RegExpMatchArray | null) =>
+      match ? Number(match[1]) : null;
+
+    const score = stringValue(text.match(/Instructional Score[\s\S]*?:\s*([0-9]{1,3})/i));
+    const coverage = stringValue(text.match(/Coverage[\s\S]*?:\s*([0-9]{1,3})/i));
+    const clarity = stringValue(text.match(/Clarity[\s\S]*?:\s*([0-9]{1,3})/i));
+    const engagement = stringValue(text.match(/Engagement[\s\S]*?:\s*([0-9]{1,3})/i));
+    const gaps = stringValue(text.match(/Gaps(?:\s*Flagged)?[\s\S]*?:\s*([0-9]{1,3})/i));
+
+    return {
+      score: score ?? null,
+      coverage: coverage ?? null,
+      clarity: clarity ?? null,
+      engagement: engagement ?? null,
+      gaps: gaps ?? null,
+    };
+  };
+  // ── END FIX 1 ──
+
+  const resultSections = parseAnalysisResult(result);
+  const resultMetrics = parseAnalysisMetrics(result);
+
   const transcribeChunk = async (chunk: File, index: number, total: number) => {
     setProcessingStep(`Transcribing chunk ${index + 1} of ${total}...`);
     const chunkForm = new FormData();
@@ -112,23 +289,36 @@ export default function AnalysisPage() {
   };
 
   const handleAudioChange = (file: File | null) => {
+    if (!file) {
+      if (selectedFileUrl) {
+        URL.revokeObjectURL(selectedFileUrl);
+      }
+      setAudioFile(null);
+      setSelectedFileUrl(null);
+      setAudioDuration(null);
+      setError("");
+      return;
+    }
+
+    if (selectedFileUrl) {
+      URL.revokeObjectURL(selectedFileUrl);
+    }
+
+    const url = URL.createObjectURL(file);
     setAudioFile(file);
+    setSelectedFileUrl(url);
     setAudioDuration(null);
     setError("");
 
-    if (!file) return;
-
-    const url = URL.createObjectURL(file);
     const audio = new Audio(url);
 
     audio.addEventListener("loadedmetadata", () => {
       setAudioDuration(audio.duration);
-      URL.revokeObjectURL(url);
     });
 
     audio.addEventListener("error", () => {
       setError("Unable to read audio duration. Please try a different file.");
-      URL.revokeObjectURL(url);
+      setSelectedFileUrl(null);
     });
   };
 
@@ -198,9 +388,12 @@ export default function AnalysisPage() {
       setProcessingStep("Finalizing results...");
       setResult(data?.result || "No result returned");
 
+      // ── FIX 2: always redirect regardless of save status ──
       setTimeout(() => {
-        router.refresh();
-      }, 800);
+        router.push('/dashboard');
+      }, 1500);
+      // ── END FIX 2 ──
+
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Something went wrong");
@@ -275,6 +468,20 @@ export default function AnalysisPage() {
                     </p>
                   </div>
                 </label>
+                {audioFile && (
+                  <div style={filePreviewCardStyle}>
+                    <div style={filePreviewHeaderStyle}>Selected audio file</div>
+                    <div style={filePreviewBodyStyle}>
+                      <div style={fileTextStyle}>{audioFile.name}</div>
+                      <div style={fileMetaStyle}>
+                        {audioDuration ? `${Math.round(audioDuration)}s` : 'Loading duration...'}
+                      </div>
+                      {selectedFileUrl && (
+                        <audio controls src={selectedFileUrl} style={{ width: '100%', borderRadius: 12, marginTop: 12 }} />
+                      )}
+                    </div>
+                  </div>
+                )}
                 {audioDuration !== null && (
                   <p style={{ marginTop: 8, color: "#94a3b8", fontSize: 14 }}>
                     Audio duration: {Math.round(audioDuration)} seconds
@@ -306,14 +513,61 @@ export default function AnalysisPage() {
           </div>
 
           {result && (
-            <section className="analysis-results-card">
-              <div className="analysis-results-header">
-                <h2>AI Analysis Result</h2>
-                <p>Review the full coaching summary below.</p>
+            <section style={resultCardStyle}>
+              <div style={resultHeaderStyle}>Lesson Analysis</div>
+
+              <div style={summaryBarStyle}>
+                <div style={metricCardStyle}>
+                  <div style={metricLabelStyle}>Instructional Score</div>
+                  <div style={metricValueStyle}>{resultMetrics.score ?? '—'}</div>
+                  <div style={metricSubtextStyle}>Overall teaching quality</div>
+                </div>
+                <div style={metricCardStyle}>
+                  <div style={metricLabelStyle}>Coverage</div>
+                  <div style={metricValueStyle}>{resultMetrics.coverage ?? '—'}</div>
+                  <div style={metricSubtextStyle}>Standards & content scope</div>
+                </div>
+                <div style={metricCardStyle}>
+                  <div style={metricLabelStyle}>Clarity</div>
+                  <div style={metricValueStyle}>{resultMetrics.clarity ?? '—'}</div>
+                  <div style={metricSubtextStyle}>Instructional clarity</div>
+                </div>
+                <div style={metricCardStyle}>
+                  <div style={metricLabelStyle}>Engagement</div>
+                  <div style={metricValueStyle}>{resultMetrics.engagement ?? '—'}</div>
+                  <div style={metricSubtextStyle}>Student participation</div>
+                </div>
               </div>
-              <div className="result-box analysis-results-body">
-                <pre className="analysis-result-text">{result}</pre>
-              </div>
+
+              {resultSections.length === 0 ? (
+                <div style={resultTextStyle}>{result}</div>
+              ) : (
+                resultSections.map((section, index) => {
+                  const lines = section.content
+                    .split(/\n/)
+                    .map((line) => line.trim())
+                    .filter(Boolean);
+
+                  const hasBullets = lines.every((line) => /^[-•*]/.test(line));
+
+                  return (
+                    <div key={index} style={resultSectionStyle}>
+                      {section.title && <div style={resultTitleStyle}>{section.title}</div>}
+                      {hasBullets ? (
+                        <ul style={resultListStyle}>
+                          {lines.map((line, li) => (
+                            <li key={li} style={resultItemStyle}>
+                              {line.replace(/^[-•*]\s*/, '')}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div style={resultTextStyle}>{section.content}</div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </section>
           )}
         </div>

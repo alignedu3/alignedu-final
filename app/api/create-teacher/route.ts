@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 
 export async function POST(req: Request) {
   try {
@@ -97,6 +99,46 @@ export async function POST(req: Request) {
         },
         { status: 500 }
       );
+    }
+
+    // ================================
+    // 3. CREATE MANAGED_TEACHERS RELATIONSHIP
+    // ================================
+    const cookieStore = await cookies();
+    const serverClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options);
+              });
+            } catch (error) {
+              // Handle error silently
+            }
+          },
+        },
+      }
+    ) as any;
+
+    const { data: { user: adminUser } } = await serverClient.auth.getUser();
+    if (adminUser) {
+      const { error: relationError } = await serverClient
+        .from('managed_teachers')
+        .insert({
+          admin_id: adminUser.id,
+          teacher_id: userId,
+        });
+
+      if (relationError) {
+        console.warn('Managed teacher relation error:', relationError);
+        // Don't fail - teacher is still created
+      }
     }
 
     return NextResponse.json({

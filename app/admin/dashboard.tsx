@@ -57,14 +57,23 @@ export default function AdminDashboard() {
         return;
       }
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id, name, role')
-        .eq('role', 'teacher');
+      // Load only teachers managed by this admin
+      const { data: managedData } = await supabase
+        .from('managed_teachers')
+        .select('teacher_id')
+        .eq('admin_id', user.id);
+
+      const teacherIds = (managedData || []).map(m => m.teacher_id);
+
+      // Get teacher profiles for managed teachers
+      const { data: profileData } = teacherIds.length > 0 
+        ? await supabase
+            .from('profiles')
+            .select('id, name, role')
+            .in('id', teacherIds)
+        : { data: [] };
 
       setProfiles(profileData ?? []);
-
-      const teacherIds = (profileData || []).map(p => p.id);
 
       if (!teacherIds.length) {
         setDbReports([]);
