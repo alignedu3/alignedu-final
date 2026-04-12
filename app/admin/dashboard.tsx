@@ -65,7 +65,7 @@ export default function AdminDashboard() {
 
         const { data } = await supabase
           .from('analyses')
-          .select('*')
+          .select('id, user_id, created_at, date, coverage, coverage_score, clarity, clarity_rating, engagement, assessment, gaps, gaps_detected, teacher_name, name')
           .in('user_id', teacherIds)
           .order('created_at', { ascending: false });
 
@@ -95,6 +95,7 @@ export default function AdminDashboard() {
   // FIXED: teacher name resolution ONLY
   // ================================
   const teacherStats = useMemo(() => {
+    const profileById = new Map((profiles || []).map((p) => [p.id, p]));
     const map: Record<string, any[]> = {};
 
     reports.forEach((r: any) => {
@@ -104,7 +105,7 @@ export default function AdminDashboard() {
     });
 
     return Object.entries(map).map(([id, reps]) => {
-      const profile = profiles.find(p => p.id === id);
+      const profile = profileById.get(id);
 
       const scores = reps.map(r => calculateLessonScore(r));
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
