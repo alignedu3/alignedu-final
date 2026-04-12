@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 
 export default function LoginPage() {
@@ -10,37 +9,33 @@ export default function LoginPage() {
   const [isHovered, setIsHovered] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    const resetTimer = window.setTimeout(() => {
-      setLoading(false);
-      setError('Login is taking longer than expected. Please try again.');
-    }, 10000);
-
     try {
       const supabase = createClient();
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const signInResult = await Promise.race([
+        supabase.auth.signInWithPassword({ email, password }),
+        new Promise<{ data: any; error: any }>((_, reject) =>
+          setTimeout(() => reject(new Error('Login request timed out')), 12000)
+        ),
+      ]);
+
+      const { data, error } = signInResult;
 
       if (error) {
         setError(error.message);
         setLoading(false);
-        window.clearTimeout(resetTimer);
         return;
       }
 
       if (!data.user) {
         setError('Login succeeded, but no user session was returned. Please try again.');
         setLoading(false);
-        window.clearTimeout(resetTimer);
         return;
       }
 
@@ -60,18 +55,24 @@ export default function LoginPage() {
         targetPath = '/admin';
       }
 
-      // App Router transition first.
-      router.replace(targetPath);
-      router.refresh();
+      // Hard navigation is more reliable on some mobile browsers.
+      window.location.replace(targetPath);
+      return;
+    } catch (err: any) {
+      const supabase = createClient();
+      const { data: sessionData } = await supabase.auth.getSession();
 
-      // Mobile-safe fallback in case SPA navigation stalls.
-      window.location.assign(targetPath);
-      window.clearTimeout(resetTimer);
-    } catch (err) {
+      // If session exists despite a client timeout, continue anyway.
+      if (sessionData.session?.user) {
+        window.location.replace('/dashboard');
+        return;
+      }
+
       console.error(err);
-      setError('Something went wrong while logging in.');
+      setError(err?.message?.includes('timed out')
+        ? 'Login timed out on mobile network. Please try again.'
+        : 'Something went wrong while logging in.');
       setLoading(false);
-      window.clearTimeout(resetTimer);
     }
   };
 
