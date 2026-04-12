@@ -1044,18 +1044,24 @@ export default function HomePage() {
             font-size: 9px;
           }
 
-          /* All 3 school charts stack full-width on small mobile */
+          /* Keep compact 2-up cards so the demo does not become too tall */
           .preview-subject-row {
-            grid-template-columns: 1fr !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 6px !important;
           }
 
           .preview-coverage-wrap {
-            height: 118px !important;
+            height: 98px !important;
             padding: 8px 7px 7px !important;
           }
 
           .preview-school-card:last-child {
-            grid-column: auto;
+            grid-column: 1 / -1;
+          }
+
+          /* Hide the long lower panel on small phones to keep the demo glanceable */
+          .preview-bottom-grid {
+            display: none !important;
           }
 
           .hero-cta-row {
