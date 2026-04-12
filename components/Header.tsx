@@ -19,6 +19,32 @@ export default function Header() {
 
   useEffect(() => {
     const supabase = createClient();
+    let isMounted = true;
+
+    const syncUserAndProfile = async (nextUser?: any | null) => {
+      const resolvedUser = nextUser === undefined
+        ? (await supabase.auth.getSession()).data.session?.user ?? null
+        : nextUser;
+
+      if (!isMounted) return;
+
+      setUser(resolvedUser);
+
+      if (!resolvedUser) {
+        setProfile(null);
+        setOpen(false);
+        return;
+      }
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('name, role')
+        .eq('id', resolvedUser.id)
+        .maybeSingle();
+
+      if (!isMounted) return;
+      setProfile(profileData ?? null);
+    };
 
     const loadUser = async () => {
       const { data, error } = await supabase.auth.getUser();
@@ -30,31 +56,23 @@ export default function Header() {
         }
       }
 
-      setUser(data.user);
-
-      if (data.user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('name, role')
-          .eq('id', data.user.id)
-          .single();
-
-        setProfile(profileData);
-      }
+      await syncUserAndProfile(data.user ?? null);
     };
 
     loadUser();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_, session) => {
-        setUser(session?.user ?? null);
+      async (_, session) => {
+        await syncUserAndProfile(session?.user ?? null);
+        router.refresh();
       }
     );
 
     return () => {
+      isMounted = false;
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   // ✅ close dropdown on outside click
   useEffect(() => {
