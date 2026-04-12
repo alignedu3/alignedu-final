@@ -424,10 +424,31 @@ export default function AnalysisPage() {
       gaps: gaps ?? null,
     };
   };
-  // ── END FIX 1 ──
+
+  // Parse both instructional coaching and TEKS sections from response
+  const parseFeedbackSections = (text: string) => {
+    const coachingMatch = text.match(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===([\s\S]*?)(?====|$)/i);
+    const teksMatch = text.match(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===([\s\S]*?)$/i);
+
+    const parseSection = (content: string) => {
+      if (!content) return [];
+      const groups = content
+        .split(/(?:^|\n)[-•*]\s+[A-Z][^\n:]*:\s*/)
+        .filter(Boolean)
+        .map(chunk => chunk.trim())
+        .filter(Boolean);
+      return groups;
+    };
+
+    return {
+      coaching: coachingMatch ? parseSection(coachingMatch[1]) : [],
+      teks: teksMatch ? parseSection(teksMatch[1]) : [],
+    };
+  };
 
   const resultSections = parseAnalysisResult(result);
   const resultMetrics = parseAnalysisMetrics(result);
+  const feedbackSections = parseFeedbackSections(result);
 
   const transcribeChunk = async (chunk: File, index: number, total: number) => {
     setProcessingStep(`Transcribing chunk ${index + 1} of ${total}...`);
@@ -789,32 +810,56 @@ export default function AnalysisPage() {
               {resultSections.length === 0 ? (
                 <div style={resultTextStyle}>{result}</div>
               ) : (
-                resultSections.map((section, index) => {
-                  const lines = section.content
-                    .split(/\n/)
-                    .map((line) => line.trim())
-                    .filter(Boolean);
-
-                  const hasBullets = lines.every((line) => /^[-•*]/.test(line));
-
-                  return (
-                    <div key={index} style={resultSectionStyle}>
-                      {section.title && <div style={resultTitleStyle}>{section.title}</div>}
-                      {hasBullets ? (
-                        <ul style={resultListStyle}>
-                          {lines.map((line, li) => (
-                            <li key={li} style={resultItemStyle}>
-                              {line.replace(/^[-•*]\s*/, '')}
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div style={resultTextStyle}>{section.content}</div>
-                      )}
+                <>
+                  {feedbackSections.coaching.length > 0 && (
+                    <div style={{ marginBottom: 32 }}>
+                      <div style={{ ...resultTitleStyle, color: '#0f172a', fontSize: 16, marginBottom: 12, paddingBottom: 8, borderBottom: '2px solid #e2e8f0' }}>🎓 Instructional Coaching Feedback</div>
+                      {feedbackSections.coaching.map((item, i) => (
+                        <div key={i} style={{ marginBottom: 12 }}>
+                          <div style={resultTextStyle}>{item}</div>
+                        </div>
+                      ))}
                     </div>
-                  );
-                })
-              )}
+                  )}
+                  
+                  {feedbackSections.teks.length > 0 && (
+                    <div style={{ marginBottom: 32 }}>
+                      <div style={{ ...resultTitleStyle, color: '#0369a1', fontSize: 16, marginBottom: 12, paddingBottom: 8, borderBottom: '2px solid #cffafe' }}>📋 Texas TEKS Standards Alignment</div>
+                      {feedbackSections.teks.map((item, i) => (
+                        <div key={i} style={{ marginBottom: 12 }}>
+                          <div style={resultTextStyle}>{item}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {resultSections.map((section, index) => {
+                    const lines = section.content
+                      .split(/\n/)
+                      .map((line) => line.trim())
+                      .filter(Boolean);
+
+                    const hasBullets = lines.every((line) => /^[-•*]/.test(line));
+
+                    return (
+                      <div key={index} style={resultSectionStyle}>
+                        {section.title && <div style={resultTitleStyle}>{section.title}</div>}
+                        {hasBullets ? (
+                          <ul style={resultListStyle}>
+                            {lines.map((line, li) => (
+                              <li key={li} style={resultItemStyle}>
+                                {line.replace(/^[-•*]\s*/, '')}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div style={resultTextStyle}>{section.content}</div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              )}}
             </section>
           )}
         </div>

@@ -138,9 +138,9 @@ export async function POST(req: Request) {
     const teksContext = formatTEKSForPrompt(standards, overview);
 
     const systemPrompt = `
-You are an elite instructional coach analyzing classroom teaching against Texas standards.
+You are an elite instructional coach analyzing classroom teaching.
 Be specific, evidence-based, and actionable.
-When analyzing lessons, reference the applicable TEKS standards and identify which standards are addressed and which may have been missed.
+Provide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.
 `;
 
     const userPrompt = `
@@ -149,21 +149,28 @@ Subject: ${subject}
 
 ${teksContext}
 
-Analyze this lesson transcript and return the following in plain text format (without markdown headers):
+Analyze this lesson transcript and provide feedback in the following structured format (use these exact section headers):
 
+Metrics:
 Instructional Score (0-100): [number]
 Coverage (0-100): [number]
 Clarity (0-100): [number]
 Engagement (0-100): [number]
 Gaps Flagged: [number]
 
-Then provide:
-- Standards Addressed (which TEKS standards were explicitly taught or practiced)
-- Standards Not Observed (which TEKS standards were missing from the lesson)
-- Key Findings
-- Missed Opportunities
-- Student Engagement Signals
-- Suggested Next Steps for Improvement
+=== INSTRUCTIONAL COACHING FEEDBACK ===
+Provide generic, high-quality instructional coaching feedback on:
+- Key Findings (what was done well, areas for growth)
+- Missed Opportunities (where instruction could be enhanced)
+- Student Engagement Signals (evidence of student understanding and participation)
+- Suggested Next Steps (actionable improvements)
+
+=== TEXAS TEKS STANDARDS ALIGNMENT ===
+Provide specific curriculum alignment feedback:
+- Standards Addressed (which TEKS standards were explicitly taught or practiced in this lesson)
+- Standards Not Observed (which TEKS standards were missing or underdeveloped)
+- Standards Mastery Notes (observations about depth and quality of standards instruction)
+- Recommendations for Standards Integration (how to better integrate missing standards)
 
 Transcript:
 ${transcript}
@@ -231,7 +238,7 @@ ${transcript}
         engagement_level: metrics.engagement_level,
         gaps_detected: metrics.gaps_detected,
         transcript: transcript.slice(0, 5000),
-        result: result.slice(0, 3000),
+        result: result.slice(0, 5000),
         created_at: new Date().toISOString(),
       };
 

@@ -238,7 +238,7 @@ export default function TeacherDashboard() {
               <tbody>
                 {reports.slice(0, 5).map((r, i) => {
                   const score = calculateLessonScore(r);
-                  const lessonLabel = r.subject || `Lesson ${i + 1}`;
+                  const lessonLabel = `${r.grade || 'Grade?'} ${r.subject || 'Lesson'}` || `Lesson ${i + 1}`;
                   const lessonDate = r.created_at ? new Date(r.created_at).toLocaleDateString() : '';
                   return (
                     <tr key={r.id || i}>
@@ -253,7 +253,6 @@ export default function TeacherDashboard() {
                         >
                           View
                         </button>
-                        {/* Delete button removed for teachers */}
                       </td>
                     </tr>
                   );
@@ -269,7 +268,7 @@ export default function TeacherDashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 style={cardTitle}>Selected Lesson</h2>
-                <p style={subheading}>{selectedReport.subject || 'Saved Lesson'}</p>
+                <p style={subheading}>{selectedReport.grade} {selectedReport.subject || 'Lesson'}</p>
               </div>
               <button
                 style={secondaryButton}
@@ -279,17 +278,33 @@ export default function TeacherDashboard() {
               </button>
             </div>
             <div style={{ marginTop: 16 }}>
-              <p style={text}><strong>Score:</strong> {calculateLessonScore(selectedReport)}/100</p>
-              <p style={text}><strong>Coverage:</strong> {selectedReport.coverage_score ?? 'N/A'}</p>
-              <p style={text}><strong>Clarity:</strong> {selectedReport.clarity_rating ?? 'N/A'}</p>
-              <p style={text}><strong>Engagement:</strong> {selectedReport.engagement_level ?? 'N/A'}</p>
-              <p style={text}><strong>Gaps:</strong> {selectedReport.gaps_detected ?? 0}</p>
-              <div style={{ marginTop: 16, whiteSpace: 'pre-wrap', color: '#d1d5db' }}>
-                {selectedReport.result || 'No saved analysis text available.'}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
+                <div>
+                  <div style={{ ...label, fontSize: 12 }}>Score</div>
+                  <div style={{ ...value, fontSize: 20 }}>{calculateLessonScore(selectedReport)}/100</div>
+                </div>
+                <div>
+                  <div style={{ ...label, fontSize: 12 }}>Coverage</div>
+                  <div style={{ ...value, fontSize: 20 }}>{selectedReport.coverage_score ?? 'N/A'}</div>
+                </div>
+                <div>
+                  <div style={{ ...label, fontSize: 12 }}>Clarity</div>
+                  <div style={{ ...value, fontSize: 20 }}>{selectedReport.clarity_rating ?? 'N/A'}</div>
+                </div>
+                <div>
+                  <div style={{ ...label, fontSize: 12 }}>Engagement</div>
+                  <div style={{ ...value, fontSize: 20 }}>{selectedReport.engagement_level ?? 'N/A'}</div>
+                </div>
+              </div>
+              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(148,163,184,0.2)' }}>
+                <h3 style={{ ...cardTitle, fontSize: 14, marginBottom: 12 }}>📋 Full Analysis Report</h3>
+                <div style={{ marginTop: 12, whiteSpace: 'pre-wrap', color: '#d1d5db', fontSize: 13, lineHeight: 1.6, maxHeight: 400, overflowY: 'auto' }}>
+                  {selectedReport.result || 'No saved analysis text available.'}
+                </div>
               </div>
             </div>
           </div>
-        )}
+        )}}
       </div>
     </main>
   );
