@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getTEKSStandards, formatTEKSForPrompt } from "@/lib/teksStandards";
 
 function getOpenAIKey() {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -132,14 +133,21 @@ export async function POST(req: Request) {
       );
     }
 
+    // Load TEKS standards for this grade/subject combination
+    const { standards, overview, found: hasStandards } = getTEKSStandards(grade, subject);
+    const teksContext = formatTEKSForPrompt(standards, overview);
+
     const systemPrompt = `
-You are an elite instructional coach analyzing classroom teaching.
+You are an elite instructional coach analyzing classroom teaching against Texas standards.
 Be specific, evidence-based, and actionable.
+When analyzing lessons, reference the applicable TEKS standards and identify which standards are addressed and which may have been missed.
 `;
 
     const userPrompt = `
 Grade: ${grade}
 Subject: ${subject}
+
+${teksContext}
 
 Analyze this lesson transcript and return the following in plain text format (without markdown headers):
 
@@ -150,10 +158,12 @@ Engagement (0-100): [number]
 Gaps Flagged: [number]
 
 Then provide:
+- Standards Addressed (which TEKS standards were explicitly taught or practiced)
+- Standards Not Observed (which TEKS standards were missing from the lesson)
 - Key Findings
 - Missed Opportunities
-- Student Signals
-- Suggested Next Steps
+- Student Engagement Signals
+- Suggested Next Steps for Improvement
 
 Transcript:
 ${transcript}
