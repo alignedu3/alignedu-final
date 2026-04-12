@@ -8,6 +8,7 @@ import { sampleReports, getDashboardSummary, getTrendData, calculateLessonScore 
 
 export default function TeacherDashboard() {
   const supabase = createClient();
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [role, setRole] = useState('teacher');
   const [userId, setUserId] = useState<string | null>(null);
   const [teacherName, setTeacherName] = useState<string | null>(null);
@@ -17,33 +18,45 @@ export default function TeacherDashboard() {
   const [ready, setReady] = useState(false);
 
   const loadData = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    setUserId(user.id);
+      setUserId(user.id);
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, name')
-      .eq('id', user.id)
-      .single();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, name')
+        .eq('id', user.id)
+        .single();
 
-    setRole(profile?.role || 'teacher');
-    setTeacherName(profile?.name || 'Teacher');
+      setRole(profile?.role || 'teacher');
+      setTeacherName(profile?.name || 'Teacher');
 
-    const { data } = await supabase
-      .from('analyses')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+      const { data } = await supabase
+        .from('analyses')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-    setDbReports(data || []);
-    setReady(true);
+      setDbReports(data || []);
+    } catch (err) {
+      console.error('Dashboard load error:', err);
+    } finally {
+      setReady(true);
+    }
   }, [supabase]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const checkScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
+    return () => window.removeEventListener('resize', checkScreen);
+  }, []);
 
   const reports = dbReports;
 
@@ -116,11 +129,11 @@ export default function TeacherDashboard() {
   }
 
   return (
-    <main style={page}>
+    <main style={page} className="dashboard-page">
       <div style={glow1} />
       <div style={glow2} />
 
-      <div style={container}>
+      <div style={container} className="dashboard-container">
 
         <div style={header}>
           <div>
@@ -174,11 +187,22 @@ export default function TeacherDashboard() {
           <h2 style={cardTitle}>📈 Score Trend</h2>
           <p style={text}>{trendInsight}</p>
 
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
             <LineChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
-              <XAxis dataKey="date" stroke="#94a3b8" />
-              <YAxis domain={[0, 100]} stroke="#94a3b8" />
+              <XAxis
+                dataKey="date"
+                stroke="#94a3b8"
+                tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                minTickGap={isNarrowScreen ? 20 : 10}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                domain={[0, 100]}
+                stroke="#94a3b8"
+                tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                width={isNarrowScreen ? 28 : 40}
+              />
               <Tooltip />
               <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} />
             </LineChart>
@@ -202,12 +226,13 @@ export default function TeacherDashboard() {
               Upload your first lesson to receive AI-powered feedback, scoring, and improvement suggestions.
             </p>
           ) : (
-            <table style={table}>
+            <div className="table-scroll-wrap">
+          <table style={table}>
               <thead>
                 <tr>
-                  <th style={th}>Lesson</th>
-                  <th style={th}>Score</th>
-                  <th style={th}>Actions</th>
+                  <th style={{ ...th, width: '56%', whiteSpace: 'normal' }}>Lesson</th>
+                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal' }}>Score</th>
+                  <th style={{ ...th, width: '26%', textAlign: 'center', whiteSpace: 'normal' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -217,28 +242,25 @@ export default function TeacherDashboard() {
                   const lessonDate = r.created_at ? new Date(r.created_at).toLocaleDateString() : '';
                   return (
                     <tr key={r.id || i}>
-                      <td style={td}>{lessonLabel}{lessonDate ? ` · ${lessonDate}` : ''}</td>
-                      <td style={td}>{score}/100</td>
-                      <td style={td}>
+                      <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                        {lessonLabel}{lessonDate ? ` · ${lessonDate}` : ''}
+                      </td>
+                      <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>{score}/100</td>
+                      <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
                         <button
                           style={actionButton}
                           onClick={() => handleViewReport(r)}
                         >
                           View
                         </button>
-                        <button
-                          style={deleteButton}
-                          disabled={deletingId === r.id}
-                          onClick={() => handleDeleteReport(r.id)}
-                        >
-                          {deletingId === r.id ? 'Deleting…' : 'Delete'}
-                        </button>
+                        {/* Delete button removed for teachers */}
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+          </div>
           )}
         </div>
 
@@ -273,37 +295,38 @@ export default function TeacherDashboard() {
   );
 }
 
-const page: React.CSSProperties = { minHeight: '100vh', background: '#081120', padding: 40 };
+const page: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-primary)' };
 const container: React.CSSProperties = { maxWidth: 1200, margin: '0 auto' };
 const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 };
-const heading: React.CSSProperties = { color: '#fff', fontSize: 28, margin: '0 0 4px 0' };
-const subheading: React.CSSProperties = { color: '#94a3b8', margin: 0 };
+const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 28, margin: '0 0 4px 0' };
+const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0 };
 const buttonGroup: React.CSSProperties = { display: 'flex', gap: 10, alignItems: 'center' };
 const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '10px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
 
-const card: React.CSSProperties = { background: '#111827', padding: 20, borderRadius: 12, marginBottom: 20 };
-const cardTitle: React.CSSProperties = { color: '#fff', marginBottom: 10 };
+const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 20 };
+const cardTitle: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 10 };
 
-const previewGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 20 };
-const bigScore: React.CSSProperties = { fontSize: 32, color: '#fff', fontWeight: 700 };
-const subText: React.CSSProperties = { color: '#94a3b8' };
+const previewGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16 };
+const bigScore: React.CSSProperties = { fontSize: 32, color: 'var(--text-primary)', fontWeight: 700 };
+const subText: React.CSSProperties = { color: 'var(--text-secondary)' };
 
-const label: React.CSSProperties = { color: '#94a3b8' };
-const value: React.CSSProperties = { color: '#fff', fontSize: 18 };
+const label: React.CSSProperties = { color: 'var(--text-secondary)' };
+const value: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 18 };
 
-const text: React.CSSProperties = { color: '#94a3b8' };
+const text: React.CSSProperties = { color: 'var(--text-secondary)' };
 
-const table: React.CSSProperties = { width: '100%' };
-const th: React.CSSProperties = { color: '#94a3b8', textAlign: 'left', padding: 8 };
-const td: React.CSSProperties = { color: '#fff', padding: 8 };
+const table: React.CSSProperties = { width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' };
+const th: React.CSSProperties = { color: 'var(--text-secondary)', textAlign: 'left', padding: '5px 6px', fontSize: 13 };
+const td: React.CSSProperties = { color: 'var(--text-primary)', padding: '5px 6px', fontSize: 14, verticalAlign: 'middle' };
 const actionButton: React.CSSProperties = {
   background: '#22c55e',
   color: '#fff',
   border: 'none',
-  padding: '6px 12px',
-  marginRight: 8,
+  padding: '4px 9px',
+  marginRight: 0,
   borderRadius: 8,
   cursor: 'pointer',
+  whiteSpace: 'nowrap',
 };
 const deleteButton: React.CSSProperties = {
   background: '#ef4444',
@@ -322,10 +345,10 @@ const secondaryButton: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-const emptyState: React.CSSProperties = { color: '#94a3b8' };
+const emptyState: React.CSSProperties = { color: 'var(--text-secondary)' };
 
 const glow1: React.CSSProperties = { display: 'none' };
 const glow2: React.CSSProperties = { display: 'none' };
 
 const loadingContainer: React.CSSProperties = { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' };
-const loadingText: React.CSSProperties = { color: '#fff' };
+const loadingText: React.CSSProperties = { color: 'var(--text-primary)' };

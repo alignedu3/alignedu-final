@@ -1,29 +1,17 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useTheme } from './context/ThemeContext';
 
 export default function HomePage() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { theme: currentTheme } = useTheme();
+  const [isDarkMode, setIsDarkMode] = useState(currentTheme === 'dark');
   const router = useRouter();
 
   useEffect(() => {
-    const savedMode = localStorage.getItem('theme');
-    const prefersDark =
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    const resolvedDarkMode = savedMode === 'dark' || (savedMode === null && prefersDark);
-
-    setIsDarkMode(resolvedDarkMode);
-    document.documentElement.setAttribute('data-theme', resolvedDarkMode ? 'dark' : 'light');
-  }, []);
-
-  const toggleTheme = () => {
-    const newMode = isDarkMode ? 'light' : 'dark';
-    setIsDarkMode(!isDarkMode);
-    localStorage.setItem('theme', newMode);
-    document.documentElement.setAttribute('data-theme', newMode);
-  };
+    setIsDarkMode(currentTheme === 'dark');
+  }, [currentTheme]);
 
   const handleBookDemo = () => {
     window.location.href =
@@ -116,7 +104,7 @@ export default function HomePage() {
           overflow: 'hidden',
           background: theme.heroBg,
           color: theme.heroText,
-          padding: '110px 20px 90px',
+          padding: 'clamp(86px, 11vw, 108px) 20px clamp(64px, 9vw, 78px)',
         }}
       >
         <div style={container}>
@@ -199,28 +187,30 @@ export default function HomePage() {
 
             <div>
               <div
+                className="hero-dashboard-shell"
                 style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.14)',
-                  borderRadius: '24px',
-                  padding: '20px',
-                  backdropFilter: 'blur(14px)',
-                  boxShadow: '0 30px 80px rgba(2, 6, 23, 0.35)',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.18)',
+                  borderRadius: '28px',
+                  padding: '18px',
+                  backdropFilter: 'blur(16px)',
+                  boxShadow: '0 35px 90px rgba(2, 6, 23, 0.45)',
                 }}
               >
                 <div
+                  className="hero-dashboard-frame"
                   style={{
-                    background: '#ffffff',
+                    background: 'linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%)',
                     borderRadius: '20px',
                     overflow: 'hidden',
-                    boxShadow: '0 20px 40px rgba(15, 23, 42, 0.18)',
+                    boxShadow: '0 24px 48px rgba(15, 23, 42, 0.24)',
                   }}
                 >
                   <div
                     style={{
-                      background: '#0f172a',
+                      background: 'linear-gradient(90deg, #0f172a 0%, #1e293b 100%)',
                       color: '#ffffff',
-                      padding: '14px 18px',
+                      padding: '13px 16px',
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
@@ -228,111 +218,82 @@ export default function HomePage() {
                       fontWeight: 600,
                     }}
                   >
-                    <span>Analysis Preview</span>
-                    <span style={{ color: '#93c5fd' }}>Lesson Summary</span>
+                    <span>Executive Dashboard</span>
+                    <span style={{ color: '#67e8f9' }}>Live Classroom Insights</span>
                   </div>
 
-                  <div style={{ padding: '22px' }}>
-                    <div
-                      style={{
-                        marginBottom: '16px',
-                        padding: '18px 20px',
-                        borderRadius: '18px',
-                        background: 'linear-gradient(135deg, #0f172a, #1e293b)',
-                        border: '1px solid rgba(148, 163, 184, 0.18)',
-                        boxShadow: '0 10px 30px rgba(15, 23, 42, 0.16)',
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          gap: '14px',
-                          flexWrap: 'wrap',
-                        }}
-                      >
-                        <div>
-                          <div
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              letterSpacing: '0.10em',
-                              color: '#94a3b8',
-                              textTransform: 'uppercase',
-                              marginBottom: '8px',
-                            }}
-                          >
-                            Instructional Score
+                  <div style={{ padding: '18px' }}>
+                    <div className="preview-kpi-row" style={previewTopRow}>
+                      <div className="preview-card-up" style={previewKpiPrimary}>
+                        <div style={previewKpiLabel}>District Instruction Score</div>
+                        <div style={previewKpiValue}>92.4%</div>
+                        <div style={previewKpiDelta}>+8.1% this month</div>
+                      </div>
+
+                      <div className="preview-card-up preview-delay-2" style={previewKpiSecondary}>
+                        <div style={previewKpiLabel}>At-Risk Standards</div>
+                        <div style={{ ...previewKpiValue, color: '#0f172a' }}>4</div>
+                        <div style={{ ...previewKpiDelta, color: '#b45309' }}>Needs review in 2 schools</div>
+                      </div>
+                    </div>
+
+                    <div className="preview-card-up preview-delay-2" style={previewChartCard}>
+                      <div style={previewSectionHeader}>
+                        <span>Coverage Trend by Lesson</span>
+                        <span style={{ color: '#2563eb' }}>Last 6 Lessons</span>
+                      </div>
+                      <div style={previewBarsWrap}>
+                        {[62, 71, 67, 79, 83, 92].map((value, i) => (
+                          <div key={i} className="preview-bar-col" style={previewBarCol}>
+                            <div className="preview-bar-fill" style={{ ...previewBar, height: `${value}%` }} />
+                            <span style={previewBarLabel}>L{i + 1}</span>
                           </div>
-                          <div
-                            style={{
-                              fontSize: '34px',
-                              fontWeight: 800,
-                              lineHeight: 1,
-                              color: '#f8fafc',
-                            }}
-                          >
-                            87/100
-                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={previewBottomGrid}>
+                      <div className="preview-card-up preview-delay-3" style={previewProgressCard}>
+                        <div style={previewSectionHeader}>Standard Mastery</div>
+                        <div style={previewProgressRow}>
+                          <span style={previewProgressLabel}>English Language Arts</span>
+                          <span style={previewProgressValue}>88%</span>
+                        </div>
+                        <div style={previewProgressTrack}>
+                          <div style={{ ...previewProgressFill, width: '88%' }} />
                         </div>
 
-                        <div
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            padding: '8px 12px',
-                            borderRadius: '999px',
-                            background: 'rgba(34, 197, 94, 0.14)',
-                            border: '1px solid rgba(34, 197, 94, 0.24)',
-                            color: '#22c55e',
-                            fontSize: '13px',
-                            fontWeight: 700,
-                            whiteSpace: 'nowrap',
-                          }}
-                        >
-                          ↑ +5 from last lesson
+                        <div style={previewProgressRow}>
+                          <span style={previewProgressLabel}>Science Practices</span>
+                          <span style={previewProgressValue}>79%</span>
+                        </div>
+                        <div style={previewProgressTrack}>
+                          <div style={{ ...previewProgressFill, width: '79%' }} />
+                        </div>
+
+                        <div style={previewProgressRow}>
+                          <span style={previewProgressLabel}>Mathematical Reasoning</span>
+                          <span style={previewProgressValue}>84%</span>
+                        </div>
+                        <div style={previewProgressTrack}>
+                          <div style={{ ...previewProgressFill, width: '84%' }} />
                         </div>
                       </div>
-                    </div>
 
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                        gap: '12px',
-                        marginBottom: '18px',
-                      }}
-                    >
-                      <div style={dashboardStatCard}>
-                        
-
-
-
-<div style={statLabel}>Coverage</div>
-                        <div style={statValue}>87%</div>
-                      </div>
-                      <div style={dashboardStatCard}>
-                        <div style={statLabel}>Clarity</div>
-                        <div style={statValue}>Strong</div>
-                      </div>
-                      <div style={dashboardStatCard}>
-                        <div style={statLabel}>Gaps Flagged</div>
-                        <div style={statValue}>3</div>
-                      </div>
-                    </div>
-
-                    <div style={{ marginBottom: '16px' }}>
-                      <div style={miniSectionTitle}>Key findings</div>
-                      <div style={miniListItem}>Standards covered were clearly introduced and modeled.</div>
-                      <div style={miniListItem}>Two supporting concepts need stronger reinforcement.</div>
-                      <div style={miniListItem}>Lesson pacing was effective, but closure was limited.</div>
-                    </div>
-
-                    <div>
-                      <div style={miniSectionTitle}>Suggested next step</div>
-                      <div style={miniActionCard}>
-                        Revisit the missed concept in the next lesson and strengthen the closing check for understanding.
+                      <div className="preview-card-up preview-delay-4" style={previewActivityCard}>
+                        <div style={previewSectionHeader}>Recent Flags</div>
+                        <div style={previewActivityItem}>
+                          <span style={previewActivityDotWarn} />
+                          <span>Closure checks missing in Grade 6 ELA</span>
+                        </div>
+                        <div style={previewActivityItem}>
+                          <span style={previewActivityDotGood} />
+                          <span>Modeling quality improved in Algebra I</span>
+                        </div>
+                        <div style={previewActivityItem}>
+                          <span style={previewActivityDotWarn} />
+                          <span>Vocabulary scaffolds inconsistent in Grade 4</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -343,7 +304,7 @@ export default function HomePage() {
 
           <div
             style={{
-              marginTop: '44px',
+              marginTop: '34px',
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
               gap: '14px',
@@ -362,7 +323,7 @@ export default function HomePage() {
       {/* TRUST / POSITIONING */}
       <section
         style={{
-          padding: '28px 20px',
+          padding: 'clamp(30px, 4vw, 38px) 20px',
           background: isDarkMode ? '#09111f' : '#ffffff',
           borderTop: `1px solid ${theme.cardBorder}`,
           borderBottom: `1px solid ${theme.cardBorder}`,
@@ -387,7 +348,7 @@ export default function HomePage() {
       {/* FEATURES */}
       <section
         style={{
-          padding: '90px 20px',
+          padding: 'clamp(58px, 8vw, 78px) 20px',
           background: theme.sectionSoft,
         }}
       >
@@ -435,7 +396,7 @@ export default function HomePage() {
       {/* WHAT YOU GET */}
       <section
         style={{
-          padding: '90px 20px',
+          padding: 'clamp(58px, 8vw, 78px) 20px',
           background: theme.sectionAlt,
         }}
       >
@@ -485,7 +446,7 @@ export default function HomePage() {
       {/* BEFORE / AFTER */}
       <section
         style={{
-          padding: '90px 20px',
+          padding: 'clamp(58px, 8vw, 78px) 20px',
           background: theme.sectionSoft,
         }}
       >
@@ -543,7 +504,7 @@ export default function HomePage() {
       {/* HOW IT WORKS */}
       <section
         style={{
-          padding: '90px 20px',
+          padding: 'clamp(58px, 8vw, 78px) 20px',
           background: theme.sectionAlt,
         }}
       >
@@ -581,7 +542,7 @@ export default function HomePage() {
       {/* WHO IT'S FOR */}
       <section
         style={{
-          padding: '90px 20px',
+          padding: 'clamp(58px, 8vw, 78px) 20px',
           background:
             isDarkMode
               ? 'linear-gradient(135deg, #0b1730 0%, #0f3d5e 100%)'
@@ -621,7 +582,7 @@ export default function HomePage() {
       {/* DISTRICT SCALE */}
       <section
         style={{
-          padding: '90px 20px',
+          padding: 'clamp(58px, 8vw, 78px) 20px',
           background: theme.sectionSoft,
         }}
       >
@@ -651,7 +612,7 @@ export default function HomePage() {
       {/* FINAL CTA */}
       <section
         style={{
-          padding: '100px 20px',
+          padding: 'clamp(68px, 9vw, 88px) 20px',
           background:
             'linear-gradient(135deg, #020617 0%, #0f172a 50%, #0f766e 100%)',
           color: '#ffffff',
@@ -719,31 +680,131 @@ export default function HomePage() {
         }}
       >
         <p style={{ margin: '0 0 8px', fontWeight: 700, color: theme.text }}>AlignEDU</p>
-        <p style={{ margin: 0, color: theme.mutedText }}>support@alignedu.net</p>
+        <p style={{ margin: '0 0 18px', color: theme.mutedText }}>support@alignedu.net</p>
+        <div className="legal-links-row">
+          <Link href="/faq" className="legal-link">FAQ</Link>
+          <Link href="/terms" className="legal-link">Terms of Use</Link>
+          <Link href="/privacy" className="legal-link">Privacy Policy</Link>
+          <Link href="/security" className="legal-link">Security</Link>
+          <Link href="/disclaimer" className="legal-link">Disclaimer</Link>
+        </div>
+        <p style={{ margin: '18px 0 0', color: theme.mutedText, fontSize: 13 }}>
+          © {new Date().getFullYear()} AlignEDU. All rights reserved.
+        </p>
       </footer>
 
-      {/* THEME TOGGLE */}
-      <button
-        onClick={toggleTheme}
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          left: '20px',
-          padding: '11px 16px',
-          fontSize: '14px',
-          cursor: 'pointer',
-          background: isDarkMode ? '#ffffff' : '#0f172a',
-          color: isDarkMode ? '#0f172a' : '#ffffff',
-          borderRadius: '999px',
-          border: '1px solid rgba(148,163,184,0.25)',
-          boxShadow: '0 10px 30px rgba(2,6,23,0.18)',
-          zIndex: 50,
-          fontWeight: 600,
-        }}
-      >
-        {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-      </button>
       <style jsx>{`
+        .hero-dashboard-shell {
+          animation: dashboardFloatIn 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        .hero-dashboard-frame {
+          animation: dashboardFadeIn 760ms ease-out 80ms both;
+        }
+
+        .preview-kpi-row {
+          animation: dashboardFadeIn 620ms ease-out 120ms both;
+        }
+
+        .preview-card-up {
+          animation: cardRiseIn 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+
+        .preview-delay-2 {
+          animation-delay: 160ms;
+        }
+
+        .preview-delay-3 {
+          animation-delay: 220ms;
+        }
+
+        .preview-delay-4 {
+          animation-delay: 280ms;
+        }
+
+        .preview-bar-fill {
+          transform-origin: bottom;
+          transform: scaleY(0.15);
+          animation: growBar 850ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        .preview-bar-col:nth-child(1) .preview-bar-fill {
+          animation-delay: 190ms;
+        }
+
+        .preview-bar-col:nth-child(2) .preview-bar-fill {
+          animation-delay: 240ms;
+        }
+
+        .preview-bar-col:nth-child(3) .preview-bar-fill {
+          animation-delay: 290ms;
+        }
+
+        .preview-bar-col:nth-child(4) .preview-bar-fill {
+          animation-delay: 340ms;
+        }
+
+        .preview-bar-col:nth-child(5) .preview-bar-fill {
+          animation-delay: 390ms;
+        }
+
+        .preview-bar-col:nth-child(6) .preview-bar-fill {
+          animation-delay: 440ms;
+        }
+
+        @keyframes dashboardFloatIn {
+          from {
+            opacity: 0;
+            transform: translateY(16px) scale(0.985);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes dashboardFadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        @keyframes cardRiseIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes growBar {
+          from {
+            transform: scaleY(0.15);
+            filter: saturate(1.15);
+          }
+          to {
+            transform: scaleY(1);
+            filter: saturate(1);
+          }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .hero-dashboard-shell,
+          .hero-dashboard-frame,
+          .preview-kpi-row,
+          .preview-card-up,
+          .preview-bar-fill {
+            animation: none !important;
+            transform: none !important;
+          }
+        }
+
         .hero-cta,
         .hero-cta-unified {
           white-space: nowrap !important;
@@ -754,6 +815,27 @@ export default function HomePage() {
           align-items: center;
           gap: 14px;
           flex-wrap: wrap;
+        }
+
+        .legal-links-row {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .legal-link {
+          color: ${theme.mutedText};
+          font-size: 13px;
+          text-decoration: none;
+          border-bottom: 1px solid transparent;
+          transition: color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .legal-link:hover {
+          color: ${theme.text};
+          border-color: ${theme.text};
         }
 
         @media (max-width: 767px) {
@@ -800,6 +882,14 @@ export default function HomePage() {
             padding: 0 8px !important;
             font-size: 13px !important;
           }
+
+          .legal-links-row {
+            gap: 8px;
+          }
+
+          .legal-link {
+            font-size: 12px;
+          }
         }
       `}</style>
     </main>
@@ -815,7 +905,7 @@ const container: React.CSSProperties = {
 const sectionHeader: React.CSSProperties = {
   textAlign: 'center',
   maxWidth: '860px',
-  margin: '0 auto 52px',
+  margin: '0 auto 44px',
 };
 
 const sectionTitle: React.CSSProperties = {
@@ -945,56 +1035,181 @@ const heroMetricDot: React.CSSProperties = {
   flexShrink: 0,
 };
 
-const dashboardStatCard: React.CSSProperties = {
-  background: '#f8fafc',
-  border: '1px solid rgba(148,163,184,0.22)',
-  borderRadius: '14px',
-  padding: '14px',
+const previewTopRow: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '1.35fr 1fr',
+  gap: '10px',
+  marginBottom: '12px',
 };
 
-const statLabel: React.CSSProperties = {
-  fontSize: '12px',
-  color: '#64748b',
+const previewKpiPrimary: React.CSSProperties = {
+  background: 'linear-gradient(145deg, #0f172a, #1e293b)',
+  color: '#ffffff',
+  borderRadius: '14px',
+  border: '1px solid rgba(148,163,184,0.24)',
+  padding: '12px',
+};
+
+const previewKpiSecondary: React.CSSProperties = {
+  background: '#ffffff',
+  color: '#0f172a',
+  borderRadius: '14px',
+  border: '1px solid rgba(148,163,184,0.26)',
+  padding: '12px',
+};
+
+const previewKpiLabel: React.CSSProperties = {
+  fontSize: '11px',
+  textTransform: 'uppercase',
+  letterSpacing: '0.08em',
+  color: '#94a3b8',
+  fontWeight: 700,
   marginBottom: '6px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
 };
 
-const statValue: React.CSSProperties = {
-  fontSize: '20px',
-  color: '#0f172a',
-  fontWeight: 750,
+const previewKpiValue: React.CSSProperties = {
+  fontSize: '27px',
+  fontWeight: 800,
+  lineHeight: 1.1,
+  marginBottom: '4px',
+  color: '#ffffff',
 };
 
-const miniSectionTitle: React.CSSProperties = {
-  fontSize: '13px',
-  color: '#334155',
-  marginBottom: '10px',
-  fontWeight: 700,
-  textTransform: 'uppercase',
-  letterSpacing: '0.04em',
+const previewKpiDelta: React.CSSProperties = {
+  fontSize: '12px',
+  color: '#34d399',
+  fontWeight: 600,
 };
 
-const miniListItem: React.CSSProperties = {
-  background: '#f8fafc',
-  color: '#0f172a',
-  padding: '10px 12px',
-  borderRadius: '12px',
-  marginBottom: '10px',
-  fontSize: '14px',
-  lineHeight: '1.6',
-  border: '1px solid rgba(148,163,184,0.18)',
-};
-
-const miniActionCard: React.CSSProperties = {
-  background: 'linear-gradient(135deg, rgba(37,99,235,0.08), rgba(16,185,129,0.08))',
-  color: '#0f172a',
-  padding: '14px',
+const previewChartCard: React.CSSProperties = {
   borderRadius: '14px',
-  fontSize: '14px',
-  lineHeight: '1.7',
-  border: '1px solid rgba(148,163,184,0.18)',
+  border: '1px solid rgba(148,163,184,0.24)',
+  background: '#ffffff',
+  padding: '12px',
+  marginBottom: '12px',
+};
+
+const previewSectionHeader: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  fontSize: '12px',
+  color: '#334155',
+  fontWeight: 700,
+  marginBottom: '10px',
+};
+
+const previewBarsWrap: React.CSSProperties = {
+  height: '112px',
+  display: 'grid',
+  gridTemplateColumns: 'repeat(6, 1fr)',
+  gap: '8px',
+  alignItems: 'end',
+};
+
+const previewBarCol: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: '6px',
+  height: '100%',
+  justifyContent: 'flex-end',
+};
+
+const previewBar: React.CSSProperties = {
+  width: '100%',
+  borderRadius: '8px',
+  background: 'linear-gradient(180deg, #38bdf8 0%, #2563eb 100%)',
+  minHeight: '10px',
+  boxShadow: '0 6px 14px rgba(37,99,235,0.25)',
+};
+
+const previewBarLabel: React.CSSProperties = {
+  fontSize: '10px',
+  color: '#64748b',
+  fontWeight: 700,
+};
+
+const previewBottomGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '1.2fr 1fr',
+  gap: '10px',
+};
+
+const previewProgressCard: React.CSSProperties = {
+  borderRadius: '14px',
+  border: '1px solid rgba(148,163,184,0.24)',
+  background: '#ffffff',
+  padding: '12px',
+};
+
+const previewProgressRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: '6px',
+};
+
+const previewProgressLabel: React.CSSProperties = {
+  fontSize: '11px',
+  color: '#334155',
+  fontWeight: 600,
+};
+
+const previewProgressValue: React.CSSProperties = {
+  fontSize: '11px',
+  color: '#0f172a',
+  fontWeight: 700,
+};
+
+const previewProgressTrack: React.CSSProperties = {
+  width: '100%',
+  height: '8px',
+  borderRadius: '999px',
+  background: '#e2e8f0',
+  overflow: 'hidden',
+  marginBottom: '9px',
+};
+
+const previewProgressFill: React.CSSProperties = {
+  height: '100%',
+  borderRadius: '999px',
+  background: 'linear-gradient(90deg, #22d3ee, #2563eb)',
+};
+
+const previewActivityCard: React.CSSProperties = {
+  borderRadius: '14px',
+  border: '1px solid rgba(148,163,184,0.24)',
+  background: '#ffffff',
+  padding: '12px',
+};
+
+const previewActivityItem: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: '8px',
+  fontSize: '11px',
+  lineHeight: '1.5',
+  color: '#334155',
+  marginBottom: '8px',
+};
+
+const previewActivityDotWarn: React.CSSProperties = {
+  width: '8px',
+  height: '8px',
+  marginTop: '4px',
+  borderRadius: '999px',
+  background: '#f59e0b',
+  flexShrink: 0,
+};
+
+const previewActivityDotGood: React.CSSProperties = {
+  width: '8px',
+  height: '8px',
+  marginTop: '4px',
+  borderRadius: '999px',
+  background: '#10b981',
+  flexShrink: 0,
 };
 
 const benefitRow: React.CSSProperties = {

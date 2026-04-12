@@ -22,7 +22,20 @@ export async function proxy(req: NextRequest) {
 
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser()
+
+  if (authError) {
+    const message = authError.message.toLowerCase()
+    if (message.includes('invalid refresh token') || message.includes('refresh token not found')) {
+      req.cookies
+        .getAll()
+        .filter((cookie) => cookie.name.startsWith('sb-'))
+        .forEach((cookie) => {
+          res.cookies.set(cookie.name, '', { maxAge: 0, path: '/' })
+        })
+    }
+  }
 
   const path = req.nextUrl.pathname
 

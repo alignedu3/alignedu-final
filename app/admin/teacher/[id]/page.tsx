@@ -177,8 +177,8 @@ export default function TeacherDetailPage() {
   }, [reports]);
 
   return (
-    <main style={page}>
-      <div style={container}>
+    <main style={page} className="dashboard-page">
+      <div style={container} className="dashboard-container">
 
         {/* HEADER */}
         <div style={header}>
@@ -263,20 +263,25 @@ export default function TeacherDetailPage() {
         <div style={cardFull}>
           <h2 style={title}>Lesson History</h2>
 
-          {reports.map((r, i) => (
-            <a
-              key={i}
-              href={`/admin/teacher/${id}/lesson/${r.id}`}
-              style={{ ...item, textDecoration: 'none', display: 'block', cursor: 'pointer' }}
-            >
-              <div>
-                Score: <b>{calculateLessonScore(r)}</b>
-              </div>
-              <div style={muted}>
-                {new Date(r.created_at).toLocaleDateString()}
-              </div>
-            </a>
-          ))}
+          {reports.map((r, i) => {
+            const grade = r.grade || 'Grade';
+            const subject = r.subject || 'Subject';
+            const date = new Date(r.created_at).toLocaleDateString();
+            return (
+              <a
+                key={i}
+                href={`/admin/teacher/${id}/lesson/${r.id}`}
+                style={{ ...item, textDecoration: 'none', display: 'block', cursor: 'pointer' }}
+              >
+                <div style={{ fontWeight: 'bold', color: '#fff', fontSize: 16 }}>
+                  {grade} &mdash; {subject} &mdash; {date}
+                </div>
+                <div style={{ color: '#94a3b8', fontWeight: 'normal', marginTop: 2 }}>
+                  Score: {calculateLessonScore(r)}
+                </div>
+              </a>
+            );
+          })}
         </div>
 
       </div>
@@ -289,7 +294,6 @@ export default function TeacherDetailPage() {
 const page: React.CSSProperties = {
   minHeight: '100vh',
   background: '#081120',
-  padding: 40
 };
 
 const container: React.CSSProperties = {

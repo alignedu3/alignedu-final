@@ -4,12 +4,15 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useTheme } from '@/app/context/ThemeContext';
 
 export default function Header() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [open, setOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
+  const { theme, toggleTheme } = useTheme();
 
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -17,7 +20,15 @@ export default function Header() {
     const supabase = createClient();
 
     const loadUser = async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error) {
+        const message = error.message.toLowerCase();
+        if (message.includes('invalid refresh token') || message.includes('refresh token not found')) {
+          await supabase.auth.signOut({ scope: 'local' });
+        }
+      }
+
       setUser(data.user);
 
       if (data.user) {
@@ -70,125 +81,220 @@ export default function Header() {
   const handleLogoClick = async () => {
     if (!user) {
       router.push('/');
+      return;
+    }
+    // Always fetch the latest role to ensure accuracy
+    const supabase = createClient();
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    const userRole = profileData?.role || profile?.role;
+    if (userRole === 'admin') {
+      router.push('/admin');
     } else {
-      // Fetch fresh profile data if not already loaded
-      const supabase = createClient();
-      let userRole = profile?.role;
-      
-      if (!userRole) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        userRole = profileData?.role;
-      }
-
-      if (userRole === 'admin') {
-        router.push('/admin/dashboard');
-      } else {
-        router.push('/dashboard');
-      }
+      router.push('/dashboard');
     }
   };
 
   return (
-    <header className="site-header">
-      {/* LOGO */}
-      <div
-        onClick={handleLogoClick}
-        style={{ textDecoration: 'none', cursor: 'pointer' }}
-      >
-        <div className="logo">
-          <span className="logo-align">Align</span>
-          <span className="logo-edu">EDU</span>
-        </div>
-      </div>
-
-      <div ref={menuRef} style={{ position: 'relative' }}>
-        {!user && (
-          <div style={{ display: 'flex', gap: 12 }}>
-            <Link href="/login" className="login-button-top">
-              Login
-            </Link>
-            <Link href="/book-demo" className="book-demo-btn">
-              Book Demo
-            </Link>
+    <>
+      <header className="site-header">
+        {/* LOGO */}
+        <div
+          onClick={handleLogoClick}
+          style={{ textDecoration: 'none', cursor: 'pointer' }}
+        >
+          <div className="logo">
+            <span className="logo-align">Align</span>
+            <span className="logo-edu">EDU</span>
           </div>
-        )}
+        </div>
 
-        {user && (
-          <div>
+        {/* DESKTOP NAV */}
+        <div
+          ref={menuRef}
+          className="header-desktop-nav"
+          style={{ position: 'relative' }}
+        >
+          <button
+            type="button"
+            className="header-theme-toggle"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            <span className="header-theme-icon" aria-hidden="true">{theme === 'dark' ? 'D' : 'L'}</span>
+            <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
+          </button>
+
+          {!user && (
+            <div className="header-guest-actions" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <Link href="/login" className="login-button-top">
+                Login
+              </Link>
+              <a href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo." className="book-demo-btn">
+                Book Demo
+              </a>
+            </div>
+          )}
+
+          {user && (
+            <div className="header-user-menu">
+              <button
+                onClick={() => setOpen(!open)}
+                style={userBtn}
+                aria-expanded={open}
+                aria-haspopup="menu"
+              >
+                <span>{profile?.name || 'User'}</span>
+                <span aria-hidden="true">▾</span>
+              </button>
+
+              {open && (
+                <div style={dropdown} role="menu">
+                  <Link
+                    href="/dashboard"
+                    style={dropdownItem}
+                    onClick={() => setOpen(false)}
+                  >
+                    Teacher Dashboard
+                  </Link>
+
+                  {profile?.role === "admin" && (
+                    <>
+                      <Link
+                        href="/admin"
+                        style={dropdownItem}
+                        onClick={() => setOpen(false)}
+                      >
+                        Admin Dashboard
+                      </Link>
+
+                      <Link
+                        href="/admin/invite"
+                        style={dropdownItem}
+                        onClick={() => setOpen(false)}
+                      >
+                        Add User
+                      </Link>
+                    </>
+                  )}
+
+                  <Link
+                    href="/reset-password"
+                    style={dropdownItem}
+                    onClick={() => setOpen(false)}
+                  >
+                    Change Password
+                  </Link>
+
+                  <button
+                    onClick={handleLogout}
+                    style={dropdownItem}
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* MOBILE HAMBURGER */}
+        <button
+          className="header-hamburger"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle navigation menu"
+          aria-expanded={mobileOpen}
+        >
+          <span className={`hamburger-line ${mobileOpen ? 'open-top' : ''}`} />
+          <span className={`hamburger-line ${mobileOpen ? 'open-mid' : ''}`} />
+          <span className={`hamburger-line ${mobileOpen ? 'open-bot' : ''}`} />
+        </button>
+      </header>
+
+      {/* MOBILE MENU DRAWER */}
+      {mobileOpen && (
+        <div className="mobile-nav-overlay" onClick={() => setMobileOpen(false)}>
+          <nav className="mobile-nav-drawer" onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={() => setOpen(!open)}
-              style={userBtn}
+              type="button"
+              className="mobile-nav-link mobile-nav-theme-toggle"
+              onClick={toggleTheme}
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             >
-              {profile?.name || 'User'} ▾
+              Theme: {theme === 'dark' ? 'Dark' : 'Light'}
             </button>
 
-            {open && (
-              <div style={dropdown}>
-                <Link
-                  href="/dashboard"
-                  style={dropdownItem}
-                  onClick={() => setOpen(false)}
-                >
+            {!user && (
+              <>
+                <Link href="/" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                  Home
+                </Link>
+                <Link href="/login" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                  Login
+                </Link>
+                <a href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo." className="mobile-nav-link mobile-nav-link-accent" onClick={() => setMobileOpen(false)}>
+                  Book Demo
+                </a>
+              </>
+            )}
+
+            {user && (
+              <>
+                <div className="mobile-nav-user">{profile?.name || 'User'}</div>
+                <Link href="/dashboard" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                   Teacher Dashboard
                 </Link>
-
                 {profile?.role === "admin" && (
                   <>
-                    <Link
-                      href="/admin"
-                      style={dropdownItem}
-                      onClick={() => setOpen(false)}
-                    >
+                    <Link href="/admin" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                       Admin Dashboard
                     </Link>
-
-                    <Link
-                      href="/admin/invite"
-                      style={dropdownItem}
-                      onClick={() => setOpen(false)}
-                    >
+                    <Link href="/admin/invite" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                       Add User
                     </Link>
                   </>
                 )}
-
-                <button
-                  onClick={handleLogout}
-                  style={dropdownItem}
-                >
+                <Link href="/reset-password" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                  Change Password
+                </Link>
+                <button className="mobile-nav-link mobile-nav-logout" onClick={() => { handleLogout(); setMobileOpen(false); }}>
                   Logout
                 </button>
-              </div>
+              </>
             )}
-          </div>
-        )}
-      </div>
-    </header>
+          </nav>
+        </div>
+      )}
+    </>
   );
 }
 
 const userBtn: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.08)',
-  color: '#fff',
+  background: 'var(--surface-chip)',
+  color: 'var(--text-primary)',
   padding: '10px 16px',
   borderRadius: 12,
-  border: '1px solid rgba(148,163,184,0.2)',
+  border: '1px solid var(--border-strong)',
   fontWeight: 600,
-  cursor: 'pointer'
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6
 };
 
 const dropdown: React.CSSProperties = {
   position: 'absolute',
   right: 0,
   top: 'calc(100% + 10px)',
-  background: '#1f2937',
+  background: 'var(--surface-card-solid)',
   borderRadius: 12,
-  border: '1px solid rgba(148,163,184,0.2)',
-  boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+  border: '1px solid var(--border)',
+  boxShadow: 'var(--shadow-card)',
   minWidth: 170,
   overflow: 'hidden',
   zIndex: 1000
@@ -198,10 +304,11 @@ const dropdownItem: React.CSSProperties = {
   display: 'block',
   width: '100%',
   padding: '12px 14px',
-  color: '#fff',
+  color: 'var(--text-primary)',
   textDecoration: 'none',
   background: 'none',
   border: 'none',
   textAlign: 'left',
-  cursor: 'pointer'
+  cursor: 'pointer',
+  fontSize: 15,
 };

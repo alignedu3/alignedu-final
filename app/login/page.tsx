@@ -132,7 +132,7 @@ const mainContainer: React.CSSProperties = {
   minHeight: '100vh',
   padding: '24px',
   background:
-    'radial-gradient(circle at top left, rgba(59,130,246,0.16), transparent 28%), radial-gradient(circle at top right, rgba(16,185,129,0.10), transparent 24%), linear-gradient(180deg, #07111f 0%, #081120 100%)',
+    'radial-gradient(circle at top left, var(--surface-page-radial-a), transparent 28%), radial-gradient(circle at top right, var(--surface-page-radial-b), transparent 24%), var(--surface-page)',
   fontFamily: 'Inter, Roboto, Arial, sans-serif',
   overflow: 'hidden',
 };
@@ -166,11 +166,11 @@ const loginContainer: React.CSSProperties = {
   zIndex: 1,
   width: '100%',
   maxWidth: '460px',
-  background: 'rgba(15, 23, 42, 0.86)',
-  border: '1px solid rgba(148, 163, 184, 0.16)',
+  background: 'var(--bg-card)',
+  border: '1px solid var(--border)',
   padding: '40px 32px',
   borderRadius: '24px',
-  boxShadow: '0 24px 60px rgba(2, 6, 23, 0.28)',
+  boxShadow: 'var(--shadow-card)',
   backdropFilter: 'blur(14px)',
   textAlign: 'center',
 };
@@ -196,14 +196,14 @@ const heading: React.CSSProperties = {
   fontWeight: 800,
   lineHeight: '1.05',
   letterSpacing: '-0.03em',
-  color: '#f8fafc',
+  color: 'var(--text-primary)',
   marginBottom: '14px',
 };
 
 const subheading: React.CSSProperties = {
   fontSize: '15px',
   lineHeight: '1.8',
-  color: '#94a3b8',
+  color: 'var(--text-secondary)',
   marginBottom: '28px',
 };
 
@@ -222,7 +222,7 @@ const inputGroup: React.CSSProperties = {
 
 const labelStyles: React.CSSProperties = {
   fontSize: '14px',
-  color: '#e5e7eb',
+  color: 'var(--text-primary)',
   fontWeight: 700,
   marginBottom: '8px',
 };
@@ -231,10 +231,10 @@ const inputStyles: React.CSSProperties = {
   width: '100%',
   padding: '14px 16px',
   fontSize: '15px',
-  border: '1px solid rgba(148, 163, 184, 0.22)',
+  border: '1px solid var(--border-strong)',
   borderRadius: '14px',
-  background: 'rgba(255, 255, 255, 0.04)',
-  color: '#f8fafc',
+  background: 'var(--surface-input)',
+  color: 'var(--text-primary)',
   outline: 'none',
 };
 
@@ -246,6 +246,12 @@ const submitBtn: React.CSSProperties = {
   borderRadius: '14px',
   border: 'none',
   fontWeight: 700,
+  width: '100%',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  textAlign: 'center',
+  lineHeight: 1,
   transition: 'transform 0.2s ease, box-shadow 0.2s ease',
   marginTop: '6px',
 };

@@ -22,6 +22,7 @@ import {
 export default function AdminDashboard() {
   const [dbReports, setDbReports] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [ready, setReady] = useState(false);
   const router = useRouter();
 
@@ -31,49 +32,59 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function loadData() {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) {
+        if (!user) {
+          return;
+        }
+
+        // Load only teachers managed by this admin
+        const { data: managedData } = await supabase
+          .from('managed_teachers')
+          .select('teacher_id')
+          .eq('admin_id', user.id);
+
+        const teacherIds = (managedData || []).map(m => m.teacher_id);
+
+        // Get teacher profiles for managed teachers
+        const { data: profileData } = teacherIds.length > 0 
+          ? await supabase
+              .from('profiles')
+              .select('id, name, role')
+              .in('id', teacherIds)
+          : { data: [] };
+
+        setProfiles(profileData ?? []);
+
+        if (!teacherIds.length) {
+          setDbReports([]);
+          return;
+        }
+
+        const { data } = await supabase
+          .from('analyses')
+          .select('*')
+          .in('user_id', teacherIds)
+          .order('created_at', { ascending: false });
+
+        setDbReports(data ?? []);
+      } catch (err) {
+        console.error('Admin dashboard load error:', err);
+      } finally {
         setReady(true);
-        return;
       }
-
-      // Load only teachers managed by this admin
-      const { data: managedData } = await supabase
-        .from('managed_teachers')
-        .select('teacher_id')
-        .eq('admin_id', user.id);
-
-      const teacherIds = (managedData || []).map(m => m.teacher_id);
-
-      // Get teacher profiles for managed teachers
-      const { data: profileData } = teacherIds.length > 0 
-        ? await supabase
-            .from('profiles')
-            .select('id, name, role')
-            .in('id', teacherIds)
-        : { data: [] };
-
-      setProfiles(profileData ?? []);
-
-      if (!teacherIds.length) {
-        setDbReports([]);
-        setReady(true);
-        return;
-      }
-
-      const { data } = await supabase
-        .from('analyses')
-        .select('*')
-        .in('user_id', teacherIds)
-        .order('created_at', { ascending: false });
-
-      setDbReports(data ?? []);
-      setReady(true);
     }
 
     loadData();
+  }, []);
+
+  useEffect(() => {
+    const checkScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
+    return () => window.removeEventListener('resize', checkScreen);
   }, []);
 
   const reports = dbReports.length ? dbReports : sampleReports;
@@ -148,8 +159,8 @@ export default function AdminDashboard() {
   }
 
   return (
-    <main style={page}>
-      <div style={container}>
+    <main style={page} className="dashboard-page">
+      <div style={container} className="dashboard-container">
 
         {/* HEADER */}
         <div style={header}>
@@ -229,11 +240,20 @@ export default function AdminDashboard() {
           <h2 style={title}>System Trend</h2>
           <p style={text}>{systemInsight}</p>
 
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
             <LineChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis domain={[0, 100]} />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                minTickGap={isNarrowScreen ? 20 : 10}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                domain={[0, 100]}
+                tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                width={isNarrowScreen ? 28 : 40}
+              />
               <Tooltip />
               <Line type="monotone" dataKey="score" stroke="#f97316" />
             </LineChart>
@@ -244,13 +264,14 @@ export default function AdminDashboard() {
         <div style={card}>
           <h2 style={title}>Teacher Performance</h2>
 
+          <div className="table-scroll-wrap">
           <table style={table}>
             <thead>
               <tr>
-                <th style={th}>Teacher</th>
-                <th style={th}>Score</th>
-                <th style={th}>Trend</th>
-                <th style={th}>Status</th>
+                <th style={{ ...th, width: '44%', whiteSpace: 'normal' }}>Teacher</th>
+                <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Score</th>
+                <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Trend</th>
+                <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal' }}>Status</th>
               </tr>
             </thead>
 
@@ -261,18 +282,29 @@ export default function AdminDashboard() {
                   onClick={() => router.push(`/admin/teacher/${t.id}`)}
                   style={{ cursor: 'pointer' }}
                 >
-                  <td style={td}>{t.name}</td>
-                  <td style={td}>{t.avgScore}</td>
-                  <td style={td}>
+                  <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word' }}>{t.name}</td>
+                  <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>{t.avgScore}</td>
+                  <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
                     {t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`}
                   </td>
-                  <td style={{ ...td, color: t.needsAttention ? '#ef4444' : '#22c55e' }}>
-                    {t.needsAttention ? 'Needs Support' : 'Strong'}
+                  <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
+                    <span style={t.needsAttention ? statusBadgeWarn : statusBadgeGood}>
+                      {t.needsAttention ? (
+                        <>
+                          Needs
+                          <br />
+                          Support
+                        </>
+                      ) : (
+                        'Strong'
+                      )}
+                    </span>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </div>
 
       </div>
@@ -286,8 +318,7 @@ export default function AdminDashboard() {
 
 const page: React.CSSProperties = {
   minHeight: '100vh',
-  background: '#081120',
-  padding: 40
+  background: 'var(--bg-primary)',
 };
 
 const container: React.CSSProperties = {
@@ -305,13 +336,13 @@ const header: React.CSSProperties = {
 };
 
 const heading: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text-primary)',
   fontSize: 28,
   margin: '0 0 4px 0'
 };
 
 const subheading: React.CSSProperties = {
-  color: '#94a3b8',
+  color: 'var(--text-secondary)',
   margin: 0
 };
 
@@ -334,8 +365,8 @@ const btn: React.CSSProperties = {
 };
 
 const btnAlt: React.CSSProperties = {
-  background: '#1f2937',
-  color: '#fff',
+  background: 'var(--surface-chip)',
+  color: 'var(--text-primary)',
   padding: '10px 16px',
   borderRadius: 8,
   border: 'none',
@@ -345,15 +376,16 @@ const btnAlt: React.CSSProperties = {
 };
 
 const card: React.CSSProperties = {
-
-  background: '#111827',
+  background: 'var(--surface-card-solid)',
+  border: '1px solid var(--border)',
   padding: 20,
   borderRadius: 12,
   marginBottom: 24
 };
 
 const cardSmall: React.CSSProperties = {
-  background: '#111827',
+  background: 'var(--surface-card-solid)',
+  border: '1px solid var(--border)',
   padding: 16,
   borderRadius: 12
 };
@@ -366,52 +398,85 @@ const grid: React.CSSProperties = {
 };
 
 const title: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text-primary)',
   marginBottom: 10
 };
 
 const text: React.CSSProperties = {
-  color: '#94a3b8'
+  color: 'var(--text-secondary)'
 };
 
 const big: React.CSSProperties = {
   fontSize: 24,
-  color: '#fff'
+  color: 'var(--text-primary)'
 };
 
 const statLabel: React.CSSProperties = {
-  color: '#94a3b8',
+  color: 'var(--text-secondary)',
   fontSize: 13,
   marginBottom: 4
 };
 
 const statSub: React.CSSProperties = {
   fontSize: 12,
-  color: '#64748b',
+  color: 'var(--text-secondary)',
   marginTop: 6
 };
 
 const table: React.CSSProperties = {
-  width: '100%'
+  width: '100%',
+  tableLayout: 'fixed',
+  borderCollapse: 'collapse'
 };
 
 const th: React.CSSProperties = {
   textAlign: 'left',
-  color: '#94a3b8',
-  padding: 8
+  color: 'var(--text-secondary)',
+  padding: '5px 6px',
+  fontSize: 13
 };
 
 const td: React.CSSProperties = {
-  color: '#fff',
-  padding: 8
+  color: 'var(--text-primary)',
+  padding: '5px 6px',
+  fontSize: 14,
+  verticalAlign: 'middle'
+};
+
+const statusBadgeWarn: React.CSSProperties = {
+  display: 'inline-block',
+  minWidth: 64,
+  padding: '4px 6px',
+  borderRadius: 10,
+  background: 'rgba(239,68,68,0.12)',
+  border: '1px solid rgba(239,68,68,0.24)',
+  color: '#ef4444',
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.1,
+  textAlign: 'center'
+};
+
+const statusBadgeGood: React.CSSProperties = {
+  display: 'inline-block',
+  minWidth: 64,
+  padding: '4px 6px',
+  borderRadius: 10,
+  background: 'rgba(34,197,94,0.12)',
+  border: '1px solid rgba(34,197,94,0.24)',
+  color: '#22c55e',
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.1,
+  textAlign: 'center'
 };
 
 const listItem: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text-primary)',
   marginBottom: 6
 };
 
 const loading: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text-primary)',
   padding: 40
 };

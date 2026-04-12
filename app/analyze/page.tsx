@@ -1,9 +1,76 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
+// Simulate premium check (replace with real check if available)
+const isPremium = true;
+
 export default function AnalysisPage() {
+    // Audio Recorder State
+    const [isRecording, setIsRecording] = useState(false);
+    const [isPaused, setIsPaused] = useState(false);
+    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+    const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
+    const audioPlayerRef = useRef<HTMLAudioElement>(null);
+
+    // Start recording
+    const startRecording = async () => {
+      setError("");
+      setRecordedChunks([]);
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const recorder = new MediaRecorder(stream);
+        setMediaRecorder(recorder);
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) setRecordedChunks((prev) => [...prev, e.data]);
+        };
+        recorder.onstop = () => {
+          stream.getTracks().forEach((track) => track.stop());
+        };
+        recorder.start();
+        setIsRecording(true);
+        setIsPaused(false);
+      } catch (err) {
+        setError("Microphone access denied or unavailable.");
+      }
+    };
+
+    // Pause recording
+    const pauseRecording = () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.pause();
+        setIsPaused(true);
+      }
+    };
+
+    // Resume recording
+    const resumeRecording = () => {
+      if (mediaRecorder && mediaRecorder.state === "paused") {
+        mediaRecorder.resume();
+        setIsPaused(false);
+      }
+    };
+
+    // Stop recording
+    const stopRecording = () => {
+      if (mediaRecorder && (mediaRecorder.state === "recording" || mediaRecorder.state === "paused")) {
+        mediaRecorder.stop();
+        setIsRecording(false);
+        setIsPaused(false);
+      }
+    };
+
+    // Save recording as file
+    const saveRecording = () => {
+      if (recordedChunks.length > 0) {
+        const blob = new Blob(recordedChunks, { type: "audio/webm" });
+        const file = new File([blob], `recording-${Date.now()}.webm`, { type: "audio/webm" });
+        handleAudioChange(file);
+        setRecordedChunks([]);
+        if (audioPlayerRef.current) audioPlayerRef.current.src = URL.createObjectURL(blob);
+      }
+    };
   const router = useRouter();
 
   const [grade, setGrade] = useState("");
@@ -18,8 +85,54 @@ export default function AnalysisPage() {
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
 
+  const gradeOptions = [
+    'Pre-K',
+    'Kindergarten',
+    '1st Grade',
+    '2nd Grade',
+    '3rd Grade',
+    '4th Grade',
+    '5th Grade',
+    '6th Grade',
+    '7th Grade',
+    '8th Grade',
+    '9th Grade',
+    '10th Grade',
+    '11th Grade',
+    '12th Grade',
+    'Higher Ed',
+  ];
+
+  const subjectOptions = [
+    'English Language Arts',
+    'Reading',
+    'Writing',
+    'Literature',
+    'Mathematics',
+    'Algebra',
+    'Geometry',
+    'Statistics',
+    'Science',
+    'Biology',
+    'Chemistry',
+    'Physics',
+    'Earth Science',
+    'Environmental Science',
+    'Social Studies',
+    'History',
+    'Geography',
+    'Civics / Government',
+    'Economics',
+    'World Languages',
+    'Computer Science',
+    'Health',
+    'Physical Education',
+    'Art',
+    'Music',
+  ];
+
   const filePreviewCardStyle: React.CSSProperties = {
-    background: '#0f172a',
+    background: 'var(--bg-secondary)',
     border: '1px solid rgba(148,163,184,0.14)',
     borderRadius: 18,
     padding: 20,
@@ -28,7 +141,7 @@ export default function AnalysisPage() {
   };
 
   const filePreviewHeaderStyle: React.CSSProperties = {
-    color: '#f97316',
+    color: 'var(--accent)',
     fontSize: 13,
     letterSpacing: '0.16em',
     marginBottom: 14,
@@ -42,18 +155,18 @@ export default function AnalysisPage() {
   };
 
   const fileTextStyle: React.CSSProperties = {
-    color: '#fff',
+    color: 'var(--text-primary)',
     fontSize: 16,
     lineHeight: 1.5,
   };
 
   const fileMetaStyle: React.CSSProperties = {
-    color: '#94a3b8',
+    color: 'var(--text-secondary)',
     fontSize: 13,
   };
 
   const resultCardStyle: React.CSSProperties = {
-    background: '#0f172a',
+    background: 'var(--bg-secondary)',
     border: '1px solid rgba(148,163,184,0.18)',
     borderRadius: 20,
     padding: 22,
@@ -62,7 +175,7 @@ export default function AnalysisPage() {
   };
 
   const resultSectionStyle: React.CSSProperties = {
-    background: '#111827',
+    background: 'var(--surface-card-solid)',
     borderRadius: 16,
     padding: 18,
     marginBottom: 18,
@@ -70,7 +183,7 @@ export default function AnalysisPage() {
   };
 
   const resultHeaderStyle: React.CSSProperties = {
-    color: '#f97316',
+    color: 'var(--accent)',
     marginBottom: 10,
     fontSize: 14,
     letterSpacing: '0.12em',
@@ -78,20 +191,20 @@ export default function AnalysisPage() {
   };
 
   const resultTitleStyle: React.CSSProperties = {
-    color: '#fff',
+    color: 'var(--text-primary)',
     fontSize: 18,
     marginBottom: 10,
   };
 
   const resultTextStyle: React.CSSProperties = {
-    color: '#cbd5e1',
+    color: 'var(--text-secondary)',
     lineHeight: 1.75,
     fontSize: 15,
     whiteSpace: 'pre-wrap',
   };
 
   const resultListStyle: React.CSSProperties = {
-    color: '#cbd5e1',
+    color: 'var(--text-secondary)',
     paddingLeft: 20,
     margin: 0,
     fontSize: 15,
@@ -103,7 +216,7 @@ export default function AnalysisPage() {
   };
 
   const resultLabelStyle: React.CSSProperties = {
-    color: '#94a3b8',
+    color: 'var(--text-secondary)',
     marginBottom: 6,
     fontSize: 13,
     textTransform: 'uppercase',
@@ -112,13 +225,13 @@ export default function AnalysisPage() {
 
   const summaryBarStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
     gap: 16,
     marginBottom: 18,
   };
 
   const metricCardStyle: React.CSSProperties = {
-    background: '#111827',
+    background: 'var(--surface-card-solid)',
     border: '1px solid rgba(148,163,184,0.1)',
     borderRadius: 16,
     padding: 16,
@@ -126,7 +239,7 @@ export default function AnalysisPage() {
   };
 
   const metricLabelStyle: React.CSSProperties = {
-    color: '#94a3b8',
+    color: 'var(--text-secondary)',
     fontSize: 12,
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
@@ -134,15 +247,48 @@ export default function AnalysisPage() {
   };
 
   const metricValueStyle: React.CSSProperties = {
-    color: '#fff',
+    color: 'var(--text-primary)',
     fontSize: 22,
     fontWeight: 700,
   };
 
   const metricSubtextStyle: React.CSSProperties = {
-    color: '#94a3b8',
+    color: 'var(--text-secondary)',
     fontSize: 13,
     marginTop: 6,
+  };
+
+  const recorderCardStyle: React.CSSProperties = {
+    marginBottom: 16,
+    background: 'var(--surface-card-solid)',
+    border: '1px solid var(--border)',
+    borderRadius: 14,
+    padding: 16,
+    textAlign: 'center',
+  };
+
+  const recorderTitleStyle: React.CSSProperties = {
+    color: 'var(--accent)',
+    fontWeight: 800,
+    marginBottom: 10,
+    letterSpacing: '0.03em',
+  };
+
+  const recorderButtonRowStyle: React.CSSProperties = {
+    display: 'flex',
+    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  };
+
+  const recorderBtnBaseStyle: React.CSSProperties = {
+    color: '#fff',
+    border: 'none',
+    borderRadius: 10,
+    padding: '8px 14px',
+    fontWeight: 700,
+    minWidth: 92,
   };
 
   const splitAudioIntoChunks = async (file: File, duration: number) => {
@@ -205,6 +351,24 @@ export default function AnalysisPage() {
 
     await ffmpeg.deleteFile(inputName);
     return chunks;
+  };
+
+  const resolveAudioDuration = async (file: File): Promise<number | null> => {
+    return new Promise((resolve) => {
+      const url = URL.createObjectURL(file);
+      const audio = new Audio(url);
+
+      audio.addEventListener('loadedmetadata', () => {
+        const duration = Number.isFinite(audio.duration) ? audio.duration : null;
+        URL.revokeObjectURL(url);
+        resolve(duration);
+      });
+
+      audio.addEventListener('error', () => {
+        URL.revokeObjectURL(url);
+        resolve(null);
+      });
+    });
   };
 
   const parseJsonOrText = async (res: Response) => {
@@ -329,7 +493,13 @@ export default function AnalysisPage() {
       setResult("");
       setProcessingStep("Preparing analysis...");
 
-      if (audioFile && audioDuration && audioDuration > 5400) {
+      let resolvedDuration = audioDuration;
+      if (audioFile && !resolvedDuration) {
+        resolvedDuration = await resolveAudioDuration(audioFile);
+        if (resolvedDuration) setAudioDuration(resolvedDuration);
+      }
+
+      if (audioFile && resolvedDuration && resolvedDuration > 5400) {
         setError("Audio is too long. Please upload a file shorter than 90 minutes.");
         setLoading(false);
         return;
@@ -337,14 +507,21 @@ export default function AnalysisPage() {
 
       let transcriptText = lessonNotes.trim();
 
-      if (audioFile && audioDuration) {
-        setProcessingStep("Splitting audio into chunks...");
-        const chunks = await splitAudioIntoChunks(audioFile, audioDuration);
-
+      if (audioFile) {
         const spokenParts: string[] = [];
-        for (let index = 0; index < chunks.length; index += 1) {
-          const spokenText = await transcribeChunk(chunks[index], index, chunks.length);
+
+        // If duration is unknown or short, transcribe directly as one chunk.
+        if (!resolvedDuration || resolvedDuration <= 60) {
+          const spokenText = await transcribeChunk(audioFile, 0, 1);
           if (spokenText) spokenParts.push(spokenText);
+        } else {
+          setProcessingStep("Splitting audio into chunks...");
+          const chunks = await splitAudioIntoChunks(audioFile, resolvedDuration);
+
+          for (let index = 0; index < chunks.length; index += 1) {
+            const spokenText = await transcribeChunk(chunks[index], index, chunks.length);
+            if (spokenText) spokenParts.push(spokenText);
+          }
         }
 
         const spokenText = spokenParts.join("\n\n");
@@ -428,20 +605,32 @@ export default function AnalysisPage() {
 
               <div className="analysis-field-group">
                 <label className="analysis-label">Grade</label>
-                <input
+                <select
                   value={grade}
                   onChange={(e) => setGrade(e.target.value)}
-                  placeholder="e.g. 5"
-                />
+                >
+                  <option value="">Select grade level</option>
+                  {gradeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="analysis-field-group">
                 <label className="analysis-label">Subject</label>
-                <input
+                <select
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  placeholder="e.g. Math"
-                />
+                >
+                  <option value="">Select subject</option>
+                  {subjectOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="analysis-field-group">
@@ -455,6 +644,62 @@ export default function AnalysisPage() {
 
               <div className="analysis-field-group">
                 <label className="analysis-label">Audio Upload</label>
+                {isPremium && (
+                  <div style={recorderCardStyle}>
+                    <div style={recorderTitleStyle}>Premium Audio Recorder</div>
+
+                    <div style={recorderButtonRowStyle}>
+                      <button
+                        type="button"
+                        onClick={startRecording}
+                        disabled={isRecording}
+                        style={{ ...recorderBtnBaseStyle, background: '#22c55e', cursor: isRecording ? 'not-allowed' : 'pointer' }}
+                      >
+                        Record
+                      </button>
+                      <button
+                        type="button"
+                        onClick={pauseRecording}
+                        disabled={!isRecording || isPaused}
+                        style={{ ...recorderBtnBaseStyle, background: '#f59e0b', cursor: (!isRecording || isPaused) ? 'not-allowed' : 'pointer' }}
+                      >
+                        Pause
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resumeRecording}
+                        disabled={!isRecording || !isPaused}
+                        style={{ ...recorderBtnBaseStyle, background: '#0ea5e9', cursor: (!isRecording || !isPaused) ? 'not-allowed' : 'pointer' }}
+                      >
+                        Resume
+                      </button>
+                    </div>
+
+                    <div style={{ ...recorderButtonRowStyle, marginTop: 8 }}>
+                      <button
+                        type="button"
+                        onClick={stopRecording}
+                        disabled={!isRecording}
+                        style={{ ...recorderBtnBaseStyle, background: '#ef4444', cursor: !isRecording ? 'not-allowed' : 'pointer' }}
+                      >
+                        Stop
+                      </button>
+                      <button
+                        type="button"
+                        onClick={saveRecording}
+                        disabled={isRecording || recordedChunks.length === 0}
+                        style={{ ...recorderBtnBaseStyle, background: '#f97316', cursor: (isRecording || recordedChunks.length === 0) ? 'not-allowed' : 'pointer' }}
+                      >
+                        Save
+                      </button>
+                    </div>
+
+                    <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 6 }}>
+                      {isRecording ? (isPaused ? 'Paused' : 'Recording...') : recordedChunks.length > 0 ? 'Ready to save or re-record.' : 'Click Record to begin.'}
+                    </div>
+                    <audio ref={audioPlayerRef} controls style={{ width: '100%', borderRadius: 8, marginTop: 8, display: recordedChunks.length > 0 ? 'block' : 'none' }} />
+                  </div>
+                )}
                 <label className="upload-zone">
                   <input
                     className="upload-input"
