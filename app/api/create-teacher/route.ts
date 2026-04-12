@@ -14,12 +14,48 @@ export async function POST(req: Request) {
       );
     }
 
-    // 🔥 DEBUG: confirm env is loading
-    console.log("ENV CHECK:", {
-      url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      anon: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      service: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-    });
+    const cookieStore = await cookies();
+    const serverClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options);
+              });
+            } catch (error) {
+              // Handle error silently
+            }
+          },
+        },
+      }
+    ) as any;
+
+    const { data: { user: adminUser } } = await serverClient.auth.getUser();
+    if (!adminUser) {
+      return NextResponse.json(
+        { success: false, error: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    const { data: adminProfile } = await serverClient
+      .from('profiles')
+      .select('role')
+      .eq('id', adminUser.id)
+      .single();
+
+    if (adminProfile?.role !== 'admin') {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden' },
+        { status: 403 }
+      );
+    }
 
     // ADMIN CLIENT (bypasses RLS)
     const supabase = createClient(
@@ -104,41 +140,16 @@ export async function POST(req: Request) {
     // ================================
     // 3. CREATE MANAGED_TEACHERS RELATIONSHIP
     // ================================
-    const cookieStore = await cookies();
-    const serverClient = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                cookieStore.set(name, value, options);
-              });
-            } catch (error) {
-              // Handle error silently
-            }
-          },
-        },
-      }
-    ) as any;
+    const { error: relationError } = await serverClient
+      .from('managed_teachers')
+      .insert({
+        admin_id: adminUser.id,
+        teacher_id: userId,
+      });
 
-    const { data: { user: adminUser } } = await serverClient.auth.getUser();
-    if (adminUser) {
-      const { error: relationError } = await serverClient
-        .from('managed_teachers')
-        .insert({
-          admin_id: adminUser.id,
-          teacher_id: userId,
-        });
-
-      if (relationError) {
-        console.warn('Managed teacher relation error:', relationError);
-        // Don't fail - teacher is still created
-      }
+    if (relationError) {
+      console.warn('Managed teacher relation error:', relationError);
+      // Don't fail - teacher is still created
     }
 
     return NextResponse.json({

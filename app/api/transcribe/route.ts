@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 function getOpenAIKey() {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -28,6 +30,31 @@ function safeJson(data: any, status = 200) {
 
 export async function POST(req: Request) {
   try {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options);
+              });
+            } catch {}
+          },
+        },
+      }
+    ) as any;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return safeJson({ transcript: "", error: "Not authenticated" }, 401);
+    }
+
     const openai = createOpenAIClient();
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

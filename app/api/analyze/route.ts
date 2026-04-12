@@ -74,6 +74,33 @@ function extractMetricsFromResult(result: string): {
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
+    const cookieStore = await cookies();
+
+    const anonSupabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options);
+              });
+            } catch (error) {
+              // Handle error silently
+            }
+          },
+        },
+      }
+    ) as any;
+
+    const { data: { user } } = await anonSupabase.auth.getUser();
+    if (!user?.id) {
+      return safeJson({ result: null, error: 'Not authenticated' }, 401);
+    }
 
     const grade = String(formData.get("grade") || "");
     const subject = String(formData.get("subject") || "");
@@ -187,30 +214,6 @@ ${transcript}
     const score = extractScoreFromResult(result);
     const metrics = extractMetricsFromResult(result);
 
-    const cookieStore = await cookies();
-
-    // Anon client to get the authenticated user
-    const anonSupabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                cookieStore.set(name, value, options);
-              });
-            } catch (error) {
-              // Handle error silently
-            }
-          },
-        },
-      }
-    ) as any;
-
     // Service role client to bypass RLS for the insert
     const serviceSupabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -223,12 +226,10 @@ ${transcript}
       }
     ) as any;
 
-    const { data: { user } } = await anonSupabase.auth.getUser();
-
     let dbSaved = false;
     let analysisId: string | null = null;
 
-    if (user && user.id) {
+    if (user?.id) {
       const analysisRecord = {
         user_id: user.id,
         grade,
