@@ -11,6 +11,7 @@ export default function Header() {
   const [profile, setProfile] = useState<any>(null);
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
@@ -92,9 +93,26 @@ export default function Header() {
   }, [open]);
 
   const handleLogout = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    window.location.href = '/';
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    setOpen(false);
+    setMobileOpen(false);
+    setUser(null);
+    setProfile(null);
+
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (error) {
+      console.error('Logout failed, forcing local reset:', error);
+    } finally {
+      router.replace('/');
+      router.refresh();
+
+      // Force a final hard navigation so mobile browsers never get stuck in stale auth UI.
+      window.location.assign('/');
+    }
   };
 
   const handleLogoClick = async () => {
@@ -223,8 +241,9 @@ export default function Header() {
                   <button
                     onClick={handleLogout}
                     style={dropdownItem}
+                    disabled={isLoggingOut}
                   >
-                    Logout
+                    {isLoggingOut ? 'Logging out...' : 'Logout'}
                   </button>
                 </div>
               )}
@@ -291,8 +310,13 @@ export default function Header() {
                 <Link href="/reset-password" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                   Change Password
                 </Link>
-                <button className="mobile-nav-link mobile-nav-logout" onClick={() => { handleLogout(); setMobileOpen(false); }}>
-                  Logout
+                <button
+                  type="button"
+                  className="mobile-nav-link mobile-nav-logout"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                >
+                  {isLoggingOut ? 'Logging out...' : 'Logout'}
                 </button>
               </>
             )}
