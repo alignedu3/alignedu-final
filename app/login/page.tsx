@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '../../lib/supabase/client';
 
 export default function LoginPage() {
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [isHovered, setIsHovered] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,14 +20,10 @@ export default function LoginPage() {
     try {
       const supabase = createClient();
 
-      const signInResult = await Promise.race([
-        supabase.auth.signInWithPassword({ email, password }),
-        new Promise<{ data: any; error: any }>((_, reject) =>
-          setTimeout(() => reject(new Error('Login request timed out')), 12000)
-        ),
-      ]);
-
-      const { data, error } = signInResult;
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
       if (error) {
         setError(error.message);
@@ -39,39 +37,23 @@ export default function LoginPage() {
         return;
       }
 
-      // Never block login navigation on a profile lookup.
-      let targetPath = '/dashboard';
+      // Check role and redirect accordingly
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
 
-      const profileResult = await Promise.race([
-        supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .maybeSingle(),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
-      ]);
-
-      if (profileResult && profileResult.data?.role === 'admin') {
-        targetPath = '/admin';
+      if (profile?.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
       }
 
-      // Hard navigation is more reliable on some mobile browsers.
-      window.location.replace(targetPath);
-      return;
-    } catch (err: any) {
-      const supabase = createClient();
-      const { data: sessionData } = await supabase.auth.getSession();
-
-      // If session exists despite a client timeout, continue anyway.
-      if (sessionData.session?.user) {
-        window.location.replace('/dashboard');
-        return;
-      }
-
+      router.refresh();
+    } catch (err) {
       console.error(err);
-      setError(err?.message?.includes('timed out')
-        ? 'Login timed out on mobile network. Please try again.'
-        : 'Something went wrong while logging in.');
+      setError('Something went wrong while logging in.');
       setLoading(false);
     }
   };
