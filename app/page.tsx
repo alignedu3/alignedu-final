@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { useTheme } from './context/ThemeContext';
 
 export default function HomePage() {
@@ -284,41 +285,52 @@ export default function HomePage() {
                               { subject: 'Social', value: 88, color: '#f59e0b' },
                             ],
                           },
-                        ].map((schoolGroup, schoolIndex) => (
+                        ].map((schoolGroup) => (
                           <div key={schoolGroup.name} className="preview-school-card" style={previewSubjectCard}>
                             <div style={previewSubjectTitle}>{schoolGroup.name}</div>
                             <div className="preview-coverage-wrap" style={previewCoverageChartWrap}>
-                              <div style={previewCoverageYAxis}>
-                                {[100, 75, 50, 25].map((tick) => (
-                                  <span key={tick}>{tick}</span>
-                                ))}
-                              </div>
-                              <div style={previewCoveragePlotArea}>
-                                <div style={previewCoverageChartGrid} />
-                                <div style={{ ...previewCoverageBenchmarkLine, bottom: 'calc(14px + 85%)' }}>
-                                  <span style={previewCoverageBenchmarkLabel}>85%</span>
-                                </div>
-                                <div style={previewCoverageBarsWrap}>
-                                  {schoolGroup.subjects.map((item, subjectIndex) => (
-                                    <div key={item.subject} style={previewCoverageBarCol}>
-                                      <div style={previewCoverageBarTrack}>
-                                        <div
-                                          className="preview-subject-bar-fill"
-                                          style={{
-                                            ...previewCoverageBarFill,
-                                            height: `${item.value}%`,
-                                            background: `linear-gradient(180deg, ${item.color}, ${item.color}CC)`,
-                                            animationDelay: `${170 + schoolIndex * 110 + subjectIndex * 75}ms`,
-                                          }}
-                                        >
-                                          <span className="preview-coverage-top-value" style={previewCoverageBarValue}>{item.value}%</span>
-                                        </div>
-                                      </div>
-                                      <span style={previewCoverageBarLabel}>{item.subject}</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
+                              <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                  data={schoolGroup.subjects}
+                                  margin={{ top: 10, right: 2, left: -12, bottom: 0 }}
+                                  barCategoryGap="34%"
+                                >
+                                  <CartesianGrid vertical={false} stroke="rgba(148,163,184,0.26)" strokeDasharray="3 5" />
+                                  <XAxis
+                                    dataKey="subject"
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fontSize: 9, fill: '#64748b', fontWeight: 700 }}
+                                  />
+                                  <YAxis
+                                    type="number"
+                                    domain={[0, 100]}
+                                    ticks={[0, 25, 50, 75, 100]}
+                                    axisLine={false}
+                                    tickLine={false}
+                                    width={24}
+                                    tick={{ fontSize: 8, fill: '#94a3b8', fontWeight: 700 }}
+                                  />
+                                  <ReferenceLine
+                                    y={85}
+                                    stroke="#0284c7"
+                                    strokeDasharray="4 4"
+                                    ifOverflow="extendDomain"
+                                    label={{
+                                      value: 'Target 85%',
+                                      position: 'insideTopRight',
+                                      fill: '#0369a1',
+                                      fontSize: 8,
+                                      fontWeight: 700,
+                                    }}
+                                  />
+                                  <Bar dataKey="value" radius={[10, 10, 3, 3]} maxBarSize={10}>
+                                    {schoolGroup.subjects.map((item) => (
+                                      <Cell key={`${schoolGroup.name}-${item.subject}`} fill={item.color} fillOpacity={0.95} />
+                                    ))}
+                                  </Bar>
+                                </BarChart>
+                              </ResponsiveContainer>
                             </div>
                           </div>
                         ))}
@@ -972,13 +984,8 @@ export default function HomePage() {
             grid-column: 1 / -1;
           }
 
-          .preview-coverage-top-value {
-            top: -13px;
-            font-size: 8px;
-          }
-
           .preview-coverage-wrap {
-            height: 104px !important;
+            height: 130px !important;
           }
 
           .hero-cta-row {
@@ -1043,17 +1050,12 @@ export default function HomePage() {
           }
 
           .preview-coverage-wrap {
-            height: 96px !important;
+            height: 118px !important;
             padding: 8px 7px 7px !important;
           }
 
           .preview-school-card:last-child {
             grid-column: auto;
-          }
-
-          .preview-coverage-top-value {
-            top: -12px;
-            font-size: 8px;
           }
 
           .hero-cta-row {
@@ -1315,145 +1317,36 @@ const previewLegendDot: React.CSSProperties = {
 
 const previewCoverageChartWrap: React.CSSProperties = {
   position: 'relative',
-  display: 'flex',
-  alignItems: 'stretch',
-  gap: '6px',
   borderRadius: '9px',
-  background: 'rgba(255,255,255,0.8)',
+  background: 'rgba(255,255,255,0.92)',
   border: '1px solid rgba(148,163,184,0.24)',
-  padding: '8px 8px 6px',
-  height: '108px',
-};
-
-const previewCoverageYAxis: React.CSSProperties = {
-  width: '20px',
-  display: 'grid',
-  gridTemplateRows: 'repeat(4, 1fr)',
-  alignItems: 'end',
-  justifyItems: 'end',
-  fontSize: '7px',
-  color: '#64748b',
-  fontWeight: 700,
-  lineHeight: 1,
-  paddingBottom: '16px',
-};
-
-const previewCoveragePlotArea: React.CSSProperties = {
-  position: 'relative',
-  flex: 1,
-  height: '100%',
-  paddingBottom: '14px',
-};
-
-const previewCoverageChartGrid: React.CSSProperties = {
-  position: 'absolute',
-  top: '0',
-  left: '0',
-  right: '0',
-  bottom: '14px',
-  pointerEvents: 'none',
-  backgroundImage:
-    'linear-gradient(to top, rgba(148,163,184,0.18) 1px, transparent 1px)',
-  backgroundSize: '100% 33%',
-};
-
-const previewCoverageBenchmarkLine: React.CSSProperties = {
-  position: 'absolute',
-  left: '0',
-  right: '0',
-  borderTop: '1px dashed rgba(14,116,144,0.55)',
-  pointerEvents: 'none',
-};
-
-const previewCoverageBenchmarkLabel: React.CSSProperties = {
-  position: 'absolute',
-  right: '2px',
-  top: '-10px',
-  fontSize: '7px',
-  color: '#0369a1',
-  fontWeight: 700,
-  background: 'rgba(255,255,255,0.9)',
-  padding: '0 2px',
+  padding: '8px 6px 6px 2px',
+  height: '136px',
 };
 
 const previewSubjectCardsRow: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-  gap: '8px',
+  gap: '10px',
 };
 
 const previewSubjectCard: React.CSSProperties = {
   borderRadius: '10px',
   border: '1px solid rgba(148,163,184,0.2)',
   background: 'linear-gradient(180deg, rgba(255,255,255,0.94), rgba(248,250,252,0.9))',
-  padding: '6px',
-  boxShadow: '0 4px 10px rgba(15,23,42,0.04)',
+  padding: '8px',
+  boxShadow: '0 6px 14px rgba(15,23,42,0.05)',
 };
 
 const previewSubjectTitle: React.CSSProperties = {
-  fontSize: '10px',
+  fontSize: '11px',
   fontWeight: 800,
-  letterSpacing: '0.04em',
+  letterSpacing: '0.06em',
   textTransform: 'uppercase',
-  marginBottom: '6px',
-  textAlign: 'center',
+  marginBottom: '8px',
+  textAlign: 'left',
   color: '#0f172a',
-};
-
-const previewCoverageBarsWrap: React.CSSProperties = {
-  width: '100%',
-  height: 'calc(100% - 14px)',
-  display: 'grid',
-  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-  gap: '4px',
-  alignItems: 'stretch',
-  position: 'relative',
-  zIndex: 1,
-};
-
-const previewCoverageBarCol: React.CSSProperties = {
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'flex-end',
-  gap: '3px',
-  minWidth: 0,
-};
-
-const previewCoverageBarTrack: React.CSSProperties = {
-  width: '100%',
-  height: '100%',
-  display: 'flex',
-  alignItems: 'flex-end',
-  justifyContent: 'center',
-};
-
-const previewCoverageBarFill: React.CSSProperties = {
-  width: '46%',
-  borderRadius: '999px 999px 3px 3px',
-  minHeight: '9px',
-  boxShadow: '0 4px 8px rgba(14,116,144,0.16)',
-  position: 'relative',
-  overflow: 'visible',
-};
-
-const previewCoverageBarValue: React.CSSProperties = {
-  position: 'absolute',
-  top: '-15px',
-  left: '50%',
-  transform: 'translateX(-50%)',
-  fontSize: '8px',
-  color: '#334155',
-  fontWeight: 700,
-};
-
-const previewCoverageBarLabel: React.CSSProperties = {
-  fontSize: '7px',
-  color: '#64748b',
-  fontWeight: 700,
-  lineHeight: 1,
-  whiteSpace: 'nowrap',
+  paddingLeft: '2px',
 };
 
 const previewCoverageSchoolLabel: React.CSSProperties = {
