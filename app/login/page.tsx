@@ -31,20 +31,27 @@ export default function LoginPage() {
         return;
       }
 
+      if (!data.user) {
+        setError('Login succeeded, but no user session was returned. Please try again.');
+        setLoading(false);
+        return;
+      }
+
       // Check role and redirect accordingly
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', data.user.id)
-        .single();
+        .maybeSingle();
 
-      if (profile?.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
+      const targetPath = profile?.role === 'admin' ? '/admin' : '/dashboard';
 
+      // App Router transition first.
+      router.replace(targetPath);
       router.refresh();
+
+      // Mobile-safe fallback in case SPA navigation stalls.
+      window.location.assign(targetPath);
     } catch (err) {
       console.error(err);
       setError('Something went wrong while logging in.');
