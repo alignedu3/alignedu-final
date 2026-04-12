@@ -218,81 +218,158 @@ export default function HomePage() {
                       fontWeight: 600,
                     }}
                   >
-                    <span>Executive Dashboard</span>
-                    <span style={{ color: '#67e8f9' }}>Live Classroom Insights</span>
+                    <span>District Dashboard</span>
                   </div>
 
-                  <div style={{ padding: '18px' }}>
+                  <div className="preview-inner-body" style={{ padding: '18px' }}>
                     <div className="preview-kpi-row" style={previewTopRow}>
                       <div className="preview-card-up" style={previewKpiPrimary}>
                         <div style={previewKpiLabel}>District Instruction Score</div>
-                        <div style={previewKpiValue}>92.4%</div>
+                        <div className="preview-kpi-value" style={previewKpiValue}>92.4%</div>
                         <div style={previewKpiDelta}>+8.1% this month</div>
                       </div>
 
                       <div className="preview-card-up preview-delay-2" style={previewKpiSecondary}>
                         <div style={previewKpiLabel}>At-Risk Standards</div>
-                        <div style={{ ...previewKpiValue, color: '#0f172a' }}>4</div>
+                        <div className="preview-kpi-value" style={{ ...previewKpiValue, color: '#0f172a' }}>4</div>
                         <div style={{ ...previewKpiDelta, color: '#b45309' }}>Needs review in 2 schools</div>
                       </div>
                     </div>
 
                     <div className="preview-card-up preview-delay-2" style={previewChartCard}>
                       <div style={previewSectionHeader}>
-                        <span>Coverage Trend by Lesson</span>
-                        <span style={{ color: '#2563eb' }}>Last 6 Lessons</span>
+                        <span>Subject Coverage by School</span>
+                        <span style={{ color: '#0369a1' }}>Q2 Benchmark</span>
                       </div>
-                      <div style={previewBarsWrap}>
-                        {[62, 71, 67, 79, 83, 92].map((value, i) => (
-                          <div key={i} className="preview-bar-col" style={previewBarCol}>
-                            <div className="preview-bar-fill" style={{ ...previewBar, height: `${value}%` }} />
-                            <span style={previewBarLabel}>L{i + 1}</span>
+                      <div className="preview-legend-row" style={previewSchoolLegend}>
+                        {[
+                          { name: 'Mathematics', color: '#0ea5e9' },
+                          { name: 'Science', color: '#3b82f6' },
+                          { name: 'English', color: '#14b8a6' },
+                          { name: 'Social Studies', color: '#f59e0b' },
+                        ].map((subject) => (
+                          <div key={subject.name} className="preview-legend-item" style={previewLegendItem}>
+                            <span style={{ ...previewLegendDot, background: subject.color }} />
+                            <span>{subject.name}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="preview-subject-row" style={previewSubjectCardsRow}>
+                        {[
+                          {
+                            name: 'Elementary',
+                            subjects: [
+                              { subject: 'Math', value: 92, color: '#0ea5e9' },
+                              { subject: 'Science', value: 88, color: '#3b82f6' },
+                              { subject: 'English', value: 83, color: '#14b8a6' },
+                              { subject: 'Social', value: 77, color: '#f59e0b' },
+                            ],
+                          },
+                          {
+                            name: 'Middle School',
+                            subjects: [
+                              { subject: 'Math', value: 86, color: '#0ea5e9' },
+                              { subject: 'Science', value: 84, color: '#3b82f6' },
+                              { subject: 'English', value: 90, color: '#14b8a6' },
+                              { subject: 'Social', value: 81, color: '#f59e0b' },
+                            ],
+                          },
+                          {
+                            name: 'High School',
+                            subjects: [
+                              { subject: 'Math', value: 79, color: '#0ea5e9' },
+                              { subject: 'Science', value: 91, color: '#3b82f6' },
+                              { subject: 'English', value: 86, color: '#14b8a6' },
+                              { subject: 'Social', value: 88, color: '#f59e0b' },
+                            ],
+                          },
+                        ].map((schoolGroup, schoolIndex) => (
+                          <div key={schoolGroup.name} className="preview-school-card" style={previewSubjectCard}>
+                            <div style={previewSubjectTitle}>{schoolGroup.name}</div>
+                            <div className="preview-coverage-wrap" style={previewCoverageChartWrap}>
+                              <div style={previewCoverageChartGrid} />
+                              <div style={previewCoverageBarsWrap}>
+                                {schoolGroup.subjects.map((item, subjectIndex) => (
+                                  <div key={item.subject} style={previewCoverageBarCol}>
+                                    <div
+                                      className="preview-subject-bar-fill"
+                                      style={{
+                                        ...previewCoverageBarFill,
+                                        height: `${item.value}%`,
+                                        background: `linear-gradient(180deg, ${item.color}, ${item.color}CC)`,
+                                        animationDelay: `${170 + schoolIndex * 110 + subjectIndex * 75}ms`,
+                                      }}
+                                    >
+                                      <span className="preview-coverage-top-value" style={previewCoverageBarValue}>{item.value}%</span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    <div style={previewBottomGrid}>
+                    <div className="preview-bottom-grid" style={previewBottomGrid}>
                       <div className="preview-card-up preview-delay-3" style={previewProgressCard}>
                         <div style={previewSectionHeader}>Standard Mastery</div>
-                        <div style={previewProgressRow}>
-                          <span style={previewProgressLabel}>English Language Arts</span>
-                          <span style={previewProgressValue}>88%</span>
-                        </div>
-                        <div style={previewProgressTrack}>
-                          <div style={{ ...previewProgressFill, width: '88%' }} />
-                        </div>
-
-                        <div style={previewProgressRow}>
-                          <span style={previewProgressLabel}>Science Practices</span>
-                          <span style={previewProgressValue}>79%</span>
-                        </div>
-                        <div style={previewProgressTrack}>
-                          <div style={{ ...previewProgressFill, width: '79%' }} />
-                        </div>
-
-                        <div style={previewProgressRow}>
-                          <span style={previewProgressLabel}>Mathematical Reasoning</span>
-                          <span style={previewProgressValue}>84%</span>
-                        </div>
-                        <div style={previewProgressTrack}>
-                          <div style={{ ...previewProgressFill, width: '84%' }} />
-                        </div>
+                        {[
+                          {
+                            school: 'Elementary',
+                            subject: 'Math (Grade 4)',
+                            teks: ['4.4(A)', '4.5(B)'],
+                            mastery: 89,
+                          },
+                          {
+                            school: 'Middle School',
+                            subject: 'Science (Grade 8)',
+                            teks: ['8.6(A)', '8.7(C)'],
+                            mastery: 82,
+                          },
+                          {
+                            school: 'High School',
+                            subject: 'Algebra I',
+                            teks: ['A.5(A)', 'A.9(D)'],
+                            mastery: 78,
+                          },
+                        ].map((item) => (
+                          <div key={item.school} style={previewMasteryBlock}>
+                            <div style={previewMasterySchool}>{item.school}</div>
+                            <div style={previewProgressRow}>
+                              <span style={previewProgressLabel}>{item.subject}</span>
+                              <span style={previewProgressValue}>{item.mastery}%</span>
+                            </div>
+                            <div style={previewMasteryTeks}>TEKS: {item.teks.join(' · ')}</div>
+                            <div style={previewProgressTrack}>
+                              <div style={{ ...previewProgressFill, width: `${item.mastery}%` }} />
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
                       <div className="preview-card-up preview-delay-4" style={previewActivityCard}>
                         <div style={previewSectionHeader}>Recent Flags</div>
                         <div style={previewActivityItem}>
                           <span style={previewActivityDotWarn} />
-                          <span>Closure checks missing in Grade 6 ELA</span>
-                        </div>
-                        <div style={previewActivityItem}>
-                          <span style={previewActivityDotGood} />
-                          <span>Modeling quality improved in Algebra I</span>
+                          <span>STAAR-tested TEKS A.7(C) not observed in 4 of 6 Algebra I classrooms</span>
                         </div>
                         <div style={previewActivityItem}>
                           <span style={previewActivityDotWarn} />
-                          <span>Vocabulary scaffolds inconsistent in Grade 4</span>
+                          <span>Grade 5 Science — 3 campuses below 70% mastery on TEKS 5.6(A)</span>
+                        </div>
+                        <div style={previewActivityItem}>
+                          <span style={previewActivityDotWarn} />
+                          <span>Curriculum pacing gap detected: 8th grade ELA 3 weeks behind district scope</span>
+                        </div>
+                        <div style={previewActivityItem}>
+                          <span style={previewActivityDotWarn} />
+                          <span>Low instructional alignment in Grade 3 Reading across two campuses</span>
+                        </div>
+                        <div style={previewActivityItem}>
+                          <span style={previewActivityDotGood} />
+                          <span>Middle school Math TEKS coverage up 11% after targeted coaching cycle</span>
                         </div>
                       </div>
                     </div>
@@ -722,34 +799,10 @@ export default function HomePage() {
           animation-delay: 280ms;
         }
 
-        .preview-bar-fill {
+        .preview-subject-bar-fill {
           transform-origin: bottom;
-          transform: scaleY(0.15);
-          animation: growBar 850ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-        }
-
-        .preview-bar-col:nth-child(1) .preview-bar-fill {
-          animation-delay: 190ms;
-        }
-
-        .preview-bar-col:nth-child(2) .preview-bar-fill {
-          animation-delay: 240ms;
-        }
-
-        .preview-bar-col:nth-child(3) .preview-bar-fill {
-          animation-delay: 290ms;
-        }
-
-        .preview-bar-col:nth-child(4) .preview-bar-fill {
-          animation-delay: 340ms;
-        }
-
-        .preview-bar-col:nth-child(5) .preview-bar-fill {
-          animation-delay: 390ms;
-        }
-
-        .preview-bar-col:nth-child(6) .preview-bar-fill {
-          animation-delay: 440ms;
+          transform: scaleY(0.2);
+          animation: growCoverageBar 780ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
         }
 
         @keyframes dashboardFloatIn {
@@ -783,9 +836,9 @@ export default function HomePage() {
           }
         }
 
-        @keyframes growBar {
+        @keyframes growCoverageBar {
           from {
-            transform: scaleY(0.15);
+            transform: scaleY(0.2);
             filter: saturate(1.15);
           }
           to {
@@ -799,7 +852,7 @@ export default function HomePage() {
           .hero-dashboard-frame,
           .preview-kpi-row,
           .preview-card-up,
-          .preview-bar-fill {
+          .preview-subject-bar-fill {
             animation: none !important;
             transform: none !important;
           }
@@ -838,7 +891,79 @@ export default function HomePage() {
           border-color: ${theme.text};
         }
 
+        @media (max-width: 1024px) {
+          .preview-inner-body {
+            padding: 14px !important;
+          }
+
+          .preview-kpi-value {
+            font-size: 22px !important;
+          }
+
+          /* Stack Mastery + Flags on tablets too */
+          .preview-bottom-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          /* Legend 2×2 on tablet */
+          .preview-legend-row {
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+
+          /* School charts: 2 per row on tablet, last one spans full */
+          .preview-subject-row {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+          }
+
+          .preview-school-card:last-child {
+            grid-column: 1 / -1;
+          }
+        }
+
         @media (max-width: 767px) {
+          .hero-dashboard-shell {
+            padding: 12px !important;
+          }
+
+          .preview-inner-body {
+            padding: 12px !important;
+          }
+
+          .preview-kpi-value {
+            font-size: 20px !important;
+          }
+
+          .preview-bottom-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .preview-legend-row {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 6px !important;
+            padding: 8px 10px !important;
+          }
+
+          .preview-legend-item {
+            font-size: 10px;
+          }
+
+          /* School charts: 2 per row, last one full-width */
+          .preview-subject-row {
+            display: grid !important;
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 8px !important;
+          }
+
+          .preview-school-card:last-child {
+            grid-column: 1 / -1;
+          }
+
+          .preview-coverage-top-value {
+            top: -13px;
+            font-size: 8px;
+          }
+
           .hero-cta-row {
             display: grid !important;
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -873,6 +998,47 @@ export default function HomePage() {
         }
 
         @media (max-width: 480px) {
+          .hero-dashboard-shell {
+            padding: 10px !important;
+          }
+
+          .preview-inner-body {
+            padding: 10px !important;
+          }
+
+          .preview-kpi-value {
+            font-size: 18px !important;
+          }
+
+          .preview-legend-row {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 5px !important;
+            padding: 7px 8px !important;
+          }
+
+          .preview-legend-item {
+            font-size: 9px;
+          }
+
+          /* All 3 school charts stack full-width on small mobile */
+          .preview-subject-row {
+            grid-template-columns: 1fr !important;
+          }
+
+          .preview-coverage-wrap {
+            height: 108px !important;
+            padding: 8px 7px 7px !important;
+          }
+
+          .preview-school-card:last-child {
+            grid-column: auto;
+          }
+
+          .preview-coverage-top-value {
+            top: -12px;
+            font-size: 8px;
+          }
+
           .hero-cta-row {
             gap: 6px !important;
           }
@@ -1083,10 +1249,11 @@ const previewKpiDelta: React.CSSProperties = {
 
 const previewChartCard: React.CSSProperties = {
   borderRadius: '14px',
-  border: '1px solid rgba(148,163,184,0.24)',
-  background: '#ffffff',
-  padding: '12px',
+  border: '1px solid rgba(14,116,144,0.18)',
+  background: 'linear-gradient(180deg, #ffffff 0%, #f4f9ff 100%)',
+  padding: '14px',
   marginBottom: '12px',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.8), 0 10px 24px rgba(15,23,42,0.08)',
 };
 
 const previewSectionHeader: React.CSSProperties = {
@@ -1094,40 +1261,131 @@ const previewSectionHeader: React.CSSProperties = {
   justifyContent: 'space-between',
   alignItems: 'center',
   fontSize: '12px',
-  color: '#334155',
+  color: '#0f172a',
   fontWeight: 700,
-  marginBottom: '10px',
+  marginBottom: '9px',
 };
 
-const previewBarsWrap: React.CSSProperties = {
-  height: '112px',
+const previewSchoolLegend: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(6, 1fr)',
+  gridTemplateColumns: 'repeat(4, 1fr)',
+  alignItems: 'center',
   gap: '8px',
+  marginBottom: '14px',
+  padding: '10px 12px',
+  borderRadius: '12px',
+  background: 'rgba(248,250,252,0.9)',
+  border: '1px solid rgba(148,163,184,0.18)',
+};
+
+const previewLegendItem: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '7px',
+  fontSize: '11px',
+  color: '#334155',
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+};
+
+const previewLegendDot: React.CSSProperties = {
+  width: '10px',
+  height: '10px',
+  borderRadius: '3px',
+  flexShrink: 0,
+};
+
+const previewCoverageChartWrap: React.CSSProperties = {
+  position: 'relative',
+  borderRadius: '10px',
+  background: 'rgba(255,255,255,0.72)',
+  border: '1px solid rgba(148,163,184,0.3)',
+  padding: '10px 8px 8px',
+  height: '120px',
+};
+
+const previewCoverageChartGrid: React.CSSProperties = {
+  position: 'absolute',
+  top: '12px',
+  left: '8px',
+  right: '8px',
+  bottom: '10px',
+  pointerEvents: 'none',
+  backgroundImage:
+    'linear-gradient(to top, rgba(148,163,184,0.18) 1px, transparent 1px)',
+  backgroundSize: '100% 25%',
+};
+
+const previewSubjectCardsRow: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: '10px',
+};
+
+const previewSubjectCard: React.CSSProperties = {
+  borderRadius: '11px',
+  border: '1px solid rgba(148,163,184,0.2)',
+  background: 'linear-gradient(180deg, rgba(255,255,255,0.94), rgba(248,250,252,0.9))',
+  padding: '7px',
+  boxShadow: '0 6px 14px rgba(15,23,42,0.06)',
+};
+
+const previewSubjectTitle: React.CSSProperties = {
+  fontSize: '11px',
+  fontWeight: 800,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  marginBottom: '8px',
+  textAlign: 'center',
+  color: '#0f172a',
+};
+
+const previewCoverageBarsWrap: React.CSSProperties = {
+  width: '100%',
+  height: '100%',
+  display: 'grid',
+  gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+  gap: '6px',
   alignItems: 'end',
 };
 
-const previewBarCol: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: '6px',
+const previewCoverageBarCol: React.CSSProperties = {
   height: '100%',
+  display: 'flex',
+  alignItems: 'flex-end',
   justifyContent: 'flex-end',
+  overflow: 'visible',
 };
 
-const previewBar: React.CSSProperties = {
+const previewCoverageBarFill: React.CSSProperties = {
   width: '100%',
-  borderRadius: '8px',
-  background: 'linear-gradient(180deg, #38bdf8 0%, #2563eb 100%)',
-  minHeight: '10px',
-  boxShadow: '0 6px 14px rgba(37,99,235,0.25)',
+  borderRadius: '7px 7px 3px 3px',
+  minHeight: '12px',
+  boxShadow: '0 10px 18px rgba(14,116,144,0.24)',
+  position: 'relative',
+  overflow: 'visible',
 };
 
-const previewBarLabel: React.CSSProperties = {
-  fontSize: '10px',
-  color: '#64748b',
+const previewCoverageBarValue: React.CSSProperties = {
+  position: 'absolute',
+  top: '-14px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  fontSize: '8px',
+  color: '#0f172a',
   fontWeight: 700,
+};
+
+const previewCoverageSchoolLabel: React.CSSProperties = {
+  fontSize: '9px',
+  color: '#334155',
+  fontWeight: 700,
+  textAlign: 'center',
+  lineHeight: 1,
+  marginTop: '4px',
+  whiteSpace: 'nowrap',
+  width: '100%',
 };
 
 const previewBottomGrid: React.CSSProperties = {
@@ -1143,11 +1401,24 @@ const previewProgressCard: React.CSSProperties = {
   padding: '12px',
 };
 
+const previewMasteryBlock: React.CSSProperties = {
+  marginBottom: '10px',
+};
+
+const previewMasterySchool: React.CSSProperties = {
+  fontSize: '10px',
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  fontWeight: 800,
+  color: '#0369a1',
+  marginBottom: '6px',
+};
+
 const previewProgressRow: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  marginBottom: '6px',
+  marginBottom: '4px',
 };
 
 const previewProgressLabel: React.CSSProperties = {
@@ -1160,6 +1431,13 @@ const previewProgressValue: React.CSSProperties = {
   fontSize: '11px',
   color: '#0f172a',
   fontWeight: 700,
+};
+
+const previewMasteryTeks: React.CSSProperties = {
+  fontSize: '10px',
+  color: '#475569',
+  marginBottom: '6px',
+  fontWeight: 600,
 };
 
 const previewProgressTrack: React.CSSProperties = {
