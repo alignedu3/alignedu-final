@@ -17,6 +17,11 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
+    const resetTimer = window.setTimeout(() => {
+      setLoading(false);
+      setError('Login is taking longer than expected. Please try again.');
+    }, 10000);
+
     try {
       const supabase = createClient();
 
@@ -28,23 +33,32 @@ export default function LoginPage() {
       if (error) {
         setError(error.message);
         setLoading(false);
+        window.clearTimeout(resetTimer);
         return;
       }
 
       if (!data.user) {
         setError('Login succeeded, but no user session was returned. Please try again.');
         setLoading(false);
+        window.clearTimeout(resetTimer);
         return;
       }
 
-      // Check role and redirect accordingly
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .maybeSingle();
+      // Never block login navigation on a profile lookup.
+      let targetPath = '/dashboard';
 
-      const targetPath = profile?.role === 'admin' ? '/admin' : '/dashboard';
+      const profileResult = await Promise.race([
+        supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .maybeSingle(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+      ]);
+
+      if (profileResult && profileResult.data?.role === 'admin') {
+        targetPath = '/admin';
+      }
 
       // App Router transition first.
       router.replace(targetPath);
@@ -52,10 +66,12 @@ export default function LoginPage() {
 
       // Mobile-safe fallback in case SPA navigation stalls.
       window.location.assign(targetPath);
+      window.clearTimeout(resetTimer);
     } catch (err) {
       console.error(err);
       setError('Something went wrong while logging in.');
       setLoading(false);
+      window.clearTimeout(resetTimer);
     }
   };
 
