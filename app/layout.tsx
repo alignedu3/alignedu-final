@@ -8,7 +8,7 @@ export const metadata = {
   openGraph: {
     title: "AlignEDU",
     description: "AI-powered lesson analysis for teachers",
-    url: "https://yourdomain.com", // <-- replace this
+    url: "https://alignedu.net", // <-- replace this
     siteName: "AlignEDU",
     images: [
       {

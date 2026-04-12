@@ -859,7 +859,7 @@ export default function AnalysisPage() {
                     );
                   })}
                 </>
-              )}}
+              )}
             </section>
           )}
         </div>

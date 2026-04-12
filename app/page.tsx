@@ -105,7 +105,7 @@ export default function HomePage() {
           overflow: 'hidden',
           background: theme.heroBg,
           color: theme.heroText,
-          padding: 'clamp(86px, 11vw, 108px) 20px clamp(64px, 9vw, 78px)',
+          padding: 'clamp(64px, 8vw, 88px) 20px clamp(52px, 7vw, 70px)',
         }}
       >
         <div style={container}>

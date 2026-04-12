@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useTheme } from '@/app/context/ThemeContext';
 
@@ -12,6 +12,7 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
 
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -96,6 +97,17 @@ export default function Header() {
     } else {
       router.push('/dashboard');
     }
+  };
+
+  const handleGuestHomeClick = () => {
+    setMobileOpen(false);
+
+    if (pathname === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    router.push('/');
   };
 
   return (
@@ -230,9 +242,9 @@ export default function Header() {
 
             {!user && (
               <>
-                <Link href="/" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                <button type="button" className="mobile-nav-link" onClick={handleGuestHomeClick}>
                   Home
-                </Link>
+                </button>
                 <Link href="/login" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                   Login
                 </Link>
