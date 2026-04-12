@@ -300,7 +300,8 @@ export default function HomePage() {
                                     dataKey="subject"
                                     axisLine={false}
                                     tickLine={false}
-                                    tick={{ fontSize: 9, fill: '#64748b', fontWeight: 700 }}
+                                    tick={false}
+                                    height={0}
                                   />
                                   <YAxis
                                     type="number"
