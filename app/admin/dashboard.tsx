@@ -54,23 +54,28 @@ export default function AdminDashboard() {
 
         const supabase = createClient();
 
-        const { data: managedData } = await supabase
-          .from('managed_teachers')
-          .select('teacher_id')
-          .eq('admin_id', user.id);
+        const visibilityResponse = await fetch('/api/admin/visibility', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const visibility = await visibilityResponse.json();
 
-        const teacherIds = (managedData || []).map(m => m.teacher_id);
+        if (!visibilityResponse.ok || !visibility.success) {
+          throw new Error(visibility.error || 'Unable to load admin visibility');
+        }
 
-        const { data: profileData } = teacherIds.length > 0
+        const visibleUserIds = (visibility.visibleUserIds || []) as string[];
+
+        const { data: profileData } = visibleUserIds.length > 0
           ? await supabase
               .from('profiles')
               .select('id, name, role')
-              .in('id', teacherIds)
+              .in('id', visibleUserIds)
           : { data: [] };
 
         setProfiles(profileData ?? []);
 
-        if (!teacherIds.length) {
+        if (!visibleUserIds.length) {
           setDbReports([]);
           return;
         }
@@ -78,7 +83,7 @@ export default function AdminDashboard() {
         const { data } = await supabase
           .from('analyses')
           .select('id, user_id, created_at, date, coverage, coverage_score, clarity, clarity_rating, engagement, assessment, gaps, gaps_detected, teacher_name, name')
-          .in('user_id', teacherIds)
+          .in('user_id', visibleUserIds)
           .order('created_at', { ascending: false });
 
         setDbReports(data ?? []);

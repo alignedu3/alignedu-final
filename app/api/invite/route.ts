@@ -1,6 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 
+function getSiteUrl() {
+  const configured =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
+    'http://localhost:3000';
+
+  return configured.replace(/\/$/, '');
+}
+
 export async function POST(req: Request) {
   const { name, email, role } = await req.json();
 
@@ -37,8 +47,9 @@ export async function POST(req: Request) {
   );
 
   // Send invite email first so we get the new user's real UUID back
+  const redirectTo = `${getSiteUrl()}/auth/handle-auth?next=/reset-password`;
   const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: 'https://alignedu-final-e21pwk9tv-alignedu3s-projects.vercel.app/auth/handle-auth',
+    redirectTo,
   });
 
   if (inviteError) {
@@ -55,7 +66,7 @@ export async function POST(req: Request) {
     role,
   });
 
-  // Only link to an admin when inviting a teacher
+  // Link invited user to the inviting admin's scope.
   if (role === 'teacher') {
     const { error: linkError } = await supabase.from('managed_teachers').insert({
       admin_id: adminUser.id,
@@ -65,6 +76,16 @@ export async function POST(req: Request) {
     if (linkError) {
       console.error('managed_teachers insert error:', linkError.message);
       // Don't fail — user was created; log the link failure
+    }
+  } else if (role === 'admin') {
+    const { error: linkError } = await supabase.from('managed_admins').insert({
+      parent_admin_id: adminUser.id,
+      child_admin_id: newUserId,
+    });
+
+    if (linkError) {
+      console.error('managed_admins insert error:', linkError.message);
+      // Keep success so invite still sends even if hierarchy link fails.
     }
   }
 

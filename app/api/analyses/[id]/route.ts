@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { getAdminVisibility } from '@/lib/adminVisibility';
 
 export async function DELETE(
   req: NextRequest,
@@ -76,18 +77,8 @@ export async function DELETE(
     let canDelete = isOwner;
 
     if (profile?.role === 'admin' && !canDelete) {
-      const { data: relation, error: relationError } = await serviceSupabase
-        .from('managed_teachers')
-        .select('teacher_id')
-        .eq('admin_id', user.id)
-        .eq('teacher_id', analysis.user_id)
-        .single();
-
-      if (relationError) {
-        return NextResponse.json({ success: false, error: relationError.message }, { status: 500 });
-      }
-
-      canDelete = !!relation;
+      const visibility = await getAdminVisibility(user.id);
+      canDelete = visibility.visibleUserIds.includes(analysis.user_id);
     }
 
     if (!canDelete) {
