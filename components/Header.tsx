@@ -22,18 +22,13 @@ export default function Header() {
     const supabase = createClient();
     let isMounted = true;
 
-    const syncUserAndProfile = async (nextUser?: any | null) => {
-      let resolvedUser = nextUser;
-
-      if (resolvedUser === undefined) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        resolvedUser = sessionData.session?.user ?? null;
-
-        if (!resolvedUser) {
-          const { data: userData } = await supabase.auth.getUser();
-          resolvedUser = userData.user ?? null;
-        }
-      }
+    const syncUserAndProfile = async () => {
+      const authResponse = await fetch('/api/auth/me', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const authData = await authResponse.json();
+      const resolvedUser = authData.user ?? null;
 
       if (!isMounted) return;
 
@@ -45,14 +40,8 @@ export default function Header() {
         return;
       }
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('name, role')
-        .eq('id', resolvedUser.id)
-        .maybeSingle();
-
       if (!isMounted) return;
-      setProfile(profileData ?? null);
+      setProfile(authData.profile ?? null);
     };
 
     const loadUser = async () => {
@@ -62,8 +51,8 @@ export default function Header() {
     loadUser();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async (_, session) => {
-        await syncUserAndProfile(session?.user ?? null);
+      async () => {
+        await syncUserAndProfile();
       }
     );
 
@@ -71,7 +60,7 @@ export default function Header() {
       isMounted = false;
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [pathname]);
 
   // ✅ close dropdown on outside click
   useEffect(() => {

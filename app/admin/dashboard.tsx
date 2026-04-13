@@ -33,21 +33,26 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function safeLoad() {
       try {
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        let user = session?.user ?? null;
-
-        if (!user) {
-          const { data } = await supabase.auth.getUser();
-          user = data.user ?? null;
-        }
+        const authResponse = await fetch('/api/auth/me', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const authData = await authResponse.json();
+        const user = authData.user ?? null;
 
         if (!user) {
           window.location.replace('/login');
           return;
         }
 
+        if (authData.profile?.role !== 'admin') {
+          window.location.replace('/dashboard');
+          return;
+        }
+
         setReady(true);
+
+        const supabase = createClient();
 
         const { data: managedData } = await supabase
           .from('managed_teachers')

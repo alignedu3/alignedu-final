@@ -20,13 +20,12 @@ export default function TeacherDashboard() {
 
   const loadData = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      let user = session?.user ?? null;
-
-      if (!user) {
-        const { data } = await supabase.auth.getUser();
-        user = data.user ?? null;
-      }
+      const authResponse = await fetch('/api/auth/me', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const authData = await authResponse.json();
+      const user = authData.user ?? null;
 
       if (!user) {
         window.location.replace('/login');
@@ -35,6 +34,8 @@ export default function TeacherDashboard() {
 
       setUserId(user.id);
       setReady(true);
+      setRole(authData.profile?.role || 'teacher');
+      setTeacherName(authData.profile?.name || 'Teacher');
 
       const { data: profile } = await supabase
         .from('profiles')
