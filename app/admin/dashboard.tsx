@@ -4,9 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
-  sampleReports,
   getDashboardSummary,
-  getTrendData,
   calculateLessonScore
 } from '@/lib/dashboardData';
 import {
@@ -53,8 +51,6 @@ export default function AdminDashboard() {
           window.location.replace('/dashboard');
           return;
         }
-
-        setReady(true);
 
         const supabase = createClient();
 
@@ -151,7 +147,7 @@ export default function AdminDashboard() {
     return () => window.removeEventListener('resize', checkScreen);
   }, []);
 
-  const reports = dbReports.length ? dbReports : sampleReports;
+  const reports = dbReports;
   const summary = getDashboardSummary(reports);
 
   const TEACHER_COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#84cc16'];
