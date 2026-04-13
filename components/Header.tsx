@@ -94,7 +94,23 @@ export default function Header() {
 
     try {
       const supabase = createClient();
-      await supabase.auth.signOut({ scope: 'global' });
+      await Promise.allSettled([
+        supabase.auth.signOut({ scope: 'global' }),
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+        }),
+      ]);
+
+      document.cookie
+        .split(';')
+        .map((cookie) => cookie.trim())
+        .filter((cookie) => cookie.startsWith('sb-'))
+        .forEach((cookie) => {
+          const separatorIndex = cookie.indexOf('=');
+          const name = separatorIndex >= 0 ? cookie.slice(0, separatorIndex) : cookie;
+          document.cookie = `${name}=; Max-Age=0; path=/`;
+        });
     } catch (error) {
       console.error('Logout failed, forcing local reset:', error);
     } finally {
