@@ -387,16 +387,16 @@ export default function AdminDashboard() {
               </p>
             ) : (
               <div style={{
-                display: 'grid',
-                gridTemplateColumns: `repeat(${Math.min(teacherLineKeys.length, isNarrowScreen ? 2 : 3)}, minmax(0, 1fr))`,
-                gap: '8px 12px',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '8px',
               }}>
                 {teacherLineKeys.map((key, i) => (
                   <div
                     key={key}
                     title={key}
                     style={{
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       gap: 7,
                       padding: '5px 10px',
@@ -404,6 +404,7 @@ export default function AdminDashboard() {
                       background: 'var(--surface-hover, rgba(0,0,0,0.04))',
                       border: '1px solid var(--border)',
                       overflow: 'hidden',
+                      maxWidth: 200,
                     }}
                   >
                     <span style={{
@@ -431,7 +432,7 @@ export default function AdminDashboard() {
         </div>
 
         <div style={card}>
-          <h2 style={title}>Organization Structure</h2>
+          <h2 style={title}>System Structure</h2>
           {hierarchyRows.length === 0 ? (
             <p style={text}>No admins found in your current visibility scope.</p>
           ) : (
