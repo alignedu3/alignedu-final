@@ -22,6 +22,9 @@ import {
 export default function AdminDashboard() {
   const [dbReports, setDbReports] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
+  const [visibleAdminIds, setVisibleAdminIds] = useState<string[]>([]);
+  const [managedTeachers, setManagedTeachers] = useState<Array<{ admin_id: string; teacher_id: string }>>([]);
+  const [managedAdmins, setManagedAdmins] = useState<Array<{ parent_admin_id: string; child_admin_id: string }>>([]);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [ready, setReady] = useState(false);
   const router = useRouter();
@@ -64,7 +67,9 @@ export default function AdminDashboard() {
           throw new Error(visibility.error || 'Unable to load admin visibility');
         }
 
+        const adminIds = (visibility.adminIds || []) as string[];
         const visibleUserIds = (visibility.visibleUserIds || []) as string[];
+        setVisibleAdminIds(adminIds);
 
         const { data: profileData } = visibleUserIds.length > 0
           ? await supabase
@@ -74,6 +79,24 @@ export default function AdminDashboard() {
           : { data: [] };
 
         setProfiles(profileData ?? []);
+
+        const { data: teacherLinks } = adminIds.length > 0
+          ? await supabase
+              .from('managed_teachers')
+              .select('admin_id, teacher_id')
+              .in('admin_id', adminIds)
+          : { data: [] };
+
+        setManagedTeachers((teacherLinks ?? []) as Array<{ admin_id: string; teacher_id: string }>);
+
+        const { data: adminLinks } = adminIds.length > 0
+          ? await supabase
+              .from('managed_admins')
+              .select('parent_admin_id, child_admin_id')
+              .in('parent_admin_id', adminIds)
+          : { data: [] };
+
+        setManagedAdmins((adminLinks ?? []) as Array<{ parent_admin_id: string; child_admin_id: string }>);
 
         if (!visibleUserIds.length) {
           setDbReports([]);
@@ -148,6 +171,43 @@ export default function AdminDashboard() {
     .filter(t => t.needsAttention)
     .sort((a, b) => a.avgScore - b.avgScore)
     .slice(0, 3);
+
+  const hierarchyRows = useMemo(() => {
+    const profileById = new Map((profiles || []).map((p) => [p.id, p]));
+    const adminIds = visibleAdminIds.filter((id) => {
+      const role = profileById.get(id)?.role;
+      return role === 'admin' || role === 'super_admin';
+    });
+
+    return adminIds
+      .map((adminId) => {
+        const adminProfile = profileById.get(adminId);
+        const childAdminIds = managedAdmins
+          .filter((link) => link.parent_admin_id === adminId)
+          .map((link) => link.child_admin_id)
+          .filter((id) => !!profileById.get(id));
+
+        const teacherIds = managedTeachers
+          .filter((link) => link.admin_id === adminId)
+          .map((link) => link.teacher_id)
+          .filter((id) => profileById.get(id)?.role === 'teacher');
+
+        return {
+          id: adminId,
+          name: adminProfile?.name || adminProfile?.email || 'Admin',
+          role: adminProfile?.role || 'admin',
+          childAdmins: childAdminIds
+            .map((id) => profileById.get(id))
+            .filter(Boolean)
+            .map((p: any) => ({ id: p.id, name: p.name || p.email || 'Admin', role: p.role })),
+          teachers: teacherIds
+            .map((id) => profileById.get(id))
+            .filter(Boolean)
+            .map((p: any) => ({ id: p.id, name: p.name || p.email || 'Teacher' })),
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [profiles, managedAdmins, managedTeachers, visibleAdminIds]);
 
   const systemInsight =
     summary.averageScore < 75
@@ -298,6 +358,62 @@ export default function AdminDashboard() {
           </div>
         </div>
 
+        <div style={card}>
+          <h2 style={title}>Admin Hierarchy</h2>
+          {hierarchyRows.length === 0 ? (
+            <p style={text}>No admins found in your current visibility scope.</p>
+          ) : (
+            hierarchyRows.map((row) => (
+              <div key={row.id} style={hierarchyCard}>
+                <button
+                  onClick={() => router.push(`/admin/teacher/${row.id}`)}
+                  style={entityLinkBtn}
+                >
+                  {row.name} <span style={mutedInline}>({row.role})</span>
+                </button>
+
+                <div style={hierarchyGroup}>
+                  <div style={hierarchyLabel}>Admins Under This Admin</div>
+                  {row.childAdmins.length ? (
+                    <div style={pillWrap}>
+                      {row.childAdmins.map((child) => (
+                        <button
+                          key={child.id}
+                          onClick={() => router.push(`/admin/teacher/${child.id}`)}
+                          style={pillBtn}
+                        >
+                          {child.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={mutedInline}>None</div>
+                  )}
+                </div>
+
+                <div style={hierarchyGroup}>
+                  <div style={hierarchyLabel}>Teachers Under This Admin</div>
+                  {row.teachers.length ? (
+                    <div style={pillWrap}>
+                      {row.teachers.map((teacher) => (
+                        <button
+                          key={teacher.id}
+                          onClick={() => router.push(`/admin/teacher/${teacher.id}`)}
+                          style={pillBtn}
+                        >
+                          {teacher.name}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={mutedInline}>None</div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
       </div>
     </main>
   );
@@ -328,3 +444,10 @@ const statusBadgeWarn: React.CSSProperties = { display: 'inline-block', minWidth
 const statusBadgeGood: React.CSSProperties = { display: 'inline-block', minWidth: 64, padding: '4px 6px', borderRadius: 10, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.24)', color: '#22c55e', fontSize: 12, fontWeight: 700, lineHeight: 1.1, textAlign: 'center' };
 const listItem: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 6 };
 const loading: React.CSSProperties = { color: 'var(--text-primary)', padding: 40 };
+const hierarchyCard: React.CSSProperties = { border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 12, background: 'var(--surface-card-solid)' };
+const hierarchyGroup: React.CSSProperties = { marginTop: 8 };
+const hierarchyLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12, marginBottom: 6, fontWeight: 700 };
+const pillWrap: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 8 };
+const pillBtn: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 999, padding: '6px 10px', fontSize: 12, cursor: 'pointer' };
+const entityLinkBtn: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 15, fontWeight: 800, padding: 0, cursor: 'pointer' };
+const mutedInline: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12 };
