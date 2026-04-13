@@ -153,6 +153,22 @@ export default function AdminDashboard() {
   const TEACHER_COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#84cc16'];
   const ADMIN_COLORS = ['#0f766e', '#1d4ed8', '#be123c', '#334155', '#0f172a'];
 
+  const getStablePaletteColor = (key: string, palette: string[]) => {
+    let hash = 0;
+    for (let i = 0; i < key.length; i += 1) {
+      hash = (hash << 5) - hash + key.charCodeAt(i);
+      hash |= 0;
+    }
+    return palette[Math.abs(hash) % palette.length];
+  };
+
+  const getPointCountForKey = (rows: Array<Record<string, any>>, key: string) => {
+    return rows.reduce((count, row) => {
+      const value = row[key];
+      return typeof value === 'number' && Number.isFinite(value) ? count + 1 : count;
+    }, 0);
+  };
+
   const teacherTrendData = useMemo(() => {
     const profileById = new Map((profiles || []).map((p: any) => [p.id, p]));
     const getTeacherName = (r: any) => {
@@ -187,7 +203,7 @@ export default function AdminDashboard() {
     teacherTrendData.forEach(entry => {
       Object.keys(entry).forEach(k => { if (k !== 'date') keys.add(k); });
     });
-    return Array.from(keys);
+    return Array.from(keys).filter((key) => getPointCountForKey(teacherTrendData, key) >= 2);
   }, [teacherTrendData]);
 
   const adminTrendData = useMemo(() => {
@@ -200,7 +216,7 @@ export default function AdminDashboard() {
     const adminNameById = new Map<string, string>();
     scopedAdminIds.forEach((id) => {
       const profile = profileById.get(id);
-      const label = `Admin: ${profile?.name || profile?.email || 'Unknown'}`;
+      const label = profile?.name || profile?.email || 'Unknown';
       adminNameById.set(id, label);
     });
 
@@ -245,7 +261,7 @@ export default function AdminDashboard() {
     adminTrendData.forEach(entry => {
       Object.keys(entry).forEach(k => { if (k !== 'date') keys.add(k); });
     });
-    return Array.from(keys);
+    return Array.from(keys).filter((key) => getPointCountForKey(adminTrendData, key) >= 2);
   }, [adminTrendData]);
 
   const combinedTrendData = useMemo(() => {
@@ -502,7 +518,7 @@ export default function AdminDashboard() {
                   key={key}
                   type="monotone"
                   dataKey={key}
-                  stroke={TEACHER_COLORS[i % TEACHER_COLORS.length]}
+                  stroke={getStablePaletteColor(key, TEACHER_COLORS)}
                   strokeWidth={2}
                   dot={false}
                   connectNulls
@@ -513,7 +529,7 @@ export default function AdminDashboard() {
                   key={key}
                   type="monotone"
                   dataKey={key}
-                  stroke={ADMIN_COLORS[i % ADMIN_COLORS.length]}
+                  stroke={getStablePaletteColor(key, ADMIN_COLORS)}
                   strokeWidth={2}
                   strokeDasharray="6 4"
                   dot={false}
@@ -534,12 +550,8 @@ export default function AdminDashboard() {
                 No trend data available yet
               </p>
             ) : (
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '8px',
-              }}>
-                {teacherLineKeys.map((key, i) => (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {teacherLineKeys.map((key) => (
                   <div
                     key={key}
                     title={key}
@@ -548,11 +560,11 @@ export default function AdminDashboard() {
                       alignItems: 'center',
                       gap: 7,
                       padding: '5px 10px',
-                      borderRadius: 8,
+                      borderRadius: 999,
                       background: 'var(--surface-hover, rgba(0,0,0,0.04))',
                       border: '1px solid var(--border)',
                       overflow: 'hidden',
-                      maxWidth: 200,
+                      maxWidth: 220,
                     }}
                   >
                     <span style={{
@@ -560,7 +572,7 @@ export default function AdminDashboard() {
                       width: 10,
                       height: 10,
                       borderRadius: '50%',
-                      background: TEACHER_COLORS[i % TEACHER_COLORS.length],
+                      background: getStablePaletteColor(key, TEACHER_COLORS),
                     }} />
                     <span style={{
                       fontSize: 12,
@@ -574,7 +586,8 @@ export default function AdminDashboard() {
                     </span>
                   </div>
                 ))}
-                {adminLineKeys.map((key, i) => (
+
+                {adminLineKeys.map((key) => (
                   <div
                     key={key}
                     title={key}
@@ -583,11 +596,11 @@ export default function AdminDashboard() {
                       alignItems: 'center',
                       gap: 7,
                       padding: '5px 10px',
-                      borderRadius: 8,
+                      borderRadius: 999,
                       background: 'var(--surface-hover, rgba(0,0,0,0.04))',
                       border: '1px solid var(--border)',
                       overflow: 'hidden',
-                      maxWidth: 240,
+                      maxWidth: 260,
                     }}
                   >
                     <span style={{
@@ -595,7 +608,7 @@ export default function AdminDashboard() {
                       width: 10,
                       height: 10,
                       borderRadius: 2,
-                      background: ADMIN_COLORS[i % ADMIN_COLORS.length],
+                      background: getStablePaletteColor(key, ADMIN_COLORS),
                     }} />
                     <span style={{
                       fontSize: 12,
