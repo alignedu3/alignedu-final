@@ -65,7 +65,6 @@ export default function Header() {
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (_, session) => {
         await syncUserAndProfile(session?.user ?? null);
-        router.refresh();
       }
     );
 
@@ -73,7 +72,7 @@ export default function Header() {
       isMounted = false;
       listener.subscription.unsubscribe();
     };
-  }, [router]);
+  }, []);
 
   // ✅ close dropdown on outside click
   useEffect(() => {
