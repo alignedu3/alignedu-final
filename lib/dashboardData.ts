@@ -93,12 +93,21 @@ export const sampleReports: LessonReport[] = [
   },
 ];
 
+export function toNumberMetric(value: unknown, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return fallback;
+}
+
 export function calculateLessonScore(report: any): number {
-  const coverage = report.coverage ?? report.coverage_score ?? 75;
-  const clarity = report.clarity ?? (report.clarity_rating ? 80 : 75);
-  const engagement = report.engagement ?? 75;
-  const assessment = report.assessment ?? 75;
-  const gaps = report.gaps ?? report.gaps_detected ?? 0;
+  const coverage = toNumberMetric(report.coverage ?? report.coverage_score, 75);
+  const clarity = toNumberMetric(report.clarity ?? report.clarity_rating, 75);
+  const engagement = toNumberMetric(report.engagement ?? report.engagement_level, 75);
+  const assessment = toNumberMetric(report.assessment ?? report.assessment_quality, 75);
+  const gaps = toNumberMetric(report.gaps ?? report.gaps_detected, 0);
 
   const weighted =
     coverage * 0.35 +
@@ -117,17 +126,82 @@ export function average(values: number[]): number {
   return Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
 }
 
+export function getLessonMetrics(report: any) {
+  return {
+    score: calculateLessonScore(report),
+    coverage: toNumberMetric(report.coverage ?? report.coverage_score, 75),
+    clarity: toNumberMetric(report.clarity ?? report.clarity_rating, 75),
+    engagement: toNumberMetric(report.engagement ?? report.engagement_level, 75),
+    assessment: toNumberMetric(report.assessment ?? report.assessment_quality, 75),
+    gaps: toNumberMetric(report.gaps ?? report.gaps_detected, 0),
+  };
+}
+
+export function getLessonInsights(report: any) {
+  const metrics = getLessonMetrics(report);
+  const findings: string[] = [];
+
+  if (metrics.score >= 80) {
+    findings.push('Overall lesson quality is strong with consistent instructional delivery.');
+  } else {
+    findings.push('Overall lesson quality is below target and needs targeted refinement.');
+  }
+
+  if (metrics.coverage >= 80) {
+    findings.push('Standards coverage is strong and aligned to lesson goals.');
+  } else {
+    findings.push('Standards coverage is light; prioritize explicit alignment to objectives.');
+  }
+
+  if (metrics.clarity >= 80) {
+    findings.push('Explanations are clear and sequencing supports student understanding.');
+  } else {
+    findings.push('Instructional clarity can improve with tighter modeling and checks for understanding.');
+  }
+
+  if (metrics.engagement >= 80) {
+    findings.push('Student engagement appears high with active participation opportunities.');
+  } else {
+    findings.push('Engagement is limited; add more interaction and response moments during instruction.');
+  }
+
+  if (metrics.gaps > 0) {
+    findings.push(`Detected ${metrics.gaps} gap${metrics.gaps === 1 ? '' : 's'} that should be revisited for mastery.`);
+  } else {
+    findings.push('No major concept gaps were detected in this lesson evidence.');
+  }
+
+  const nextAction =
+    metrics.gaps > 0
+      ? 'Revisit missed concepts, strengthen closure, and add a quick mastery check before moving on.'
+      : 'Maintain strong instruction and add deeper checks for understanding to extend rigor.';
+
+  const summary =
+    metrics.score >= 85
+      ? 'High-performing lesson with clear evidence of strong instructional moves.'
+      : metrics.score >= 75
+        ? 'Solid lesson with room to sharpen execution and mastery checks.'
+        : 'Lesson needs targeted support around clarity, closure, and reinforcement.';
+
+  return {
+    ...metrics,
+    findings,
+    nextAction,
+    summary,
+  };
+}
+
 export function getDashboardSummary(reports: any[]) {
   const scores = reports.map(calculateLessonScore);
 
   return {
     lessonsAnalyzed: reports.length,
     averageScore: average(scores),
-    averageCoverage: average(reports.map(r => r.coverage ?? r.coverage_score ?? 0)),
-    averageClarity: average(reports.map(r => r.clarity ?? 0)),
-    averageEngagement: average(reports.map(r => r.engagement ?? 0)),
-    averageAssessment: average(reports.map(r => r.assessment ?? 0)),
-    totalGaps: reports.reduce((sum, r) => sum + (r.gaps ?? r.gaps_detected ?? 0), 0),
+    averageCoverage: average(reports.map(r => toNumberMetric(r.coverage ?? r.coverage_score, 0))),
+    averageClarity: average(reports.map(r => toNumberMetric(r.clarity ?? r.clarity_rating, 0))),
+    averageEngagement: average(reports.map(r => toNumberMetric(r.engagement ?? r.engagement_level, 0))),
+    averageAssessment: average(reports.map(r => toNumberMetric(r.assessment ?? r.assessment_quality, 0))),
+    totalGaps: reports.reduce((sum, r) => sum + toNumberMetric(r.gaps ?? r.gaps_detected, 0), 0),
   };
 }
 
@@ -161,9 +235,9 @@ export function getTrendData(reports: any[]) {
     .map(report => ({
       date: report.date ?? report.created_at?.slice(0, 10),
       score: calculateLessonScore(report),
-      coverage: report.coverage ?? report.coverage_score ?? 0,
-      clarity: report.clarity ?? 0,
-      engagement: report.engagement ?? 0,
-      assessment: report.assessment ?? 0,
+      coverage: toNumberMetric(report.coverage ?? report.coverage_score, 0),
+      clarity: toNumberMetric(report.clarity ?? report.clarity_rating, 0),
+      engagement: toNumberMetric(report.engagement ?? report.engagement_level, 0),
+      assessment: toNumberMetric(report.assessment ?? report.assessment_quality, 0),
     }));
 }

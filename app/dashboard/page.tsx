@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { sampleReports, getDashboardSummary, getTrendData, calculateLessonScore } from '@/lib/dashboardData';
+import { getLessonInsights } from '@/lib/dashboardData';
 
 export default function TeacherDashboard() {
   const supabaseRef = useRef(createClient());
@@ -15,6 +16,7 @@ export default function TeacherDashboard() {
   const [teacherName, setTeacherName] = useState<string | null>(null);
   const [dbReports, setDbReports] = useState<any[]>([]);
   const [selectedReport, setSelectedReport] = useState<any | null>(null);
+  const [keyFindingsReportId, setKeyFindingsReportId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -73,10 +75,22 @@ export default function TeacherDashboard() {
 
   const reports = dbReports;
 
+  useEffect(() => {
+    if (!reports.length) {
+      setKeyFindingsReportId(null);
+      return;
+    }
+    const exists = reports.some((r) => r.id === keyFindingsReportId);
+    if (!exists) {
+      setKeyFindingsReportId(reports[0].id);
+    }
+  }, [reports, keyFindingsReportId]);
+
   const trendData = useMemo(() => getTrendData(reports), [reports]);
   const summary = useMemo(() => getDashboardSummary(reports), [reports]);
 
   const latestScore = reports[0] ? calculateLessonScore(reports[0]) : 0;
+  const overallScore = summary.averageScore;
 
   const handleViewReport = (report: any) => {
     setSelectedReport(report);
@@ -121,17 +135,17 @@ export default function TeacherDashboard() {
       ? "Revisit missed concepts and strengthen lesson closure with a quick exit check."
       : "Maintain strong instruction and consider adding deeper checks for understanding.";
 
-  const keyFindings = summary.totalGaps > 0
-    ? [
-        "Some supporting concepts need stronger reinforcement.",
-        "Lesson closure could be improved for retention.",
-        "Standards were introduced but not fully mastered."
-      ]
-    : [
-        "Standards are clearly introduced and modeled.",
-        "Lesson pacing is effective.",
-        "Students are likely meeting expectations."
-      ];
+  const activeKeyFindingsReport = useMemo(() => {
+    if (!reports.length) return null;
+    return reports.find((r) => r.id === keyFindingsReportId) || reports[0];
+  }, [reports, keyFindingsReportId]);
+
+  const keyFindings = useMemo(() => {
+    if (!activeKeyFindingsReport) return [];
+    return getLessonInsights(activeKeyFindingsReport).findings;
+  }, [activeKeyFindingsReport]);
+
+  const previousLessonReports = useMemo(() => reports.slice(1), [reports]);
 
   if (!ready) {
     return (
@@ -168,9 +182,11 @@ export default function TeacherDashboard() {
 
           <div style={previewGrid}>
             <div>
-              <div style={bigScore}>{latestScore}/100</div>
+              <div style={bigScore}>{overallScore}/100</div>
               <div style={subText}>
-                {scoreDiff > 0 ? `↑ +${scoreDiff}` : scoreDiff < 0 ? `↓ ${scoreDiff}` : 'No change'}
+                {summary.lessonsAnalyzed > 0
+                  ? `Average across ${summary.lessonsAnalyzed} lesson${summary.lessonsAnalyzed === 1 ? '' : 's'}`
+                  : 'No lessons analyzed yet'}
               </div>
             </div>
 
@@ -181,11 +197,11 @@ export default function TeacherDashboard() {
 
             <div>
               <div style={label}>Clarity</div>
-              <div style={value}>{summary.averageClarity || 'Strong'}</div>
+              <div style={value}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
             </div>
 
             <div>
-              <div style={label}>Gaps</div>
+              <div style={label}>Total Gaps</div>
               <div style={value}>{summary.totalGaps || 0}</div>
             </div>
           </div>
@@ -235,11 +251,55 @@ export default function TeacherDashboard() {
 
         <div style={card}>
           <h2 style={cardTitle}>Key Findings</h2>
-          <ul style={text}>
-            {keyFindings.map((f, i) => (
-              <li key={i}>{f}</li>
-            ))}
-          </ul>
+          {!activeKeyFindingsReport ? (
+            <p style={text}>No lesson findings yet.</p>
+          ) : (
+            <>
+              <p style={{ ...text, marginTop: 0 }}>
+                Showing findings for: {activeKeyFindingsReport.grade || 'Grade'} {activeKeyFindingsReport.subject || 'Lesson'}
+                {activeKeyFindingsReport.created_at ? ` · ${new Date(activeKeyFindingsReport.created_at).toLocaleDateString()}` : ''}
+              </p>
+              <ul style={text}>
+                {keyFindings.map((f, i) => (
+                  <li key={i}>{f}</li>
+                ))}
+              </ul>
+
+              {previousLessonReports.length > 0 && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+                  <div style={{ ...label, marginBottom: 8 }}>Previous Lesson Key Findings</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {previousLessonReports.map((r, idx) => {
+                      const chip = `${r.grade || 'Grade'} ${r.subject || 'Lesson'}${r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString()}` : ''}`;
+                      const isActive = activeKeyFindingsReport?.id === r.id;
+                      return (
+                        <button
+                          key={r.id || idx}
+                          onClick={() => setKeyFindingsReportId(r.id)}
+                          style={{
+                            border: `1px solid ${isActive ? '#f97316' : 'var(--border)'}`,
+                            background: isActive ? 'rgba(249,115,22,0.14)' : 'var(--surface-chip)',
+                            color: 'var(--text-primary)',
+                            borderRadius: 999,
+                            padding: '6px 10px',
+                            fontSize: 12,
+                            cursor: 'pointer',
+                            maxWidth: 300,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title={chip}
+                        >
+                          {chip}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         <div style={card}>
