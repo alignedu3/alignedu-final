@@ -1,13 +1,14 @@
 "use client";
 import { createClient } from '@/lib/supabase/client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { sampleReports, getDashboardSummary, getTrendData, calculateLessonScore } from '@/lib/dashboardData';
 
 export default function TeacherDashboard() {
-  const supabase = createClient();
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [role, setRole] = useState('teacher');
   const [userId, setUserId] = useState<string | null>(null);
