@@ -375,8 +375,10 @@ export default function AdminDashboard() {
               </div>
             ))
           )}
+        </div>
 
-          <h2 style={{ ...title, marginTop: 18 }}>Teacher Performance</h2>
+        <div style={card}>
+          <h2 style={title}>Teacher Performance</h2>
           <div className="table-scroll-wrap">
             <table style={table}>
               <thead>
