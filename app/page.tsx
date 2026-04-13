@@ -244,15 +244,18 @@ export default function HomePage() {
                       </div>
                       <div style={previewSchoolLegend}>
                         {[
-                          { name: 'Math', color: '#0ea5e9' },
-                          { name: 'Science', color: '#3b82f6' },
-                          { name: 'Reading / RLA', color: '#14b8a6' },
-                          { name: 'Social Studies', color: '#f59e0b' },
-                          { name: 'Algebra I', color: '#0ea5e9' },
-                          { name: 'English I', color: '#14b8a6' },
-                          { name: 'English II', color: '#10b981' },
-                          { name: 'Biology', color: '#3b82f6' },
-                          { name: 'U.S. History', color: '#f59e0b' },
+                          { name: 'Elem Math', color: '#0ea5e9' },
+                          { name: 'Elem Science', color: '#2563eb' },
+                          { name: 'Elem Reading', color: '#14b8a6' },
+                          { name: 'MS RLA', color: '#22c55e' },
+                          { name: 'MS Math', color: '#38bdf8' },
+                          { name: 'MS Science', color: '#6366f1' },
+                          { name: 'MS Social', color: '#f59e0b' },
+                          { name: 'HS Algebra I', color: '#0284c7' },
+                          { name: 'HS English I', color: '#10b981' },
+                          { name: 'HS English II', color: '#059669' },
+                          { name: 'HS Biology', color: '#4f46e5' },
+                          { name: 'HS U.S. History', color: '#d97706' },
                         ].map((subject) => (
                           <div key={subject.name} style={previewLegendItem}>
                             <span style={{ ...previewLegendDot, background: subject.color }} />
@@ -267,27 +270,27 @@ export default function HomePage() {
                             name: 'Elementary School',
                             subjects: [
                               { subject: 'Math', value: 92, color: '#0ea5e9' },
-                              { subject: 'Science', value: 88, color: '#3b82f6' },
+                              { subject: 'Science', value: 88, color: '#2563eb' },
                               { subject: 'Reading', value: 85, color: '#14b8a6' },
                             ],
                           },
                           {
                             name: 'Middle School',
                             subjects: [
-                              { subject: 'RLA', value: 90, color: '#14b8a6' },
-                              { subject: 'Math', value: 86, color: '#0ea5e9' },
-                              { subject: 'Science', value: 84, color: '#3b82f6' },
+                              { subject: 'RLA', value: 90, color: '#22c55e' },
+                              { subject: 'Math', value: 86, color: '#38bdf8' },
+                              { subject: 'Science', value: 84, color: '#6366f1' },
                               { subject: 'Social Studies', value: 81, color: '#f59e0b' },
                             ],
                           },
                           {
                             name: 'High School',
                             subjects: [
-                              { subject: 'Algebra I', value: 79, color: '#0ea5e9' },
-                              { subject: 'English I', value: 86, color: '#14b8a6' },
-                              { subject: 'English II', value: 83, color: '#10b981' },
-                              { subject: 'Biology', value: 91, color: '#3b82f6' },
-                              { subject: 'U.S. History', value: 88, color: '#f59e0b' },
+                              { subject: 'Algebra I', value: 79, color: '#0284c7' },
+                              { subject: 'English I', value: 86, color: '#10b981' },
+                              { subject: 'English II', value: 83, color: '#059669' },
+                              { subject: 'Biology', value: 91, color: '#4f46e5' },
+                              { subject: 'U.S. History', value: 88, color: '#d97706' },
                             ],
                           },
                         ].map((schoolGroup) => (
@@ -1298,10 +1301,11 @@ const previewSectionHeader: React.CSSProperties = {
 };
 
 const previewSchoolLegend: React.CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: '6px',
-  alignItems: 'center',
+  display: 'grid',
+  gridTemplateColumns: 'repeat(6, minmax(0, 1fr))',
+  columnGap: '6px',
+  rowGap: '6px',
+  alignItems: 'stretch',
   marginBottom: '10px',
   padding: '8px 10px',
   borderRadius: '12px',
@@ -1313,13 +1317,19 @@ const previewSchoolLegend: React.CSSProperties = {
 };
 
 const previewLegendItem: React.CSSProperties = {
-  display: 'inline-flex',
+  display: 'flex',
   alignItems: 'center',
   gap: '6px',
-  padding: '3px 6px',
+  justifyContent: 'flex-start',
+  minWidth: 0,
+  padding: '4px 6px',
   borderRadius: '999px',
   border: '1px solid rgba(148,163,184,0.2)',
   background: 'rgba(255,255,255,0.75)',
+  fontSize: '9px',
+  whiteSpace: 'nowrap',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
   lineHeight: 1,
 };
 
