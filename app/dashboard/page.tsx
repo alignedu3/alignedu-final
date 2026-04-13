@@ -164,7 +164,7 @@ export default function TeacherDashboard() {
         </div>
 
         <div style={card}>
-          <h2 style={cardTitle}>Analysis Preview</h2>
+          <h2 style={cardTitle}>Lesson Analysis</h2>
 
           <div style={previewGrid}>
             <div>
