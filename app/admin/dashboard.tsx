@@ -17,7 +17,6 @@ import {
   Tooltip,
   CartesianGrid,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
 
 export default function AdminDashboard() {
@@ -354,20 +353,81 @@ export default function AdminDashboard() {
                 tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
                 width={isNarrowScreen ? 28 : 40}
               />
-              <Tooltip />
-              <Legend wrapperStyle={{ fontSize: isNarrowScreen ? 10 : 12 }} />
+              <Tooltip
+                contentStyle={{
+                  background: 'var(--surface-card-solid)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 8,
+                  fontSize: 12,
+                }}
+              />
               {teacherLineKeys.map((key, i) => (
                 <Line
                   key={key}
                   type="monotone"
                   dataKey={key}
                   stroke={TEACHER_COLORS[i % TEACHER_COLORS.length]}
+                  strokeWidth={2}
                   dot={false}
                   connectNulls
                 />
               ))}
             </LineChart>
           </ResponsiveContainer>
+
+          {/* Custom legend */}
+          <div style={{
+            marginTop: 16,
+            paddingTop: 14,
+            borderTop: '1px solid var(--border)',
+          }}>
+            {teacherLineKeys.length === 0 ? (
+              <p style={{ ...text, fontSize: 12, textAlign: 'center', margin: 0 }}>
+                No teacher data available yet
+              </p>
+            ) : (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: `repeat(${Math.min(teacherLineKeys.length, isNarrowScreen ? 2 : 3)}, minmax(0, 1fr))`,
+                gap: '8px 12px',
+              }}>
+                {teacherLineKeys.map((key, i) => (
+                  <div
+                    key={key}
+                    title={key}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 7,
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      background: 'var(--surface-hover, rgba(0,0,0,0.04))',
+                      border: '1px solid var(--border)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <span style={{
+                      flexShrink: 0,
+                      width: 10,
+                      height: 10,
+                      borderRadius: '50%',
+                      background: TEACHER_COLORS[i % TEACHER_COLORS.length],
+                    }} />
+                    <span style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: 'var(--text-primary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {key}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         <div style={card}>
