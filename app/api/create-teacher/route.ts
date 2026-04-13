@@ -84,7 +84,7 @@ export async function POST(req: Request) {
         });
 
       if (authError) {
-        console.log('AUTH ERROR:', authError);
+        console.error('AUTH ERROR:', authError);
 
         return NextResponse.json(
           {
@@ -125,7 +125,7 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
-      console.log('PROFILE ERROR:', error);
+      console.error('PROFILE ERROR:', error);
 
       return NextResponse.json(
         {
@@ -158,7 +158,7 @@ export async function POST(req: Request) {
     });
 
   } catch (err: any) {
-    console.log('UNEXPECTED ERROR:', err);
+    console.error('UNEXPECTED ERROR:', err);
 
     return NextResponse.json(
       {

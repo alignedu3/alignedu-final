@@ -43,23 +43,6 @@ export default function TeacherDetailPage() {
         .order('created_at', { ascending: false });
 
       setReports(analyses || []);
-
-      // ── DEBUG: log profile + analyses fetch results ──
-      const { data: profileDebug, error: profileError } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', id as string)
-        .maybeSingle();
-      console.log('[debug] id param:', id);
-      console.log('[debug] profile fetch →', profileDebug, '| error:', profileError);
-
-      const { data: analysesDebug, error: analysesError } = await supabase
-        .from('analyses')
-        .select('*')
-        .eq('user_id', id as string)
-        .limit(1);
-      console.log('[debug] analyses fetch →', analysesDebug, '| error:', analysesError);
-      // ── END DEBUG ──
     }
 
     if (id) load();

@@ -255,7 +255,6 @@ ${transcript}
       } else if (insertedData) {
         dbSaved = true;
         analysisId = insertedData.id;
-        console.log("Analysis saved successfully for user:", user.id, "analysisId:", analysisId);
       }
     } else {
       console.error("No authenticated user found when trying to save analysis");

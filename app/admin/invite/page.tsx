@@ -7,30 +7,18 @@ export default function InvitePage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<'teacher' | 'admin'>('teacher');
-  const [linkedAdminId, setLinkedAdminId] = useState('');
-  const [admins, setAdmins] = useState<{ id: string; name: string }[]>([]);
-  const [currentAdminId, setCurrentAdminId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Load all admins and current user so the dropdown is populated
+  // Confirm the current admin has a local session before showing invite actions.
   useEffect(() => {
     const load = async () => {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setCurrentAdminId(user.id);
+      const { data } = await supabase.auth.getSession();
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, name')
-        .eq('role', 'admin');
-
-      if (data) {
-        setAdmins(data);
-        // Default to current admin
-        const self = data.find(a => a.id === user?.id);
-        if (self) setLinkedAdminId(self.id);
+      if (!data.session?.user) {
+        setError('Your session expired. Please log in again.');
       }
     };
     load();
@@ -43,11 +31,6 @@ export default function InvitePage() {
       setError('Name and email are required.');
       return;
     }
-    if (role === 'teacher' && !linkedAdminId) {
-      setError('Please select which admin this teacher will be linked to.');
-      return;
-    }
-
     setLoading(true);
     try {
       const res = await fetch('/api/invite', {
@@ -57,7 +40,6 @@ export default function InvitePage() {
           name: name.trim(),
           email: email.trim(),
           role,
-          linkedAdminId: role === 'teacher' ? linkedAdminId : null,
         }),
       });
 
@@ -127,24 +109,8 @@ export default function InvitePage() {
             />
           </div>
 
-          {/* Admin picker — only shown when inviting a teacher */}
           {role === 'teacher' && (
-            <div style={fieldGroup}>
-              <label style={label}>Link to Admin</label>
-              <select
-                value={linkedAdminId}
-                onChange={(e) => setLinkedAdminId(e.target.value)}
-                style={selectStyle}
-              >
-                <option value="">— Select an admin —</option>
-                {admins.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name}{a.id === currentAdminId ? ' (you)' : ''}
-                  </option>
-                ))}
-              </select>
-              <p style={hint}>This teacher will appear on the selected admin's dashboard.</p>
-            </div>
+            <p style={hint}>Teachers invited here are automatically linked to your admin dashboard.</p>
           )}
 
           {error && <p style={errorStyle}>{error}</p>}
@@ -198,17 +164,6 @@ const input: React.CSSProperties = {
   color: 'var(--text-primary)',
   fontSize: 15,
   outline: 'none',
-};
-
-const selectStyle: React.CSSProperties = {
-  padding: '12px 14px',
-  borderRadius: 10,
-  border: '1px solid var(--border-strong)',
-  background: 'var(--surface-input)',
-  color: 'var(--text-primary)',
-  fontSize: 15,
-  outline: 'none',
-  width: '100%',
 };
 
 const roleToggleWrap: React.CSSProperties = { display: 'flex', gap: 10 };
