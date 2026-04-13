@@ -937,9 +937,11 @@ export default function HomePage() {
             grid-template-columns: 1fr !important;
           }
 
-          /* Keep legend readable on tablet */
+          /* Keep legend as two rows on tablet */
           .preview-legend-row {
-            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+            gap: 6px !important;
+            padding: 8px 10px !important;
           }
 
           /* School charts: 2 per row on tablet; high school spans full width */
@@ -971,8 +973,8 @@ export default function HomePage() {
           }
 
           .preview-legend-row {
-            display: flex !important;
-            flex-wrap: wrap !important;
+            display: grid !important;
+            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
             gap: 4px !important;
             padding: 7px 8px !important;
           }
@@ -980,6 +982,7 @@ export default function HomePage() {
           .preview-legend-item {
             font-size: 8px !important;
             padding: 2px 5px !important;
+            min-height: 22px !important;
           }
 
           .preview-legend-dot {
@@ -1049,8 +1052,8 @@ export default function HomePage() {
           }
 
           .preview-legend-row {
-            display: flex !important;
-            flex-wrap: wrap !important;
+            display: grid !important;
+            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
             gap: 4px !important;
             padding: 6px 7px !important;
           }
@@ -1058,6 +1061,7 @@ export default function HomePage() {
           .preview-legend-item {
             font-size: 8px !important;
             padding: 2px 4px !important;
+            min-height: 20px !important;
           }
 
           .preview-legend-dot {
@@ -1332,14 +1336,17 @@ const previewLegendItem: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   gap: '7px',
-  justifyContent: 'flex-start',
+  justifyContent: 'center',
   minWidth: 0,
   padding: '4px 6px',
   borderRadius: '999px',
   border: '1px solid rgba(148,163,184,0.2)',
   background: 'rgba(255,255,255,0.75)',
   fontSize: '10px',
-  lineHeight: 1.2,
+  lineHeight: 1.1,
+  whiteSpace: 'normal',
+  textAlign: 'center',
+  minHeight: '24px',
 };
 
 const previewLegendDot: React.CSSProperties = {
