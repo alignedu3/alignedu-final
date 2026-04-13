@@ -242,7 +242,7 @@ export default function HomePage() {
                         <span>Subject Coverage by School</span>
                         <span style={{ color: '#0369a1' }}>Q2 Benchmark</span>
                       </div>
-                      <div style={previewSchoolLegend}>
+                      <div className="preview-legend-row" style={previewSchoolLegend}>
                         {[
                           { name: 'Math', color: '#0ea5e9' },
                           { name: 'Science', color: '#2563eb' },
@@ -255,7 +255,7 @@ export default function HomePage() {
                           { name: 'Biology', color: '#4f46e5' },
                           { name: 'U.S. History', color: '#d97706' },
                         ].map((subject) => (
-                          <div key={subject.name} style={previewLegendItem}>
+                          <div key={subject.name} className="preview-legend-item" style={previewLegendItem}>
                             <span style={{ ...previewLegendDot, background: subject.color }} />
                             <span>{subject.name}</span>
                           </div>
@@ -293,13 +293,13 @@ export default function HomePage() {
                           },
                         ].map((schoolGroup) => (
                           <div key={schoolGroup.name} className="preview-school-card" style={previewSubjectCard}>
-                            <div style={previewSubjectTitle}>{schoolGroup.name}</div>
+                            <div style={previewSubjectTitle}>{schoolGroup.name.replace(' ', '\n')}</div>
                             <div className="preview-coverage-wrap" style={previewCoverageChartWrap}>
                               <ResponsiveContainer width="100%" height="100%">
                                 <BarChart
                                   data={schoolGroup.subjects}
                                   margin={{ top: 10, right: 2, left: -12, bottom: 0 }}
-                                  barCategoryGap="34%"
+                                  barCategoryGap="14%"
                                 >
                                   <CartesianGrid vertical={false} stroke="rgba(148,163,184,0.26)" strokeDasharray="3 5" />
                                   <XAxis
@@ -331,7 +331,7 @@ export default function HomePage() {
                                       fontWeight: 700,
                                     }}
                                   />
-                                  <Bar dataKey="value" radius={[10, 10, 3, 3]} maxBarSize={10}>
+                                  <Bar dataKey="value" radius={[10, 10, 3, 3]} maxBarSize={14} minPointSize={3}>
                                     {schoolGroup.subjects.map((item) => (
                                       <Cell key={`${schoolGroup.name}-${item.subject}`} fill={item.color} fillOpacity={0.95} />
                                     ))}
@@ -937,19 +937,15 @@ export default function HomePage() {
             grid-template-columns: 1fr !important;
           }
 
-          /* Legend 2×2 on tablet */
+          /* Keep legend readable on tablet */
           .preview-legend-row {
-            grid-template-columns: repeat(2, 1fr) !important;
+            grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
           }
 
           /* School charts: 2 per row on tablet, last one spans full */
           .preview-subject-row {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
-          }
-
-          .preview-school-card:last-child {
-            grid-column: 1 / -1;
           }
         }
 
@@ -985,10 +981,6 @@ export default function HomePage() {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 8px !important;
-          }
-
-          .preview-school-card:last-child {
-            grid-column: 1 / -1;
           }
 
           .preview-coverage-wrap {
@@ -1060,10 +1052,6 @@ export default function HomePage() {
           .preview-coverage-wrap {
             height: 98px !important;
             padding: 8px 7px 7px !important;
-          }
-
-          .preview-school-card:last-child {
-            grid-column: 1 / -1;
           }
 
           /* Hide the long lower panel on small phones to keep the demo glanceable */
@@ -1320,15 +1308,12 @@ const previewLegendItem: React.CSSProperties = {
   gap: '7px',
   justifyContent: 'flex-start',
   minWidth: 0,
-  padding: '5px 8px',
+  padding: '4px 6px',
   borderRadius: '999px',
   border: '1px solid rgba(148,163,184,0.2)',
   background: 'rgba(255,255,255,0.75)',
   fontSize: '10px',
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  lineHeight: 1,
+  lineHeight: 1.2,
 };
 
 const previewLegendDot: React.CSSProperties = {
@@ -1367,9 +1352,14 @@ const previewSubjectTitle: React.CSSProperties = {
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
   marginBottom: '8px',
-  textAlign: 'left',
+  textAlign: 'center',
   color: '#0f172a',
-  paddingLeft: '2px',
+  minHeight: '26px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  whiteSpace: 'pre-line',
+  lineHeight: 1.05,
 };
 
 const previewCoverageSchoolLabel: React.CSSProperties = {
