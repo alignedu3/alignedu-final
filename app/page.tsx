@@ -256,7 +256,7 @@ export default function HomePage() {
                           { name: 'U.S. History', color: '#d97706' },
                         ].map((subject) => (
                           <div key={subject.name} className="preview-legend-item" style={previewLegendItem}>
-                            <span style={{ ...previewLegendDot, background: subject.color }} />
+                            <span className="preview-legend-dot" style={{ ...previewLegendDot, background: subject.color }} />
                             <span>{subject.name}</span>
                           </div>
                         ))}
@@ -942,10 +942,14 @@ export default function HomePage() {
             grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
           }
 
-          /* School charts: 2 per row on tablet, last one spans full */
+          /* School charts: 2 per row on tablet; high school spans full width */
           .preview-subject-row {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
+          }
+
+          .preview-school-card:last-child {
+            grid-column: 1 / -1;
           }
         }
 
@@ -967,20 +971,31 @@ export default function HomePage() {
           }
 
           .preview-legend-row {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 6px !important;
-            padding: 8px 10px !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 4px !important;
+            padding: 7px 8px !important;
           }
 
           .preview-legend-item {
-            font-size: 10px;
+            font-size: 8px !important;
+            padding: 2px 5px !important;
           }
 
-          /* School charts: 2 per row, last one full-width */
+          .preview-legend-dot {
+            width: 6px !important;
+            height: 6px !important;
+          }
+
+          /* School charts: 2 per row; high school spans full width */
           .preview-subject-row {
             display: grid !important;
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 8px !important;
+          }
+
+          .preview-school-card:last-child {
+            grid-column: 1 / -1;
           }
 
           .preview-coverage-wrap {
@@ -1034,19 +1049,30 @@ export default function HomePage() {
           }
 
           .preview-legend-row {
-            grid-template-columns: repeat(2, 1fr) !important;
-            gap: 5px !important;
-            padding: 7px 8px !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 4px !important;
+            padding: 6px 7px !important;
           }
 
           .preview-legend-item {
-            font-size: 9px;
+            font-size: 8px !important;
+            padding: 2px 4px !important;
+          }
+
+          .preview-legend-dot {
+            width: 5px !important;
+            height: 5px !important;
           }
 
           /* Keep compact 2-up cards so the demo does not become too tall */
           .preview-subject-row {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
             gap: 6px !important;
+          }
+
+          .preview-school-card:last-child {
+            grid-column: 1 / -1;
           }
 
           .preview-coverage-wrap {
