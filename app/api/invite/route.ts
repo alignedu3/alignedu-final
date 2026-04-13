@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     .eq('id', adminUser.id)
     .single();
 
-  if (adminProfile?.role !== 'admin') {
+  if (!['admin', 'super_admin'].includes(adminProfile?.role)) {
     return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 });
   }
 

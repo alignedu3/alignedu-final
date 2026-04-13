@@ -32,7 +32,7 @@ export default function AuthCallback() {
           .eq('id', user.id)
           .maybeSingle();
 
-        if (profile?.role === 'admin') {
+        if (['admin', 'super_admin'].includes(profile?.role)) {
           router.push('/admin');
         } else if (profile?.role === 'teacher') {
           router.push('/dashboard');

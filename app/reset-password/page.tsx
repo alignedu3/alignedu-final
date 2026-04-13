@@ -57,7 +57,7 @@ export default function ResetPassword() {
         .maybeSingle();
 
       setTimeout(() => {
-        window.location.href = profile?.role === 'admin' ? '/admin' : '/dashboard';
+        window.location.href = ['admin', 'super_admin'].includes(profile?.role) ? '/admin' : '/dashboard';
       }, 1500);
     } else {
       setTimeout(() => { window.location.href = '/login'; }, 1500);

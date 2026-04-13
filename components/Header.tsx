@@ -143,7 +143,7 @@ export default function Header() {
       .eq('id', user.id)
       .single();
     const userRole = profileData?.role || profile?.role;
-    if (userRole === 'admin') {
+    if (['admin', 'super_admin'].includes(userRole)) {
       router.push('/admin');
     } else {
       router.push('/dashboard');
@@ -225,7 +225,7 @@ export default function Header() {
                     Teacher Dashboard
                   </Link>
 
-                  {profile?.role === "admin" && (
+                  {['admin', 'super_admin'].includes(profile?.role) && (
                     <>
                       <Link
                         href="/admin"

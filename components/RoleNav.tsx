@@ -17,7 +17,7 @@ export default function RoleNav({ role }: { role: string }) {
         Dashboard
       </Link>
 
-      {role === 'admin' && (
+      {['admin', 'super_admin'].includes(role) && (
         <>
           <Link href="/admin/dashboard" style={linkStyle}>
             Admin Dashboard

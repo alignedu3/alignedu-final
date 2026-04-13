@@ -28,11 +28,11 @@ export async function GET() {
       return NextResponse.json({ success: false, error: profileError.message }, { status: 500 });
     }
 
-    if (profile?.role !== 'admin') {
+    if (!['admin', 'super_admin'].includes(profile?.role)) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
-    const visibility = await getAdminVisibility(user.id);
+    const visibility = await getAdminVisibility(user.id, profile.role);
 
     return NextResponse.json({
       success: true,

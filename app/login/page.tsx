@@ -44,7 +44,7 @@ export default function LoginPage() {
         .eq('id', data.user.id)
         .single();
 
-      const destination = profile?.role === 'admin' ? '/admin' : '/dashboard';
+      const destination = ['admin', 'super_admin'].includes(profile?.role) ? '/admin' : '/dashboard';
 
       window.location.replace(destination);
       return;

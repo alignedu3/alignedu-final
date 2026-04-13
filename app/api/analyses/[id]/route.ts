@@ -76,8 +76,8 @@ export async function DELETE(
     const isOwner = analysis.user_id === user.id;
     let canDelete = isOwner;
 
-    if (profile?.role === 'admin' && !canDelete) {
-      const visibility = await getAdminVisibility(user.id);
+    if (['admin', 'super_admin'].includes(profile?.role) && !canDelete) {
+      const visibility = await getAdminVisibility(user.id, profile.role);
       canDelete = visibility.visibleUserIds.includes(analysis.user_id);
     }
 

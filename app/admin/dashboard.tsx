@@ -45,7 +45,7 @@ export default function AdminDashboard() {
           return;
         }
 
-        if (authData.profile?.role !== 'admin') {
+        if (!['admin', 'super_admin'].includes(authData.profile?.role)) {
           window.location.replace('/dashboard');
           return;
         }

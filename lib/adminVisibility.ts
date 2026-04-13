@@ -6,6 +6,8 @@ type AdminVisibility = {
   visibleUserIds: string[];
 };
 
+type AdminRole = 'admin' | 'super_admin';
+
 function unique(values: string[]) {
   return [...new Set(values)];
 }
@@ -22,8 +24,39 @@ function getServiceSupabase() {
   );
 }
 
-export async function getAdminVisibility(adminId: string): Promise<AdminVisibility> {
+export async function getAdminVisibility(adminId: string, role: AdminRole = 'admin'): Promise<AdminVisibility> {
   const supabase = getServiceSupabase();
+
+  if (role === 'super_admin') {
+    const { data: admins, error: adminsError } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('role', ['admin', 'super_admin']);
+
+    if (adminsError) {
+      throw adminsError;
+    }
+
+    const resolvedAdminIds = unique((admins || []).map((row: any) => row.id as string).filter(Boolean));
+
+    const { data: managedTeachers, error: managedTeachersError } = await supabase
+      .from('managed_teachers')
+      .select('teacher_id')
+      .in('admin_id', resolvedAdminIds);
+
+    if (managedTeachersError) {
+      throw managedTeachersError;
+    }
+
+    const teacherIds = unique((managedTeachers || []).map((row: any) => row.teacher_id as string).filter(Boolean));
+    const visibleUserIds = unique([...resolvedAdminIds, ...teacherIds]);
+
+    return {
+      adminIds: resolvedAdminIds,
+      teacherIds,
+      visibleUserIds,
+    };
+  }
 
   const adminIds = new Set<string>([adminId]);
   let frontier = [adminId];
