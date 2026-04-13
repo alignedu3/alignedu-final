@@ -16,7 +16,8 @@ import {
   YAxis,
   Tooltip,
   CartesianGrid,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Legend,
 } from 'recharts';
 
 export default function AdminDashboard() {
@@ -129,7 +130,45 @@ export default function AdminDashboard() {
 
   const reports = dbReports.length ? dbReports : sampleReports;
   const summary = getDashboardSummary(reports);
-  const trendData = getTrendData(reports);
+
+  const TEACHER_COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#84cc16'];
+
+  const teacherTrendData = useMemo(() => {
+    const profileById = new Map((profiles || []).map((p: any) => [p.id, p]));
+    const getTeacherName = (r: any) => {
+      const profile = profileById.get(r.user_id);
+      if (profile?.name) return profile.name;
+      if (r.teacher_name) return r.teacher_name;
+      if (r.name) return r.name;
+      return 'Unknown';
+    };
+    const byDate: Record<string, Record<string, number[]>> = {};
+    reports.forEach((r: any) => {
+      const date = r.date ?? r.created_at?.slice(0, 10);
+      if (!date) return;
+      const teacher = getTeacherName(r);
+      if (!byDate[date]) byDate[date] = {};
+      if (!byDate[date][teacher]) byDate[date][teacher] = [];
+      byDate[date][teacher].push(calculateLessonScore(r));
+    });
+    return Object.entries(byDate)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, teachers]) => {
+        const entry: Record<string, any> = { date };
+        Object.entries(teachers).forEach(([teacher, scores]) => {
+          entry[teacher] = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        });
+        return entry;
+      });
+  }, [reports, profiles]);
+
+  const teacherLineKeys = useMemo(() => {
+    const keys = new Set<string>();
+    teacherTrendData.forEach(entry => {
+      Object.keys(entry).forEach(k => { if (k !== 'date') keys.add(k); });
+    });
+    return Array.from(keys);
+  }, [teacherTrendData]);
 
   const teacherStats = useMemo(() => {
     const profileById = new Map((profiles || []).map((p) => [p.id, p]));
@@ -302,7 +341,7 @@ export default function AdminDashboard() {
           <h2 style={title}>System Trend</h2>
           <p style={text}>{systemInsight}</p>
           <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
-            <LineChart data={trendData}>
+            <LineChart data={teacherTrendData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="date"
@@ -316,7 +355,17 @@ export default function AdminDashboard() {
                 width={isNarrowScreen ? 28 : 40}
               />
               <Tooltip />
-              <Line type="monotone" dataKey="score" stroke="#f97316" />
+              <Legend wrapperStyle={{ fontSize: isNarrowScreen ? 10 : 12 }} />
+              {teacherLineKeys.map((key, i) => (
+                <Line
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={TEACHER_COLORS[i % TEACHER_COLORS.length]}
+                  dot={false}
+                  connectNulls
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
