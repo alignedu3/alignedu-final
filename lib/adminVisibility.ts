@@ -39,16 +39,16 @@ export async function getAdminVisibility(adminId: string, role: AdminRole = 'adm
 
     const resolvedAdminIds = unique((admins || []).map((row: any) => row.id as string).filter(Boolean));
 
-    const { data: managedTeachers, error: managedTeachersError } = await supabase
-      .from('managed_teachers')
-      .select('teacher_id')
-      .in('admin_id', resolvedAdminIds);
+    const { data: teachers, error: teachersError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'teacher');
 
-    if (managedTeachersError) {
-      throw managedTeachersError;
+    if (teachersError) {
+      throw teachersError;
     }
 
-    const teacherIds = unique((managedTeachers || []).map((row: any) => row.teacher_id as string).filter(Boolean));
+    const teacherIds = unique((teachers || []).map((row: any) => row.id as string).filter(Boolean));
     const visibleUserIds = unique([...resolvedAdminIds, ...teacherIds]);
 
     return {

@@ -54,7 +54,7 @@ export async function proxy(req: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (profile?.role !== 'admin') {
+    if (!['admin', 'super_admin'].includes(profile?.role)) {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
   }
