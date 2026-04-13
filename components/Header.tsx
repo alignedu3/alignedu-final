@@ -48,16 +48,8 @@ export default function Header() {
     };
 
     const loadUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-
-      if (error) {
-        const message = error.message.toLowerCase();
-        if (message.includes('invalid refresh token') || message.includes('refresh token not found')) {
-          await supabase.auth.signOut({ scope: 'local' });
-        }
-      }
-
-      await syncUserAndProfile(data.user ?? null);
+      const { data } = await supabase.auth.getSession();
+      await syncUserAndProfile(data.session?.user ?? null);
     };
 
     loadUser();
