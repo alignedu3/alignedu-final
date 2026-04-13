@@ -104,13 +104,36 @@ export default function AdminDashboard() {
           return;
         }
 
-        const { data } = await supabase
+        const { data, error: analysesError } = await supabase
           .from('analyses')
-          .select('id, user_id, created_at, date, coverage, coverage_score, clarity, clarity_rating, engagement, assessment, gaps, gaps_detected, teacher_name, name')
+          .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, transcript, result, analysis_result')
           .in('user_id', visibleUserIds)
           .order('created_at', { ascending: false });
 
-        setDbReports(data ?? []);
+        if (analysesError) {
+          throw analysesError;
+        }
+
+        const toNumber = (value: unknown, fallback = 0) => {
+          if (typeof value === 'number' && Number.isFinite(value)) return value;
+          if (typeof value === 'string') {
+            const parsed = Number(value);
+            if (Number.isFinite(parsed)) return parsed;
+          }
+          return fallback;
+        };
+
+        const normalizedReports = (data ?? []).map((r: any) => ({
+          ...r,
+          date: r.created_at?.slice(0, 10),
+          coverage: toNumber(r.coverage_score, 75),
+          clarity: toNumber(r.clarity_rating, 75),
+          engagement: toNumber(r.engagement_level, 75),
+          assessment: 75,
+          gaps: toNumber(r.gaps_detected, 0),
+        }));
+
+        setDbReports(normalizedReports);
       } catch (err) {
         console.error('Admin dashboard load error:', err);
       } finally {
