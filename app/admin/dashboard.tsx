@@ -321,45 +321,8 @@ export default function AdminDashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* TABLE */}
         <div style={card}>
-          <h2 style={title}>Teacher Performance</h2>
-          <div className="table-scroll-wrap">
-            <table style={table}>
-              <thead>
-                <tr>
-                  <th style={{ ...th, width: '44%', whiteSpace: 'normal' }}>Teacher</th>
-                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Score</th>
-                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Trend</th>
-                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teacherStats.map((t, i) => (
-                  <tr
-                    key={i}
-                    onClick={() => router.push(`/admin/teacher/${t.id}`)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word' }}>{t.name}</td>
-                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>{t.avgScore}</td>
-                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
-                      {t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`}
-                    </td>
-                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
-                      <span style={t.needsAttention ? statusBadgeWarn : statusBadgeGood}>
-                        {t.needsAttention ? (<>Needs<br />Support</>) : 'Strong'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div style={card}>
-          <h2 style={title}>Admin Hierarchy</h2>
+          <h2 style={title}>Organization Structure</h2>
           {hierarchyRows.length === 0 ? (
             <p style={text}>No admins found in your current visibility scope.</p>
           ) : (
@@ -412,6 +375,40 @@ export default function AdminDashboard() {
               </div>
             ))
           )}
+
+          <h2 style={{ ...title, marginTop: 18 }}>Teacher Performance</h2>
+          <div className="table-scroll-wrap">
+            <table style={table}>
+              <thead>
+                <tr>
+                  <th style={{ ...th, width: '44%', whiteSpace: 'normal' }}>Teacher</th>
+                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Score</th>
+                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Trend</th>
+                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teacherStats.map((t, i) => (
+                  <tr
+                    key={i}
+                    onClick={() => router.push(`/admin/teacher/${t.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word' }}>{t.name}</td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>{t.avgScore}</td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
+                      {t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`}
+                    </td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
+                      <span style={t.needsAttention ? statusBadgeWarn : statusBadgeGood}>
+                        {t.needsAttention ? (<>Needs<br />Support</>) : 'Strong'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>
