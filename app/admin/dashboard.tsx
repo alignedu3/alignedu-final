@@ -177,6 +177,7 @@ export default function AdminDashboard() {
         const teacher = p?.name ?? r.teacher_name ?? r.name ?? 'Unknown';
         return {
           id: r.id ?? Math.random(),
+          teacherId: r.user_id ?? null,
           teacher,
           date: r.date ?? r.created_at?.slice(0, 10) ?? '—',
           score: calculateLessonScore(r),
@@ -619,7 +620,18 @@ export default function AdminDashboard() {
                   <tbody>
                     {(rows as typeof teacherStats).map((t, i) => (
                       <tr key={i} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => { setModalType(null); router.push(`/admin/teacher/${t.id}`); }}>
-                        <td style={{ padding: '8px 8px', color: 'var(--text-primary)' }}>{t.name}</td>
+                        <td style={{ padding: '8px 8px' }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setModalType(null);
+                              router.push(`/admin/teacher/${t.id}`);
+                            }}
+                            style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
+                          >
+                            {t.name}
+                          </button>
+                        </td>
                         <td style={{ padding: '8px 8px', textAlign: 'center', color: t.needsAttention ? '#ef4444' : '#22c55e', fontWeight: 700 }}>{t.avgScore}</td>
                         <td style={{ padding: '8px 8px', textAlign: 'center', color: 'var(--text-secondary)' }}>{t.count}</td>
                         <td style={{ padding: '8px 8px', textAlign: 'center', color: t.trend >= 0 ? '#22c55e' : '#ef4444' }}>{t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`}</td>
@@ -638,8 +650,28 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody>
                     {(rows as typeof lessonRows).map((r, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '8px 8px', color: 'var(--text-primary)' }}>{r.teacher}</td>
+                      <tr
+                        key={i}
+                        style={{ borderBottom: '1px solid var(--border)', cursor: r.teacherId && r.id ? 'pointer' : 'default' }}
+                        onClick={() => {
+                          if (!r.teacherId || !r.id) return;
+                          setModalType(null);
+                          router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
+                        }}
+                      >
+                        <td style={{ padding: '8px 8px' }}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!r.teacherId || !r.id) return;
+                              setModalType(null);
+                              router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
+                            }}
+                            style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: r.teacherId && r.id ? 'pointer' : 'default', textDecoration: r.teacherId && r.id ? 'underline' : 'none', textUnderlineOffset: 2 }}
+                          >
+                            {r.teacher}
+                          </button>
+                        </td>
                         <td style={{ padding: '8px 8px', color: 'var(--text-secondary)' }}>{r.date}</td>
                         <td style={{ padding: '8px 8px', textAlign: 'center', fontWeight: 700, color: r.score >= 75 ? '#22c55e' : '#ef4444' }}>{r.score}</td>
                       </tr>
