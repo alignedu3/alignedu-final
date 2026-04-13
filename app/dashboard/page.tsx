@@ -303,7 +303,7 @@ export default function TeacherDashboard() {
         </div>
 
         <div style={card}>
-          <h2 style={cardTitle}>Recent Lessons</h2>
+          <h2 style={cardTitle}>Lessons</h2>
 
           {reports.length === 0 ? (
             <p style={emptyState}>
