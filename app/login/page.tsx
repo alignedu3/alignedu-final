@@ -44,13 +44,15 @@ export default function LoginPage() {
         .eq('id', data.user.id)
         .single();
 
-      if (profile?.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/dashboard');
-      }
-
+      const destination = profile?.role === 'admin' ? '/admin' : '/dashboard';
+      
+      router.push(destination);
       router.refresh();
+
+      // Fallback: if soft navigation doesn't complete, force a hard redirect after 3 seconds
+      setTimeout(() => {
+        window.location.href = destination;
+      }, 3000);
     } catch (err) {
       console.error(err);
       setError('Something went wrong while logging in.');
