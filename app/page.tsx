@@ -242,47 +242,37 @@ export default function HomePage() {
                         <span>Subject Coverage by School</span>
                         <span style={{ color: '#0369a1' }}>Q2 Benchmark</span>
                       </div>
-                      <div className="preview-legend-row" style={previewSchoolLegend}>
-                        {[
-                          { name: 'Mathematics', color: '#0ea5e9' },
-                          { name: 'Science', color: '#3b82f6' },
-                          { name: 'English', color: '#14b8a6' },
-                          { name: 'Social Studies', color: '#f59e0b' },
-                        ].map((subject) => (
-                          <div key={subject.name} className="preview-legend-item" style={previewLegendItem}>
-                            <span style={{ ...previewLegendDot, background: subject.color }} />
-                            <span>{subject.name}</span>
-                          </div>
-                        ))}
+                      <div style={previewSchoolNote}>
+                        Grade bands show only tested subjects for that school level.
                       </div>
 
                       <div className="preview-subject-row" style={previewSubjectCardsRow}>
                         {[
                           {
-                            name: 'Elementary',
+                            name: 'Elementary School',
                             subjects: [
                               { subject: 'Math', value: 92, color: '#0ea5e9' },
                               { subject: 'Science', value: 88, color: '#3b82f6' },
-                              { subject: 'English', value: 83, color: '#14b8a6' },
-                              { subject: 'Social', value: 77, color: '#f59e0b' },
+                              { subject: 'Reading', value: 85, color: '#14b8a6' },
                             ],
                           },
                           {
                             name: 'Middle School',
                             subjects: [
+                              { subject: 'RLA', value: 90, color: '#14b8a6' },
                               { subject: 'Math', value: 86, color: '#0ea5e9' },
                               { subject: 'Science', value: 84, color: '#3b82f6' },
-                              { subject: 'English', value: 90, color: '#14b8a6' },
-                              { subject: 'Social', value: 81, color: '#f59e0b' },
+                              { subject: 'Social Studies', value: 81, color: '#f59e0b' },
                             ],
                           },
                           {
                             name: 'High School',
                             subjects: [
-                              { subject: 'Math', value: 79, color: '#0ea5e9' },
-                              { subject: 'Science', value: 91, color: '#3b82f6' },
-                              { subject: 'English', value: 86, color: '#14b8a6' },
-                              { subject: 'Social', value: 88, color: '#f59e0b' },
+                              { subject: 'Algebra I', value: 79, color: '#0ea5e9' },
+                              { subject: 'English I', value: 86, color: '#14b8a6' },
+                              { subject: 'English II', value: 83, color: '#10b981' },
+                              { subject: 'Biology', value: 91, color: '#3b82f6' },
+                              { subject: 'U.S. History', value: 88, color: '#f59e0b' },
                             ],
                           },
                         ].map((schoolGroup) => (
@@ -333,6 +323,14 @@ export default function HomePage() {
                                 </BarChart>
                               </ResponsiveContainer>
                             </div>
+                            <div style={previewSubjectList}>
+                              {schoolGroup.subjects.map((item) => (
+                                <div key={`${schoolGroup.name}-${item.subject}-label`} style={previewSubjectPill}>
+                                  <span style={{ ...previewLegendDot, background: item.color }} />
+                                  <span>{item.subject}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -343,7 +341,7 @@ export default function HomePage() {
                         <div style={previewSectionHeader}>Standard Mastery</div>
                         {[
                           {
-                            school: 'Elementary',
+                            school: 'Elementary School',
                             subject: 'Math (Grade 4)',
                             teks: ['4.4(A)', '4.5(B)'],
                             mastery: 89,
@@ -1292,27 +1290,15 @@ const previewSectionHeader: React.CSSProperties = {
   marginBottom: '9px',
 };
 
-const previewSchoolLegend: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(4, 1fr)',
-  alignItems: 'center',
-  gap: '6px',
+const previewSchoolNote: React.CSSProperties = {
   marginBottom: '10px',
   padding: '8px 10px',
   borderRadius: '12px',
   background: 'rgba(248,250,252,0.9)',
   border: '1px solid rgba(148,163,184,0.18)',
-};
-
-const previewLegendItem: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '6px',
   fontSize: '10px',
   color: '#334155',
   fontWeight: 600,
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
 };
 
 const previewLegendDot: React.CSSProperties = {
@@ -1354,6 +1340,27 @@ const previewSubjectTitle: React.CSSProperties = {
   textAlign: 'left',
   color: '#0f172a',
   paddingLeft: '2px',
+};
+
+const previewSubjectList: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: '6px',
+  marginTop: '8px',
+};
+
+const previewSubjectPill: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: '6px',
+  padding: '4px 7px',
+  borderRadius: '999px',
+  background: 'rgba(241,245,249,0.95)',
+  border: '1px solid rgba(148,163,184,0.22)',
+  fontSize: '9px',
+  fontWeight: 700,
+  color: '#334155',
+  lineHeight: 1,
 };
 
 const previewCoverageSchoolLabel: React.CSSProperties = {
