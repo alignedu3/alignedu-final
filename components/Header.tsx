@@ -23,9 +23,17 @@ export default function Header() {
     let isMounted = true;
 
     const syncUserAndProfile = async (nextUser?: any | null) => {
-      const resolvedUser = nextUser === undefined
-        ? (await supabase.auth.getSession()).data.session?.user ?? null
-        : nextUser;
+      let resolvedUser = nextUser;
+
+      if (resolvedUser === undefined) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        resolvedUser = sessionData.session?.user ?? null;
+
+        if (!resolvedUser) {
+          const { data: userData } = await supabase.auth.getUser();
+          resolvedUser = userData.user ?? null;
+        }
+      }
 
       if (!isMounted) return;
 
@@ -48,8 +56,7 @@ export default function Header() {
     };
 
     const loadUser = async () => {
-      const { data } = await supabase.auth.getSession();
-      await syncUserAndProfile(data.session?.user ?? null);
+      await syncUserAndProfile();
     };
 
     loadUser();

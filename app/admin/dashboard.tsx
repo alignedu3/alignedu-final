@@ -47,6 +47,8 @@ export default function AdminDashboard() {
           return;
         }
 
+        setReady(true);
+
         const { data: managedData } = await supabase
           .from('managed_teachers')
           .select('teacher_id')
@@ -77,7 +79,6 @@ export default function AdminDashboard() {
         setDbReports(data ?? []);
       } catch (err) {
         console.error('Admin dashboard load error:', err);
-        window.location.replace('/login');
       } finally {
         setReady(true);
       }

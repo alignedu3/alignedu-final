@@ -34,6 +34,7 @@ export default function TeacherDashboard() {
       }
 
       setUserId(user.id);
+      setReady(true);
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -53,7 +54,6 @@ export default function TeacherDashboard() {
       setDbReports(data || []);
     } catch (err) {
       console.error('Dashboard load error:', err);
-      window.location.replace('/login');
     } finally {
       setReady(true);
     }
