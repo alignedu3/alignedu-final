@@ -27,6 +27,7 @@ export default function AdminDashboard() {
   const [managedAdmins, setManagedAdmins] = useState<Array<{ parent_admin_id: string; child_admin_id: string }>>([]);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [ready, setReady] = useState(false);
+  const [modalType, setModalType] = useState<null | 'quality' | 'lessons' | 'strong' | 'atrisk'>(null);
   const router = useRouter();
 
   const handleAddTeacher = () => {
@@ -169,6 +170,21 @@ export default function AdminDashboard() {
     return Array.from(keys);
   }, [teacherTrendData]);
 
+  const lessonRows = useMemo(() =>
+    [...reports]
+      .map((r: any) => {
+        const p = (profiles || []).find((x: any) => x.id === r.user_id);
+        const teacher = p?.name ?? r.teacher_name ?? r.name ?? 'Unknown';
+        return {
+          id: r.id ?? Math.random(),
+          teacher,
+          date: r.date ?? r.created_at?.slice(0, 10) ?? '—',
+          score: calculateLessonScore(r),
+        };
+      })
+      .sort((a, b) => b.date.localeCompare(a.date)),
+  [reports, profiles]);
+
   const teacherStats = useMemo(() => {
     const profileById = new Map((profiles || []).map((p) => [p.id, p]));
     const map: Record<string, any[]> = {};
@@ -247,18 +263,23 @@ export default function AdminDashboard() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [profiles, managedAdmins, managedTeachers, visibleAdminIds]);
 
+  const strongCount = teacherStats.filter(t => !t.needsAttention).length;
+  const supportCount = teacherStats.filter(t => t.needsAttention).length;
+
+  // Average of each teacher's average — every teacher contributes equally
+  const adminQualityScore = teacherStats.length
+    ? Math.round(teacherStats.reduce((sum, t) => sum + t.avgScore, 0) / teacherStats.length)
+    : summary.averageScore;
+
   const systemInsight =
-    summary.averageScore < 75
+    adminQualityScore < 75
       ? "System performance is declining due to gaps in lesson closure and concept reinforcement."
       : "Instructional quality is strong with consistent standards alignment.";
 
   const recommendedAction =
-    summary.averageScore < 75
+    adminQualityScore < 75
       ? "Focus on improving lesson closure and reinforcing key concepts across classrooms."
       : "Maintain strong instruction and introduce deeper checks for understanding.";
-
-  const strongCount = teacherStats.filter(t => !t.needsAttention).length;
-  const supportCount = teacherStats.filter(t => t.needsAttention).length;
 
   if (!ready) {
     return <div style={loading}>Loading...</div>;
@@ -308,29 +329,47 @@ export default function AdminDashboard() {
         <div style={grid}>
           <div style={cardSmall}>
             <div style={statLabel}>Instructional Quality Score</div>
-            <div style={{ ...big, color: summary.averageScore >= 75 ? '#22c55e' : '#ef4444' }}>
-              {summary.averageScore}/100
-            </div>
+            <button
+              style={{ ...big, color: adminQualityScore >= 75 ? '#22c55e' : '#ef4444', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}
+              onClick={() => setModalType('quality')}
+            >
+              {adminQualityScore}/100
+            </button>
             <div style={statSub}>
-              {summary.averageScore >= 75 ? 'System performance is strong' : 'Below target — improvement needed'}
+              {adminQualityScore >= 75 ? 'System performance is strong' : 'Below target — improvement needed'}
             </div>
           </div>
 
           <div style={cardSmall}>
             <div style={statLabel}>Lessons Analyzed</div>
-            <div style={big}>{reports.length}</div>
+            <button
+              style={{ ...big, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}
+              onClick={() => setModalType('lessons')}
+            >
+              {reports.length}
+            </button>
             <div style={statSub}>Based on recent submissions</div>
           </div>
 
           <div style={cardSmall}>
             <div style={statLabel}>Teachers Performing Strongly</div>
-            <div style={big}>{strongCount}</div>
+            <button
+              style={{ ...big, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}
+              onClick={() => setModalType('strong')}
+            >
+              {strongCount}
+            </button>
             <div style={statSub}>Meeting expectations</div>
           </div>
 
           <div style={cardSmall}>
             <div style={statLabel}>At-Risk Teachers</div>
-            <div style={big}>{supportCount}</div>
+            <button
+              style={{ ...big, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}
+              onClick={() => setModalType('atrisk')}
+            >
+              {supportCount}
+            </button>
             <div style={statSub}>Require support</div>
           </div>
         </div>
@@ -524,6 +563,95 @@ export default function AdminDashboard() {
         </div>
 
       </div>
+
+      {/* STAT DRILL-DOWN MODAL */}
+      {modalType && (() => {
+        const isTeacherList = modalType === 'strong' || modalType === 'atrisk';
+        const rows = isTeacherList
+          ? teacherStats
+              .filter(t => modalType === 'strong' ? !t.needsAttention : t.needsAttention)
+              .sort((a, b) => modalType === 'strong' ? b.avgScore - a.avgScore : a.avgScore - b.avgScore)
+          : modalType === 'quality'
+            ? [...lessonRows].sort((a, b) => b.score - a.score)
+            : lessonRows;
+
+        const modalTitles: Record<string, string> = {
+          quality: 'Instructional Quality Score — All Lessons',
+          lessons: 'All Lessons Analyzed',
+          strong: 'Teachers Performing Strongly',
+          atrisk: 'At-Risk Teachers',
+        };
+        const modalSubs: Record<string, string> = {
+          quality: 'Sorted by score (high to low). Score = Coverage 35% · Clarity 30% · Engagement 20% · Assessment 15% minus gap penalty.',
+          lessons: 'Sorted by date (most recent first).',
+          strong: 'Teachers with an average lesson score ≥ 75.',
+          atrisk: 'Teachers with an average lesson score below 75.',
+        };
+
+        return (
+          <div
+            style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+            onClick={() => setModalType(null)}
+          >
+            <div
+              style={{ background: 'var(--surface-card-solid)', border: '1px solid var(--border)', borderRadius: 14, padding: '24px 24px 20px', maxWidth: 660, width: '100%', maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0 }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                <h2 style={{ color: 'var(--text-primary)', margin: 0, fontSize: 17, fontWeight: 700 }}>{modalTitles[modalType]}</h2>
+                <button onClick={() => setModalType(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 20, lineHeight: 1, padding: '0 0 0 12px' }}>✕</button>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 12, margin: '0 0 16px 0' }}>{modalSubs[modalType]}</p>
+
+              {rows.length === 0 ? (
+                <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px 0' }}>No data to display.</p>
+              ) : isTeacherList ? (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      <th style={{ textAlign: 'left', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Teacher</th>
+                      <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Avg Score</th>
+                      <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Lessons</th>
+                      <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Trend</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(rows as typeof teacherStats).map((t, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => { setModalType(null); router.push(`/admin/teacher/${t.id}`); }}>
+                        <td style={{ padding: '8px 8px', color: 'var(--text-primary)' }}>{t.name}</td>
+                        <td style={{ padding: '8px 8px', textAlign: 'center', color: t.needsAttention ? '#ef4444' : '#22c55e', fontWeight: 700 }}>{t.avgScore}</td>
+                        <td style={{ padding: '8px 8px', textAlign: 'center', color: 'var(--text-secondary)' }}>{t.count}</td>
+                        <td style={{ padding: '8px 8px', textAlign: 'center', color: t.trend >= 0 ? '#22c55e' : '#ef4444' }}>{t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                      <th style={{ textAlign: 'left', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Teacher</th>
+                      <th style={{ textAlign: 'left', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Date</th>
+                      <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Score</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(rows as typeof lessonRows).map((r, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '8px 8px', color: 'var(--text-primary)' }}>{r.teacher}</td>
+                        <td style={{ padding: '8px 8px', color: 'var(--text-secondary)' }}>{r.date}</td>
+                        <td style={{ padding: '8px 8px', textAlign: 'center', fontWeight: 700, color: r.score >= 75 ? '#22c55e' : '#ef4444' }}>{r.score}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
     </main>
   );
 }
