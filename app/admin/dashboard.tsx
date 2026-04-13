@@ -24,7 +24,6 @@ export default function AdminDashboard() {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [ready, setReady] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
 
   const handleAddTeacher = () => {
@@ -32,18 +31,19 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    let isRedirecting = false;
-
     async function safeLoad() {
       try {
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
-        const user = session?.user ?? null;
+        let user = session?.user ?? null;
 
         if (!user) {
-          isRedirecting = true;
-          setRedirecting(true);
-          router.replace('/login');
+          const { data } = await supabase.auth.getUser();
+          user = data.user ?? null;
+        }
+
+        if (!user) {
+          window.location.replace('/login');
           return;
         }
 
@@ -77,15 +77,14 @@ export default function AdminDashboard() {
         setDbReports(data ?? []);
       } catch (err) {
         console.error('Admin dashboard load error:', err);
+        window.location.replace('/login');
       } finally {
-        if (!isRedirecting) {
-          setReady(true);
-        }
+        setReady(true);
       }
     }
 
     safeLoad();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     const checkScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
@@ -152,7 +151,7 @@ export default function AdminDashboard() {
   const strongCount = teacherStats.filter(t => !t.needsAttention).length;
   const supportCount = teacherStats.filter(t => t.needsAttention).length;
 
-  if (!ready || redirecting) {
+  if (!ready) {
     return <div style={loading}>Loading...</div>;
   }
 

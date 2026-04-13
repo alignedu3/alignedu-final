@@ -111,6 +111,18 @@ export default function Header() {
           const name = separatorIndex >= 0 ? cookie.slice(0, separatorIndex) : cookie;
           document.cookie = `${name}=; Max-Age=0; path=/`;
         });
+
+      try {
+        Object.keys(window.localStorage)
+          .filter((key) => key.startsWith('sb-') || key.includes('auth-token'))
+          .forEach((key) => window.localStorage.removeItem(key));
+
+        Object.keys(window.sessionStorage)
+          .filter((key) => key.startsWith('sb-') || key.includes('auth-token'))
+          .forEach((key) => window.sessionStorage.removeItem(key));
+      } catch {
+        // Ignore storage access issues in restricted browser contexts.
+      }
     } catch (error) {
       console.error('Logout failed, forcing local reset:', error);
     } finally {

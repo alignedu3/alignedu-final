@@ -21,7 +21,13 @@ export default function TeacherDashboard() {
   const loadData = useCallback(async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user ?? null;
+      let user = session?.user ?? null;
+
+      if (!user) {
+        const { data } = await supabase.auth.getUser();
+        user = data.user ?? null;
+      }
+
       if (!user) {
         window.location.replace('/login');
         return;
@@ -47,6 +53,7 @@ export default function TeacherDashboard() {
       setDbReports(data || []);
     } catch (err) {
       console.error('Dashboard load error:', err);
+      window.location.replace('/login');
     } finally {
       setReady(true);
     }

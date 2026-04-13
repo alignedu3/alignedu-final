@@ -45,14 +45,9 @@ export default function LoginPage() {
         .single();
 
       const destination = profile?.role === 'admin' ? '/admin' : '/dashboard';
-      
-      router.push(destination);
-      router.refresh();
 
-      // Fallback: if soft navigation doesn't complete, force a hard redirect after 3 seconds
-      setTimeout(() => {
-        window.location.href = destination;
-      }, 3000);
+      window.location.replace(destination);
+      return;
     } catch (err) {
       console.error(err);
       setError('Something went wrong while logging in.');
