@@ -491,53 +491,64 @@ export default function AdminDashboard() {
         <div style={{ ...card, marginTop: 8 }}>
           <h2 style={title}>System Trend</h2>
           <p style={text}>{systemInsight}</p>
-          <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
-            <LineChart data={combinedTrendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                dataKey="date"
-                tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
-                minTickGap={isNarrowScreen ? 20 : 10}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                domain={[0, 100]}
-                tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
-                width={isNarrowScreen ? 28 : 40}
-              />
-              <Tooltip
-                contentStyle={{
-                  background: 'var(--surface-card-solid)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
-              />
-              {teacherLineKeys.map((key, i) => (
-                <Line
-                  key={key}
-                  type="monotone"
-                  dataKey={key}
-                  stroke={getStablePaletteColor(key, TEACHER_COLORS)}
-                  strokeWidth={2}
-                  dot={false}
-                  connectNulls
+          <div
+            style={{
+              marginTop: 10,
+              border: '1px solid var(--border)',
+              borderRadius: 14,
+              padding: isNarrowScreen ? '10px 8px 4px' : '14px 12px 8px',
+              background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.05) 100%)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+            }}
+          >
+            <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
+              <LineChart data={combinedTrendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                  minTickGap={isNarrowScreen ? 20 : 10}
+                  interval="preserveStartEnd"
                 />
-              ))}
-              {adminLineKeys.map((key, i) => (
-                <Line
-                  key={key}
-                  type="monotone"
-                  dataKey={key}
-                  stroke={getStablePaletteColor(key, ADMIN_COLORS)}
-                  strokeWidth={2}
-                  strokeDasharray="6 4"
-                  dot={false}
-                  connectNulls
+                <YAxis
+                  domain={[0, 100]}
+                  tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                  width={isNarrowScreen ? 28 : 40}
                 />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+                <Tooltip
+                  contentStyle={{
+                    background: 'var(--surface-card-solid)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                />
+                {teacherLineKeys.map((key, i) => (
+                  <Line
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    stroke={getStablePaletteColor(key, TEACHER_COLORS)}
+                    strokeWidth={2}
+                    dot={false}
+                    connectNulls
+                  />
+                ))}
+                {adminLineKeys.map((key, i) => (
+                  <Line
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    stroke={getStablePaletteColor(key, ADMIN_COLORS)}
+                    strokeWidth={2}
+                    strokeDasharray="6 4"
+                    dot={false}
+                    connectNulls
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
 
           {/* Custom legend */}
           <div style={{
