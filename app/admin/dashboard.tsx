@@ -24,6 +24,7 @@ export default function AdminDashboard() {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [ready, setReady] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
 
   const handleAddTeacher = () => {
@@ -31,18 +32,21 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    async function loadData() {
+    let isRedirecting = false;
+
+    async function safeLoad() {
       try {
         const supabase = createClient();
         const { data: { session } } = await supabase.auth.getSession();
         const user = session?.user ?? null;
 
         if (!user) {
+          isRedirecting = true;
+          setRedirecting(true);
           router.replace('/login');
           return;
         }
 
-        // Load only teachers managed by this admin
         const { data: managedData } = await supabase
           .from('managed_teachers')
           .select('teacher_id')
@@ -50,8 +54,7 @@ export default function AdminDashboard() {
 
         const teacherIds = (managedData || []).map(m => m.teacher_id);
 
-        // Get teacher profiles for managed teachers
-        const { data: profileData } = teacherIds.length > 0 
+        const { data: profileData } = teacherIds.length > 0
           ? await supabase
               .from('profiles')
               .select('id, name, role')
@@ -75,11 +78,13 @@ export default function AdminDashboard() {
       } catch (err) {
         console.error('Admin dashboard load error:', err);
       } finally {
-        setReady(true);
+        if (!isRedirecting) {
+          setReady(true);
+        }
       }
     }
 
-    loadData();
+    safeLoad();
   }, []);
 
   useEffect(() => {
@@ -93,9 +98,6 @@ export default function AdminDashboard() {
   const summary = getDashboardSummary(reports);
   const trendData = getTrendData(reports);
 
-  // ================================
-  // FIXED: teacher name resolution ONLY
-  // ================================
   const teacherStats = useMemo(() => {
     const profileById = new Map((profiles || []).map((p) => [p.id, p]));
     const map: Record<string, any[]> = {};
@@ -108,18 +110,11 @@ export default function AdminDashboard() {
 
     return Object.entries(map).map(([id, reps]) => {
       const profile = profileById.get(id);
-
       const scores = reps.map(r => calculateLessonScore(r));
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      const trend = scores.length > 1 ? scores[scores.length - 1] - scores[0] : 0;
 
-      const trend =
-        scores.length > 1
-          ? scores[scores.length - 1] - scores[0]
-          : 0;
-
-      // ONLY FIX: robust name resolution
       let teacherName = 'Unknown Teacher';
-
       if (profile?.name) {
         teacherName = profile.name;
       } else if (reps?.length && reps[0]?.teacher_name) {
@@ -157,7 +152,7 @@ export default function AdminDashboard() {
   const strongCount = teacherStats.filter(t => !t.needsAttention).length;
   const supportCount = teacherStats.filter(t => t.needsAttention).length;
 
-  if (!ready) {
+  if (!ready || redirecting) {
     return <div style={loading}>Loading...</div>;
   }
 
@@ -171,7 +166,6 @@ export default function AdminDashboard() {
             <h1 style={heading}>Admin Dashboard</h1>
             <p style={subheading}>System-wide instructional intelligence</p>
           </div>
-
           <div style={actions}>
             <button onClick={() => router.push('/analyze')} style={btn}>
               Analyze Lesson
@@ -206,16 +200,11 @@ export default function AdminDashboard() {
         <div style={grid}>
           <div style={cardSmall}>
             <div style={statLabel}>Instructional Quality Score</div>
-            <div style={{
-              ...big,
-              color: summary.averageScore >= 75 ? '#22c55e' : '#ef4444'
-            }}>
+            <div style={{ ...big, color: summary.averageScore >= 75 ? '#22c55e' : '#ef4444' }}>
               {summary.averageScore}/100
             </div>
             <div style={statSub}>
-              {summary.averageScore >= 75
-                ? 'System performance is strong'
-                : 'Below target — improvement needed'}
+              {summary.averageScore >= 75 ? 'System performance is strong' : 'Below target — improvement needed'}
             </div>
           </div>
 
@@ -242,7 +231,6 @@ export default function AdminDashboard() {
         <div style={{ ...card, marginTop: 8 }}>
           <h2 style={title}>System Trend</h2>
           <p style={text}>{systemInsight}</p>
-
           <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
             <LineChart data={trendData}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -266,47 +254,37 @@ export default function AdminDashboard() {
         {/* TABLE */}
         <div style={card}>
           <h2 style={title}>Teacher Performance</h2>
-
           <div className="table-scroll-wrap">
-          <table style={table}>
-            <thead>
-              <tr>
-                <th style={{ ...th, width: '44%', whiteSpace: 'normal' }}>Teacher</th>
-                <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Score</th>
-                <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Trend</th>
-                <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal' }}>Status</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {teacherStats.map((t, i) => (
-                <tr
-                  key={i}
-                  onClick={() => router.push(`/admin/teacher/${t.id}`)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word' }}>{t.name}</td>
-                  <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>{t.avgScore}</td>
-                  <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
-                    {t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`}
-                  </td>
-                  <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
-                    <span style={t.needsAttention ? statusBadgeWarn : statusBadgeGood}>
-                      {t.needsAttention ? (
-                        <>
-                          Needs
-                          <br />
-                          Support
-                        </>
-                      ) : (
-                        'Strong'
-                      )}
-                    </span>
-                  </td>
+            <table style={table}>
+              <thead>
+                <tr>
+                  <th style={{ ...th, width: '44%', whiteSpace: 'normal' }}>Teacher</th>
+                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Score</th>
+                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Trend</th>
+                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal' }}>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {teacherStats.map((t, i) => (
+                  <tr
+                    key={i}
+                    onClick={() => router.push(`/admin/teacher/${t.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word' }}>{t.name}</td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>{t.avgScore}</td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
+                      {t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`}
+                    </td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
+                      <span style={t.needsAttention ? statusBadgeWarn : statusBadgeGood}>
+                        {t.needsAttention ? (<>Needs<br />Support</>) : 'Strong'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
 
@@ -315,171 +293,28 @@ export default function AdminDashboard() {
   );
 }
 
-/* =========================
-   STYLES (UNCHANGED - FULL)
-   ========================= */
+/* ========================= STYLES ========================= */
 
-const page: React.CSSProperties = {
-  minHeight: '100vh',
-  background: 'var(--bg-primary)',
-};
-
-const container: React.CSSProperties = {
-  maxWidth: 1200,
-  margin: '0 auto'
-};
-
-const header: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start',
-  gap: 16,
-  flexWrap: 'wrap',
-  marginBottom: 28
-};
-
-const heading: React.CSSProperties = {
-  color: 'var(--text-primary)',
-  fontSize: 28,
-  margin: '0 0 4px 0'
-};
-
-const subheading: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  margin: 0
-};
-
-const actions: React.CSSProperties = {
-  display: 'flex',
-  gap: 10,
-  flexWrap: 'wrap',
-  alignItems: 'center'
-};
-
-const btn: React.CSSProperties = {
-  background: '#f97316',
-  color: '#fff',
-  padding: '10px 16px',
-  borderRadius: 8,
-  border: 'none',
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14
-};
-
-const btnAlt: React.CSSProperties = {
-  background: 'var(--surface-chip)',
-  color: 'var(--text-primary)',
-  padding: '10px 16px',
-  borderRadius: 8,
-  border: 'none',
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: 14
-};
-
-const card: React.CSSProperties = {
-  background: 'var(--surface-card-solid)',
-  border: '1px solid var(--border)',
-  padding: 20,
-  borderRadius: 12,
-  marginBottom: 24
-};
-
-const cardSmall: React.CSSProperties = {
-  background: 'var(--surface-card-solid)',
-  border: '1px solid var(--border)',
-  padding: 16,
-  borderRadius: 12
-};
-
-const grid: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-  gap: 16,
-  marginBottom: 28
-};
-
-const title: React.CSSProperties = {
-  color: 'var(--text-primary)',
-  marginBottom: 10
-};
-
-const text: React.CSSProperties = {
-  color: 'var(--text-secondary)'
-};
-
-const big: React.CSSProperties = {
-  fontSize: 24,
-  color: 'var(--text-primary)'
-};
-
-const statLabel: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  fontSize: 13,
-  marginBottom: 4
-};
-
-const statSub: React.CSSProperties = {
-  fontSize: 12,
-  color: 'var(--text-secondary)',
-  marginTop: 6
-};
-
-const table: React.CSSProperties = {
-  width: '100%',
-  tableLayout: 'fixed',
-  borderCollapse: 'collapse'
-};
-
-const th: React.CSSProperties = {
-  textAlign: 'left',
-  color: 'var(--text-secondary)',
-  padding: '5px 6px',
-  fontSize: 13
-};
-
-const td: React.CSSProperties = {
-  color: 'var(--text-primary)',
-  padding: '5px 6px',
-  fontSize: 14,
-  verticalAlign: 'middle'
-};
-
-const statusBadgeWarn: React.CSSProperties = {
-  display: 'inline-block',
-  minWidth: 64,
-  padding: '4px 6px',
-  borderRadius: 10,
-  background: 'rgba(239,68,68,0.12)',
-  border: '1px solid rgba(239,68,68,0.24)',
-  color: '#ef4444',
-  fontSize: 12,
-  fontWeight: 700,
-  lineHeight: 1.1,
-  textAlign: 'center'
-};
-
-const statusBadgeGood: React.CSSProperties = {
-  display: 'inline-block',
-  minWidth: 64,
-  padding: '4px 6px',
-  borderRadius: 10,
-  background: 'rgba(34,197,94,0.12)',
-  border: '1px solid rgba(34,197,94,0.24)',
-  color: '#22c55e',
-  fontSize: 12,
-  fontWeight: 700,
-  lineHeight: 1.1,
-  textAlign: 'center'
-};
-
-const listItem: React.CSSProperties = {
-  color: 'var(--text-primary)',
-  marginBottom: 6
-};
-
-const loading: React.CSSProperties = {
-  color: 'var(--text-primary)',
-  padding: 40
-};
+const page: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-primary)' };
+const container: React.CSSProperties = { maxWidth: 1200, margin: '0 auto' };
+const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 28 };
+const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 28, margin: '0 0 4px 0' };
+const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0 };
+const actions: React.CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' };
+const btn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '10px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14 };
+const btnAlt: React.CSSProperties = { background: 'var(--surface-chip)', color: 'var(--text-primary)', padding: '10px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14 };
+const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 24 };
+const cardSmall: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 16, borderRadius: 12 };
+const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 28 };
+const title: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 10 };
+const text: React.CSSProperties = { color: 'var(--text-secondary)' };
+const big: React.CSSProperties = { fontSize: 24, color: 'var(--text-primary)' };
+const statLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 13, marginBottom: 4 };
+const statSub: React.CSSProperties = { fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 };
+const table: React.CSSProperties = { width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' };
+const th: React.CSSProperties = { textAlign: 'left', color: 'var(--text-secondary)', padding: '5px 6px', fontSize: 13 };
+const td: React.CSSProperties = { color: 'var(--text-primary)', padding: '5px 6px', fontSize: 14, verticalAlign: 'middle' };
+const statusBadgeWarn: React.CSSProperties = { display: 'inline-block', minWidth: 64, padding: '4px 6px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.24)', color: '#ef4444', fontSize: 12, fontWeight: 700, lineHeight: 1.1, textAlign: 'center' };
+const statusBadgeGood: React.CSSProperties = { display: 'inline-block', minWidth: 64, padding: '4px 6px', borderRadius: 10, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.24)', color: '#22c55e', fontSize: 12, fontWeight: 700, lineHeight: 1.1, textAlign: 'center' };
+const listItem: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 6 };
+const loading: React.CSSProperties = { color: 'var(--text-primary)', padding: 40 };

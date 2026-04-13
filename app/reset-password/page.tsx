@@ -35,7 +35,7 @@ export default function ResetPassword() {
 
     if (updateError) {
       if (isRefreshTokenError(updateError.message)) {
-        await supabase.auth.signOut({ scope: 'local' });
+        await supabase.auth.signOut({ scope: 'global' });
         setError('Your session expired. Please log in again, then change your password.');
       } else {
         setError(updateError.message);

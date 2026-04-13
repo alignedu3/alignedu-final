@@ -94,7 +94,7 @@ export default function Header() {
 
     try {
       const supabase = createClient();
-      await supabase.auth.signOut({ scope: 'local' });
+      await supabase.auth.signOut({ scope: 'global' });
     } catch (error) {
       console.error('Logout failed, forcing local reset:', error);
     } finally {
