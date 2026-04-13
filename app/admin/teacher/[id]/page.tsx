@@ -231,15 +231,26 @@ export default function TeacherDetailPage() {
         <div style={cardFull}>
           <h2 style={title}>Performance Trend</h2>
 
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="index" />
-              <YAxis domain={[0, 100]} />
-              <Tooltip />
-              <Line type="monotone" dataKey="score" stroke="#f97316" />
-            </LineChart>
-          </ResponsiveContainer>
+          <div
+            style={{
+              marginTop: 10,
+              border: '1px solid rgba(148,163,184,0.3)',
+              borderRadius: 14,
+              padding: '14px 12px 8px',
+              background: 'linear-gradient(180deg, rgba(15,23,42,0.8) 0%, rgba(30,41,59,0.45) 100%)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+            }}
+          >
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="index" />
+                <YAxis domain={[0, 100]} />
+                <Tooltip />
+                <Line type="monotone" dataKey="score" stroke="#f97316" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* LESSON LIST */}

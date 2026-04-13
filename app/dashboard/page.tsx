@@ -200,26 +200,37 @@ export default function TeacherDashboard() {
           <h2 style={cardTitle}>📈 Score Trend</h2>
           <p style={text}>{trendInsight}</p>
 
-          <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
-              <XAxis
-                dataKey="date"
-                stroke="#94a3b8"
-                tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
-                minTickGap={isNarrowScreen ? 20 : 10}
-                interval="preserveStartEnd"
-              />
-              <YAxis
-                domain={[0, 100]}
-                stroke="#94a3b8"
-                tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
-                width={isNarrowScreen ? 28 : 40}
-              />
-              <Tooltip />
-              <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
+          <div
+            style={{
+              marginTop: 10,
+              border: '1px solid rgba(148,163,184,0.3)',
+              borderRadius: 14,
+              padding: isNarrowScreen ? '10px 8px 4px' : '14px 12px 8px',
+              background: 'linear-gradient(180deg, rgba(15,23,42,0.8) 0%, rgba(30,41,59,0.45) 100%)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+            }}
+          >
+            <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
+              <LineChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
+                <XAxis
+                  dataKey="date"
+                  stroke="#94a3b8"
+                  tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                  minTickGap={isNarrowScreen ? 20 : 10}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  domain={[0, 100]}
+                  stroke="#94a3b8"
+                  tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                  width={isNarrowScreen ? 28 : 40}
+                />
+                <Tooltip />
+                <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         <div style={card}>
