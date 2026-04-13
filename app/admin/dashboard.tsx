@@ -151,6 +151,7 @@ export default function AdminDashboard() {
   const summary = getDashboardSummary(reports);
 
   const TEACHER_COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#84cc16'];
+  const ADMIN_COLORS = ['#0f766e', '#1d4ed8', '#be123c', '#334155', '#0f172a'];
 
   const teacherTrendData = useMemo(() => {
     const profileById = new Map((profiles || []).map((p: any) => [p.id, p]));
@@ -188,6 +189,82 @@ export default function AdminDashboard() {
     });
     return Array.from(keys);
   }, [teacherTrendData]);
+
+  const adminTrendData = useMemo(() => {
+    const profileById = new Map((profiles || []).map((p: any) => [p.id, p]));
+    const scopedAdminIds = visibleAdminIds.filter((id) => {
+      const role = profileById.get(id)?.role;
+      return role === 'admin' || role === 'super_admin';
+    });
+
+    const adminNameById = new Map<string, string>();
+    scopedAdminIds.forEach((id) => {
+      const profile = profileById.get(id);
+      const label = `Admin: ${profile?.name || profile?.email || 'Unknown'}`;
+      adminNameById.set(id, label);
+    });
+
+    const adminIdsByTeacherId = new Map<string, string[]>();
+    (managedTeachers || []).forEach((link) => {
+      if (!scopedAdminIds.includes(link.admin_id)) return;
+      const existing = adminIdsByTeacherId.get(link.teacher_id) || [];
+      existing.push(link.admin_id);
+      adminIdsByTeacherId.set(link.teacher_id, existing);
+    });
+
+    const byDate: Record<string, Record<string, number[]>> = {};
+    reports.forEach((r: any) => {
+      const date = r.date ?? r.created_at?.slice(0, 10);
+      if (!date) return;
+
+      const adminIds = adminIdsByTeacherId.get(r.user_id) || [];
+      if (!adminIds.length) return;
+
+      adminIds.forEach((adminId) => {
+        const adminLabel = adminNameById.get(adminId);
+        if (!adminLabel) return;
+        if (!byDate[date]) byDate[date] = {};
+        if (!byDate[date][adminLabel]) byDate[date][adminLabel] = [];
+        byDate[date][adminLabel].push(calculateLessonScore(r));
+      });
+    });
+
+    return Object.entries(byDate)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, admins]) => {
+        const entry: Record<string, any> = { date };
+        Object.entries(admins).forEach(([admin, scores]) => {
+          entry[admin] = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+        });
+        return entry;
+      });
+  }, [reports, profiles, visibleAdminIds, managedTeachers]);
+
+  const adminLineKeys = useMemo(() => {
+    const keys = new Set<string>();
+    adminTrendData.forEach(entry => {
+      Object.keys(entry).forEach(k => { if (k !== 'date') keys.add(k); });
+    });
+    return Array.from(keys);
+  }, [adminTrendData]);
+
+  const combinedTrendData = useMemo(() => {
+    const byDate = new Map<string, Record<string, any>>();
+
+    teacherTrendData.forEach((entry) => {
+      byDate.set(entry.date, { ...entry });
+    });
+
+    adminTrendData.forEach((entry) => {
+      const existing = byDate.get(entry.date) || { date: entry.date };
+      Object.keys(entry).forEach((key) => {
+        if (key !== 'date') existing[key] = entry[key];
+      });
+      byDate.set(entry.date, existing);
+    });
+
+    return Array.from(byDate.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  }, [teacherTrendData, adminTrendData]);
 
   const lessonRows = useMemo(() =>
     [...reports]
@@ -399,7 +476,7 @@ export default function AdminDashboard() {
           <h2 style={title}>System Trend</h2>
           <p style={text}>{systemInsight}</p>
           <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
-            <LineChart data={teacherTrendData}>
+            <LineChart data={combinedTrendData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis
                 dataKey="date"
@@ -431,6 +508,18 @@ export default function AdminDashboard() {
                   connectNulls
                 />
               ))}
+              {adminLineKeys.map((key, i) => (
+                <Line
+                  key={key}
+                  type="monotone"
+                  dataKey={key}
+                  stroke={ADMIN_COLORS[i % ADMIN_COLORS.length]}
+                  strokeWidth={2}
+                  strokeDasharray="6 4"
+                  dot={false}
+                  connectNulls
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
 
@@ -440,9 +529,9 @@ export default function AdminDashboard() {
             paddingTop: 14,
             borderTop: '1px solid var(--border)',
           }}>
-            {teacherLineKeys.length === 0 ? (
+            {teacherLineKeys.length === 0 && adminLineKeys.length === 0 ? (
               <p style={{ ...text, fontSize: 12, textAlign: 'center', margin: 0 }}>
-                No teacher data available yet
+                No trend data available yet
               </p>
             ) : (
               <div style={{
@@ -485,13 +574,84 @@ export default function AdminDashboard() {
                     </span>
                   </div>
                 ))}
+                {adminLineKeys.map((key, i) => (
+                  <div
+                    key={key}
+                    title={key}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 7,
+                      padding: '5px 10px',
+                      borderRadius: 8,
+                      background: 'var(--surface-hover, rgba(0,0,0,0.04))',
+                      border: '1px solid var(--border)',
+                      overflow: 'hidden',
+                      maxWidth: 240,
+                    }}
+                  >
+                    <span style={{
+                      flexShrink: 0,
+                      width: 10,
+                      height: 10,
+                      borderRadius: 2,
+                      background: ADMIN_COLORS[i % ADMIN_COLORS.length],
+                    }} />
+                    <span style={{
+                      fontSize: 12,
+                      fontWeight: 500,
+                      color: 'var(--text-primary)',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {key}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
 
         <div style={card}>
-          <h2 style={title}>System Structure</h2>
+          <h2 style={title}>Teacher Performance</h2>
+          <div className="table-scroll-wrap">
+            <table style={table}>
+              <thead>
+                <tr>
+                  <th style={{ ...th, width: '44%', whiteSpace: 'normal' }}>Teacher</th>
+                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Score</th>
+                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Trend</th>
+                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal' }}>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teacherStats.map((t, i) => (
+                  <tr
+                    key={i}
+                    onClick={() => router.push(`/admin/teacher/${t.id}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word' }}>{t.name}</td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>{t.avgScore}</td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
+                      {t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`}
+                    </td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
+                      <span style={t.needsAttention ? statusBadgeWarn : statusBadgeGood}>
+                        {t.needsAttention ? (<>Needs<br />Support</>) : 'Strong'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div style={card}>
+          <h2 style={title}>Team Structure</h2>
           {hierarchyRows.length === 0 ? (
             <p style={text}>No admins found in your current visibility scope.</p>
           ) : (
@@ -544,42 +704,6 @@ export default function AdminDashboard() {
               </div>
             ))
           )}
-        </div>
-
-        <div style={card}>
-          <h2 style={title}>Teacher Performance</h2>
-          <div className="table-scroll-wrap">
-            <table style={table}>
-              <thead>
-                <tr>
-                  <th style={{ ...th, width: '44%', whiteSpace: 'normal' }}>Teacher</th>
-                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Score</th>
-                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Trend</th>
-                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teacherStats.map((t, i) => (
-                  <tr
-                    key={i}
-                    onClick={() => router.push(`/admin/teacher/${t.id}`)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word' }}>{t.name}</td>
-                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>{t.avgScore}</td>
-                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
-                      {t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`}
-                    </td>
-                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
-                      <span style={t.needsAttention ? statusBadgeWarn : statusBadgeGood}>
-                        {t.needsAttention ? (<>Needs<br />Support</>) : 'Strong'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
 
       </div>
