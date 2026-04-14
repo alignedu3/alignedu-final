@@ -4,20 +4,16 @@ import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { sampleReports, getDashboardSummary, getTrendData, calculateLessonScore } from '@/lib/dashboardData';
-import { getLessonInsights } from '@/lib/dashboardData';
+import { getDashboardSummary, getTrendData, calculateLessonScore, getLessonInsights, type AnalysisReport } from '@/lib/dashboardData';
 
 export default function TeacherDashboard() {
   const supabaseRef = useRef(createClient());
   const supabase = supabaseRef.current;
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
-  const [role, setRole] = useState('teacher');
-  const [userId, setUserId] = useState<string | null>(null);
   const [teacherName, setTeacherName] = useState<string | null>(null);
-  const [dbReports, setDbReports] = useState<any[]>([]);
-  const [selectedReport, setSelectedReport] = useState<any | null>(null);
+  const [dbReports, setDbReports] = useState<AnalysisReport[]>([]);
+  const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
   const [keyFindingsReportId, setKeyFindingsReportId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -34,9 +30,7 @@ export default function TeacherDashboard() {
         return;
       }
 
-      setUserId(user.id);
       setReady(true);
-      setRole(authData.profile?.role || 'teacher');
       setTeacherName(authData.profile?.name || 'Teacher');
 
       const { data: profile } = await supabase
@@ -45,7 +39,6 @@ export default function TeacherDashboard() {
         .eq('id', user.id)
         .single();
 
-      setRole(profile?.role || 'teacher');
       setTeacherName(profile?.name || 'Teacher');
 
       const { data } = await supabase
@@ -92,13 +85,12 @@ export default function TeacherDashboard() {
   const latestScore = reports[0] ? calculateLessonScore(reports[0]) : 0;
   const overallScore = summary.averageScore;
 
-  const handleViewReport = (report: any) => {
+  const handleViewReport = (report: AnalysisReport) => {
     setSelectedReport(report);
   };
 
   const handleDeleteReport = async (id: string) => {
     if (!confirm('Delete this analysis? This action cannot be undone.')) return;
-    setDeletingId(id);
 
     try {
       const response = await fetch(`/api/analyses/${id}`, {
@@ -111,13 +103,11 @@ export default function TeacherDashboard() {
         return;
       }
 
-      setSelectedReport((current: any) => (current?.id === id ? null : current));
+      setSelectedReport((current) => (current?.id === id ? null : current));
       await loadData();
     } catch (error) {
       console.error(error);
       alert('Unable to delete the lesson. Please try again.');
-    } finally {
-      setDeletingId(null);
     }
   };
   const prevScore = reports[1] ? calculateLessonScore(reports[1]) : latestScore;
@@ -130,10 +120,17 @@ export default function TeacherDashboard() {
       ? "Performance dipped — review recent lesson gaps."
       : "Performance is stable across lessons.";
 
-  const nextAction =
+  const nextActions =
     summary.totalGaps > 0
-      ? "Revisit missed concepts and strengthen lesson closure with a quick exit check."
-      : "Maintain strong instruction and consider adding deeper checks for understanding.";
+      ? [
+          'Reteach the top missed concept in your next lesson opener.',
+          'Add a 2-minute exit check to confirm closure.',
+          'Use one targeted follow-up question for students who miss the check.',
+        ]
+      : [
+          'Keep your current pacing and clarity moves consistent.',
+          'Add one deeper check-for-understanding prompt in the final 10 minutes.',
+        ];
 
   const activeKeyFindingsReport = useMemo(() => {
     if (!reports.length) return null;
@@ -208,8 +205,12 @@ export default function TeacherDashboard() {
         </div>
 
         <div style={card}>
-          <h2 style={cardTitle}>Next Best Action</h2>
-          <p style={text}>{nextAction}</p>
+          <h2 style={cardTitle}>Next Best Actions</h2>
+          <ul style={{ ...text, margin: '0', paddingLeft: 18 }}>
+            {nextActions.map((action, index) => (
+              <li key={index} style={{ marginBottom: 6 }}>{action}</li>
+            ))}
+          </ul>
         </div>
 
         <div style={card}>
@@ -224,6 +225,7 @@ export default function TeacherDashboard() {
               padding: isNarrowScreen ? '10px 8px 4px' : '14px 12px 8px',
               background: 'linear-gradient(180deg, rgba(15,23,42,0.8) 0%, rgba(30,41,59,0.45) 100%)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+              minWidth: 0,
             }}
           >
             <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
@@ -310,29 +312,44 @@ export default function TeacherDashboard() {
               Upload your first lesson to receive AI-powered feedback, scoring, and improvement suggestions.
             </p>
           ) : (
-            <div className="table-scroll-wrap">
-          <table style={table}>
+            <div
+              className="table-scroll-wrap"
+              style={isNarrowScreen ? { overflowX: 'hidden', border: '1px solid var(--border)', borderRadius: 10, padding: '4px 6px', background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.05) 100%)' } : undefined}
+            >
+          <table style={{ ...table, minWidth: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ ...th, width: '56%', whiteSpace: 'normal' }}>Lesson</th>
-                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal' }}>Score</th>
-                  <th style={{ ...th, width: '26%', textAlign: 'center', whiteSpace: 'normal' }}>Actions</th>
+                  <th style={{ ...th, width: '40%', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Lesson</th>
+                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Score</th>
+                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Trend</th>
+                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {reports.slice(0, 5).map((r, i) => {
                   const score = calculateLessonScore(r);
+                  const previous = reports[i + 1];
+                  const trend = previous ? score - calculateLessonScore(previous) : null;
                   const lessonLabel = `${r.grade || 'Grade?'} ${r.subject || 'Lesson'}` || `Lesson ${i + 1}`;
                   const lessonDate = r.created_at ? new Date(r.created_at).toLocaleDateString() : '';
                   return (
                     <tr key={r.id || i}>
-                      <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                      <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word', padding: isNarrowScreen ? '4px 3px' : td.padding, fontSize: isNarrowScreen ? 12 : td.fontSize }}>
                         {lessonLabel}{lessonDate ? ` · ${lessonDate}` : ''}
                       </td>
-                      <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>{score}/100</td>
-                      <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
+                      <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding, fontSize: isNarrowScreen ? 12 : td.fontSize }}>{score}/100</td>
+                      <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding, fontSize: isNarrowScreen ? 12 : td.fontSize, color: trend === null ? 'var(--text-secondary)' : trend >= 0 ? '#22c55e' : '#ef4444' }}>
+                        {trend === null
+                          ? '—'
+                          : trend > 0
+                            ? `↑ ${trend}`
+                            : trend < 0
+                              ? `↓ ${Math.abs(trend)}`
+                              : '→ 0'}
+                      </td>
+                      <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding }}>
                         <button
-                          style={actionButton}
+                          style={{ ...actionButton, padding: isNarrowScreen ? '3px 7px' : actionButton.padding, fontSize: isNarrowScreen ? 11 : undefined }}
                           onClick={() => handleViewReport(r)}
                         >
                           View
@@ -402,7 +419,7 @@ const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin
 const buttonGroup: React.CSSProperties = { display: 'flex', gap: 10, alignItems: 'center' };
 const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '10px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
 
-const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 20 };
+const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 20, minWidth: 0 };
 const cardTitle: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 10 };
 
 const previewGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16 };

@@ -48,7 +48,7 @@ export default function UserMenu({ role }: { role: string }) {
 
           {['admin', 'super_admin'].includes(role) && (
             <>
-              <Link href="/admin/dashboard" style={itemStyle}>Admin Dashboard</Link>
+              <Link href="/admin" style={itemStyle}>Admin Dashboard</Link>
               <Link href="/admin/invite" style={itemStyle}>Add User</Link>
             </>
           )}

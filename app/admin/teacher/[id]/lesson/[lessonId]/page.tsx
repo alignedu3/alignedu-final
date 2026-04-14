@@ -4,15 +4,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getLessonInsights } from "@/lib/dashboardData";
+import { getLessonInsights, type AnalysisReport, type ProfileRecord } from "@/lib/dashboardData";
 
 export default function LessonReportPage() {
   const params = useParams<{ id: string; lessonId: string }>();
   const teacherId = params?.id;
   const lessonId = params?.lessonId;
 
-  const [lesson, setLesson] = useState<any>(null);
-  const [teacher, setTeacher] = useState<any>(null);
+  const [lesson, setLesson] = useState<AnalysisReport | null>(null);
+  const [teacher, setTeacher] = useState<ProfileRecord | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function LessonReportPage() {
       if (lessonData?.user_id) {
         const { data: teacherData } = await supabase
           .from("profiles")
-          .select("name")
+          .select("id, name")
           .eq("id", lessonData.user_id)
           .maybeSingle();
         setTeacher(teacherData);

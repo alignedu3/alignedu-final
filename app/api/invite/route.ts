@@ -1,11 +1,28 @@
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
+import { sendInviteEmail } from '@/lib/email';
+import { buildReusableInviteLink } from '@/lib/invite-link';
 
-function getSiteUrl() {
+function getSiteUrl(req: Request) {
+  const originHeader = req.headers.get('origin');
+  if (originHeader && /^https?:\/\//i.test(originHeader)) {
+    return originHeader.replace(/\/$/, '');
+  }
+
+  const refererHeader = req.headers.get('referer');
+  if (refererHeader) {
+    try {
+      return new URL(refererHeader).origin.replace(/\/$/, '');
+    } catch {
+      // Ignore malformed referer and continue to configured fallbacks.
+    }
+  }
+
   const configured =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
+    'https://www.alignedu.net' ||
     'http://localhost:3000';
 
   return configured.replace(/\/$/, '');
@@ -46,25 +63,85 @@ export async function POST(req: Request) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // Send invite email first so we get the new user's real UUID back
-  const redirectTo = `${getSiteUrl()}/auth/handle-auth?next=/reset-password`;
-  const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo,
+  // Create user without auto-sending email (we'll use Resend)
+  const { data: authData, error: createError } = await supabase.auth.admin.createUser({
+    email,
+    email_confirm: false,
+    user_metadata: { name },
   });
 
-  if (inviteError) {
-    return new Response(JSON.stringify({ error: inviteError.message }), { status: 400 });
+  if (createError || !authData.user) {
+    return new Response(JSON.stringify({ error: createError?.message || 'Failed to create user' }), { status: 400 });
   }
 
-  const newUserId = inviteData.user.id;
+  const newUserId = authData.user.id;
 
-  // Insert profile with the correct role
-  await supabase.from('profiles').upsert({
-    id: newUserId,
-    name,
+  const safeRole = role === 'admin' ? 'admin' : 'teacher';
+  const inviteLink = buildReusableInviteLink(getSiteUrl(req), {
+    userId: newUserId,
     email,
-    role,
+    name,
+    role: safeRole,
   });
+
+  // Send invite via Resend
+  let inviteEmailId: string;
+  try {
+    const inviteEmail = await sendInviteEmail(email, name, safeRole, inviteLink);
+    inviteEmailId = inviteEmail.id;
+    console.log('Invite email queued via Resend', {
+      inviteEmailId,
+      to: email,
+      role: safeRole,
+    });
+  } catch (emailError) {
+    console.error('Failed to send invite email via Resend:', emailError);
+    const detail = emailError instanceof Error ? emailError.message : 'Unknown email provider error';
+    return new Response(JSON.stringify({ error: `Failed to send invite email: ${detail}` }), { status: 500 });
+  }
+
+  // Insert profile — enforce role explicitly.
+  // Two-step: upsert to create if missing, then update to guarantee role is correct
+  // even if a Supabase trigger already created the profile with a different default role.
+  const { error: upsertError } = await supabase.from('profiles').upsert(
+    { id: newUserId, name, email, role: safeRole },
+    { onConflict: 'id' }
+  );
+
+  if (upsertError) {
+    console.error('Profile upsert error:', upsertError.message);
+  }
+
+  // Force role via direct update — overrides any Supabase trigger defaults.
+  const { error: roleUpdateError } = await supabase
+    .from('profiles')
+    .update({ role: safeRole, name, email })
+    .eq('id', newUserId);
+
+  if (roleUpdateError) {
+    console.error('Profile role update error:', roleUpdateError.message);
+  }
+
+  // Verify what actually ended up in the DB and log it for diagnostics.
+  const { data: verifyProfile, error: verifyError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', newUserId)
+    .single();
+
+  if (verifyError) {
+    console.error('Profile verify error:', verifyError.message);
+  } else {
+    console.log('Profile role after invite:', { userId: newUserId, role: verifyProfile?.role, expected: safeRole });
+    if (verifyProfile?.role !== safeRole) {
+      // Trigger or policy overrode our update — try once more via RPC-style update.
+      console.warn(`Role mismatch! Got ${verifyProfile?.role}, expected ${safeRole}. Forcing again...`);
+      await supabase
+        .from('profiles')
+        .update({ role: safeRole })
+        .eq('id', newUserId);
+    }
+  }
 
   // Link invited user to the inviting admin's scope.
   if (role === 'teacher') {
@@ -89,5 +166,5 @@ export async function POST(req: Request) {
     }
   }
 
-  return new Response(JSON.stringify({ success: true }), { status: 200 });
+  return new Response(JSON.stringify({ success: true, inviteEmailId }), { status: 200 });
 }

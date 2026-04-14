@@ -190,9 +190,9 @@ export default function AnalysisPage() {
       setTimeout(() => {
         router.refresh();
       }, 800);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Something went wrong");
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
       setProcessingStep("");

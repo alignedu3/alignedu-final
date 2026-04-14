@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type { AnalysisReport, ProfileRecord } from '@/lib/dashboardData';
 
 export default function DistrictDashboard() {
-  const [reports, setReports] = useState<any[]>([]);
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [reports, setReports] = useState<AnalysisReport[]>([]);
+  const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -33,15 +34,22 @@ export default function DistrictDashboard() {
   }, []);
 
   const teacherStats = useMemo(() => {
-    const map: Record<string, any[]> = {};
+    const map: Record<string, AnalysisReport[]> = {};
 
-    reports.forEach(r => {
-      if (!map[r.user_id]) map[r.user_id] = [];
-      map[r.user_id].push(r);
+    reports.forEach((r) => {
+      const userId = r.user_id;
+      if (!userId) return;
+      if (!map[userId]) map[userId] = [];
+      map[userId].push(r);
     });
 
     return Object.entries(map).map(([id, reps]) => {
-      const scores = reps.map(r => r.score || 0);
+      const scores = reps.map(r => {
+        const v = r.score;
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        if (typeof v === 'string') { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+        return 0;
+      });
 
       const avg =
         scores.reduce((a, b) => a + b, 0) / scores.length;
@@ -128,7 +136,7 @@ export default function DistrictDashboard() {
 
           {sorted.map((t, i) => (
             <div key={i} style={item}>
-              #{i + 1} {t.name} — {t.avg}/100 ({t.trend > 0 ? `↑ ${t.trend}` : `↓ ${t.trend}`})
+              #{i + 1} {t.name} — {t.avg}/100 ({t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'})
             </div>
           ))}
         </div>

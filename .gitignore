@@ -23,3 +23,4 @@ out/
 
 # mac
 .DS_Store
+.env*.local

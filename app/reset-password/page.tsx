@@ -1,14 +1,64 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 export default function ResetPassword() {
+  const router = useRouter();
+  const [sessionReady, setSessionReady] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Verify session is valid before showing the form
+  useEffect(() => {
+    const supabase = createClient();
+
+    const waitForSession = async (attempts = 10, delayMs = 250) => {
+      for (let i = 0; i < attempts; i += 1) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) return data.session;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+      return null;
+    };
+
+    const checkSession = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('code');
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) {
+          console.error('Reset code exchange error:', exchangeError);
+        }
+      } else if (accessToken && refreshToken) {
+        const { error: setError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        if (setError) {
+          console.error('Reset session set error:', setError);
+        }
+      }
+
+      const session = await waitForSession();
+
+      if (!session) {
+        router.replace('/login');
+        return;
+      }
+
+      setSessionReady(true);
+      setCheckingSession(false);
+    };
+
+    checkSession();
+  }, [router]);
 
   const isRefreshTokenError = (message: string) => {
     const text = message.toLowerCase();
@@ -57,20 +107,31 @@ export default function ResetPassword() {
         .maybeSingle();
 
       setTimeout(() => {
-        window.location.href = ['admin', 'super_admin'].includes(profile?.role) ? '/admin' : '/dashboard';
-      }, 1500);
+        const destination = ['admin', 'super_admin'].includes(profile?.role) ? '/admin' : '/dashboard';
+        router.push(destination);
+      }, 1200);
     } else {
-      setTimeout(() => { window.location.href = '/login'; }, 1500);
+      setTimeout(() => { router.push('/login'); }, 1200);
     }
 
     setLoading(false);
   };
 
+  if (checkingSession || !sessionReady) {
+    return (
+      <main style={mainContainer}>
+        <section style={card}>
+          <p style={subheading}>Setting up your account…</p>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main style={mainContainer}>
       <section style={card}>
-        <h1 style={heading}>Reset Your Password</h1>
-        <p style={subheading}>Enter and confirm your new password below.</p>
+        <h1 style={heading}>Set Your Password</h1>
+        <p style={subheading}>Create a secure password for your account.</p>
 
         <div style={formGroup}>
           <label style={labelStyle}>New Password</label>

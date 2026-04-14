@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
   getDashboardSummary,
-  calculateLessonScore
+  calculateLessonScore,
+  type AnalysisReport,
+  type ProfileRecord,
 } from '@/lib/dashboardData';
 import {
   LineChart,
@@ -18,15 +20,24 @@ import {
 } from 'recharts';
 
 export default function AdminDashboard() {
-  const [dbReports, setDbReports] = useState<any[]>([]);
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [dbReports, setDbReports] = useState<AnalysisReport[]>([]);
+  const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
   const [visibleAdminIds, setVisibleAdminIds] = useState<string[]>([]);
   const [managedTeachers, setManagedTeachers] = useState<Array<{ admin_id: string; teacher_id: string }>>([]);
   const [managedAdmins, setManagedAdmins] = useState<Array<{ parent_admin_id: string; child_admin_id: string }>>([]);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [ready, setReady] = useState(false);
   const [modalType, setModalType] = useState<null | 'quality' | 'lessons' | 'strong' | 'atrisk'>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [openActionsForId, setOpenActionsForId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const router = useRouter();
+
+  const handleObserveLesson = () => {
+    router.push('/admin/observe');
+  };
 
   const handleAddTeacher = () => {
     router.push('/admin/invite');
@@ -51,6 +62,9 @@ export default function AdminDashboard() {
           window.location.replace('/dashboard');
           return;
         }
+
+        setCurrentUserId(user.id);
+        setCurrentUserRole(authData.profile?.role ?? null);
 
         const supabase = createClient();
 
@@ -119,7 +133,7 @@ export default function AdminDashboard() {
           return fallback;
         };
 
-        const normalizedReports = (data ?? []).map((r: any) => ({
+        const normalizedReports = (data ?? []).map((r: AnalysisReport) => ({
           ...r,
           date: r.created_at?.slice(0, 10),
           coverage: toNumber(r.coverage_score, 75),
@@ -162,7 +176,7 @@ export default function AdminDashboard() {
     return palette[Math.abs(hash) % palette.length];
   };
 
-  const getPointCountForKey = (rows: Array<Record<string, any>>, key: string) => {
+  const getPointCountForKey = (rows: Array<Record<string, string | number>>, key: string) => {
     return rows.reduce((count, row) => {
       const value = row[key];
       return typeof value === 'number' && Number.isFinite(value) ? count + 1 : count;
@@ -170,16 +184,16 @@ export default function AdminDashboard() {
   };
 
   const teacherTrendData = useMemo(() => {
-    const profileById = new Map((profiles || []).map((p: any) => [p.id, p]));
-    const getTeacherName = (r: any) => {
-      const profile = profileById.get(r.user_id);
+    const profileById = new Map(profiles.map((p) => [p.id, p]));
+    const getTeacherName = (r: AnalysisReport) => {
+      const profile = r.user_id ? profileById.get(r.user_id) : undefined;
       if (profile?.name) return profile.name;
       if (r.teacher_name) return r.teacher_name;
       if (r.name) return r.name;
       return 'Unknown';
     };
     const byDate: Record<string, Record<string, number[]>> = {};
-    reports.forEach((r: any) => {
+    reports.forEach((r) => {
       const date = r.date ?? r.created_at?.slice(0, 10);
       if (!date) return;
       const teacher = getTeacherName(r);
@@ -190,7 +204,7 @@ export default function AdminDashboard() {
     return Object.entries(byDate)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, teachers]) => {
-        const entry: Record<string, any> = { date };
+        const entry: Record<string, string | number> = { date };
         Object.entries(teachers).forEach(([teacher, scores]) => {
           entry[teacher] = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
         });
@@ -207,7 +221,7 @@ export default function AdminDashboard() {
   }, [teacherTrendData]);
 
   const adminTrendData = useMemo(() => {
-    const profileById = new Map((profiles || []).map((p: any) => [p.id, p]));
+    const profileById = new Map(profiles.map((p) => [p.id, p]));
     const scopedAdminIds = visibleAdminIds.filter((id) => {
       const role = profileById.get(id)?.role;
       return role === 'admin' || role === 'super_admin';
@@ -229,11 +243,11 @@ export default function AdminDashboard() {
     });
 
     const byDate: Record<string, Record<string, number[]>> = {};
-    reports.forEach((r: any) => {
+    reports.forEach((r) => {
       const date = r.date ?? r.created_at?.slice(0, 10);
       if (!date) return;
 
-      const adminIds = adminIdsByTeacherId.get(r.user_id) || [];
+      const adminIds = r.user_id ? (adminIdsByTeacherId.get(r.user_id) || []) : [];
       if (!adminIds.length) return;
 
       adminIds.forEach((adminId) => {
@@ -248,7 +262,7 @@ export default function AdminDashboard() {
     return Object.entries(byDate)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, admins]) => {
-        const entry: Record<string, any> = { date };
+        const entry: Record<string, string | number> = { date };
         Object.entries(admins).forEach(([admin, scores]) => {
           entry[admin] = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
         });
@@ -265,27 +279,29 @@ export default function AdminDashboard() {
   }, [adminTrendData]);
 
   const combinedTrendData = useMemo(() => {
-    const byDate = new Map<string, Record<string, any>>();
+    const byDate = new Map<string, Record<string, string | number>>();
 
     teacherTrendData.forEach((entry) => {
-      byDate.set(entry.date, { ...entry });
+      const dateKey = String(entry.date);
+      byDate.set(dateKey, { ...entry, date: dateKey });
     });
 
     adminTrendData.forEach((entry) => {
-      const existing = byDate.get(entry.date) || { date: entry.date };
+      const dateKey = String(entry.date);
+      const existing = byDate.get(dateKey) || { date: dateKey };
       Object.keys(entry).forEach((key) => {
         if (key !== 'date') existing[key] = entry[key];
       });
-      byDate.set(entry.date, existing);
+      byDate.set(dateKey, existing);
     });
 
-    return Array.from(byDate.values()).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+    return Array.from(byDate.values()).sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
   }, [teacherTrendData, adminTrendData]);
 
   const lessonRows = useMemo(() =>
     [...reports]
-      .map((r: any) => {
-        const p = (profiles || []).find((x: any) => x.id === r.user_id);
+      .map((r) => {
+        const p = profiles.find((x) => x.id === r.user_id);
         const teacher = p?.name ?? r.teacher_name ?? r.name ?? 'Unknown';
         return {
           id: r.id ?? Math.random(),
@@ -299,11 +315,12 @@ export default function AdminDashboard() {
   [reports, profiles]);
 
   const teacherStats = useMemo(() => {
-    const profileById = new Map((profiles || []).map((p) => [p.id, p]));
-    const map: Record<string, any[]> = {};
+    const profileById = new Map(profiles.map((p) => [p.id, p]));
+    const map: Record<string, AnalysisReport[]> = {};
 
-    reports.forEach((r: any) => {
+    reports.forEach((r) => {
       const key = r.user_id;
+      if (!key) return;
       if (!map[key]) map[key] = [];
       map[key].push(r);
     });
@@ -340,7 +357,7 @@ export default function AdminDashboard() {
     .slice(0, 3);
 
   const hierarchyRows = useMemo(() => {
-    const profileById = new Map((profiles || []).map((p) => [p.id, p]));
+    const profileById = new Map(profiles.map((p) => [p.id, p]));
     const adminIds = visibleAdminIds.filter((id) => {
       const role = profileById.get(id)?.role;
       return role === 'admin' || role === 'super_admin';
@@ -365,16 +382,20 @@ export default function AdminDashboard() {
           role: adminProfile?.role || 'admin',
           childAdmins: childAdminIds
             .map((id) => profileById.get(id))
-            .filter(Boolean)
-            .map((p: any) => ({ id: p.id, name: p.name || p.email || 'Admin', role: p.role })),
+            .filter((p): p is ProfileRecord => Boolean(p))
+            .map((p) => ({ id: p.id, name: p.name || p.email || 'Admin', role: p.role })),
           teachers: teacherIds
             .map((id) => profileById.get(id))
-            .filter(Boolean)
-            .map((p: any) => ({ id: p.id, name: p.name || p.email || 'Teacher' })),
+            .filter((p): p is ProfileRecord => Boolean(p))
+            .map((p) => ({ id: p.id, name: p.name || p.email || 'Teacher' })),
         };
       })
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [profiles, managedAdmins, managedTeachers, visibleAdminIds]);
+      .sort((a, b) => {
+        if (currentUserId && a.id === currentUserId) return -1;
+        if (currentUserId && b.id === currentUserId) return 1;
+        return a.name.localeCompare(b.name);
+      });
+  }, [profiles, managedAdmins, managedTeachers, visibleAdminIds, currentUserId]);
 
   const strongCount = teacherStats.filter(t => !t.needsAttention).length;
   const supportCount = teacherStats.filter(t => t.needsAttention).length;
@@ -389,10 +410,62 @@ export default function AdminDashboard() {
       ? "System performance is declining due to gaps in lesson closure and concept reinforcement."
       : "Instructional quality is strong with consistent standards alignment.";
 
-  const recommendedAction =
-    adminQualityScore < 75
-      ? "Focus on improving lesson closure and reinforcing key concepts across classrooms."
-      : "Maintain strong instruction and introduce deeper checks for understanding.";
+  const recommendedSupportPlan = useMemo(() => {
+    if (!atRiskTeachers.length) {
+      return {
+        summary: 'No immediate teacher intervention is required.',
+        actions: [
+          'Continue monthly walkthroughs to sustain instruction quality.',
+          'Highlight strong teacher practices during PLC and team meetings.',
+        ],
+      };
+    }
+
+    const primary = atRiskTeachers[0];
+    const secondary = atRiskTeachers[1] || null;
+    const trendText =
+      primary.trend < 0
+        ? `trend is down ${Math.abs(primary.trend)} points`
+        : primary.trend > 0
+          ? `trend is up ${primary.trend} points but still below target`
+          : 'trend is flat';
+
+    return {
+      summary: `Priority teacher: ${primary.name} (${primary.avgScore}/100, ${trendText}).`,
+      actions: [
+        `Schedule a 1:1 coaching cycle with ${primary.name} this week focused on lesson closure and concept reinforcement.`,
+        secondary
+          ? `Set a peer-observation and debrief between ${primary.name} and ${secondary.name} to model high-impact moves.`
+          : `Pair ${primary.name} with a strong-performing teacher for one observation and debrief this week.`,
+        `Require ${primary.name} to submit the next 2 lesson plans for pre-brief feedback before instruction.`,
+      ],
+    };
+  }, [atRiskTeachers]);
+
+  const handleRemoveUser = async (userId: string) => {
+    setDeletingUserId(userId);
+    try {
+      const res = await fetch(`/api/admin/user/${userId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Failed to remove user.');
+        return;
+      }
+      setProfiles(prev => prev.filter(p => p.id !== userId));
+      setManagedTeachers(prev => prev.filter(l => l.teacher_id !== userId && l.admin_id !== userId));
+      setManagedAdmins(prev => prev.filter(l => l.child_admin_id !== userId && l.parent_admin_id !== userId));
+      setVisibleAdminIds(prev => prev.filter(id => id !== userId));
+    } catch {
+      alert('Network error removing user.');
+    } finally {
+      setDeletingUserId(null);
+      setPendingDelete(null);
+      setOpenActionsForId(null);
+    }
+  };
 
   if (!ready) {
     return <div style={loading}>Loading...</div>;
@@ -409,11 +482,8 @@ export default function AdminDashboard() {
             <p style={subheading}>System-wide instructional intelligence</p>
           </div>
           <div style={actions}>
-            <button onClick={() => router.push('/analyze')} style={btn}>
-              Analyze Lesson
-            </button>
-            <button onClick={handleAddTeacher} style={btnAlt}>
-              Add Teacher
+            <button onClick={handleObserveLesson} style={btn}>
+              Observe Lesson
             </button>
           </div>
         </div>
@@ -426,7 +496,7 @@ export default function AdminDashboard() {
           ) : (
             atRiskTeachers.map((t, i) => (
               <div key={i} style={listItem}>
-                {t.name} — {t.avgScore}/100 ({t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`})
+                {t.name} — {t.avgScore}/100 ({t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'})
               </div>
             ))
           )}
@@ -434,16 +504,28 @@ export default function AdminDashboard() {
 
         {/* ACTION */}
         <div style={card}>
-          <h2 style={title}>Recommended Action</h2>
-          <p style={text}>{recommendedAction}</p>
+          <h2 style={title}>Recommended Actions</h2>
+          <p style={text}>{recommendedSupportPlan.summary}</p>
+          <ul style={actionList}>
+            {recommendedSupportPlan.actions.map((action, idx) => (
+              <li key={idx} style={actionItem}>{action}</li>
+            ))}
+          </ul>
         </div>
 
         {/* STATS */}
-        <div style={grid}>
+        <div
+          style={{
+            ...grid,
+            gridTemplateColumns: isNarrowScreen ? 'repeat(2, minmax(0, 1fr))' : grid.gridTemplateColumns,
+            gap: isNarrowScreen ? 12 : 16,
+            alignItems: 'stretch',
+          }}
+        >
           <div style={cardSmall}>
             <div style={statLabel}>Instructional Quality Score</div>
             <button
-              style={{ ...big, color: adminQualityScore >= 75 ? '#22c55e' : '#ef4444', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}
+              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, color: adminQualityScore >= 75 ? '#22c55e' : '#ef4444', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
               onClick={() => setModalType('quality')}
             >
               {adminQualityScore}/100
@@ -456,7 +538,7 @@ export default function AdminDashboard() {
           <div style={cardSmall}>
             <div style={statLabel}>Lessons Analyzed</div>
             <button
-              style={{ ...big, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}
+              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
               onClick={() => setModalType('lessons')}
             >
               {reports.length}
@@ -467,7 +549,7 @@ export default function AdminDashboard() {
           <div style={cardSmall}>
             <div style={statLabel}>Teachers Performing Strongly</div>
             <button
-              style={{ ...big, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}
+              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
               onClick={() => setModalType('strong')}
             >
               {strongCount}
@@ -476,9 +558,9 @@ export default function AdminDashboard() {
           </div>
 
           <div style={cardSmall}>
-            <div style={statLabel}>At-Risk Teachers</div>
+            <div style={statLabel}>At-Risk<br />Teachers</div>
             <button
-              style={{ ...big, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}
+              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
               onClick={() => setModalType('atrisk')}
             >
               {supportCount}
@@ -499,6 +581,7 @@ export default function AdminDashboard() {
               padding: isNarrowScreen ? '10px 8px 4px' : '14px 12px 8px',
               background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.05) 100%)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+              minWidth: 0,
             }}
           >
             <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
@@ -523,7 +606,7 @@ export default function AdminDashboard() {
                     fontSize: 12,
                   }}
                 />
-                {teacherLineKeys.map((key, i) => (
+                {teacherLineKeys.map((key) => (
                   <Line
                     key={key}
                     type="monotone"
@@ -534,7 +617,7 @@ export default function AdminDashboard() {
                     connectNulls
                   />
                 ))}
-                {adminLineKeys.map((key, i) => (
+                {adminLineKeys.map((key) => (
                   <Line
                     key={key}
                     type="monotone"
@@ -640,32 +723,34 @@ export default function AdminDashboard() {
 
         <div style={card}>
           <h2 style={title}>Teacher Performance</h2>
-          <div className="table-scroll-wrap">
-            <table style={table}>
+          <div
+            className="table-scroll-wrap"
+            style={isNarrowScreen ? { overflowX: 'hidden', border: '1px solid var(--border)', borderRadius: 10, padding: '4px 6px', background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.05) 100%)' } : undefined}
+          >
+            <table style={{ ...table, minWidth: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ ...th, width: '44%', whiteSpace: 'normal' }}>Teacher</th>
-                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Score</th>
-                  <th style={{ ...th, width: '16%', textAlign: 'center', whiteSpace: 'normal' }}>Trend</th>
-                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal' }}>Status</th>
+                  <th style={{ ...th, width: '40%', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Teacher</th>
+                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Score</th>
+                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Trend</th>
+                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {teacherStats.map((t, i) => (
-                  <tr
-                    key={i}
-                    onClick={() => router.push(`/admin/teacher/${t.id}`)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word' }}>{t.name}</td>
-                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>{t.avgScore}</td>
-                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
-                      {t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`}
+                  <tr key={i}>
+                    <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding }}>{t.name}</td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding }}>{t.avgScore}/100</td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding, color: t.trend > 0 ? '#22c55e' : t.trend < 0 ? '#ef4444' : 'var(--text-secondary)' }}>
+                      {t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'}
                     </td>
-                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal' }}>
-                      <span style={t.needsAttention ? statusBadgeWarn : statusBadgeGood}>
-                        {t.needsAttention ? (<>Needs<br />Support</>) : 'Strong'}
-                      </span>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding }}>
+                      <button
+                        style={{ ...actionButton, padding: isNarrowScreen ? '3px 7px' : actionButton.padding, fontSize: isNarrowScreen ? 11 : undefined }}
+                        onClick={() => router.push(`/admin/teacher/${t.id}`)}
+                      >
+                        View
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -681,25 +766,62 @@ export default function AdminDashboard() {
           ) : (
             hierarchyRows.map((row) => (
               <div key={row.id} style={hierarchyCard}>
-                <button
-                  onClick={() => router.push(`/admin/teacher/${row.id}`)}
-                  style={entityLinkBtn}
-                >
-                  {row.name} <span style={mutedInline}>({row.role})</span>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => router.push(`/admin/teacher/${row.id}`)}
+                    style={entityLinkBtn}
+                  >
+                    {row.name} <span style={mutedInline}>({row.role})</span>
+                  </button>
+                  {currentUserRole === 'super_admin' && row.id !== currentUserId && (
+                    <div style={actionsMenuWrap}>
+                      <button
+                        onClick={() => setOpenActionsForId((prev) => (prev === `admin:${row.id}` ? null : `admin:${row.id}`))}
+                        aria-label={`Actions for ${row.name}`}
+                        style={actionsMenuTrigger}
+                      >
+                        •••
+                      </button>
+                      {openActionsForId === `admin:${row.id}` && (
+                        <div style={actionsMenuPanel}>
+                          <button
+                            onClick={() => {
+                              setOpenActionsForId(null);
+                              router.push(`/admin/teacher/${row.id}`);
+                            }}
+                            style={menuItemBtn}
+                          >
+                            View Profile
+                          </button>
+                          <button
+                            onClick={() => {
+                              setOpenActionsForId(null);
+                              setPendingDelete({ id: row.id, name: row.name });
+                            }}
+                            disabled={deletingUserId === row.id}
+                            style={{ ...menuItemBtn, ...menuItemDanger, opacity: deletingUserId === row.id ? 0.6 : 1 }}
+                          >
+                            {deletingUserId === row.id ? 'Removing…' : 'Remove User'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 <div style={hierarchyGroup}>
                   <div style={hierarchyLabel}>Admins Under This Admin</div>
                   {row.childAdmins.length ? (
                     <div style={pillWrap}>
                       {row.childAdmins.map((child) => (
-                        <button
-                          key={child.id}
-                          onClick={() => router.push(`/admin/teacher/${child.id}`)}
-                          style={pillBtn}
-                        >
-                          {child.name}
-                        </button>
+                        <div key={child.id} style={{ ...pillBtn, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <button
+                            onClick={() => router.push(`/admin/teacher/${child.id}`)}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', fontSize: 'inherit' }}
+                          >
+                            {child.name}
+                          </button>
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -712,13 +834,48 @@ export default function AdminDashboard() {
                   {row.teachers.length ? (
                     <div style={pillWrap}>
                       {row.teachers.map((teacher) => (
-                        <button
-                          key={teacher.id}
-                          onClick={() => router.push(`/admin/teacher/${teacher.id}`)}
-                          style={pillBtn}
-                        >
-                          {teacher.name}
-                        </button>
+                        <div key={teacher.id} style={{ ...pillBtn, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <button
+                            onClick={() => router.push(`/admin/teacher/${teacher.id}`)}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', fontSize: 'inherit' }}
+                          >
+                            {teacher.name}
+                          </button>
+                          {['admin', 'super_admin'].includes(currentUserRole || '') && teacher.id !== currentUserId && (
+                            <div style={actionsMenuWrap}>
+                              <button
+                                onClick={() => setOpenActionsForId((prev) => (prev === `teacher:${teacher.id}` ? null : `teacher:${teacher.id}`))}
+                                aria-label={`Actions for ${teacher.name}`}
+                                style={pillActionsMenuTrigger}
+                              >
+                                •••
+                              </button>
+                              {openActionsForId === `teacher:${teacher.id}` && (
+                                <div style={actionsMenuPanel}>
+                                  <button
+                                    onClick={() => {
+                                      setOpenActionsForId(null);
+                                      router.push(`/admin/teacher/${teacher.id}`);
+                                    }}
+                                    style={menuItemBtn}
+                                  >
+                                    View Profile
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setOpenActionsForId(null);
+                                      setPendingDelete({ id: teacher.id, name: teacher.name });
+                                    }}
+                                    disabled={deletingUserId === teacher.id}
+                                    style={{ ...menuItemBtn, ...menuItemDanger, opacity: deletingUserId === teacher.id ? 0.6 : 1 }}
+                                  >
+                                    {deletingUserId === teacher.id ? 'Removing…' : 'Remove Teacher'}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       ))}
                     </div>
                   ) : (
@@ -801,7 +958,7 @@ export default function AdminDashboard() {
                         </td>
                         <td style={{ padding: '8px 8px', textAlign: 'center', color: t.needsAttention ? '#ef4444' : '#22c55e', fontWeight: 700 }}>{t.avgScore}</td>
                         <td style={{ padding: '8px 8px', textAlign: 'center', color: 'var(--text-secondary)' }}>{t.count}</td>
-                        <td style={{ padding: '8px 8px', textAlign: 'center', color: t.trend >= 0 ? '#22c55e' : '#ef4444' }}>{t.trend > 0 ? `↑ +${t.trend}` : `↓ ${t.trend}`}</td>
+                        <td style={{ padding: '8px 8px', textAlign: 'center', color: t.trend > 0 ? '#22c55e' : t.trend < 0 ? '#ef4444' : 'var(--text-secondary)' }}>{t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -851,6 +1008,43 @@ export default function AdminDashboard() {
         );
       })()}
 
+      {pendingDelete && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(2, 6, 23, 0.66)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={() => {
+            if (!deletingUserId) setPendingDelete(null);
+          }}
+        >
+          <div
+            style={{ background: 'var(--surface-card-solid)', border: '1px solid var(--border)', borderRadius: 14, width: '100%', maxWidth: 460, padding: 20, boxShadow: '0 24px 80px rgba(2,6,23,0.35)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ color: 'var(--text-primary)', fontSize: 18, fontWeight: 700, marginBottom: 8 }}>
+              Remove User
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.5, margin: '0 0 16px 0' }}>
+              Remove <strong>{pendingDelete.name}</strong> from the system? Their account access will be permanently deleted.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button
+                onClick={() => setPendingDelete(null)}
+                disabled={Boolean(deletingUserId)}
+                style={modalCancelBtn}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleRemoveUser(pendingDelete.id)}
+                disabled={Boolean(deletingUserId)}
+                style={modalDangerBtn}
+              >
+                {deletingUserId ? 'Removing...' : 'Confirm Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
@@ -863,10 +1057,10 @@ const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-be
 const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 28, margin: '0 0 4px 0' };
 const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0 };
 const actions: React.CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' };
-const btn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '10px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14 };
-const btnAlt: React.CSSProperties = { background: 'var(--surface-chip)', color: 'var(--text-primary)', padding: '10px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14 };
-const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 24 };
-const cardSmall: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 16, borderRadius: 12 };
+const btn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '9px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, minHeight: 40 };
+const btnAlt: React.CSSProperties = { background: 'var(--surface-chip)', color: 'var(--text-primary)', padding: '9px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, minHeight: 40 };
+const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 24, minWidth: 0 };
+const cardSmall: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 16, borderRadius: 12, minWidth: 0 };
 const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 28 };
 const title: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 10 };
 const text: React.CSSProperties = { color: 'var(--text-secondary)' };
@@ -876,8 +1070,7 @@ const statSub: React.CSSProperties = { fontSize: 12, color: 'var(--text-secondar
 const table: React.CSSProperties = { width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' };
 const th: React.CSSProperties = { textAlign: 'left', color: 'var(--text-secondary)', padding: '5px 6px', fontSize: 13 };
 const td: React.CSSProperties = { color: 'var(--text-primary)', padding: '5px 6px', fontSize: 14, verticalAlign: 'middle' };
-const statusBadgeWarn: React.CSSProperties = { display: 'inline-block', minWidth: 64, padding: '4px 6px', borderRadius: 10, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.24)', color: '#ef4444', fontSize: 12, fontWeight: 700, lineHeight: 1.1, textAlign: 'center' };
-const statusBadgeGood: React.CSSProperties = { display: 'inline-block', minWidth: 64, padding: '4px 6px', borderRadius: 10, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.24)', color: '#22c55e', fontSize: 12, fontWeight: 700, lineHeight: 1.1, textAlign: 'center' };
+const actionButton: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 8, padding: '5px 9px', fontSize: 12, cursor: 'pointer' };
 const listItem: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 6 };
 const loading: React.CSSProperties = { color: 'var(--text-primary)', padding: 40 };
 const hierarchyCard: React.CSSProperties = { border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 12, background: 'var(--surface-card-solid)' };
@@ -886,4 +1079,15 @@ const hierarchyLabel: React.CSSProperties = { color: 'var(--text-secondary)', fo
 const pillWrap: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 8 };
 const pillBtn: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 999, padding: '6px 10px', fontSize: 12, cursor: 'pointer' };
 const entityLinkBtn: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 15, fontWeight: 800, padding: 0, cursor: 'pointer' };
+const actionsMenuWrap: React.CSSProperties = { position: 'relative' };
+const actionsMenuTrigger: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-secondary)', borderRadius: 8, cursor: 'pointer', fontSize: 12, lineHeight: 1, height: 28, minWidth: 34, padding: '0 8px' };
+const headerMenuTrigger: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, lineHeight: 1, height: 40, minWidth: 74, padding: '0 14px' };
+const pillActionsMenuTrigger: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--text-secondary)', borderRadius: 6, cursor: 'pointer', fontSize: 10, lineHeight: 1, height: 18, minWidth: 18, padding: 0 };
+const actionsMenuPanel: React.CSSProperties = { position: 'absolute', top: 32, right: 0, zIndex: 15, minWidth: 150, background: 'var(--surface-card-solid)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 14px 32px rgba(2,6,23,0.20)', padding: 4, display: 'flex', flexDirection: 'column', gap: 2 };
+const menuItemBtn: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--text-primary)', textAlign: 'left', borderRadius: 7, padding: '8px 10px', fontSize: 12, cursor: 'pointer' };
+const menuItemDanger: React.CSSProperties = { color: '#dc2626' };
 const mutedInline: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12 };
+const actionList: React.CSSProperties = { margin: '10px 0 0 18px', color: 'var(--text-primary)', padding: 0 };
+const actionItem: React.CSSProperties = { marginBottom: 8, lineHeight: 1.4 };
+const modalCancelBtn: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 8, padding: '8px 12px', fontSize: 13, cursor: 'pointer' };
+const modalDangerBtn: React.CSSProperties = { border: '1px solid #dc2626', background: '#dc2626', color: '#fff', borderRadius: 8, padding: '8px 12px', fontSize: 13, cursor: 'pointer', fontWeight: 700 };

@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { getTEKSStandards, formatTEKSForPrompt } from "@/lib/teksStandards";
+import { getAdminVisibility } from "@/lib/adminVisibility";
 
 function getOpenAIKey() {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -100,6 +101,35 @@ export async function POST(req: Request) {
     const { data: { user } } = await anonSupabase.auth.getUser();
     if (!user?.id) {
       return safeJson({ result: null, error: 'Not authenticated' }, 401);
+    }
+
+    const observedTeacherValue = formData.get("observedTeacherId");
+    const observedTeacherId = typeof observedTeacherValue === "string"
+      ? observedTeacherValue.trim()
+      : "";
+    let targetUserId = user.id;
+
+    if (observedTeacherId) {
+      const { data: callerProfile, error: callerProfileError } = await anonSupabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (callerProfileError) {
+        return safeJson({ result: null, error: callerProfileError.message }, 500);
+      }
+
+      if (!['admin', 'super_admin'].includes(callerProfile?.role)) {
+        return safeJson({ result: null, error: 'Forbidden' }, 403);
+      }
+
+      const visibility = await getAdminVisibility(user.id, callerProfile.role);
+      if (!visibility.teacherIds.includes(observedTeacherId)) {
+        return safeJson({ result: null, error: 'You can only observe teachers under your scope.' }, 403);
+      }
+
+      targetUserId = observedTeacherId;
     }
 
     const grade = String(formData.get("grade") || "");
@@ -231,7 +261,7 @@ ${transcript}
 
     if (user?.id) {
       const analysisRecord = {
-        user_id: user.id,
+        user_id: targetUserId,
         grade,
         subject,
         coverage_score: metrics.coverage_score,

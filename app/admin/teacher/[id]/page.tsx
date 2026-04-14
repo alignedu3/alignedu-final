@@ -14,13 +14,13 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
-import { calculateLessonScore, getDashboardSummary, getLessonInsights, getTrendData } from '@/lib/dashboardData';
+import { calculateLessonScore, getDashboardSummary, getLessonInsights, getTrendData, type AnalysisReport } from '@/lib/dashboardData';
 
 export default function TeacherDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
 
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [name, setName] = useState('');
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
 
@@ -48,16 +48,10 @@ export default function TeacherDetailPage() {
     if (id) load();
   }, [id]);
 
-  useEffect(() => {
-    if (!reports.length) {
-      setActiveReportId(null);
-      return;
-    }
-    const exists = reports.some((report) => report.id === activeReportId);
-    if (!exists) {
-      setActiveReportId(reports[0].id);
-    }
-  }, [reports]);
+  const resolvedActiveReportId = useMemo(() => {
+    if (!reports.length) return null;
+    return reports.some((report) => report.id === activeReportId) ? activeReportId : reports[0].id;
+  }, [reports, activeReportId]);
 
   const summary = useMemo(() => getDashboardSummary(reports), [reports]);
 
@@ -84,8 +78,8 @@ export default function TeacherDetailPage() {
 
   const activeReport = useMemo(() => {
     if (!reports.length) return null;
-    return reports.find((report) => report.id === activeReportId) || reports[0];
-  }, [reports, activeReportId]);
+    return reports.find((report) => report.id === resolvedActiveReportId) || reports[0];
+  }, [reports, resolvedActiveReportId]);
 
   const activeInsights = useMemo(() => {
     if (!activeReport) return null;
@@ -98,7 +92,7 @@ export default function TeacherDetailPage() {
     if (!activeReport) return 'No lesson selected';
     const date = activeReport.created_at ? new Date(activeReport.created_at).toLocaleDateString() : 'No date';
     return `${activeReport.grade || 'Grade'} ${activeReport.subject || 'Lesson'} · ${date}`;
-  }, [reports]);
+  }, [activeReport]);
 
   return (
     <main style={page} className="dashboard-page">
@@ -137,7 +131,7 @@ export default function TeacherDetailPage() {
           <div style={card}>
             <div style={label}>Performance Trend</div>
             <div style={big}>
-              {overview.trend > 0 ? `↑ +${overview.trend}` : overview.trend < 0 ? `↓ ${overview.trend}` : 'No change'}
+              {overview.trend > 0 ? `↑ ${overview.trend}` : overview.trend < 0 ? `↓ ${Math.abs(overview.trend)}` : 'No change'}
             </div>
             <div style={muted}>{overview.risk}</div>
           </div>
@@ -180,6 +174,7 @@ export default function TeacherDetailPage() {
               padding: '14px 12px 8px',
               background: 'linear-gradient(180deg, rgba(15,23,42,0.8) 0%, rgba(30,41,59,0.45) 100%)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+              minWidth: 0,
             }}
           >
             <ResponsiveContainer width="100%" height={280}>
@@ -358,7 +353,8 @@ const cardFull: React.CSSProperties = {
   padding: 20,
   borderRadius: 12,
   marginBottom: 20,
-  border: '1px solid rgba(148,163,184,0.12)'
+  border: '1px solid rgba(148,163,184,0.12)',
+  minWidth: 0,
 };
 
 const label: React.CSSProperties = {

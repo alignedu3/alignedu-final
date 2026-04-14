@@ -15,15 +15,25 @@ export default function ForgotPasswordPage() {
     setError('');
     setMessage('');
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'https://www.alignedu.net/auth/handle-auth?next=/reset-password',
-    });
+    try {
+      // Call our API route that handles Resend email sending
+      const res = await fetch('/api/auth/send-reset-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
 
-    if (error) {
-      setError(error.message);
-    } else {
-      setMessage('Check your email for a password reset link!');
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Failed to send reset email');
+      } else {
+        setMessage('Check your email for a password reset link!');
+        setEmail('');
+      }
+    } catch (err) {
+      console.error('Error:', err);
+      setError('Something went wrong. Please try again.');
     }
     setLoading(false);
   };
@@ -32,7 +42,7 @@ export default function ForgotPasswordPage() {
     <main style={mainContainer}>
       <section style={card}>
         <h1 style={heading}>Forgot Password</h1>
-        <p style={subheading}>Enter your email and we'll send you a reset link.</p>
+        <p style={subheading}>Enter your email and we&apos;ll send you a reset link.</p>
         <form onSubmit={handleSubmit} style={form}>
           <input
             type="email"

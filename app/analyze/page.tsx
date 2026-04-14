@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useRef, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 // Simulate premium check (replace with real check if available)
 const isPremium = true;
@@ -12,25 +13,79 @@ export default function AnalysisPage() {
     const [isPaused, setIsPaused] = useState(false);
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
     const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
+    const [recorderStatus, setRecorderStatus] = useState("");
     const audioPlayerRef = useRef<HTMLAudioElement>(null);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const recordingStreamRef = useRef<MediaStream | null>(null);
+    const recordedChunksRef = useRef<Blob[]>([]);
+    const shouldAutoSaveOnStopRef = useRef(false);
+    const wasStoppedForBackgroundRef = useRef(false);
+    const previewUrlRef = useRef<string | null>(null);
+
+    const attachPreviewUrl = (blob: Blob) => {
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+      }
+
+      const previewUrl = URL.createObjectURL(blob);
+      previewUrlRef.current = previewUrl;
+      if (audioPlayerRef.current) {
+        audioPlayerRef.current.src = previewUrl;
+      }
+    };
+
+    const finalizeRecordedChunks = (chunks: Blob[]) => {
+      if (chunks.length === 0) return;
+
+      const blob = new Blob(chunks, { type: "audio/webm" });
+      const file = new File([blob], `recording-${Date.now()}.webm`, { type: "audio/webm" });
+      handleAudioChange(file);
+      attachPreviewUrl(blob);
+      recordedChunksRef.current = [];
+      setRecordedChunks([]);
+    };
 
     // Start recording
     const startRecording = async () => {
       setError("");
+      setRecorderStatus("");
       setRecordedChunks([]);
+      recordedChunksRef.current = [];
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         const recorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = recorder;
+        recordingStreamRef.current = stream;
         setMediaRecorder(recorder);
         recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) setRecordedChunks((prev) => [...prev, e.data]);
+          if (e.data.size > 0) {
+            recordedChunksRef.current = [...recordedChunksRef.current, e.data];
+            setRecordedChunks([...recordedChunksRef.current]);
+          }
         };
         recorder.onstop = () => {
-          stream.getTracks().forEach((track) => track.stop());
+          recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+          recordingStreamRef.current = null;
+          mediaRecorderRef.current = null;
+          setMediaRecorder(null);
+          setIsRecording(false);
+          setIsPaused(false);
+
+          if (shouldAutoSaveOnStopRef.current) {
+            const chunks = [...recordedChunksRef.current];
+            finalizeRecordedChunks(chunks);
+            if (wasStoppedForBackgroundRef.current) {
+              setRecorderStatus("Recording auto-saved after phone lock or app background.");
+            }
+          }
+
+          shouldAutoSaveOnStopRef.current = false;
+          wasStoppedForBackgroundRef.current = false;
         };
-        recorder.start();
+        recorder.start(1000);
         setIsRecording(true);
         setIsPaused(false);
+        setRecorderStatus("Recording in progress.");
       } catch (err) {
         setError("Microphone access denied or unavailable.");
       }
@@ -41,6 +96,7 @@ export default function AnalysisPage() {
       if (mediaRecorder && mediaRecorder.state === "recording") {
         mediaRecorder.pause();
         setIsPaused(true);
+        setRecorderStatus("Recording paused.");
       }
     };
 
@@ -49,29 +105,80 @@ export default function AnalysisPage() {
       if (mediaRecorder && mediaRecorder.state === "paused") {
         mediaRecorder.resume();
         setIsPaused(false);
+        setRecorderStatus("Recording resumed.");
       }
     };
 
     // Stop recording
     const stopRecording = () => {
-      if (mediaRecorder && (mediaRecorder.state === "recording" || mediaRecorder.state === "paused")) {
-        mediaRecorder.stop();
-        setIsRecording(false);
-        setIsPaused(false);
+      const recorder = mediaRecorderRef.current;
+      if (recorder && (recorder.state === "recording" || recorder.state === "paused")) {
+        shouldAutoSaveOnStopRef.current = false;
+        wasStoppedForBackgroundRef.current = false;
+        try {
+          recorder.requestData();
+        } catch {
+          // requestData can fail on some browsers; stop() still finalizes recording.
+        }
+        recorder.stop();
+        setRecorderStatus("Recording stopped. Save when ready.");
       }
     };
 
     // Save recording as file
     const saveRecording = () => {
-      if (recordedChunks.length > 0) {
-        const blob = new Blob(recordedChunks, { type: "audio/webm" });
-        const file = new File([blob], `recording-${Date.now()}.webm`, { type: "audio/webm" });
-        handleAudioChange(file);
-        setRecordedChunks([]);
-        if (audioPlayerRef.current) audioPlayerRef.current.src = URL.createObjectURL(blob);
-      }
+      const chunks = [...recordedChunksRef.current];
+      if (chunks.length === 0) return;
+      finalizeRecordedChunks(chunks);
+      setRecorderStatus("Recording saved to audio upload.");
     };
+
+    useEffect(() => {
+      const autoStopAndSave = () => {
+        const recorder = mediaRecorderRef.current;
+        if (!recorder) return;
+        if (recorder.state !== "recording" && recorder.state !== "paused") return;
+
+        shouldAutoSaveOnStopRef.current = true;
+        wasStoppedForBackgroundRef.current = true;
+        try {
+          recorder.requestData();
+        } catch {
+          // requestData can fail on certain iOS browser states.
+        }
+        recorder.stop();
+      };
+
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "hidden") {
+          autoStopAndSave();
+        }
+      };
+
+      const handlePageHide = () => {
+        autoStopAndSave();
+      };
+
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+      window.addEventListener("pagehide", handlePageHide);
+
+      return () => {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+        window.removeEventListener("pagehide", handlePageHide);
+      };
+    }, []);
+
+    useEffect(() => {
+      return () => {
+        recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+        if (previewUrlRef.current) {
+          URL.revokeObjectURL(previewUrlRef.current);
+        }
+      };
+    }, []);
   const router = useRouter();
+  const pathname = usePathname();
+  const isAdminObservationMode = pathname?.startsWith('/admin/observe');
 
   const [grade, setGrade] = useState("");
   const [subject, setSubject] = useState("");
@@ -84,6 +191,9 @@ export default function AnalysisPage() {
   const [processingStep, setProcessingStep] = useState("");
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
+  const [observerReady, setObserverReady] = useState(!isAdminObservationMode);
+  const [observedTeacherId, setObservedTeacherId] = useState("");
+  const [observedTeachers, setObservedTeachers] = useState<Array<{ id: string; name: string }>>([]);
 
   const gradeOptions = [
     'Pre-K',
@@ -507,8 +617,104 @@ export default function AnalysisPage() {
     });
   };
 
+  useEffect(() => {
+    if (!isAdminObservationMode) {
+      setObserverReady(true);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadObservedTeachers = async () => {
+      try {
+        setObserverReady(false);
+
+        const authResponse = await fetch('/api/auth/me', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const authData = await authResponse.json();
+
+        if (!authData?.user) {
+          window.location.replace('/login');
+          return;
+        }
+
+        if (!['admin', 'super_admin'].includes(authData?.profile?.role)) {
+          window.location.replace('/dashboard');
+          return;
+        }
+
+        const visibilityResponse = await fetch('/api/admin/visibility', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const visibility = await visibilityResponse.json();
+
+        if (!visibilityResponse.ok || !visibility.success) {
+          throw new Error(visibility.error || 'Unable to load teacher visibility');
+        }
+
+        const teacherIds = (visibility.teacherIds || []) as string[];
+        if (!teacherIds.length) {
+          if (!isMounted) return;
+          setObservedTeachers([]);
+          setObservedTeacherId('');
+          setObserverReady(true);
+          return;
+        }
+
+        const supabase = createClient();
+        const { data: teacherProfiles, error: teacherError } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', teacherIds)
+          .eq('role', 'teacher');
+
+        if (teacherError) {
+          throw teacherError;
+        }
+
+        const teachers = (teacherProfiles || [])
+          .map((teacher) => ({
+            id: teacher.id,
+            name: teacher.name || 'Teacher',
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        if (!isMounted) return;
+
+        setObservedTeachers(teachers);
+        setObservedTeacherId((current) => {
+          if (current && teachers.some((teacher) => teacher.id === current)) {
+            return current;
+          }
+          return teachers[0]?.id || '';
+        });
+      } catch (loadError) {
+        if (!isMounted) return;
+        setError(loadError instanceof Error ? loadError.message : 'Unable to load teachers for observation.');
+      } finally {
+        if (isMounted) {
+          setObserverReady(true);
+        }
+      }
+    };
+
+    loadObservedTeachers();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAdminObservationMode]);
+
   const handleSubmit = async () => {
     try {
+      if (isAdminObservationMode && !observedTeacherId) {
+        setError('Select a teacher to continue.');
+        return;
+      }
+
       setLoading(true);
       setError("");
       setResult("");
@@ -563,6 +769,9 @@ export default function AnalysisPage() {
       analysisForm.append("grade", grade);
       analysisForm.append("subject", subject);
       analysisForm.append("lecture", transcriptText);
+      if (isAdminObservationMode) {
+        analysisForm.append("observedTeacherId", observedTeacherId);
+      }
 
       setProcessingStep("Sending for analysis...");
 
@@ -589,14 +798,14 @@ export default function AnalysisPage() {
       // ── FIX 2: only redirect if logged in and saved ──
       if (data?.saved) {
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push(isAdminObservationMode ? '/admin/dashboard' : '/dashboard');
         }, 1500);
       }
       // ── END FIX 2 ──
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Something went wrong");
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
       setProcessingStep("");
@@ -607,10 +816,12 @@ export default function AnalysisPage() {
     <main className="analysis-wrapper">
       <div className="analysis-container">
         <div className="analysis-header">
-          <span className="analysis-badge">Premium AI Insights</span>
-          <h1 className="analysis-title">Lesson Analysis for Next-Level Teaching</h1>
+          <span className="analysis-badge">{isAdminObservationMode ? 'Admin Observation' : 'Premium AI Insights'}</span>
+          <h1 className="analysis-title">{isAdminObservationMode ? 'Teacher Observation Analysis' : 'Lesson Analysis for Next-Level Teaching'}</h1>
           <p className="analysis-subtitle">
-            Upload notes or audio and get an instructor-ready review with teaching scores, engagement signals, and targeted next steps.
+            {isAdminObservationMode
+              ? 'Observe a teacher under your scope and submit a full coaching analysis that is saved for both teacher growth and admin oversight.'
+              : 'Upload notes or audio and get an instructor-ready review with teaching scores, engagement signals, and targeted next steps.'}
           </p>
         </div>
 
@@ -638,6 +849,27 @@ export default function AnalysisPage() {
                   ))}
                 </select>
               </div>
+
+              {isAdminObservationMode && (
+                <div className="analysis-field-group">
+                  <label className="analysis-label">Teacher Being Observed</label>
+                  <select
+                    value={observedTeacherId}
+                    onChange={(e) => setObservedTeacherId(e.target.value)}
+                    disabled={!observerReady || observedTeachers.length === 0}
+                  >
+                    {observedTeachers.length === 0 ? (
+                      <option value="">No teachers available</option>
+                    ) : (
+                      observedTeachers.map((teacher) => (
+                        <option key={teacher.id} value={teacher.id}>
+                          {teacher.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              )}
 
               <div className="analysis-field-group">
                 <label className="analysis-label">Subject</label>
@@ -716,7 +948,10 @@ export default function AnalysisPage() {
                     </div>
 
                     <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 6 }}>
-                      {isRecording ? (isPaused ? 'Paused' : 'Recording...') : recordedChunks.length > 0 ? 'Ready to save or re-record.' : 'Click Record to begin.'}
+                      {recorderStatus || (isRecording ? (isPaused ? 'Paused' : 'Recording...') : recordedChunks.length > 0 ? 'Ready to save or re-record.' : 'Click Record to begin.')}
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginBottom: 8, opacity: 0.85 }}>
+                      If your phone locks or app goes to background, recording auto-stops and saves to prevent data loss.
                     </div>
                     <audio ref={audioPlayerRef} controls style={{ width: '100%', borderRadius: 8, marginTop: 8, display: recordedChunks.length > 0 ? 'block' : 'none' }} />
                   </div>
@@ -758,7 +993,7 @@ export default function AnalysisPage() {
               </div>
 
               <div className="analysis-actions">
-                <button className="analyze-btn" onClick={handleSubmit} disabled={loading}>
+                <button className="analyze-btn" onClick={handleSubmit} disabled={loading || (isAdminObservationMode && (!observerReady || !observedTeacherId))}>
                   {loading ? processingStep || "Analyzing..." : "Analyze Lesson"}
                 </button>
               </div>

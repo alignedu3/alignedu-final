@@ -174,6 +174,7 @@ export default function HomePage() {
                   marginBottom: '18px',
                 }}
               >
+
                 <button
                   onClick={() => router.push('/analyze')}
                   style={primaryBtn}
@@ -181,9 +182,6 @@ export default function HomePage() {
                 >
                   Try It Now
                 </button>
-
-<<<<<<< HEAD
-=======
                 <button
                   onClick={handleBookDemo}
                   style={primaryBtn}
@@ -191,7 +189,6 @@ export default function HomePage() {
                 >
                   Book Demo
                 </button>
->>>>>>> b41723b (Book Demo only removed from desktop header, remains in hero and bottom CTA)
 
               </div>
 

@@ -12,6 +12,30 @@ export type LessonReport = {
   gaps: number;
 };
 
+export type AnalysisReport = Partial<LessonReport> & {
+  id: string;
+  user_id?: string | null;
+  created_at?: string | null;
+  teacher_name?: string | null;
+  name?: string | null;
+  coverage_score?: number | string | null;
+  clarity_rating?: number | string | null;
+  engagement_level?: number | string | null;
+  assessment_quality?: number | string | null;
+  gaps_detected?: number | string | null;
+  result?: string | null;
+  analysis_result?: string | null;
+  transcript?: string | null;
+  score?: number | string | null;
+};
+
+export type ProfileRecord = {
+  id: string;
+  name?: string | null;
+  email?: string | null;
+  role?: string | null;
+};
+
 export const sampleReports: LessonReport[] = [
   {
     id: '1',
@@ -102,7 +126,7 @@ export function toNumberMetric(value: unknown, fallback = 0): number {
   return fallback;
 }
 
-export function calculateLessonScore(report: any): number {
+export function calculateLessonScore(report: AnalysisReport): number {
   const coverage = toNumberMetric(report.coverage ?? report.coverage_score, 75);
   const clarity = toNumberMetric(report.clarity ?? report.clarity_rating, 75);
   const engagement = toNumberMetric(report.engagement ?? report.engagement_level, 75);
@@ -126,7 +150,7 @@ export function average(values: number[]): number {
   return Math.round(values.reduce((sum, v) => sum + v, 0) / values.length);
 }
 
-export function getLessonMetrics(report: any) {
+export function getLessonMetrics(report: AnalysisReport) {
   return {
     score: calculateLessonScore(report),
     coverage: toNumberMetric(report.coverage ?? report.coverage_score, 75),
@@ -137,7 +161,7 @@ export function getLessonMetrics(report: any) {
   };
 }
 
-export function getLessonInsights(report: any) {
+export function getLessonInsights(report: AnalysisReport) {
   const metrics = getLessonMetrics(report);
   const findings: string[] = [];
 
@@ -191,7 +215,7 @@ export function getLessonInsights(report: any) {
   };
 }
 
-export function getDashboardSummary(reports: any[]) {
+export function getDashboardSummary(reports: AnalysisReport[]) {
   const scores = reports.map(calculateLessonScore);
 
   return {
@@ -229,7 +253,7 @@ export function getTeacherRankings(reports: LessonReport[]) {
     .sort((a, b) => b.avgScore - a.avgScore);
 }
 
-export function getTrendData(reports: any[]) {
+export function getTrendData(reports: AnalysisReport[]) {
   return [...reports]
     .sort((a, b) => (a.date ?? a.created_at ?? '').localeCompare(b.date ?? b.created_at ?? ''))
     .map(report => ({

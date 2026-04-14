@@ -3,6 +3,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import Header from '@/components/Header';
 
 export const metadata = {
+  metadataBase: new URL('https://www.alignedu.net'),
   title: "AlignEDU",
   description: "AI-powered lesson analysis for teachers",
   openGraph: {
