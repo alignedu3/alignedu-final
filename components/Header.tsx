@@ -194,9 +194,9 @@ export default function Header() {
             onClick={toggleTheme}
             aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            style={{ fontSize: 22, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <span className="header-theme-icon" aria-hidden="true">{theme === 'dark' ? 'D' : 'L'}</span>
-            <span>{theme === 'dark' ? 'Dark' : 'Light'}</span>
           </button>
 
           {!user && (
@@ -300,8 +300,9 @@ export default function Header() {
               className="mobile-nav-link mobile-nav-theme-toggle"
               onClick={toggleTheme}
               aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              style={{ fontSize: 22, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              Theme: {theme === 'dark' ? 'Dark' : 'Light'}
+              <span className="header-theme-icon" aria-hidden="true">{theme === 'dark' ? 'D' : 'L'}</span>
             </button>
 
             {!user && (
