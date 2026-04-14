@@ -121,7 +121,8 @@ export default function HomePage() {
           overflow: 'hidden',
           background: theme.heroBg,
           color: theme.heroText,
-          padding: 'clamp(64px, 8vw, 88px) 20px clamp(52px, 7vw, 70px)',
+          // Reduce top padding for less space between header and hero
+          padding: '32px 20px clamp(52px, 7vw, 70px)',
         }}
       >
         <div style={container}>
