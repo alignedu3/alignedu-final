@@ -14,6 +14,22 @@ export default function HomePage() {
     setIsDarkMode(currentTheme === 'dark');
   }, [currentTheme]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+
+    const hasAuthCode = params.has('code');
+    const hasTokenPair = hashParams.has('access_token') && hashParams.has('refresh_token');
+    const authType = hashParams.get('type') || params.get('type');
+    const isInviteOrRecovery = authType === 'invite' || authType === 'recovery';
+
+    if (hasAuthCode || hasTokenPair || isInviteOrRecovery) {
+      const next = params.get('next') || '/reset-password';
+      const callbackUrl = `/auth/handle-auth?next=${encodeURIComponent(next)}`;
+      window.location.replace(`${callbackUrl}${window.location.hash || ''}`);
+    }
+  }, []);
+
   const handleBookDemo = () => {
     window.location.href =
       'mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo.';
@@ -1357,6 +1373,8 @@ const previewCoverageChartWrap: React.CSSProperties = {
   border: '1px solid rgba(148,163,184,0.24)',
   padding: '8px 6px 6px 2px',
   height: '136px',
+  minWidth: 0,
+  minHeight: 136,
 };
 
 const previewSubjectCardsRow: React.CSSProperties = {
@@ -1371,6 +1389,7 @@ const previewSubjectCard: React.CSSProperties = {
   background: 'linear-gradient(180deg, rgba(255,255,255,0.94), rgba(248,250,252,0.9))',
   padding: '8px',
   boxShadow: '0 6px 14px rgba(15,23,42,0.05)',
+  minWidth: 0,
 };
 
 const previewSubjectTitle: React.CSSProperties = {

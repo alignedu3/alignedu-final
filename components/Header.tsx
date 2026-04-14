@@ -5,10 +5,15 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useTheme } from '@/app/context/ThemeContext';
+import type { ProfileRecord } from '@/lib/dashboardData';
+
+type AuthUser = {
+  id: string;
+};
 
 export default function Header() {
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [profile, setProfile] = useState<ProfileRecord | null>(null);
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -17,6 +22,8 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
 
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const role = (profile?.role || '').toLowerCase();
+  const isAdminUser = role === 'admin' || role === 'super_admin';
 
   useEffect(() => {
     const supabase = createClient();
@@ -142,8 +149,8 @@ export default function Header() {
       .select('role')
       .eq('id', user.id)
       .single();
-    const userRole = profileData?.role || profile?.role;
-    if (['admin', 'super_admin'].includes(userRole)) {
+    const userRole = (profileData?.role || profile?.role || '').toLowerCase();
+    if (userRole === 'admin' || userRole === 'super_admin') {
       router.push('/admin');
     } else {
       router.push('/dashboard');
@@ -197,9 +204,6 @@ export default function Header() {
               <Link href="/login" className="login-button-top">
                 Login
               </Link>
-              <a href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo." className="book-demo-btn">
-                Book Demo
-              </a>
             </div>
           )}
 
@@ -225,7 +229,7 @@ export default function Header() {
                     Teacher Dashboard
                   </Link>
 
-                  {['admin', 'super_admin'].includes(profile?.role) && (
+                  {isAdminUser && (
                     <>
                       <Link
                         href="/admin"
@@ -233,6 +237,14 @@ export default function Header() {
                         onClick={() => setOpen(false)}
                       >
                         Admin Dashboard
+                      </Link>
+
+                      <Link
+                        href="/admin/observe"
+                        style={dropdownItem}
+                        onClick={() => setOpen(false)}
+                      >
+                        Observe Lesson
                       </Link>
 
                       <Link
@@ -312,10 +324,13 @@ export default function Header() {
                 <Link href="/dashboard" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                   Teacher Dashboard
                 </Link>
-                {profile?.role === "admin" && (
+                {isAdminUser && (
                   <>
                     <Link href="/admin" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                       Admin Dashboard
+                    </Link>
+                    <Link href="/admin/observe" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                      Observe Lesson
                     </Link>
                     <Link href="/admin/invite" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                       Add User
