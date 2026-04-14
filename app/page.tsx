@@ -166,13 +166,7 @@ export default function HomePage() {
                   Try It Now
                 </button>
 
-                <button
-                  onClick={handleBookDemo}
-                  style={primaryBtn}
-                  className="hero-cta hero-cta-unified"
-                >
-                  Book Demo
-                </button>
+
               </div>
 
               <p
