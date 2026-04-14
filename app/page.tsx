@@ -182,6 +182,16 @@ export default function HomePage() {
                   Try It Now
                 </button>
 
+<<<<<<< HEAD
+=======
+                <button
+                  onClick={handleBookDemo}
+                  style={primaryBtn}
+                  className="hero-cta hero-cta-unified"
+                >
+                  Book Demo
+                </button>
+>>>>>>> b41723b (Book Demo only removed from desktop header, remains in hero and bottom CTA)
 
               </div>
 
