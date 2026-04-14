@@ -546,26 +546,27 @@ export default function AdminDashboard() {
             <div style={statSub}>Based on recent submissions</div>
           </div>
 
-          <div style={cardSmall}>
-            <div style={statLabel}>Teachers Performing Strongly</div>
-            <button
-              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
-              onClick={() => setModalType('strong')}
-            >
-              {strongCount}
-            </button>
-            <div style={statSub}>Meeting expectations</div>
-          </div>
-
-          <div style={cardSmall}>
-            <div style={statLabel}>At-Risk<br />Teachers</div>
-            <button
-              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
-              onClick={() => setModalType('atrisk')}
-            >
-              {supportCount}
-            </button>
-            <div style={statSub}>Require support</div>
+          <div style={{ display: 'flex', gap: isNarrowScreen ? 8 : 16, width: '100%' }}>
+            <div style={{ ...cardSmall, flex: 1 }}>
+              <div style={statLabel}>Strong Teachers</div>
+              <button
+                style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
+                onClick={() => setModalType('strong')}
+              >
+                {strongCount}
+              </button>
+              <div style={statSub}>Meeting expectations</div>
+            </div>
+            <div style={{ ...cardSmall, flex: 1 }}>
+              <div style={statLabel}>At-Risk Teachers</div>
+              <button
+                style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
+                onClick={() => setModalType('atrisk')}
+              >
+                {supportCount}
+              </button>
+              <div style={statSub}>Require support</div>
+            </div>
           </div>
         </div>
 
