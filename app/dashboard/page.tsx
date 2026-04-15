@@ -7,7 +7,10 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { getDashboardSummary, getTrendData, calculateLessonScore, getLessonInsights, type AnalysisReport } from '@/lib/dashboardData';
 
 export default function TeacherDashboard() {
-  const supabaseRef = useRef(createClient());
+  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
+  if (typeof window !== 'undefined' && !supabaseRef.current) {
+    supabaseRef.current = createClient();
+  }
   const supabase = supabaseRef.current;
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null>(null);
@@ -17,6 +20,8 @@ export default function TeacherDashboard() {
   const [ready, setReady] = useState(false);
 
   const loadData = useCallback(async () => {
+    if (!supabase) return;
+
     try {
       const authResponse = await fetch('/api/auth/me', {
         credentials: 'include',
@@ -56,8 +61,9 @@ export default function TeacherDashboard() {
   }, [supabase]);
 
   useEffect(() => {
+    if (!supabase) return;
     loadData();
-  }, [loadData]);
+  }, [loadData, supabase]);
 
   useEffect(() => {
     const checkScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
