@@ -767,7 +767,7 @@ export default function AdminDashboard() {
               <div key={row.id} style={hierarchyCard}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                   <button
-                    onClick={() => router.push(`/admin/teacher/${row.id}`)}
+                    onClick={() => router.push(row.role === 'admin' || row.role === 'super_admin' ? `/admin?adminId=${row.id}` : `/admin/teacher/${row.id}`)}
                     style={entityLinkBtn}
                   >
                     {row.name} <span style={mutedInline}>({row.role})</span>
