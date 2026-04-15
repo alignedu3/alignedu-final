@@ -618,31 +618,6 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* ACTION */}
-        <div style={card}>
-          <h2 style={title}>Administrator Support Plan</h2>
-          <div style={supportPlanHeader}>
-            <div>
-              <div style={supportPlanLabel}>Priority Teacher</div>
-              <div style={supportPlanTeacher}>{recommendedSupportPlan.teacherName}</div>
-            </div>
-            <div style={supportPlanChip}>{recommendedSupportPlan.followUpTimeline}</div>
-          </div>
-          <p style={text}>{recommendedSupportPlan.summary}</p>
-          <div style={{ ...text, marginTop: 10 }}>
-            <strong>Why this teacher:</strong> {recommendedSupportPlan.priorityReason}
-          </div>
-          <div style={{ ...text, marginTop: 10 }}>
-            <strong>Administrator action:</strong> {recommendedSupportPlan.adminAction}
-          </div>
-          <div style={{ ...supportPlanLabel, marginTop: 14, marginBottom: 8 }}>Look-fors in the next observation</div>
-          <ul style={actionList}>
-            {recommendedSupportPlan.lookFors.map((action, idx) => (
-              <li key={idx} style={actionItem}>{action}</li>
-            ))}
-          </ul>
-        </div>
-
         {/* STATS */}
         <div
           style={{
@@ -696,6 +671,31 @@ export default function AdminDashboard() {
             </button>
             <div style={statSub}>Require support</div>
           </div>
+        </div>
+
+        {/* ACTION */}
+        <div style={card}>
+          <h2 style={title}>Administrator Support Plan</h2>
+          <div style={supportPlanHeader}>
+            <div>
+              <div style={supportPlanLabel}>Priority Teacher</div>
+              <div style={supportPlanTeacher}>{recommendedSupportPlan.teacherName}</div>
+            </div>
+            <div style={supportPlanChip}>{recommendedSupportPlan.followUpTimeline}</div>
+          </div>
+          <p style={text}>{recommendedSupportPlan.summary}</p>
+          <div style={{ ...text, marginTop: 10 }}>
+            <strong>Why this teacher:</strong> {recommendedSupportPlan.priorityReason}
+          </div>
+          <div style={{ ...text, marginTop: 10 }}>
+            <strong>Administrator action:</strong> {recommendedSupportPlan.adminAction}
+          </div>
+          <div style={{ ...supportPlanLabel, marginTop: 14, marginBottom: 8 }}>Look-fors in the next observation</div>
+          <ul style={actionList}>
+            {recommendedSupportPlan.lookFors.map((action, idx) => (
+              <li key={idx} style={actionItem}>{action}</li>
+            ))}
+          </ul>
         </div>
 
         {/* TREND */}

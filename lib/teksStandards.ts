@@ -14,6 +14,14 @@ export interface TEKSGradeSubject {
   overviewStatement: string;
 }
 
+function normalizeText(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function normalizeGrade(grade: string): string {
   const value = grade.trim().toLowerCase();
   if (!value) return '';
@@ -38,6 +46,12 @@ function normalizeGrade(grade: string): string {
   };
 
   return aliases[value] || value;
+}
+
+function getKeywordTokens(value: string): string[] {
+  return normalizeText(value)
+    .split(' ')
+    .filter((token) => token.length > 2);
 }
 
 function normalizeSubject(subject: string): string {
@@ -113,6 +127,52 @@ const teksDatabase: TEKSGradeSubject[] = [
     ],
   },
 
+  // GRADE 3 MATHEMATICS
+  {
+    grade: "3rd Grade",
+    subject: "Mathematics",
+    overviewStatement:
+      "Grade 3 Mathematics focuses on multiplication foundations, division concepts, fractions, measurement, geometry, and data reasoning.",
+    standards: [
+      {
+        code: "3.1.A",
+        description:
+          "Represent and solve multiplication and division problems within real-world contexts.",
+        category: "Multiplication & Division",
+      },
+      {
+        code: "3.2.A",
+        description:
+          "Use arrays, equal groups, and number lines to model multiplication and division relationships.",
+        category: "Multiplication & Division",
+      },
+      {
+        code: "3.3.A",
+        description:
+          "Represent fractions as parts of a whole and locate simple fractions on a number line.",
+        category: "Fractions",
+      },
+      {
+        code: "3.4.A",
+        description:
+          "Solve problems involving perimeter, area, and measurement using appropriate tools and units.",
+        category: "Measurement",
+      },
+      {
+        code: "3.5.A",
+        description:
+          "Represent and interpret data using scaled pictographs, bar graphs, and frequency tables.",
+        category: "Data Analysis",
+      },
+      {
+        code: "3.6.A",
+        description:
+          "Classify and describe two-dimensional figures and their attributes.",
+        category: "Geometry",
+      },
+    ],
+  },
+
   // GRADE 4 MATHEMATICS
   {
     grade: "4th Grade",
@@ -164,6 +224,144 @@ const teksDatabase: TEKSGradeSubject[] = [
         code: "4.8.A",
         description: "Collect, organize, and display categorical and measurement data.",
         category: "Data Analysis",
+      },
+    ],
+  },
+
+  // GRADE 4 ELA
+  {
+    grade: "4th Grade",
+    subject: "English Language Arts",
+    overviewStatement:
+      "Grade 4 ELA emphasizes comprehension, text evidence, vocabulary, composition, revision, and communication across genres.",
+    standards: [
+      {
+        code: "4.1.A",
+        description:
+          "Ask and respond to questions using relevant textual evidence to support understanding.",
+        category: "Comprehension",
+      },
+      {
+        code: "4.2.A",
+        description:
+          "Determine the meaning of unfamiliar words and figurative language using context and reference tools.",
+        category: "Vocabulary",
+      },
+      {
+        code: "4.3.A",
+        description:
+          "Summarize texts and explain how the author uses details to develop central ideas.",
+        category: "Reading",
+      },
+      {
+        code: "4.4.A",
+        description:
+          "Write extended responses with a clear controlling idea, organization, and supporting evidence.",
+        category: "Writing",
+      },
+      {
+        code: "4.5.A",
+        description:
+          "Revise drafts to improve organization, word choice, clarity, and sentence fluency.",
+        category: "Revision",
+      },
+      {
+        code: "4.6.A",
+        description:
+          "Edit writing for capitalization, punctuation, grammar, and spelling conventions.",
+        category: "Editing",
+      },
+    ],
+  },
+
+  // GRADE 5 MATHEMATICS
+  {
+    grade: "5th Grade",
+    subject: "Mathematics",
+    overviewStatement:
+      "Grade 5 Mathematics emphasizes multi-step operations, fractions, decimals, geometry, and data interpretation.",
+    standards: [
+      {
+        code: "5.1.A",
+        description:
+          "Solve multi-step problems using addition, subtraction, multiplication, and division of whole numbers.",
+        category: "Operations",
+      },
+      {
+        code: "5.2.A",
+        description:
+          "Add and subtract fractions with like and unlike denominators using visual and numeric models.",
+        category: "Fractions",
+      },
+      {
+        code: "5.3.A",
+        description:
+          "Represent, compare, and operate with decimals through the hundredths place.",
+        category: "Decimals",
+      },
+      {
+        code: "5.4.A",
+        description:
+          "Solve problems involving area, volume, and coordinate graphing in the first quadrant.",
+        category: "Measurement & Geometry",
+      },
+      {
+        code: "5.5.A",
+        description:
+          "Represent and interpret data sets using numerical summaries and graphical models.",
+        category: "Data Analysis",
+      },
+      {
+        code: "5.6.A",
+        description:
+          "Use patterns and relationships to generate and analyze numerical expressions.",
+        category: "Algebraic Reasoning",
+      },
+    ],
+  },
+
+  // GRADE 5 ELA
+  {
+    grade: "5th Grade",
+    subject: "English Language Arts",
+    overviewStatement:
+      "Grade 5 ELA focuses on comprehension, theme, synthesis, written response, revision, and language conventions.",
+    standards: [
+      {
+        code: "5.1.A",
+        description:
+          "Make inferences and support understanding of texts with relevant evidence.",
+        category: "Comprehension",
+      },
+      {
+        code: "5.2.A",
+        description:
+          "Analyze theme, author’s craft, and the development of characters and ideas in a text.",
+        category: "Reading",
+      },
+      {
+        code: "5.3.A",
+        description:
+          "Compare information across texts and synthesize ideas using evidence.",
+        category: "Synthesis",
+      },
+      {
+        code: "5.4.A",
+        description:
+          "Write organized responses and compositions with a thesis, evidence, and elaboration.",
+        category: "Writing",
+      },
+      {
+        code: "5.5.A",
+        description:
+          "Revise writing to improve clarity, transitions, structure, and precision of language.",
+        category: "Revision",
+      },
+      {
+        code: "5.6.A",
+        description:
+          "Edit writing for grammar, capitalization, punctuation, and spelling conventions.",
+        category: "Editing",
       },
     ],
   },
@@ -226,6 +424,98 @@ const teksDatabase: TEKSGradeSubject[] = [
     ],
   },
 
+  // GRADE 6 MATHEMATICS
+  {
+    grade: "6th Grade",
+    subject: "Mathematics",
+    overviewStatement:
+      "Grade 6 Mathematics develops proportional reasoning, operations with rational numbers, expressions, equations, geometry, and statistics.",
+    standards: [
+      {
+        code: "6.1.A",
+        description:
+          "Represent and solve problems involving ratios, rates, and proportional relationships.",
+        category: "Proportionality",
+      },
+      {
+        code: "6.2.A",
+        description:
+          "Apply operations with whole numbers, fractions, and decimals in mathematical and real-world contexts.",
+        category: "Operations",
+      },
+      {
+        code: "6.3.A",
+        description:
+          "Write, interpret, and evaluate algebraic expressions and numerical expressions.",
+        category: "Expressions",
+      },
+      {
+        code: "6.4.A",
+        description:
+          "Represent and solve one-variable equations and inequalities.",
+        category: "Equations & Inequalities",
+      },
+      {
+        code: "6.5.A",
+        description:
+          "Describe and solve problems involving area, surface area, and volume.",
+        category: "Geometry & Measurement",
+      },
+      {
+        code: "6.6.A",
+        description:
+          "Represent data and summarize distributions using measures of center and spread.",
+        category: "Statistics",
+      },
+    ],
+  },
+
+  // GRADE 6 ELA
+  {
+    grade: "6th Grade",
+    subject: "English Language Arts",
+    overviewStatement:
+      "Grade 6 ELA emphasizes close reading, author’s purpose, evidence-based writing, revision, and language development.",
+    standards: [
+      {
+        code: "6.1.A",
+        description:
+          "Cite evidence to support inferences and analysis of literary and informational texts.",
+        category: "Comprehension",
+      },
+      {
+        code: "6.2.A",
+        description:
+          "Analyze how authors use structure, point of view, and craft to shape meaning.",
+        category: "Author's Craft",
+      },
+      {
+        code: "6.3.A",
+        description:
+          "Determine central idea, summarize texts, and explain supporting details.",
+        category: "Reading",
+      },
+      {
+        code: "6.4.A",
+        description:
+          "Write organized compositions and responses using clear claims, evidence, and elaboration.",
+        category: "Writing",
+      },
+      {
+        code: "6.5.A",
+        description:
+          "Revise writing for coherence, word choice, organization, and audience.",
+        category: "Revision",
+      },
+      {
+        code: "6.6.A",
+        description:
+          "Edit for grammar, punctuation, capitalization, spelling, and sentence correctness.",
+        category: "Editing",
+      },
+    ],
+  },
+
   // GRADE 6 SCIENCE
   {
     grade: "6th Grade",
@@ -279,6 +569,190 @@ const teksDatabase: TEKSGradeSubject[] = [
         description:
           "Analyze the flow of energy through food chains and food webs.",
         category: "Ecosystems",
+      },
+    ],
+  },
+
+  // GRADE 7 MATHEMATICS
+  {
+    grade: "7th Grade",
+    subject: "Mathematics",
+    overviewStatement:
+      "Grade 7 Mathematics focuses on proportionality, rational numbers, equations, probability, geometry, and financial literacy.",
+    standards: [
+      {
+        code: "7.1.A",
+        description:
+          "Represent and solve problems involving proportional relationships and scale.",
+        category: "Proportionality",
+      },
+      {
+        code: "7.2.A",
+        description:
+          "Apply operations with rational numbers in multi-step mathematical and real-world situations.",
+        category: "Operations",
+      },
+      {
+        code: "7.3.A",
+        description:
+          "Represent linear relationships and solve one- and two-step equations and inequalities.",
+        category: "Equations & Relationships",
+      },
+      {
+        code: "7.4.A",
+        description:
+          "Solve problems involving area, circumference, surface area, and volume.",
+        category: "Geometry & Measurement",
+      },
+      {
+        code: "7.5.A",
+        description:
+          "Use probability and data analysis to make predictions and solve problems.",
+        category: "Probability & Statistics",
+      },
+      {
+        code: "7.6.A",
+        description:
+          "Apply mathematical reasoning to personal financial literacy contexts.",
+        category: "Financial Literacy",
+      },
+    ],
+  },
+
+  // GRADE 7 ELA
+  {
+    grade: "7th Grade",
+    subject: "English Language Arts",
+    overviewStatement:
+      "Grade 7 ELA emphasizes analysis of texts, synthesis, argument writing, revision, and language conventions.",
+    standards: [
+      {
+        code: "7.1.A",
+        description:
+          "Use evidence to support analysis, inference, and interpretation of texts.",
+        category: "Comprehension",
+      },
+      {
+        code: "7.2.A",
+        description:
+          "Analyze how authors develop themes, claims, and ideas across a text.",
+        category: "Reading",
+      },
+      {
+        code: "7.3.A",
+        description:
+          "Compare and synthesize information across multiple texts and sources.",
+        category: "Synthesis",
+      },
+      {
+        code: "7.4.A",
+        description:
+          "Write argumentative and informational compositions using claims, evidence, and explanation.",
+        category: "Writing",
+      },
+      {
+        code: "7.5.A",
+        description:
+          "Revise writing for organization, coherence, transitions, and precision of language.",
+        category: "Revision",
+      },
+      {
+        code: "7.6.A",
+        description:
+          "Edit writing for grammar, punctuation, capitalization, and spelling conventions.",
+        category: "Editing",
+      },
+    ],
+  },
+
+  // GRADE 8 MATHEMATICS
+  {
+    grade: "8th Grade",
+    subject: "Mathematics",
+    overviewStatement:
+      "Grade 8 Mathematics develops linear relationships, functions, transformations, geometry, and data analysis.",
+    standards: [
+      {
+        code: "8.1.A",
+        description:
+          "Represent proportional and linear relationships using tables, graphs, equations, and verbal descriptions.",
+        category: "Linear Relationships",
+      },
+      {
+        code: "8.2.A",
+        description:
+          "Analyze slope and rate of change in real-world and mathematical contexts.",
+        category: "Linear Relationships",
+      },
+      {
+        code: "8.3.A",
+        description:
+          "Represent, interpret, and solve linear equations and systems of equations.",
+        category: "Equations & Systems",
+      },
+      {
+        code: "8.4.A",
+        description:
+          "Use transformations to describe congruence, similarity, and relationships among figures.",
+        category: "Geometry",
+      },
+      {
+        code: "8.5.A",
+        description:
+          "Apply the Pythagorean Theorem and volume formulas to solve geometric problems.",
+        category: "Geometry & Measurement",
+      },
+      {
+        code: "8.6.A",
+        description:
+          "Construct and interpret scatterplots, bivariate data, and data patterns.",
+        category: "Data Analysis",
+      },
+    ],
+  },
+
+  // GRADE 8 ELA
+  {
+    grade: "8th Grade",
+    subject: "English Language Arts",
+    overviewStatement:
+      "Grade 8 ELA focuses on analysis of theme and argument, synthesis across texts, and sustained evidence-based writing.",
+    standards: [
+      {
+        code: "8.1.A",
+        description:
+          "Analyze texts closely and support interpretations with relevant evidence.",
+        category: "Comprehension",
+      },
+      {
+        code: "8.2.A",
+        description:
+          "Analyze theme, central idea, author’s purpose, and rhetorical choices across genres.",
+        category: "Reading",
+      },
+      {
+        code: "8.3.A",
+        description:
+          "Evaluate arguments and synthesize information across multiple sources.",
+        category: "Argument & Synthesis",
+      },
+      {
+        code: "8.4.A",
+        description:
+          "Write extended responses and compositions with clear claims, evidence, counterclaims, and elaboration.",
+        category: "Writing",
+      },
+      {
+        code: "8.5.A",
+        description:
+          "Revise writing for coherence, organization, precision, and effectiveness for audience and purpose.",
+        category: "Revision",
+      },
+      {
+        code: "8.6.A",
+        description:
+          "Edit writing for grammar, punctuation, capitalization, spelling, and sentence variety.",
+        category: "Editing",
       },
     ],
   },
@@ -407,6 +881,122 @@ const teksDatabase: TEKSGradeSubject[] = [
         description:
           "Analyze functions, identify zeros, and sketch graphs of polynomial functions.",
         category: "Functions & Graphing",
+      },
+    ],
+  },
+
+  // BIOLOGY (HIGH SCHOOL)
+  {
+    grade: "10th Grade",
+    subject: "Biology",
+    overviewStatement:
+      "Biology emphasizes structure and function of living systems, heredity, ecosystems, energy transfer, and scientific reasoning.",
+    standards: [
+      {
+        code: "BIO.5.A",
+        description:
+          "Describe the structures of prokaryotic and eukaryotic cells, including cell membrane, cell wall, nucleus, and organelles.",
+        category: "Cell Structure",
+      },
+      {
+        code: "BIO.5.B",
+        description:
+          "Investigate and explain how cell structures and organelles contribute to cellular functions and homeostasis.",
+        category: "Cell Function",
+      },
+      {
+        code: "BIO.6.A",
+        description:
+          "Explain the relationship between photosynthesis and cellular respiration in energy transfer within living systems.",
+        category: "Energy Transfer",
+      },
+      {
+        code: "BIO.6.B",
+        description:
+          "Analyze the roles of enzymes in biochemical reactions and factors that affect enzyme activity.",
+        category: "Biochemistry",
+      },
+      {
+        code: "BIO.7.A",
+        description:
+          "Compare sexual and asexual reproduction and explain how traits are inherited through genetic processes.",
+        category: "Genetics",
+      },
+      {
+        code: "BIO.7.B",
+        description:
+          "Analyze the structure and function of DNA and its role in protein synthesis and inheritance.",
+        category: "Genetics",
+      },
+      {
+        code: "BIO.8.A",
+        description:
+          "Analyze how natural selection and adaptation contribute to survival and diversity of organisms.",
+        category: "Evolution",
+      },
+      {
+        code: "BIO.9.A",
+        description:
+          "Describe the flow of energy through food webs, food chains, and ecosystems.",
+        category: "Ecosystems",
+      },
+      {
+        code: "BIO.9.B",
+        description:
+          "Analyze interactions among organisms and environmental changes within ecosystems.",
+        category: "Ecosystems",
+      },
+      {
+        code: "BIO.10.A",
+        description:
+          "Construct and communicate scientific explanations and arguments using evidence from biological investigations.",
+        category: "Scientific Reasoning",
+      },
+    ],
+  },
+
+  // ENGLISH II (HIGH SCHOOL)
+  {
+    grade: "10th Grade",
+    subject: "English II",
+    overviewStatement:
+      "English II emphasizes literary and informational analysis, argument, synthesis, revision, and written communication.",
+    standards: [
+      {
+        code: "E2.1.A",
+        description:
+          "Analyze literary and informational texts using evidence to support interpretation and conclusions.",
+        category: "Reading Analysis",
+      },
+      {
+        code: "E2.2.A",
+        description:
+          "Analyze author’s craft, structure, and rhetorical choices across texts.",
+        category: "Author's Craft",
+      },
+      {
+        code: "E2.3.A",
+        description:
+          "Evaluate arguments and synthesize ideas across sources using relevant evidence.",
+        category: "Argument & Synthesis",
+      },
+      {
+        code: "E2.4.A",
+        description:
+          "Write analytical and argumentative responses with a defensible thesis, evidence, and commentary.",
+        category: "Writing",
+      },
+      {
+        code: "E2.5.A",
+        description:
+          "Revise drafts to strengthen organization, style, transitions, and precision.",
+        category: "Revision",
+      },
+      {
+        code: "E2.6.A",
+        description:
+          "Edit writing for grammar, punctuation, capitalization, and spelling conventions.",
+        category: "Editing",
       },
     ],
   },
@@ -554,6 +1144,52 @@ const teksDatabase: TEKSGradeSubject[] = [
       },
     ],
   },
+
+  // U.S. HISTORY (HIGH SCHOOL)
+  {
+    grade: "11th Grade",
+    subject: "U.S. History",
+    overviewStatement:
+      "U.S. History emphasizes major events, turning points, civic institutions, economic change, and the impact of historical decisions in the United States.",
+    standards: [
+      {
+        code: "USH.1.A",
+        description:
+          "Analyze major political, economic, and social turning points in U.S. history from Reconstruction to the present.",
+        category: "Historical Understanding",
+      },
+      {
+        code: "USH.2.A",
+        description:
+          "Evaluate causes and effects of industrialization, urbanization, and reform movements in the United States.",
+        category: "Industrialization & Reform",
+      },
+      {
+        code: "USH.3.A",
+        description:
+          "Analyze the causes, major events, and consequences of U.S. involvement in international conflicts.",
+        category: "Conflict & Foreign Policy",
+      },
+      {
+        code: "USH.4.A",
+        description:
+          "Explain how constitutional principles, civic participation, and government institutions shaped historical developments.",
+        category: "Government & Civics",
+      },
+      {
+        code: "USH.5.A",
+        description:
+          "Analyze the impact of economic systems, labor, and innovation on U.S. society and policy.",
+        category: "Economics",
+      },
+      {
+        code: "USH.6.A",
+        description:
+          "Construct and communicate historical arguments using primary and secondary source evidence.",
+        category: "Historical Thinking",
+      },
+    ],
+  },
 ];
 
 /**
@@ -588,6 +1224,43 @@ export function getTEKSStandards(
     overview: `Standards for ${grade} ${subject} are not yet loaded in the system.`,
     found: false,
   };
+}
+
+export function getRelatedTEKSStandards(
+  grade: string,
+  subject: string,
+  contextText: string,
+  options?: { limit?: number; excludeCodes?: string[] }
+): TEKSStandard[] {
+  const { standards } = getTEKSStandards(grade, subject);
+  if (!standards.length) return [];
+
+  const limit = options?.limit ?? 3;
+  const excludeCodes = new Set(options?.excludeCodes || []);
+  const contextTokens = new Set(getKeywordTokens(contextText));
+
+  const scored = standards
+    .filter((standard) => !excludeCodes.has(standard.code))
+    .map((standard) => {
+      const descriptionTokens = getKeywordTokens(`${standard.category} ${standard.description}`);
+      const overlap = descriptionTokens.reduce(
+        (score, token) => score + (contextTokens.has(token) ? 1 : 0),
+        0
+      );
+
+      const exactPhraseBonus = normalizeText(contextText).includes(normalizeText(standard.category)) ? 2 : 0;
+
+      return {
+        standard,
+        score: overlap + exactPhraseBonus,
+      };
+    })
+    .sort((a, b) => b.score - a.score || a.standard.code.localeCompare(b.standard.code));
+
+  const bestScore = scored[0]?.score ?? 0;
+  const prioritized = bestScore > 0 ? scored : scored;
+
+  return prioritized.slice(0, limit).map((entry) => entry.standard);
 }
 
 /**

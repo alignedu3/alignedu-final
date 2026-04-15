@@ -1,6 +1,6 @@
 import { STAAR_SUBJECTS } from '@/lib/staarSubjects';
 import { parseAnalysisMetrics, parseFeedbackSections, type ReportSection } from '@/lib/analysisReport';
-import { getTEKSStandards } from '@/lib/teksStandards';
+import { getRelatedTEKSStandards, getTEKSStandards, type TEKSStandard } from '@/lib/teksStandards';
 
 export type LessonReport = {
   id: string;
@@ -193,6 +193,19 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     improvements.push('Revisit unfinished content and close conceptual gaps before progressing to the next lesson sequence.');
   }
 
+  const reinforcedStandards = getRelatedTEKSStandards(report.grade, report.subject, report.title, { limit: 2 });
+  const weakerAssessmentStandards = getRelatedTEKSStandards(
+    report.grade,
+    report.subject,
+    `${report.title} ${improvements.join(' ')}`,
+    { limit: 2, excludeCodes: reinforcedStandards.map((standard) => standard.code) }
+  );
+
+  const formatStandardsBlock = (standards: TEKSStandard[], fallback: string) =>
+    standards.length
+      ? standards.map((standard) => `  - ${standard.code}: ${standard.description}`)
+      : [`  - ${fallback}`];
+
   return [
     'Metrics:',
     `Instructional Score (0-100): ${Math.max(0, Math.min(100, Math.round(score)))}`,
@@ -222,13 +235,23 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     '',
     '=== STAAR TEKS COVERAGE ===',
     `- Readiness Summary: The lesson is ${report.coverage >= 88 ? 'strongly aligned' : 'partially aligned'} to the assessed Biology standard for this course sequence.`,
-    `- Standards Reinforced: The objective, examples, and guided practice collectively reinforce grade-level biology content.`,
-    `- Standards That Need Stronger Assessment Evidence: ${report.assessment >= 80 ? 'Current checks provide solid evidence of mastery.' : 'Students need a clearer standards-aligned mastery task before the lesson closes.'}`,
+    '- Standards Reinforced:',
+    ...formatStandardsBlock(reinforcedStandards, 'BIO.5.A: Describe the structures of prokaryotic and eukaryotic cells, including cell membrane, cell wall, nucleus, and organelles.'),
+    '- Standards That Need Stronger Assessment Evidence:',
+    ...formatStandardsBlock(
+      weakerAssessmentStandards,
+      'BIO.10.A: Construct and communicate scientific explanations and arguments using evidence from biological investigations.'
+    ),
     `- STAAR Readiness Recommendation: ${report.coverage >= 88 ? 'Maintain strong standards alignment while deepening independent student evidence.' : 'Tighten the connection between instruction, practice, and the assessed TEKS expectation.'}`,
     '',
     '=== TEXAS TEKS STANDARDS ALIGNMENT ===',
-    '- Standards Addressed: Biology 10.6.A: Identify components of cells and their functions in multicellular organisms.',
-    '- Standards Not Observed: Biology 10.6.C: Evaluate how cell processes maintain homeostasis in changing environments.',
+    '- Standards Addressed:',
+    ...formatStandardsBlock(reinforcedStandards, 'BIO.5.A: Describe the structures of prokaryotic and eukaryotic cells, including cell membrane, cell wall, nucleus, and organelles.'),
+    '- Standards Not Observed:',
+    ...formatStandardsBlock(
+      weakerAssessmentStandards,
+      'BIO.10.A: Construct and communicate scientific explanations and arguments using evidence from biological investigations.'
+    ),
     '- Standards Mastery Notes: Students were introduced to the core concept, but mastery evidence was stronger when the lesson included concrete checks for understanding.',
     '- Recommendations for Standards Integration: Add one short written response or labeled diagram task tied directly to the target TEKS before the lesson ends.',
   ].join('\n');

@@ -109,6 +109,21 @@ export default function HomePage() {
     },
   ];
 
+  const teksCoverageGroups = [
+    {
+      label: 'Elementary',
+      items: ['Grade 3 Math', 'Grade 3 ELA', 'Grade 4 Math', 'Grade 4 ELA', 'Grade 5 Math', 'Grade 5 ELA', 'Grade 5 Science'],
+    },
+    {
+      label: 'Middle School',
+      items: ['Grade 6 Math', 'Grade 6 ELA', 'Grade 6 Science', 'Grade 7 Math', 'Grade 7 ELA', 'Grade 8 Math', 'Grade 8 ELA', 'Grade 8 Science', 'Grade 8 Social Studies'],
+    },
+    {
+      label: 'High School',
+      items: ['Algebra I', 'English II', 'Biology', 'U.S. History'],
+    },
+  ];
+
   return (
     <main
       style={{
@@ -575,6 +590,84 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TEKS COVERAGE */}
+      <section
+        style={{
+          padding: 'clamp(58px, 8vw, 78px) 20px',
+          background: theme.sectionSoft,
+        }}
+      >
+        <div style={container}>
+          <div style={sectionHeader}>
+            <div style={eyebrowLight}>Standards Coverage</div>
+            <h2 style={{ ...sectionTitle, color: theme.text }}>
+              TEKS coverage across STAAR-tested subjects
+            </h2>
+            <p style={{ ...sectionSubtitle, color: theme.mutedText }}>
+              AlignEDU is currently configured to analyze and return TEKS-aligned feedback across the following tested grade bands and subjects.
+            </p>
+          </div>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gap: '18px',
+            }}
+          >
+            {teksCoverageGroups.map((group) => (
+              <div
+                key={group.label}
+                style={{
+                  ...glassCard,
+                  background: theme.cardBg,
+                  border: `1px solid ${theme.cardBorder}`,
+                  padding: '24px',
+                }}
+              >
+                <div
+                  style={{
+                    color: theme.text,
+                    fontSize: '18px',
+                    fontWeight: 750,
+                    marginBottom: '14px',
+                  }}
+                >
+                  {group.label}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '10px',
+                  }}
+                >
+                  {group.items.map((item) => (
+                    <div
+                      key={item}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        borderRadius: '999px',
+                        background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
+                        border: `1px solid ${theme.cardBorder}`,
+                        color: theme.text,
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

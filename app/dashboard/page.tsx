@@ -109,7 +109,15 @@ export default function TeacherDashboard() {
   const overallScore = summary.averageScore;
 
   const handleViewReport = (report: AnalysisReport) => {
-    setSelectedReport(report);
+    setSelectedReport((current) => {
+      if (current?.id === report.id) {
+        window.requestAnimationFrame(() => {
+          selectedLessonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        return current;
+      }
+      return report;
+    });
   };
 
   const handleDeleteReport = async (id: string) => {
@@ -241,7 +249,9 @@ export default function TeacherDashboard() {
             </p>
             <div style={{ marginTop: 12 }}>
               <button
-                onClick={() => setSelectedReport(reports[0] || null)}
+                onClick={() => {
+                  if (reports[0]) handleViewReport(reports[0]);
+                }}
                 style={{ ...actionButton, background: '#f97316', padding: '8px 12px' }}
               >
                 Open Sample Lesson Analysis
