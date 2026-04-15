@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { getTEKSStandards, formatTEKSForPrompt } from "@/lib/teksStandards";
+import { STAAR_SUBJECTS } from "@/lib/staarSubjects";
 import { getAdminVisibility } from "@/lib/adminVisibility";
 
 function getOpenAIKey() {
@@ -194,44 +195,26 @@ export async function POST(req: Request) {
     const { standards, overview, found: hasStandards } = getTEKSStandards(grade, subject);
     const teksContext = formatTEKSForPrompt(standards, overview);
 
-    const systemPrompt = `
-You are an elite instructional coach analyzing classroom teaching.
-Be specific, evidence-based, and actionable.
-Provide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.
-`;
+    let systemPrompt = `You are an elite instructional coach analyzing classroom teaching. Be specific, evidence-based, and actionable. Organize the report with clear sections, bullet points, and concise language so it is easy to follow.`;
+    let userPrompt = '';
 
-    const userPrompt = `
-Grade: ${grade}
-Subject: ${subject}
+    // Check if this is a STAAR-tested subject/grade
+    const isSTAAR = STAAR_SUBJECTS.some(
+      (s) => s.grade.toLowerCase() === grade.toLowerCase() && s.subject.toLowerCase() === subject.toLowerCase()
+    );
 
-${teksContext}
+    if (hasStandards) {
+      systemPrompt += '\nProvide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.';
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${teksContext}\n\nWhen analyzing, specifically account for moments when the teacher asks a question and allows for student wait time or pauses. Consider these pauses as part of effective instructional practice and engagement, and comment on their presence or absence in the feedback.\n\nAnalyze this lesson transcript and provide feedback in the following structured format (use these exact section headers):\n\nMetrics:\nInstructional Score (0-100): [number]\nCoverage (0-100): [number]\nClarity (0-100): [number]\nEngagement (0-100): [number]\nGaps Flagged: [number]\n\n=== INSTRUCTIONAL COACHING FEEDBACK ===\nProvide generic, high-quality instructional coaching feedback on:\n- Key Findings (what was done well, areas for growth)\n- Missed Opportunities (where instruction could be enhanced)\n- Student Engagement Signals (evidence of student understanding and participation)\n- Suggested Next Steps (actionable improvements)`;
 
-Analyze this lesson transcript and provide feedback in the following structured format (use these exact section headers):
+      if (isSTAAR) {
+        userPrompt += `\n\n=== STAAR TEKS COVERAGE ===\nSummarize how well the lesson covered the most important TEKS for this STAAR-tested subject and grade. Highlight strengths, gaps, and readiness for STAAR.`;
+      }
 
-Metrics:
-Instructional Score (0-100): [number]
-Coverage (0-100): [number]
-Clarity (0-100): [number]
-Engagement (0-100): [number]
-Gaps Flagged: [number]
-
-=== INSTRUCTIONAL COACHING FEEDBACK ===
-Provide generic, high-quality instructional coaching feedback on:
-- Key Findings (what was done well, areas for growth)
-- Missed Opportunities (where instruction could be enhanced)
-- Student Engagement Signals (evidence of student understanding and participation)
-- Suggested Next Steps (actionable improvements)
-
-=== TEXAS TEKS STANDARDS ALIGNMENT ===
-Provide specific curriculum alignment feedback:
-- Standards Addressed (which TEKS standards were explicitly taught or practiced in this lesson)
-- Standards Not Observed (which TEKS standards were missing or underdeveloped)
-- Standards Mastery Notes (observations about depth and quality of standards instruction)
-- Recommendations for Standards Integration (how to better integrate missing standards)
-
-Transcript:
-${transcript}
-`;
+      userPrompt += `\n\n=== TEXAS TEKS STANDARDS ALIGNMENT ===\nProvide specific curriculum alignment feedback:\n- Standards Addressed (which TEKS standards were explicitly taught or practiced in this lesson)\n- Standards Not Observed (which TEKS standards were missing or underdeveloped)\n- Standards Mastery Notes (observations about depth and quality of standards instruction)\n- Recommendations for Standards Integration (how to better integrate missing standards)\n\nTranscript:\n${transcript}\n`;
+    } else {
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\nWhen analyzing, specifically account for moments when the teacher asks a question and allows for student wait time or pauses. Consider these pauses as part of effective instructional practice and engagement, and comment on their presence or absence in the feedback.\n\nAnalyze this lesson transcript and provide feedback in the following structured format (use these exact section headers):\n\nMetrics:\nInstructional Score (0-100): [number]\nCoverage (0-100): [number]\nClarity (0-100): [number]\nEngagement (0-100): [number]\nGaps Flagged: [number]\n\n=== INSTRUCTIONAL COACHING FEEDBACK ===\nProvide generic, high-quality instructional coaching feedback on:\n- Key Findings (what was done well, areas for growth)\n- Missed Opportunities (where instruction could be enhanced)\n- Student Engagement Signals (evidence of student understanding and participation)\n- Suggested Next Steps (actionable improvements)\n\nTranscript:\n${transcript}\n`;
+    }
 
     const completion = await callOpenAI(openai, [
       { role: "system", content: systemPrompt },
