@@ -35,7 +35,7 @@ export default function AdminDashboard() {
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const selectedAdminId = searchParams.get('adminId');
+  const selectedAdminId = searchParams ? searchParams.get('adminId') : null;
 
   const handleObserveLesson = () => {
     router.push('/admin/observe');
