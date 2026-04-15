@@ -239,9 +239,9 @@ export default function AdminDashboard() {
       sampleReports.map((report, index) => ({
         ...report,
         user_id:
-          index < 2
+          index < 4
             ? 'sample-teacher-1'
-            : index < 4
+            : index < 8
               ? 'sample-teacher-2'
               : 'sample-teacher-3',
         teacher_name: report.teacher,
@@ -601,7 +601,7 @@ export default function AdminDashboard() {
               This example dashboard shows how trends, lesson results, and team structure will look once your team is set up.
             </p>
             <p style={{ ...text, marginBottom: 0 }}>
-              It will disappear automatically after you add your first teacher or child admin.
+              It will disappear automatically after you add your first teacher or admin.
             </p>
           </div>
         )}
