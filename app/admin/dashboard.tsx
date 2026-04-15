@@ -767,7 +767,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div style={card}>
+        <div id="team" style={card}>
           <h2 style={title}>Team Structure</h2>
           {hierarchyRows.length === 0 ? (
             <p style={text}>No admins found in your current visibility scope.</p>
@@ -775,8 +775,14 @@ export default function AdminDashboard() {
             hierarchyRows.map((row) => (
               <div key={row.id} style={hierarchyCard}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                  {/* Only add fromTeam param for Team Structure section navigation */}
                   <button
-                    onClick={() => router.push(row.role === 'admin' || row.role === 'super_admin' ? `/admin?adminId=${row.id}` : `/admin/teacher/${row.id}`)}
+                    onClick={() => {
+                      const url = row.role === 'admin' || row.role === 'super_admin'
+                        ? `/admin?adminId=${row.id}&fromTeam=1`
+                        : `/admin/teacher/${row.id}?fromTeam=1`;
+                      router.push(url);
+                    }}
                     style={entityLinkBtn}
                   >
                     {row.name} <span style={mutedInline}>({row.role})</span>
