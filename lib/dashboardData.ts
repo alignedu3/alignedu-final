@@ -36,6 +36,46 @@ export type ProfileRecord = {
   role?: string | null;
 };
 
+export const SAMPLE_PREVIEW_TEACHER_ID = 'sample-teacher-1';
+export const SAMPLE_TEACHER_IDS = {
+  'Ms. Carter': 'sample-teacher-1',
+  'Mr. Evans': 'sample-teacher-2',
+  'Dr. Lee': 'sample-teacher-3',
+} as const;
+
+function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: string) {
+  const scoreBand =
+    report.coverage >= 90 && report.clarity >= 88
+      ? 'strong and increasingly consistent'
+      : report.gaps >= 3
+        ? 'in need of targeted support'
+        : 'solid with room to sharpen execution';
+
+  return [
+    'Executive Summary',
+    `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson was ${scoreBand}, with evidence tied to clarity, pacing, engagement, and mastery checks.`,
+    '',
+    'Coaching Priorities',
+    `- Tighten modeling and guided practice around ${report.title.toLowerCase()}.`,
+    '- Add one brief mastery check before independent work begins.',
+    '- End with a short written or verbal closure prompt to confirm understanding.',
+    '',
+    'Standards Alignment',
+    `- Coverage evidence suggests ${report.coverage}% alignment to the intended objective.`,
+    `- Clarity and explanation moves were rated at ${report.clarity}%.`,
+    `- Student engagement opportunities were rated at ${report.engagement}%.`,
+  ].join('\n');
+}
+
+function getSampleTranscript(report: LessonReport, teacherDisplayName: string) {
+  return [
+    `${teacherDisplayName}: Today we're focusing on ${report.title.toLowerCase()}.`,
+    `${teacherDisplayName}: Turn and talk with your partner about what you already know before we build the new concept together.`,
+    'Student response period omitted for sample preview.',
+    `${teacherDisplayName}: Now show me your thinking before we move to the next example.`,
+  ].join('\n');
+}
+
 function buildSampleReport(
   id: string,
   teacher: string,
@@ -92,6 +132,45 @@ export const sampleReports: LessonReport[] = [
   buildSampleReport('29', 'Dr. Lee', 'Population Dynamics', '2026-05-02', { coverage: 96, clarity: 93, engagement: 91, assessment: 88, gaps: 1 }),
   buildSampleReport('30', 'Dr. Lee', 'Biology Review Seminar', '2026-05-16', { coverage: 96, clarity: 94, engagement: 92, assessment: 89, gaps: 1 }),
 ];
+
+export function buildSampleAnalysisReports() {
+  return sampleReports.map((report) => {
+    const teacherId = SAMPLE_TEACHER_IDS[report.teacher as keyof typeof SAMPLE_TEACHER_IDS] || SAMPLE_PREVIEW_TEACHER_ID;
+    return {
+      ...report,
+      id: `sample-report-${report.id}`,
+      user_id: teacherId,
+      teacher_name: report.teacher,
+      created_at: `${report.date}T14:00:00.000Z`,
+      coverage_score: report.coverage,
+      clarity_rating: report.clarity,
+      engagement_level: report.engagement,
+      assessment_quality: report.assessment,
+      gaps_detected: report.gaps,
+      result: getSampleAnalysisNarrative(report, report.teacher),
+      analysis_result: getSampleAnalysisNarrative(report, report.teacher),
+      transcript: getSampleTranscript(report, report.teacher),
+    } satisfies AnalysisReport;
+  });
+}
+
+export function buildTeacherDashboardSampleReports(teacherDisplayName: string) {
+  return sampleReports.slice(0, 10).map((report) => ({
+    ...report,
+    id: `sample-report-${report.id}`,
+    user_id: SAMPLE_PREVIEW_TEACHER_ID,
+    teacher_name: teacherDisplayName,
+    created_at: `${report.date}T14:00:00.000Z`,
+    coverage_score: report.coverage,
+    clarity_rating: report.clarity,
+    engagement_level: report.engagement,
+    assessment_quality: report.assessment,
+    gaps_detected: report.gaps,
+    result: getSampleAnalysisNarrative(report, teacherDisplayName),
+    analysis_result: getSampleAnalysisNarrative(report, teacherDisplayName),
+    transcript: getSampleTranscript(report, teacherDisplayName),
+  } satisfies AnalysisReport));
+}
 
 export function toNumberMetric(value: unknown, fallback = 0): number {
   if (typeof value === 'number' && Number.isFinite(value)) return value;

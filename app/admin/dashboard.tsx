@@ -4,10 +4,12 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
+  buildSampleAnalysisReports,
   getDashboardSummary,
   calculateLessonScore,
   getLatestLessonTrend,
   sampleReports,
+  SAMPLE_PREVIEW_TEACHER_ID,
   type AnalysisReport,
   type ProfileRecord,
 } from '@/lib/dashboardData';
@@ -230,6 +232,7 @@ export default function AdminDashboard() {
     !!selectedAdminId &&
     selectedAdminId !== currentUserId;
   const isSampleEntityId = (id: string | null | undefined) => Boolean(id && id.startsWith('sample-'));
+  const canOpenSampleTeacher = (id: string | null | undefined) => id === SAMPLE_PREVIEW_TEACHER_ID;
   const isSampleMode = managedTeachers.length === 0 && managedAdmins.length === 0 && reports.length === 0;
 
   const sampleProfiles = useMemo<ProfileRecord[]>(() => {
@@ -268,27 +271,7 @@ export default function AdminDashboard() {
     [activeAdminId]
   );
 
-  const sampleAnalysisReports = useMemo<AnalysisReport[]>(
-    () =>
-      sampleReports.map((report, index) => ({
-        ...report,
-        user_id:
-          report.teacher === 'Ms. Carter'
-            ? 'sample-teacher-1'
-            : report.teacher === 'Mr. Evans'
-              ? 'sample-teacher-2'
-              : 'sample-teacher-3',
-        teacher_name: report.teacher,
-        created_at: `${report.date}T14:00:00.000Z`,
-        title: report.title,
-        coverage_score: report.coverage,
-        clarity_rating: report.clarity,
-        engagement_level: report.engagement,
-        assessment_quality: report.assessment,
-        gaps_detected: report.gaps,
-      })),
-    []
-  );
+  const sampleAnalysisReports = useMemo<AnalysisReport[]>(() => buildSampleAnalysisReports(), []);
   const dashboardReports = isSampleMode ? sampleAnalysisReports : reports;
   const dashboardProfiles = isSampleMode ? sampleProfiles : profiles;
   const dashboardProfileById = useMemo(() => new Map(dashboardProfiles.map((p) => [p.id, p])), [dashboardProfiles]);
@@ -869,12 +852,12 @@ export default function AdminDashboard() {
                       <button
                         style={{ ...actionButton, padding: isNarrowScreen ? '3px 7px' : actionButton.padding, fontSize: isNarrowScreen ? 11 : undefined }}
                         onClick={() => {
-                          if (isSampleEntityId(t.id)) return;
+                          if (isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)) return;
                           router.push(`/admin/teacher/${t.id}`);
                         }}
-                        disabled={isSampleEntityId(t.id)}
+                        disabled={isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)}
                       >
-                        {isSampleEntityId(t.id) ? 'Preview' : 'View'}
+                        {canOpenSampleTeacher(t.id) ? 'Open Sample' : isSampleEntityId(t.id) ? 'Preview' : 'View'}
                       </button>
                     </td>
                   </tr>
@@ -963,10 +946,10 @@ export default function AdminDashboard() {
                         <div key={teacher.id} style={{ ...pillBtn, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <button
                             onClick={() => {
-                              if (isSampleEntityId(teacher.id)) return;
+                              if (isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id)) return;
                               router.push(`/admin/teacher/${teacher.id}`);
                             }}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(teacher.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(teacher.id) ? 0.72 : 1 }}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id) ? 0.72 : 1, textDecoration: canOpenSampleTeacher(teacher.id) ? 'underline' : 'none', textUnderlineOffset: 2 }}
                           >
                             {teacher.name}
                           </button>
@@ -1075,9 +1058,9 @@ export default function AdminDashboard() {
                       {(rows as typeof teacherStats).map((t, i) => (
                         <tr
                           key={i}
-                          style={{ borderBottom: '1px solid var(--border)', cursor: isSampleEntityId(t.id) ? 'default' : 'pointer' }}
+                          style={{ borderBottom: '1px solid var(--border)', cursor: isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id) ? 'default' : 'pointer' }}
                           onClick={() => {
-                            if (isSampleEntityId(t.id)) return;
+                            if (isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)) return;
                             setModalType(null);
                             router.push(`/admin/teacher/${t.id}`);
                           }}
@@ -1085,12 +1068,12 @@ export default function AdminDashboard() {
                           <td style={{ padding: '8px 8px' }}>
                             <button
                               onClick={(e) => {
-                                if (isSampleEntityId(t.id)) return;
+                                if (isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)) return;
                                 e.stopPropagation();
                                 setModalType(null);
                                 router.push(`/admin/teacher/${t.id}`);
                               }}
-                              style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: isSampleEntityId(t.id) ? 'default' : 'pointer', textDecoration: isSampleEntityId(t.id) ? 'none' : 'underline', textUnderlineOffset: 2, opacity: isSampleEntityId(t.id) ? 0.72 : 1 }}
+                              style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id) ? 'default' : 'pointer', textDecoration: isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id) ? 'none' : 'underline', textUnderlineOffset: 2, opacity: isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id) ? 0.72 : 1 }}
                             >
                               {t.name}
                             </button>
@@ -1117,9 +1100,9 @@ export default function AdminDashboard() {
                       {(rows as typeof lessonRows).map((r, i) => (
                         <tr
                           key={i}
-                          style={{ borderBottom: '1px solid var(--border)', cursor: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'pointer' : 'default' }}
+                          style={{ borderBottom: '1px solid var(--border)', cursor: r.teacherId && r.id && (!isSampleEntityId(r.teacherId) || canOpenSampleTeacher(r.teacherId)) ? 'pointer' : 'default' }}
                           onClick={() => {
-                            if (!r.teacherId || !r.id || isSampleEntityId(r.teacherId)) return;
+                            if (!r.teacherId || !r.id || (isSampleEntityId(r.teacherId) && !canOpenSampleTeacher(r.teacherId))) return;
                             setModalType(null);
                             router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
                           }}
@@ -1128,11 +1111,11 @@ export default function AdminDashboard() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!r.teacherId || !r.id || isSampleEntityId(r.teacherId)) return;
+                                if (!r.teacherId || !r.id || (isSampleEntityId(r.teacherId) && !canOpenSampleTeacher(r.teacherId))) return;
                                 setModalType(null);
                                 router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
                               }}
-                              style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'pointer' : 'default', textDecoration: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'underline' : 'none', textUnderlineOffset: 2, opacity: r.teacherId && isSampleEntityId(r.teacherId) ? 0.72 : 1 }}
+                              style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: r.teacherId && r.id && (!isSampleEntityId(r.teacherId) || canOpenSampleTeacher(r.teacherId)) ? 'pointer' : 'default', textDecoration: r.teacherId && r.id && (!isSampleEntityId(r.teacherId) || canOpenSampleTeacher(r.teacherId)) ? 'underline' : 'none', textUnderlineOffset: 2, opacity: r.teacherId && isSampleEntityId(r.teacherId) && !canOpenSampleTeacher(r.teacherId) ? 0.72 : 1 }}
                             >
                               {r.teacher}
                             </button>

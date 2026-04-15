@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getLessonInsights, type AnalysisReport, type ProfileRecord } from "@/lib/dashboardData";
+import { buildSampleAnalysisReports, getLessonInsights, SAMPLE_TEACHER_IDS, type AnalysisReport, type ProfileRecord } from "@/lib/dashboardData";
 
 export default function LessonReportPage() {
   const params = useParams<{ id: string; lessonId: string }>();
@@ -17,6 +17,18 @@ export default function LessonReportPage() {
 
   useEffect(() => {
     async function load() {
+      if ((teacherId as string)?.startsWith('sample-') || (lessonId as string)?.startsWith('sample-report-')) {
+        const sampleLesson = buildSampleAnalysisReports().find((report) => report.id === lessonId);
+        setLesson(sampleLesson || null);
+        if (sampleLesson?.user_id) {
+          const sampleTeacherName =
+            Object.entries(SAMPLE_TEACHER_IDS).find(([, sampleId]) => sampleId === sampleLesson.user_id)?.[0] || 'Sample Teacher';
+          setTeacher({ id: sampleLesson.user_id, name: sampleTeacherName });
+        }
+        setLoading(false);
+        return;
+      }
+
       const supabase = createClient();
       const { data: lessonData } = await supabase
         .from("analyses")
@@ -36,7 +48,7 @@ export default function LessonReportPage() {
       setLoading(false);
     }
     if (lessonId) load();
-  }, [lessonId]);
+  }, [lessonId, teacherId]);
 
   if (loading) return <div style={loadingState}>Loading lesson report...</div>;
   if (!lesson) return <div style={loadingState}>Lesson not found.</div>;

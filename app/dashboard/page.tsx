@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { getDashboardSummary, getTrendData, calculateLessonScore, getLatestLessonTrend, getLessonInsights, sampleReports, type AnalysisReport } from '@/lib/dashboardData';
+import { buildTeacherDashboardSampleReports, getDashboardSummary, getTrendData, calculateLessonScore, getLatestLessonTrend, getLessonInsights, type AnalysisReport } from '@/lib/dashboardData';
 
 export default function TeacherDashboard() {
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
@@ -76,19 +76,7 @@ export default function TeacherDashboard() {
 
   const sampleTeacherReports = useMemo<AnalysisReport[]>(
     () =>
-      sampleReports.slice(0, 10).map((report) => ({
-        ...report,
-        id: `sample-${report.id}`,
-        user_id: 'sample-teacher',
-        teacher_name: teacherName || 'Teacher',
-        created_at: `${report.date}T14:00:00.000Z`,
-        coverage_score: report.coverage,
-        clarity_rating: report.clarity,
-        engagement_level: report.engagement,
-        assessment_quality: report.assessment,
-        gaps_detected: report.gaps,
-        result: `Executive Summary\nThis sample lesson reflects a steadily improving instructional arc with stronger clarity, pacing, and checks for understanding over time.\n\nCoaching Priorities\n- Maintain clear modeling at the start of the lesson.\n- Build in quick mastery checks before moving to independent work.\n- Close the lesson with one short evidence-of-learning prompt.`,
-      })),
+      buildTeacherDashboardSampleReports(teacherName || 'Teacher'),
     [teacherName]
   );
 
@@ -218,6 +206,14 @@ export default function TeacherDashboard() {
             <p style={{ ...text, margin: 0 }}>
               It will disappear automatically after your first lesson is uploaded.
             </p>
+            <div style={{ marginTop: 12 }}>
+              <button
+                onClick={() => setSelectedReport(reports[0] || null)}
+                style={{ ...actionButton, background: '#f97316', padding: '8px 12px' }}
+              >
+                Open Sample Lesson Analysis
+              </button>
+            </div>
           </div>
         )}
 

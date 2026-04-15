@@ -14,7 +14,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
-import { calculateLessonScore, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getTrendData, type AnalysisReport } from '@/lib/dashboardData';
+import { buildSampleAnalysisReports, calculateLessonScore, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
 
 export default function TeacherDetailPage() {
   const params = useParams<{ id: string }>();
@@ -27,6 +27,15 @@ export default function TeacherDetailPage() {
 
   useEffect(() => {
     async function load() {
+      if ((id as string)?.startsWith('sample-')) {
+        const sampleReports = buildSampleAnalysisReports().filter((report) => report.user_id === id);
+        const sampleTeacherName =
+          Object.entries(SAMPLE_TEACHER_IDS).find(([, sampleId]) => sampleId === id)?.[0] || 'Sample Teacher';
+        setName(sampleTeacherName);
+        setReports(sampleReports);
+        return;
+      }
+
       const supabase = createClient();
 
       const { data: profile } = await supabase
