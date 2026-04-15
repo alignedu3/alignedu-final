@@ -80,7 +80,7 @@ export default function HomePage() {
     {
       step: '01',
       title: 'Upload a lesson',
-      desc: 'Record a live lesson or upload existing classroom instruction to begin analysis.',
+      desc: 'Record live in the app or upload an audio recording, including a phone voice memo.',
     },
     {
       step: '02',
@@ -166,7 +166,7 @@ export default function HomePage() {
                   color: theme.heroSubtext,
                 }}
               >
-                Record or upload a lecture and instantly see curriculum alignment, instructional gaps,
+                Record live in the app or upload an audio recording, including a phone voice memo, and instantly see curriculum alignment, instructional gaps,
                 and actionable feedback for teachers, administrators, and districts.
               </p>
 

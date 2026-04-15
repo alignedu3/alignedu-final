@@ -1001,7 +1001,7 @@ export default function AnalysisPage() {
               <div className="analysis-section-top">
                 <h2>Lesson submission</h2>
                 <p>
-                  Submit notes or audio to generate a concise instructional report built for teachers, campus leaders, and district teams.
+                  Record live in the app or upload an audio recording, including a phone voice memo, to generate a concise instructional report built for teachers, campus leaders, and district teams.
                 </p>
               </div>
 
@@ -1135,7 +1135,7 @@ export default function AnalysisPage() {
                   />
                   <div className="upload-zone-content">
                     <div className="upload-icon">🎙️</div>
-                    <p>Click to upload your audio file.</p>
+                    <p>Upload an audio recording, including a phone voice memo.</p>
                     <p style={{ fontSize: 13, color: "#94a3b8" }}>
                       Max 90 minutes. Longer files are split automatically.
                     </p>

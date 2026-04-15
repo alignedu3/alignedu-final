@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { getDashboardSummary, getTrendData, calculateLessonScore, getLessonInsights, type AnalysisReport } from '@/lib/dashboardData';
+import { getDashboardSummary, getTrendData, calculateLessonScore, getLessonInsights, sampleReports, type AnalysisReport } from '@/lib/dashboardData';
 
 export default function TeacherDashboard() {
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
@@ -74,7 +74,26 @@ export default function TeacherDashboard() {
     return () => window.removeEventListener('resize', checkScreen);
   }, []);
 
-  const reports = dbReports;
+  const sampleTeacherReports = useMemo<AnalysisReport[]>(
+    () =>
+      sampleReports.slice(0, 10).map((report) => ({
+        ...report,
+        id: `sample-${report.id}`,
+        user_id: 'sample-teacher',
+        teacher_name: teacherName || 'Teacher',
+        created_at: `${report.date}T14:00:00.000Z`,
+        coverage_score: report.coverage,
+        clarity_rating: report.clarity,
+        engagement_level: report.engagement,
+        assessment_quality: report.assessment,
+        gaps_detected: report.gaps,
+        result: `Executive Summary\nThis sample lesson reflects a steadily improving instructional arc with stronger clarity, pacing, and checks for understanding over time.\n\nCoaching Priorities\n- Maintain clear modeling at the start of the lesson.\n- Build in quick mastery checks before moving to independent work.\n- Close the lesson with one short evidence-of-learning prompt.`,
+      })),
+    [teacherName]
+  );
+
+  const isSampleMode = dbReports.length === 0;
+  const reports = isSampleMode ? sampleTeacherReports : dbReports;
 
   useEffect(() => {
     if (!reports.length) {
@@ -181,6 +200,27 @@ export default function TeacherDashboard() {
             <Link href="/analyze" style={primaryBtn}>+ Analyze Lesson</Link>
           </div>
         </div>
+
+        {isSampleMode && (
+          <div
+            style={{
+              ...card,
+              marginBottom: 12,
+              border: '1px solid rgba(56,189,248,0.24)',
+              background: 'linear-gradient(135deg, rgba(14,165,233,0.14), rgba(15,23,42,0.08))',
+            }}
+          >
+            <div style={{ ...label, color: '#7dd3fc', fontSize: 12, fontWeight: 800, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 8 }}>
+              Sample Data
+            </div>
+            <p style={{ ...text, margin: '0 0 8px 0' }}>
+              This sample dashboard shows how your trend line, lesson scores, and findings will look once your instructional history starts building.
+            </p>
+            <p style={{ ...text, margin: 0 }}>
+              It will disappear automatically after your first lesson is uploaded.
+            </p>
+          </div>
+        )}
 
         <div style={card}>
           <h2 style={cardTitle}>Overall Lesson Analysis</h2>
@@ -338,7 +378,7 @@ export default function TeacherDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {reports.slice(0, 5).map((r, i) => {
+                {reports.slice(0, isSampleMode ? 10 : 5).map((r, i) => {
                   const score = calculateLessonScore(r);
                   const previous = reports[i + 1];
                   const trend = previous ? score - calculateLessonScore(previous) : null;

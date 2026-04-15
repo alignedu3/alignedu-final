@@ -18,7 +18,38 @@ import {
   Tooltip,
   CartesianGrid,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
+
+type TrendTerm = 'full_year' | 'fall' | 'spring';
+
+function parseReportDate(report: AnalysisReport) {
+  const raw = report.date ?? report.created_at?.slice(0, 10);
+  if (!raw) return null;
+  const parsed = new Date(`${raw}T12:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getSchoolYearLabel(date: Date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const startYear = month >= 7 ? year : year - 1;
+  return `${startYear}-${startYear + 1}`;
+}
+
+function isWithinSelectedTerm(date: Date, term: TrendTerm) {
+  const month = date.getMonth();
+  if (term === 'full_year') return true;
+  if (term === 'fall') return month >= 7 && month <= 11;
+  return month >= 0 && month <= 4;
+}
+
+function formatTrendAxisLabel(value: string | number) {
+  if (typeof value !== 'string') return String(value);
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
 
 export default function AdminDashboard() {
   const [dbReports, setDbReports] = useState<AnalysisReport[]>([]);
@@ -35,6 +66,8 @@ export default function AdminDashboard() {
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [openActionsForId, setOpenActionsForId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState<string>('');
+  const [selectedTrendTerm, setSelectedTrendTerm] = useState<TrendTerm>('full_year');
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedAdminId = searchParams ? searchParams.get('adminId') : null;
@@ -239,9 +272,9 @@ export default function AdminDashboard() {
       sampleReports.map((report, index) => ({
         ...report,
         user_id:
-          index < 4
+          report.teacher === 'Ms. Carter'
             ? 'sample-teacher-1'
-            : index < 8
+            : report.teacher === 'Mr. Evans'
               ? 'sample-teacher-2'
               : 'sample-teacher-3',
         teacher_name: report.teacher,
@@ -262,6 +295,43 @@ export default function AdminDashboard() {
   const dashboardManagedAdmins = isSampleMode ? sampleManagedAdmins : managedAdmins;
   const dashboardVisibleAdminIds = isSampleMode ? sampleVisibleAdminIds : visibleAdminIds;
   const summary = getDashboardSummary(dashboardReports);
+  const schoolYearOptions = useMemo(() => {
+    const labels = new Set<string>();
+    dashboardReports.forEach((report) => {
+      const parsed = parseReportDate(report);
+      if (!parsed) return;
+      labels.add(getSchoolYearLabel(parsed));
+    });
+    return Array.from(labels).sort((a, b) => b.localeCompare(a));
+  }, [dashboardReports]);
+
+  useEffect(() => {
+    if (!schoolYearOptions.length) {
+      if (selectedSchoolYear) setSelectedSchoolYear('');
+      return;
+    }
+    if (!selectedSchoolYear || !schoolYearOptions.includes(selectedSchoolYear)) {
+      setSelectedSchoolYear(schoolYearOptions[0]);
+    }
+  }, [schoolYearOptions, selectedSchoolYear]);
+
+  const trendReports = useMemo(() => {
+    if (!selectedSchoolYear) return dashboardReports;
+    return dashboardReports.filter((report) => {
+      const parsed = parseReportDate(report);
+      if (!parsed) return false;
+      return getSchoolYearLabel(parsed) === selectedSchoolYear && isWithinSelectedTerm(parsed, selectedTrendTerm);
+    });
+  }, [dashboardReports, selectedSchoolYear, selectedTrendTerm]);
+
+  const trendLessonCount = trendReports.length;
+  const trendTeacherCount = useMemo(() => {
+    const teacherIds = new Set<string>();
+    trendReports.forEach((report) => {
+      if (report.user_id) teacherIds.add(report.user_id);
+    });
+    return teacherIds.size;
+  }, [trendReports]);
 
   const TEACHER_COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#84cc16'];
   const ADMIN_COLORS = ['#0f766e', '#1d4ed8', '#be123c', '#334155', '#0f172a'];
@@ -291,7 +361,7 @@ export default function AdminDashboard() {
       return 'Unknown';
     };
     const byDate: Record<string, Record<string, number[]>> = {};
-    dashboardReports.forEach((r) => {
+    trendReports.forEach((r) => {
       const date = r.date ?? r.created_at?.slice(0, 10);
       if (!date) return;
       const teacher = getTeacherName(r);
@@ -308,7 +378,7 @@ export default function AdminDashboard() {
         });
         return entry;
       });
-  }, [dashboardProfileById, dashboardReports]);
+  }, [dashboardProfileById, trendReports]);
 
   const teacherLineKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -340,7 +410,7 @@ export default function AdminDashboard() {
     });
 
     const byDate: Record<string, Record<string, number[]>> = {};
-    dashboardReports.forEach((r) => {
+    trendReports.forEach((r) => {
       const date = r.date ?? r.created_at?.slice(0, 10);
       if (!date) return;
 
@@ -365,7 +435,7 @@ export default function AdminDashboard() {
         });
         return entry;
       });
-  }, [dashboardManagedTeachers, dashboardProfileById, dashboardReports, dashboardVisibleAdminIds]);
+  }, [dashboardManagedTeachers, dashboardProfileById, trendReports, dashboardVisibleAdminIds]);
 
   const adminLineKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -394,6 +464,8 @@ export default function AdminDashboard() {
 
     return Array.from(byDate.values()).sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
   }, [teacherTrendData, adminTrendData]);
+  const trendChartHeight = isNarrowScreen ? 230 : combinedTrendData.length > 22 ? 320 : 280;
+  const trendMinTickGap = combinedTrendData.length > 22 ? 40 : combinedTrendData.length > 14 ? 28 : isNarrowScreen ? 20 : 10;
 
   const lessonRows = useMemo(() =>
     [...dashboardReports]
@@ -688,41 +760,97 @@ export default function AdminDashboard() {
 
         {/* TREND */}
         <div style={{ ...card, marginTop: 8 }}>
-          <h2 style={title}>System Trend</h2>
-          <p style={text}>{systemInsight}</p>
+          <div style={trendHeader}>
+            <div>
+              <h2 style={{ ...title, marginBottom: 6 }}>System Trend</h2>
+              <p style={{ ...text, margin: 0 }}>{systemInsight}</p>
+            </div>
+            <div style={trendControls}>
+              <label style={trendFilterField}>
+                <span style={trendFilterLabel}>School Year</span>
+                <select
+                  value={selectedSchoolYear}
+                  onChange={(event) => setSelectedSchoolYear(event.target.value)}
+                  style={trendSelect}
+                >
+                  {schoolYearOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option === '2025-2026' ? 'August 2025 - May 2026' : `${option.split('-')[0]} - ${option.split('-')[1]}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label style={trendFilterField}>
+                <span style={trendFilterLabel}>Term</span>
+                <select
+                  value={selectedTrendTerm}
+                  onChange={(event) => setSelectedTrendTerm(event.target.value as TrendTerm)}
+                  style={trendSelect}
+                >
+                  <option value="full_year">Full Year</option>
+                  <option value="fall">Fall</option>
+                  <option value="spring">Spring</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div style={trendSummaryBar}>
+            <div style={trendSummaryPill}>
+              <span style={trendSummaryValue}>{trendLessonCount}</span>
+              <span style={trendSummaryLabel}>Lessons in view</span>
+            </div>
+            <div style={trendSummaryPill}>
+              <span style={trendSummaryValue}>{trendTeacherCount}</span>
+              <span style={trendSummaryLabel}>Teachers tracked</span>
+            </div>
+          </div>
           <div
             style={{
               marginTop: 10,
               border: '1px solid var(--border)',
-              borderRadius: 14,
-              padding: isNarrowScreen ? '10px 8px 4px' : '14px 12px 8px',
-              background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.05) 100%)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+              borderRadius: 18,
+              padding: isNarrowScreen ? '12px 8px 6px' : '18px 16px 10px',
+              background: 'radial-gradient(circle at top, rgba(59,130,246,0.12), transparent 36%), linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(15,23,42,0.9) 100%)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 24px 60px rgba(2,6,23,0.24)',
               minWidth: 0,
             }}
           >
             {chartReady ? (
-              <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
+              <ResponsiveContainer width="100%" height={trendChartHeight}>
                 <LineChart data={combinedTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" />
+                  <defs>
+                    <linearGradient id="teacherStrokeGlow" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#fb923c" />
+                      <stop offset="100%" stopColor="#38bdf8" />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.16)" vertical={false} />
+                  <ReferenceLine y={75} stroke="rgba(244,114,182,0.35)" strokeDasharray="6 6" />
                   <XAxis
                     dataKey="date"
+                    tickFormatter={formatTrendAxisLabel}
+                    stroke="rgba(148,163,184,0.9)"
                     tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
-                    minTickGap={isNarrowScreen ? 20 : 10}
+                    minTickGap={trendMinTickGap}
                     interval="preserveStartEnd"
                   />
                   <YAxis
                     domain={[0, 100]}
+                    stroke="rgba(148,163,184,0.9)"
                     tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
                     width={isNarrowScreen ? 28 : 40}
                   />
                   <Tooltip
+                    labelFormatter={(value) => formatTrendAxisLabel(String(value))}
                     contentStyle={{
-                      background: 'var(--surface-card-solid)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 8,
+                      background: 'rgba(15,23,42,0.96)',
+                      border: '1px solid rgba(148,163,184,0.22)',
+                      borderRadius: 12,
                       fontSize: 12,
+                      boxShadow: '0 14px 32px rgba(2,6,23,0.28)',
                     }}
+                    itemStyle={{ color: '#e5e7eb' }}
+                    labelStyle={{ color: '#94a3b8', marginBottom: 6 }}
                   />
                   {teacherLineKeys.map((key) => (
                     <Line
@@ -730,8 +858,9 @@ export default function AdminDashboard() {
                       type="monotone"
                       dataKey={key}
                       stroke={getStablePaletteColor(key, TEACHER_COLORS)}
-                      strokeWidth={2}
-                      dot={false}
+                      strokeWidth={3}
+                      dot={{ r: 0 }}
+                      activeDot={{ r: 5, strokeWidth: 0, fill: getStablePaletteColor(key, TEACHER_COLORS) }}
                       connectNulls
                     />
                   ))}
@@ -741,16 +870,17 @@ export default function AdminDashboard() {
                       type="monotone"
                       dataKey={key}
                       stroke={getStablePaletteColor(key, ADMIN_COLORS)}
-                      strokeWidth={2}
+                      strokeWidth={2.5}
                       strokeDasharray="6 4"
-                      dot={false}
+                      dot={{ r: 0 }}
+                      activeDot={{ r: 4, strokeWidth: 0, fill: getStablePaletteColor(key, ADMIN_COLORS) }}
                       connectNulls
                     />
                   ))}
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div style={{ height: isNarrowScreen ? 210 : 260 }} />
+              <div style={{ height: trendChartHeight }} />
             )}
           </div>
 
@@ -1233,3 +1363,12 @@ const actionList: React.CSSProperties = { margin: '10px 0 0 18px', color: 'var(-
 const actionItem: React.CSSProperties = { marginBottom: 8, lineHeight: 1.4 };
 const modalCancelBtn: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 8, padding: '8px 12px', fontSize: 13, cursor: 'pointer' };
 const modalDangerBtn: React.CSSProperties = { border: '1px solid #dc2626', background: '#dc2626', color: '#fff', borderRadius: 8, padding: '8px 12px', fontSize: 13, cursor: 'pointer', fontWeight: 700 };
+const trendHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' };
+const trendControls: React.CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' };
+const trendFilterField: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, minWidth: 170 };
+const trendFilterLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 700 };
+const trendSelect: React.CSSProperties = { background: 'rgba(15,23,42,0.88)', color: 'var(--text-primary)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, minHeight: 42, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' };
+const trendSummaryBar: React.CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 };
+const trendSummaryPill: React.CSSProperties = { display: 'inline-flex', alignItems: 'baseline', gap: 8, padding: '8px 12px', borderRadius: 999, background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(148,163,184,0.18)' };
+const trendSummaryValue: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 15, fontWeight: 800 };
+const trendSummaryLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12 };
