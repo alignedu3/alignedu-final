@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@/lib/supabase/server';
-import { getAdminVisibility } from '@/lib/adminVisibility';
+import { getAdminVisibility, type AdminRole } from '@/lib/adminVisibility';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const serverClient = await createServerClient();
     const {
@@ -32,13 +32,41 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
-    const visibility = await getAdminVisibility(user.id, profile.role);
+    const requestedAdminId = request.nextUrl.searchParams.get('adminId');
+    let targetAdminId = user.id;
+    let targetRole = profile.role as AdminRole;
+
+    if (profile.role === 'super_admin' && requestedAdminId && requestedAdminId !== user.id) {
+      const { data: targetProfile, error: targetProfileError } = await serverClient
+        .from('profiles')
+        .select('id, role')
+        .eq('id', requestedAdminId)
+        .maybeSingle();
+
+      if (targetProfileError) {
+        return NextResponse.json({ success: false, error: targetProfileError.message }, { status: 500 });
+      }
+
+      if (!targetProfile) {
+        return NextResponse.json({ success: false, error: 'Selected admin was not found.' }, { status: 404 });
+      }
+
+      if (!['admin', 'super_admin'].includes(targetProfile.role)) {
+        return NextResponse.json({ success: false, error: 'Selected user is not an admin.' }, { status: 400 });
+      }
+
+      targetAdminId = targetProfile.id;
+      targetRole = targetProfile.role as AdminRole;
+    }
+
+    const visibility = await getAdminVisibility(targetAdminId, targetRole);
 
     return NextResponse.json({
       success: true,
       ...visibility,
     });
   } catch (error: any) {
+    console.error('Admin visibility route error:', error);
     return NextResponse.json({ success: false, error: error.message || 'Server error' }, { status: 500 });
   }
 }

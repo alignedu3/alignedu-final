@@ -6,7 +6,7 @@ type AdminVisibility = {
   visibleUserIds: string[];
 };
 
-type AdminRole = 'admin' | 'super_admin';
+export type AdminRole = 'admin' | 'super_admin';
 
 function unique(values: string[]) {
   return [...new Set(values)];
@@ -18,9 +18,20 @@ function isMissingTableError(error: any) {
 }
 
 function getServiceSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('Server configuration error: NEXT_PUBLIC_SUPABASE_URL is not set.');
+  }
+
+  if (!serviceRoleKey) {
+    throw new Error('Server configuration error: SUPABASE_SERVICE_ROLE_KEY is not set.');
+  }
+
   return createServiceClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    supabaseUrl,
+    serviceRoleKey
   );
 }
 
