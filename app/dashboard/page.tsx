@@ -19,6 +19,7 @@ export default function TeacherDashboard() {
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
   const [keyFindingsReportId, setKeyFindingsReportId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const selectedLessonRef = useRef<HTMLDivElement | null>(null);
 
   const loadData = useCallback(async () => {
     if (!supabase) return;
@@ -93,6 +94,14 @@ export default function TeacherDashboard() {
       setKeyFindingsReportId(reports[0].id);
     }
   }, [reports, keyFindingsReportId]);
+
+  useEffect(() => {
+    if (!selectedReport || !selectedLessonRef.current) return;
+    const frame = window.requestAnimationFrame(() => {
+      selectedLessonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedReport]);
 
   const trendData = useMemo(() => getTrendData(reports), [reports]);
   const summary = useMemo(() => getDashboardSummary(reports), [reports]);
@@ -431,7 +440,7 @@ export default function TeacherDashboard() {
         </div>
 
         {selectedReport && (
-          <div style={card}>
+          <div ref={selectedLessonRef} style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 style={cardTitle}>Selected Lesson</h2>
