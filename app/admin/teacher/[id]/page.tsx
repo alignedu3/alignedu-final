@@ -14,7 +14,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
-import { buildSampleAnalysisReports, calculateLessonScore, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
+import { buildSampleAnalysisReports, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
 
 export default function TeacherDetailPage() {
   const params = useParams<{ id: string }>();
@@ -74,7 +74,7 @@ export default function TeacherDetailPage() {
       return { avg: 0, trend: 0, risk: 'Unknown', summary: 'No results available yet.' };
     }
 
-    const scores = reports.map((report) => calculateLessonScore(report));
+    const scores = reports.map((report) => getLessonMetrics(report).score);
     const avg = summary.averageScore;
     const trend = getLatestLessonTrend(reports);
     const risk = avg < 70 ? 'High Risk' : avg < 80 ? 'Moderate Risk' : 'Strong';
@@ -285,7 +285,7 @@ export default function TeacherDetailPage() {
                   >
                     <div style={historyTopRow}>
                       <div style={historyTitle}>{report.grade || 'Grade'} {report.subject || 'Lesson'}</div>
-                      <div style={historyScore}>{calculateLessonScore(report)}/100</div>
+                      <div style={historyScore}>{getLessonMetrics(report).score}/100</div>
                     </div>
                     <div style={muted}>{lessonDate}</div>
                     <div style={{ ...text, marginTop: 8 }}>

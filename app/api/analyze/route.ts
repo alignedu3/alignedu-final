@@ -51,24 +51,28 @@ function extractMetricsFromResult(result: string): {
   coverage_score: number;
   clarity_rating: number;
   engagement_level: number;
+  assessment_quality: number;
   gaps_detected: number;
 } {
   const defaults = {
     coverage_score: 75,
     clarity_rating: 75,
     engagement_level: 75,
+    assessment_quality: 75,
     gaps_detected: 1,
   };
 
   const coverageMatch = result.match(/(?:###\s+)?Coverage[:\s]*([0-9]+)/i);
   const clarityMatch = result.match(/(?:###\s+)?Clarity[:\s]*([0-9]+)/i);
   const engagementMatch = result.match(/(?:###\s+)?Engagement[:\s]*([0-9]+)/i);
+  const assessmentMatch = result.match(/(?:###\s+)?Assessment Quality[:\s]*([0-9]+)/i);
   const gapsMatch = result.match(/(?:###\s+)?Gaps[\s]*(?:Flagged)?[:\s]*([0-9]+)/i);
 
   return {
     coverage_score: coverageMatch ? parseInt(coverageMatch[1], 10) : defaults.coverage_score,
     clarity_rating: clarityMatch ? parseInt(clarityMatch[1], 10) : defaults.clarity_rating,
     engagement_level: engagementMatch ? parseInt(engagementMatch[1], 10) : defaults.engagement_level,
+    assessment_quality: assessmentMatch ? parseInt(assessmentMatch[1], 10) : defaults.assessment_quality,
     gaps_detected: gapsMatch ? parseInt(gapsMatch[1], 10) : defaults.gaps_detected,
   };
 }
@@ -136,6 +140,7 @@ export async function POST(req: Request) {
     const grade = String(formData.get("grade") || "");
     const subject = String(formData.get("subject") || "");
     const lectureText = String(formData.get("lecture") || "").trim();
+    const waitTimeEvidence = String(formData.get("waitTimeEvidence") || "").trim();
     const audioDurationValue = formData.get("audioDuration");
     const audioDuration = audioDurationValue
       ? Number(audioDurationValue)
@@ -204,17 +209,55 @@ export async function POST(req: Request) {
       (s) => s.grade.toLowerCase() === grade.toLowerCase() && s.subject.toLowerCase() === subject.toLowerCase()
     );
 
+    const reportFormat = `Analyze this lesson transcript and provide feedback in the following structured format. Use these exact section headers and keep the feedback evidence-based, specific, and unbiased.
+
+Metrics:
+Instructional Score (0-100): [number]
+Coverage (0-100): [number]
+Clarity (0-100): [number]
+Engagement (0-100): [number]
+Assessment Quality (0-100): [number]
+Gaps Flagged: [number]
+
+=== EXECUTIVE SUMMARY ===
+Provide a concise 2-4 sentence summary of overall lesson quality, student experience, and biggest instructional takeaway.
+
+=== WHAT WENT WELL ===
+- [bullet]
+- [bullet]
+- [bullet]
+
+=== WHAT CAN IMPROVE ===
+- [bullet]
+- [bullet]
+- [bullet]
+
+=== RECOMMENDED NEXT STEP ===
+Provide 1 concise paragraph with the single highest-leverage next move for the teacher.
+
+=== INSTRUCTIONAL COACHING FEEDBACK ===
+Provide generic, high-quality instructional coaching feedback using labeled bullets:
+- Key Findings: ...
+- Missed Opportunities: ...
+- Student Engagement Signals: ...
+- Suggested Next Steps: ...`;
+
     if (hasStandards) {
       systemPrompt += '\nProvide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.';
-      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${teksContext}\n\n${waitTimeGuidance}\n\nAnalyze this lesson transcript and provide feedback in the following structured format (use these exact section headers):\n\nMetrics:\nInstructional Score (0-100): [number]\nCoverage (0-100): [number]\nClarity (0-100): [number]\nEngagement (0-100): [number]\nGaps Flagged: [number]\n\n=== INSTRUCTIONAL COACHING FEEDBACK ===\nProvide generic, high-quality instructional coaching feedback on:\n- Key Findings (what was done well, areas for growth)\n- Missed Opportunities (where instruction could be enhanced)\n- Student Engagement Signals (evidence of student understanding and participation)\n- Suggested Next Steps (actionable improvements)`;
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${teksContext}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}`;
 
       if (isSTAAR) {
-        userPrompt += `\n\n=== STAAR TEKS COVERAGE ===\nSummarize how well the lesson covered the most important TEKS for this STAAR-tested subject and grade. Highlight strengths, gaps, and readiness for STAAR.`;
+        userPrompt += `\n\n=== STAAR TEKS COVERAGE ===\nSummarize how well the lesson covered the most important TEKS for this STAAR-tested subject and grade. Use labeled bullets for:\n- Readiness Summary: ...\n- Standards Reinforced: ...\n- Standards That Need Stronger Assessment Evidence: ...\n- STAAR Readiness Recommendation: ...`;
       }
 
-      userPrompt += `\n\n=== TEXAS TEKS STANDARDS ALIGNMENT ===\nProvide specific curriculum alignment feedback:\n- Standards Addressed (which TEKS standards were explicitly taught or practiced in this lesson)\n- Standards Not Observed (which TEKS standards were missing or underdeveloped)\n- Standards Mastery Notes (observations about depth and quality of standards instruction)\n- Recommendations for Standards Integration (how to better integrate missing standards)\n\nTranscript:\n${transcript}\n`;
+      userPrompt += `\n\n=== TEXAS TEKS STANDARDS ALIGNMENT ===\nProvide specific curriculum alignment feedback using labeled bullets:
+- Standards Addressed: cite the actual TEKS codes and descriptions that were explicitly taught or practiced.
+- Standards Not Observed: cite the actual TEKS codes and descriptions that were missing, underdeveloped, or not evidenced.
+- Standards Mastery Notes: observations about depth and quality of standards instruction.
+- Recommendations for Standards Integration: how to better integrate missing standards with concrete instructional moves.
+\nTranscript:\n${transcript}\n`;
     } else {
-      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${waitTimeGuidance}\n\nAnalyze this lesson transcript and provide feedback in the following structured format (use these exact section headers):\n\nMetrics:\nInstructional Score (0-100): [number]\nCoverage (0-100): [number]\nClarity (0-100): [number]\nEngagement (0-100): [number]\nGaps Flagged: [number]\n\n=== INSTRUCTIONAL COACHING FEEDBACK ===\nProvide generic, high-quality instructional coaching feedback on:\n- Key Findings (what was done well, areas for growth)\n- Missed Opportunities (where instruction could be enhanced)\n- Student Engagement Signals (evidence of student understanding and participation)\n- Suggested Next Steps (actionable improvements)\n\nTranscript:\n${transcript}\n`;
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}\n\nTranscript:\n${transcript}\n`;
     }
 
     const completion = await callOpenAI(openai, [
@@ -251,17 +294,29 @@ export async function POST(req: Request) {
         coverage_score: metrics.coverage_score,
         clarity_rating: metrics.clarity_rating,
         engagement_level: metrics.engagement_level,
+        assessment_quality: metrics.assessment_quality,
         gaps_detected: metrics.gaps_detected,
         transcript: transcript.slice(0, 5000),
         result: result.slice(0, 5000),
         created_at: new Date().toISOString(),
       };
 
-      const { data: insertedData, error: dbError } = await serviceSupabase
+      let insertQuery = serviceSupabase
         .from("analyses")
         .insert([analysisRecord])
         .select()
         .single();
+
+      let { data: insertedData, error: dbError } = await insertQuery;
+
+      if (dbError && /assessment_quality/i.test(dbError.message || "")) {
+        const { assessment_quality, ...legacyRecord } = analysisRecord;
+        ({ data: insertedData, error: dbError } = await serviceSupabase
+          .from("analyses")
+          .insert([legacyRecord])
+          .select()
+          .single());
+      }
 
       if (dbError) {
         console.error("DB SAVE ERROR:", dbError);

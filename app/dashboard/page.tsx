@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { buildTeacherDashboardSampleReports, getDashboardSummary, getTrendData, calculateLessonScore, getLatestLessonTrend, getLessonInsights, type AnalysisReport } from '@/lib/dashboardData';
+import { buildTeacherDashboardSampleReports, getDashboardSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
 
 export default function TeacherDashboard() {
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
@@ -106,7 +106,6 @@ export default function TeacherDashboard() {
   const trendData = useMemo(() => getTrendData(reports), [reports]);
   const summary = useMemo(() => getDashboardSummary(reports), [reports]);
 
-  const latestScore = reports[0] ? calculateLessonScore(reports[0]) : 0;
   const overallScore = summary.averageScore;
 
   const handleViewReport = (report: AnalysisReport) => {
@@ -159,6 +158,19 @@ export default function TeacherDashboard() {
     if (!reports.length) return null;
     return reports.find((r) => r.id === keyFindingsReportId) || reports[0];
   }, [reports, keyFindingsReportId]);
+
+  const selectedLessonInsights = useMemo(
+    () => (selectedReport ? getLessonInsights(selectedReport) : null),
+    [selectedReport]
+  );
+  const selectedLessonSections = useMemo(
+    () => (selectedReport ? getLessonReportSections(selectedReport) : null),
+    [selectedReport]
+  );
+  const selectedLessonTEKS = useMemo(
+    () => (selectedReport ? getTEKSCoverageInsights(selectedReport) : null),
+    [selectedReport]
+  );
 
   const keyFindings = useMemo(() => {
     if (!activeKeyFindingsReport) return [];
@@ -383,9 +395,9 @@ export default function TeacherDashboard() {
               </thead>
               <tbody>
                 {reports.slice(0, isSampleMode ? 10 : 5).map((r, i) => {
-                  const score = calculateLessonScore(r);
+                  const score = getLessonMetrics(r).score;
                   const previous = reports[i + 1];
-                  const trend = previous ? score - calculateLessonScore(previous) : null;
+                  const trend = previous ? score - getLessonMetrics(previous).score : null;
                   const lessonLabel = `${r.grade || 'Grade?'} ${r.subject || 'Lesson'}` || `Lesson ${i + 1}`;
                   const lessonDate = r.created_at ? new Date(r.created_at).toLocaleDateString() : '';
                   return (
@@ -444,7 +456,12 @@ export default function TeacherDashboard() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <h2 style={cardTitle}>Selected Lesson</h2>
-                <p style={subheading}>{selectedReport.grade} {selectedReport.subject || 'Lesson'}</p>
+                <p style={subheading}>
+                  {selectedReport.title || `${selectedReport.grade} ${selectedReport.subject || 'Lesson'}`}
+                  {selectedReport.created_at
+                    ? ` · ${new Date(selectedReport.created_at).toLocaleDateString()}`
+                    : ''}
+                </p>
               </div>
               <button
                 style={secondaryButton}
@@ -453,32 +470,166 @@ export default function TeacherDashboard() {
                 Close
               </button>
             </div>
-            <div style={{ marginTop: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <div style={{ ...label, fontSize: 12 }}>Score</div>
-                  <div style={{ ...value, fontSize: 20 }}>{calculateLessonScore(selectedReport)}/100</div>
+            {selectedLessonInsights && selectedLessonSections && (
+              <div style={{ marginTop: 18 }}>
+                <div style={executiveSummaryCard}>
+                  <div>
+                    <div style={reportEyebrow}>Executive Summary</div>
+                    <div style={summaryLead}>{selectedLessonSections.executiveSummary}</div>
+                    <p style={summarySupportText}>
+                      {selectedLessonInsights.score >= 85
+                        ? 'This lesson is performing at a strong level and provides a solid model for consistent instructional execution.'
+                        : selectedLessonInsights.score >= 75
+                        ? 'This lesson shows solid foundations with a few targeted opportunities to improve precision and mastery.'
+                        : 'This lesson needs targeted refinement so students receive clearer instruction, stronger checks for understanding, and a more secure close.'}
+                    </p>
+                  </div>
+                  <div style={summaryScorePill}>
+                    <div style={summaryScoreValue}>{selectedLessonInsights.score}</div>
+                    <div style={summaryScoreLabel}>Overall Score</div>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ ...label, fontSize: 12 }}>Coverage</div>
-                  <div style={{ ...value, fontSize: 20 }}>{selectedReport.coverage_score ?? 'N/A'}</div>
+
+                <div style={reportMetricGrid}>
+                  <div style={{ ...reportMetricCard, ...coverageMetricCard }}>
+                    <div style={reportMetricLabel}>Coverage</div>
+                    <div style={reportMetricValue}>{selectedLessonInsights.coverage}%</div>
+                  </div>
+                  <div style={{ ...reportMetricCard, ...clarityMetricCard }}>
+                    <div style={reportMetricLabel}>Clarity</div>
+                    <div style={reportMetricValue}>{selectedLessonInsights.clarity}%</div>
+                  </div>
+                  <div style={{ ...reportMetricCard, ...engagementMetricCard }}>
+                    <div style={reportMetricLabel}>Engagement</div>
+                    <div style={reportMetricValue}>{selectedLessonInsights.engagement}%</div>
+                  </div>
+                  <div style={{ ...reportMetricCard, ...assessmentMetricCard }}>
+                    <div style={reportMetricLabel}>Assessment</div>
+                    <div style={reportMetricValue}>{selectedLessonInsights.assessment}%</div>
+                  </div>
+                  <div style={{ ...reportMetricCard, ...gapsMetricCard }}>
+                    <div style={reportMetricLabel}>Gaps Flagged</div>
+                    <div style={reportMetricValue}>{selectedLessonInsights.gaps}</div>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ ...label, fontSize: 12 }}>Clarity</div>
-                  <div style={{ ...value, fontSize: 20 }}>{selectedReport.clarity_rating ?? 'N/A'}</div>
+
+                <div style={reportTwoColumnGrid}>
+                  <div style={{ ...reportSectionCard, ...successSectionCard }}>
+                    <div style={reportSectionTitle}>What Went Well</div>
+                    <ul style={reportList}>
+                      {selectedLessonSections.strengths.map((item, index) => (
+                        <li key={`strength-${index}`} style={reportListItem}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div style={{ ...reportSectionCard, ...improvementSectionCard }}>
+                    <div style={reportSectionTitle}>What Can Improve</div>
+                    <ul style={reportList}>
+                      {selectedLessonSections.improvements.map((item, index) => (
+                        <li key={`improvement-${index}`} style={reportListItem}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ ...label, fontSize: 12 }}>Engagement</div>
-                  <div style={{ ...value, fontSize: 20 }}>{selectedReport.engagement_level ?? 'N/A'}</div>
+
+                <div style={{ ...reportSectionCard, ...nextStepSectionCard }}>
+                  <div style={reportSectionTitle}>Recommended Next Step</div>
+                  <p style={reportBodyText}>{selectedLessonSections.recommendedNextStep}</p>
+                </div>
+
+                {(selectedLessonSections.staar.length > 0 || selectedLessonSections.teks.length > 0 || selectedLessonTEKS) && (
+                  <div style={{ ...reportSectionCard, ...teksSectionCard }}>
+                    <div style={reportSectionTitle}>TEKS Coverage</div>
+                    {selectedLessonSections.staar.length > 0 ? (
+                      <div style={reportSectionStack}>
+                        {selectedLessonSections.staar.map((section, index) => (
+                          <div key={`staar-section-${index}`}>
+                            <div style={reportSubsectionTitle}>{section.title}</div>
+                            {section.bullets.length > 0 ? (
+                              <ul style={reportList}>
+                                {section.bullets.map((item, itemIndex) => (
+                                  <li key={`staar-item-${itemIndex}`} style={reportListItem}>{item}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p style={reportBodyText}>{section.content}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : selectedLessonTEKS ? (
+                      <>
+                        <p style={reportBodyText}>{selectedLessonTEKS.readinessSummary}</p>
+                        <p style={{ ...reportBodyText, marginTop: 10 }}>{selectedLessonTEKS.overview}</p>
+                      </>
+                    ) : null}
+                    {selectedLessonSections.teks.length > 0 ? (
+                      <div style={{ marginTop: 14 }}>
+                        {selectedLessonSections.teks.map((section, index) => (
+                          <div key={`teks-section-${index}`} style={{ marginTop: index === 0 ? 0 : 14 }}>
+                            <div style={reportSubsectionTitle}>{section.title}</div>
+                            {section.bullets.length > 0 ? (
+                              <ul style={reportList}>
+                                {section.bullets.map((item, itemIndex) => (
+                                  <li key={`teks-item-${itemIndex}`} style={reportListItem}>{item}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p style={reportBodyText}>{section.content}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : selectedLessonTEKS?.hasStandards && (
+                      <div style={{ marginTop: 14 }}>
+                        <div style={reportSubsectionTitle}>Priority TEKS Observed</div>
+                        <ul style={reportList}>
+                          {selectedLessonTEKS.standards.map((standard) => (
+                            <li key={standard.code} style={reportListItem}>
+                              <strong>{standard.code}</strong>: {standard.description}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {selectedLessonSections.teks.length === 0 && (selectedLessonTEKS?.strengths?.length ?? 0) > 0 && (
+                      <div style={{ marginTop: 14 }}>
+                        <div style={reportSubsectionTitle}>Alignment Strengths</div>
+                        <ul style={reportList}>
+                          {selectedLessonTEKS?.strengths.map((item, index) => (
+                            <li key={`teks-strength-${index}`} style={reportListItem}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {selectedLessonSections.teks.length === 0 && (selectedLessonTEKS?.gaps?.length ?? 0) > 0 && (
+                      <div style={{ marginTop: 14 }}>
+                        <div style={reportSubsectionTitle}>Alignment Gaps</div>
+                        <ul style={reportList}>
+                          {selectedLessonTEKS?.gaps.map((item, index) => (
+                            <li key={`teks-gap-${index}`} style={reportListItem}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
+                  <div style={reportSectionTitle}>Full Analysis Notes</div>
+                  <div style={reportLongformText}>
+                    {selectedReport.result || 'No saved analysis text available.'}
+                  </div>
+                </div>
+
+                <div style={{ ...reportSectionCard, ...summarySectionCard }}>
+                  <div style={reportSectionTitle}>Lesson Summary</div>
+                  <p style={reportBodyText}>
+                    {(selectedLessonSections.strengths[0] || selectedLessonInsights.celebration)} {(selectedLessonSections.improvements[0] || selectedLessonInsights.improvementSummary)}
+                  </p>
                 </div>
               </div>
-              <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(148,163,184,0.2)' }}>
-                <h3 style={{ ...cardTitle, fontSize: 14, marginBottom: 12 }}>📋 Full Analysis Report</h3>
-                <div style={{ marginTop: 12, whiteSpace: 'pre-wrap', color: '#d1d5db', fontSize: 13, lineHeight: 1.6, maxHeight: 400, overflowY: 'auto' }}>
-                  {selectedReport.result || 'No saved analysis text available.'}
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         )}
       </div>
@@ -543,3 +694,209 @@ const glow2: React.CSSProperties = { display: 'none' };
 
 const loadingContainer: React.CSSProperties = { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' };
 const loadingText: React.CSSProperties = { color: 'var(--text-primary)' };
+
+const executiveSummaryCard: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) 140px',
+  gap: 16,
+  alignItems: 'stretch',
+  padding: 18,
+  borderRadius: 16,
+  border: '1px solid rgba(249,115,22,0.18)',
+  background: 'linear-gradient(135deg, rgba(249,115,22,0.1), rgba(255,255,255,0.72))',
+  marginBottom: 16,
+};
+
+const reportEyebrow: React.CSSProperties = {
+  color: '#c2410c',
+  fontSize: 11,
+  textTransform: 'uppercase',
+  letterSpacing: 0.8,
+  fontWeight: 800,
+  marginBottom: 8,
+};
+
+const summaryLead: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontSize: 20,
+  lineHeight: 1.35,
+  fontWeight: 700,
+};
+
+const summarySupportText: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  margin: '10px 0 0 0',
+  lineHeight: 1.65,
+};
+
+const summaryScorePill: React.CSSProperties = {
+  borderRadius: 14,
+  background: 'rgba(255,255,255,0.85)',
+  border: '1px solid rgba(249,115,22,0.18)',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 16,
+};
+
+const summaryScoreValue: React.CSSProperties = {
+  color: '#c2410c',
+  fontSize: 36,
+  fontWeight: 800,
+  lineHeight: 1,
+};
+
+const summaryScoreLabel: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  fontWeight: 700,
+  marginTop: 6,
+  textTransform: 'uppercase',
+  letterSpacing: 0.5,
+};
+
+const reportMetricGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+  gap: 12,
+  marginBottom: 16,
+};
+
+const reportMetricCard: React.CSSProperties = {
+  padding: 16,
+  borderRadius: 14,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-card-solid)',
+  boxShadow: '0 8px 24px rgba(15,23,42,0.04)',
+};
+
+const reportMetricLabel: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: 0.5,
+  textTransform: 'uppercase',
+};
+
+const reportMetricValue: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontSize: 26,
+  fontWeight: 700,
+  marginTop: 8,
+};
+
+const reportTwoColumnGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+  gap: 14,
+  marginBottom: 16,
+};
+
+const reportSectionCard: React.CSSProperties = {
+  padding: 18,
+  borderRadius: 16,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-card-solid)',
+  marginBottom: 16,
+  boxShadow: '0 10px 28px rgba(15,23,42,0.05)',
+};
+
+const reportSectionTitle: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontSize: 15,
+  fontWeight: 700,
+  marginBottom: 12,
+};
+
+const reportSubsectionTitle: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontSize: 13,
+  fontWeight: 700,
+  marginBottom: 8,
+};
+
+const reportSectionStack: React.CSSProperties = {
+  display: 'grid',
+  gap: 14,
+};
+
+const reportList: React.CSSProperties = {
+  margin: 0,
+  paddingLeft: 18,
+  color: 'var(--text-secondary)',
+};
+
+const reportListItem: React.CSSProperties = {
+  marginBottom: 10,
+  lineHeight: 1.6,
+};
+
+const reportBodyText: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  lineHeight: 1.7,
+  margin: 0,
+};
+
+const reportLongformText: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  whiteSpace: 'pre-wrap',
+  lineHeight: 1.7,
+  maxHeight: 420,
+  overflowY: 'auto',
+};
+
+const coverageMetricCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(59,130,246,0.08), rgba(255,255,255,0.96))',
+  borderColor: 'rgba(59,130,246,0.16)',
+};
+
+const clarityMetricCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(14,165,233,0.08), rgba(255,255,255,0.96))',
+  borderColor: 'rgba(14,165,233,0.16)',
+};
+
+const engagementMetricCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(16,185,129,0.08), rgba(255,255,255,0.96))',
+  borderColor: 'rgba(16,185,129,0.16)',
+};
+
+const assessmentMetricCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(245,158,11,0.08), rgba(255,255,255,0.96))',
+  borderColor: 'rgba(245,158,11,0.16)',
+};
+
+const gapsMetricCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(239,68,68,0.08), rgba(255,255,255,0.96))',
+  borderColor: 'rgba(239,68,68,0.16)',
+};
+
+const successSectionCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(16,185,129,0.06), rgba(255,255,255,0.98))',
+  borderColor: 'rgba(16,185,129,0.18)',
+};
+
+const improvementSectionCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(245,158,11,0.07), rgba(255,255,255,0.98))',
+  borderColor: 'rgba(245,158,11,0.18)',
+};
+
+const nextStepSectionCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(249,115,22,0.06), rgba(255,255,255,0.98))',
+  borderColor: 'rgba(249,115,22,0.18)',
+};
+
+const teksSectionCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(59,130,246,0.06), rgba(255,255,255,0.98))',
+  borderColor: 'rgba(59,130,246,0.18)',
+};
+
+const analysisSectionCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(99,102,241,0.05), rgba(255,255,255,0.98))',
+  borderColor: 'rgba(99,102,241,0.16)',
+};
+
+const summarySectionCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(15,23,42,0.04), rgba(255,255,255,0.98))',
+  borderColor: 'rgba(15,23,42,0.12)',
+};

@@ -1,3 +1,7 @@
+import { STAAR_SUBJECTS } from '@/lib/staarSubjects';
+import { parseAnalysisMetrics, parseFeedbackSections, type ReportSection } from '@/lib/analysisReport';
+import { getTEKSStandards } from '@/lib/teksStandards';
+
 export type LessonReport = {
   id: string;
   title: string;
@@ -43,27 +47,180 @@ export const SAMPLE_TEACHER_IDS = {
   'Dr. Lee': 'sample-teacher-3',
 } as const;
 
+function normalizeGradeLabel(value: string) {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return '';
+
+  const numericMatch = trimmed.match(/^(\d{1,2})(?:st|nd|rd|th)?(?:\s+grade)?$/);
+  if (numericMatch) {
+    return numericMatch[1];
+  }
+
+  const wordMap: Record<string, string> = {
+    kindergarten: 'k',
+    '3rd grade': '3',
+    '4th grade': '4',
+    '5th grade': '5',
+    '6th grade': '6',
+    '7th grade': '7',
+    '8th grade': '8',
+    '9th grade': '9',
+    '10th grade': '10',
+    '11th grade': '11',
+    '12th grade': '12',
+  };
+
+  return wordMap[trimmed] || trimmed;
+}
+
+function normalizeSubjectLabel(value: string) {
+  return value.trim().toLowerCase();
+}
+
+export function isSTAARTestedLesson(report: AnalysisReport | LessonReport) {
+  const reportGrade = normalizeGradeLabel(String(report.grade || ''));
+  const reportSubject = normalizeSubjectLabel(String(report.subject || ''));
+
+  return STAAR_SUBJECTS.some(
+    ({ grade, subject }) =>
+      normalizeGradeLabel(grade) === reportGrade &&
+      normalizeSubjectLabel(subject) === reportSubject
+  );
+}
+
+export function getTEKSCoverageInsights(report: AnalysisReport) {
+  if (!isSTAARTestedLesson(report)) return null;
+
+  const metrics = getLessonMetrics(report);
+  const { standards, overview, found } = getTEKSStandards(String(report.grade || ''), String(report.subject || ''));
+  const strengths: string[] = [];
+  const gaps: string[] = [];
+
+  if (metrics.coverage >= 88) {
+    strengths.push('The lesson stays tightly aligned to the assessed standard and keeps students focused on the intended content.');
+  } else if (metrics.coverage >= 78) {
+    strengths.push('The lesson addresses the core standard, but tighter emphasis on the assessed outcome would strengthen coherence.');
+  } else {
+    gaps.push('The assessed standard needs more explicit emphasis so the lesson is unmistakably anchored to the TEKS target.');
+  }
+
+  if (metrics.clarity >= 85) {
+    strengths.push('Teacher explanations make the standard accessible and help students understand what success looks like.');
+  } else {
+    gaps.push('Clarify the academic target with sharper modeling, success criteria, and more explicit vocabulary tied to the TEKS.');
+  }
+
+  if (metrics.assessment >= 80) {
+    strengths.push('Checks for understanding provide useful evidence of whether students are on track with the intended standard.');
+  } else {
+    gaps.push('Add a stronger formative check aligned to the TEKS so mastery is measured before students move on.');
+  }
+
+  if (metrics.gaps > 0) {
+    gaps.push(`Revisit the ${metrics.gaps} identified content gap${metrics.gaps === 1 ? '' : 's'} to improve STAAR readiness and reduce unfinished understanding.`);
+  }
+
+  const readinessSummary =
+    metrics.score >= 85
+      ? 'TEKS alignment and lesson execution suggest strong readiness for continued standards-based instruction.'
+      : metrics.score >= 75
+        ? 'TEKS coverage is on track, but the lesson would benefit from stronger precision and more explicit mastery evidence.'
+        : 'TEKS coverage needs tighter alignment, clearer delivery, and stronger checks for mastery to support readiness.';
+
+  return {
+    overview,
+    standards: found ? standards.slice(0, 3) : [],
+    hasStandards: found && standards.length > 0,
+    strengths,
+    gaps,
+    readinessSummary,
+  };
+}
+
 function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: string) {
+  const score =
+    report.coverage * 0.35 +
+    report.clarity * 0.3 +
+    report.engagement * 0.2 +
+    report.assessment * 0.15 -
+    report.gaps * 2;
+
   const scoreBand =
-    report.coverage >= 90 && report.clarity >= 88
+    score >= 88
       ? 'strong and increasingly consistent'
-      : report.gaps >= 3
-        ? 'in need of targeted support'
-        : 'solid with room to sharpen execution';
+      : score >= 78
+        ? 'solid with room to sharpen execution'
+        : 'in need of targeted support';
+
+  const strengths: string[] = [];
+  const improvements: string[] = [];
+
+  if (report.coverage >= 88) {
+    strengths.push('The lesson stayed closely aligned to the intended objective and maintained clear focus on grade-level content.');
+  } else {
+    improvements.push('Tighten objective alignment so each instructional segment clearly advances the core standard.');
+  }
+
+  if (report.clarity >= 85) {
+    strengths.push('Teacher explanations and modeling gave students a clear path into the task.');
+  } else {
+    improvements.push('Strengthen clarity with tighter modeling, clearer exemplars, and more precise success criteria.');
+  }
+
+  if (report.engagement >= 82) {
+    strengths.push('Students had meaningful response opportunities that supported attention and participation.');
+  } else {
+    improvements.push('Build in more visible checks for understanding and student response moments during instruction.');
+  }
+
+  if (report.assessment >= 78) {
+    strengths.push('The lesson included useful evidence of learning before students moved on.');
+  } else {
+    improvements.push('Add a stronger formative check before independent work or closure to confirm mastery.');
+  }
+
+  if (report.gaps >= 3) {
+    improvements.push('Revisit unfinished content and close conceptual gaps before progressing to the next lesson sequence.');
+  }
 
   return [
-    'Executive Summary',
-    `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson was ${scoreBand}, with evidence tied to clarity, pacing, engagement, and mastery checks.`,
+    'Metrics:',
+    `Instructional Score (0-100): ${Math.max(0, Math.min(100, Math.round(score)))}`,
+    `Coverage (0-100): ${report.coverage}`,
+    `Clarity (0-100): ${report.clarity}`,
+    `Engagement (0-100): ${report.engagement}`,
+    `Assessment Quality (0-100): ${report.assessment}`,
+    `Gaps Flagged: ${report.gaps}`,
     '',
-    'Coaching Priorities',
-    `- Tighten modeling and guided practice around ${report.title.toLowerCase()}.`,
-    '- Add one brief mastery check before independent work begins.',
-    '- End with a short written or verbal closure prompt to confirm understanding.',
+    '=== EXECUTIVE SUMMARY ===',
+    `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson was ${scoreBand}. The strongest evidence came from coverage, clarity, engagement, and how consistently the lesson checked for understanding before moving students forward.`,
     '',
-    'Standards Alignment',
-    `- Coverage evidence suggests ${report.coverage}% alignment to the intended objective.`,
-    `- Clarity and explanation moves were rated at ${report.clarity}%.`,
-    `- Student engagement opportunities were rated at ${report.engagement}%.`,
+    '=== WHAT WENT WELL ===',
+    ...strengths.map((item) => `- ${item}`),
+    '',
+    '=== WHAT CAN IMPROVE ===',
+    ...improvements.map((item) => `- ${item}`),
+    '',
+    '=== RECOMMENDED NEXT STEP ===',
+    `${teacherDisplayName} should continue building on what worked while focusing next on stronger mastery checks, tighter closure, and clear evidence that students can independently demonstrate understanding by the end of the lesson.`,
+    '',
+    '=== INSTRUCTIONAL COACHING FEEDBACK ===',
+    `- Key Findings: Coverage indicates ${report.coverage}% alignment to the lesson objective and intended content focus.`,
+    `- Missed Opportunities: ${report.clarity >= 85 ? 'Push for deeper student ownership and independent reasoning.' : 'Tighten modeling and explanation so students see exactly what success looks like.'}`,
+    `- Student Engagement Signals: Engagement was rated at ${report.engagement}%, reflecting ${report.engagement >= 82 ? 'active student participation during the lesson' : 'limited student response opportunities that should be strengthened'}.`,
+    `- Suggested Next Steps: ${report.assessment >= 78 ? 'Keep the current structure and strengthen the final mastery check.' : 'Add a stronger formative check before closure to confirm student understanding.'}`,
+    '',
+    '=== STAAR TEKS COVERAGE ===',
+    `- Readiness Summary: The lesson is ${report.coverage >= 88 ? 'strongly aligned' : 'partially aligned'} to the assessed Biology standard for this course sequence.`,
+    `- Standards Reinforced: The objective, examples, and guided practice collectively reinforce grade-level biology content.`,
+    `- Standards That Need Stronger Assessment Evidence: ${report.assessment >= 80 ? 'Current checks provide solid evidence of mastery.' : 'Students need a clearer standards-aligned mastery task before the lesson closes.'}`,
+    `- STAAR Readiness Recommendation: ${report.coverage >= 88 ? 'Maintain strong standards alignment while deepening independent student evidence.' : 'Tighten the connection between instruction, practice, and the assessed TEKS expectation.'}`,
+    '',
+    '=== TEXAS TEKS STANDARDS ALIGNMENT ===',
+    '- Standards Addressed: Biology 10.6.A: Identify components of cells and their functions in multicellular organisms.',
+    '- Standards Not Observed: Biology 10.6.C: Evaluate how cell processes maintain homeostasis in changing environments.',
+    '- Standards Mastery Notes: Students were introduced to the core concept, but mastery evidence was stronger when the lesson included concrete checks for understanding.',
+    '- Recommendations for Standards Integration: Add one short written response or labeled diagram task tied directly to the target TEKS before the lesson ends.',
   ].join('\n');
 }
 
@@ -206,48 +363,69 @@ export function average(values: number[]): number {
 }
 
 export function getLessonMetrics(report: AnalysisReport) {
+  const parsedMetrics = parseAnalysisMetrics(report.result || report.analysis_result || '');
+  const fallbackScore = parsedMetrics.score ?? calculateLessonScore(report);
+
   return {
-    score: calculateLessonScore(report),
-    coverage: toNumberMetric(report.coverage ?? report.coverage_score, 75),
-    clarity: toNumberMetric(report.clarity ?? report.clarity_rating, 75),
-    engagement: toNumberMetric(report.engagement ?? report.engagement_level, 75),
-    assessment: toNumberMetric(report.assessment ?? report.assessment_quality, 75),
-    gaps: toNumberMetric(report.gaps ?? report.gaps_detected, 0),
+    score: toNumberMetric(report.score, fallbackScore),
+    coverage: toNumberMetric(report.coverage ?? report.coverage_score, parsedMetrics.coverage ?? 75),
+    clarity: toNumberMetric(report.clarity ?? report.clarity_rating, parsedMetrics.clarity ?? 75),
+    engagement: toNumberMetric(report.engagement ?? report.engagement_level, parsedMetrics.engagement ?? 75),
+    assessment: toNumberMetric(report.assessment ?? report.assessment_quality, parsedMetrics.assessment ?? 75),
+    gaps: toNumberMetric(report.gaps ?? report.gaps_detected, parsedMetrics.gaps ?? 0),
   };
 }
 
 export function getLessonInsights(report: AnalysisReport) {
   const metrics = getLessonMetrics(report);
   const findings: string[] = [];
+  const strengths: string[] = [];
+  const improvements: string[] = [];
 
   if (metrics.score >= 80) {
     findings.push('Overall lesson quality is strong with consistent instructional delivery.');
+    strengths.push('The lesson shows solid overall instructional quality with evidence of coherent delivery.');
   } else {
     findings.push('Overall lesson quality is below target and needs targeted refinement.');
+    improvements.push('Raise the overall lesson quality by tightening instruction, checking for understanding, and reinforcing closure.');
   }
 
   if (metrics.coverage >= 80) {
     findings.push('Standards coverage is strong and aligned to lesson goals.');
+    strengths.push('Standards coverage is aligned to the lesson objective and supports the intended learning target.');
   } else {
     findings.push('Standards coverage is light; prioritize explicit alignment to objectives.');
+    improvements.push('Strengthen standards alignment so the lesson objective is reinforced in modeling, practice, and closure.');
   }
 
   if (metrics.clarity >= 80) {
     findings.push('Explanations are clear and sequencing supports student understanding.');
+    strengths.push('Explanations and sequencing support understanding and reduce confusion for students.');
   } else {
     findings.push('Instructional clarity can improve with tighter modeling and checks for understanding.');
+    improvements.push('Improve clarity with tighter modeling, clearer examples, and better checks for understanding.');
   }
 
   if (metrics.engagement >= 80) {
     findings.push('Student engagement appears high with active participation opportunities.');
+    strengths.push('Students had visible opportunities to participate and stay engaged with the content.');
   } else {
     findings.push('Engagement is limited; add more interaction and response moments during instruction.');
+    improvements.push('Increase student response opportunities so engagement is visible throughout the lesson.');
+  }
+
+  if (metrics.assessment >= 80) {
+    strengths.push('Formative assessment moves provided useful evidence of student understanding before moving on.');
+  } else {
+    improvements.push('Add stronger formative checks before independent work or closure to confirm mastery.');
   }
 
   if (metrics.gaps > 0) {
     findings.push(`Detected ${metrics.gaps} gap${metrics.gaps === 1 ? '' : 's'} that should be revisited for mastery.`);
+    improvements.push(`Address the ${metrics.gaps} identified gap${metrics.gaps === 1 ? '' : 's'} with reteach and a quick mastery check.`);
   } else {
     findings.push('No major concept gaps were detected in this lesson evidence.');
+    strengths.push('No major concept gaps were detected in the available lesson evidence.');
   }
 
   const nextAction =
@@ -262,25 +440,61 @@ export function getLessonInsights(report: AnalysisReport) {
         ? 'Solid lesson with room to sharpen execution and mastery checks.'
         : 'Lesson needs targeted support around clarity, closure, and reinforcement.';
 
+  const celebration =
+    strengths[0] ||
+    'This lesson includes evidence worth preserving and building on in future instruction.';
+
+  const improvementSummary =
+    improvements[0] ||
+    'Continue refining execution with stronger checks for understanding and purposeful closure.';
+
   return {
     ...metrics,
     findings,
+    strengths,
+    improvements,
     nextAction,
     summary,
+    celebration,
+    improvementSummary,
+  };
+}
+
+export function getLessonReportSections(report: AnalysisReport): {
+  executiveSummary: string;
+  strengths: string[];
+  improvements: string[];
+  recommendedNextStep: string;
+  coaching: ReportSection[];
+  teks: ReportSection[];
+  staar: ReportSection[];
+} {
+  const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
+  const insights = getLessonInsights(report);
+
+  return {
+    executiveSummary: parsed.executiveSummary || insights.summary,
+    strengths: parsed.whatWentWell.length ? parsed.whatWentWell : insights.strengths,
+    improvements: parsed.whatCanImprove.length ? parsed.whatCanImprove : insights.improvements,
+    recommendedNextStep: parsed.recommendedNextStep || insights.nextAction,
+    coaching: parsed.coaching,
+    teks: parsed.teks,
+    staar: parsed.staar,
   };
 }
 
 export function getDashboardSummary(reports: AnalysisReport[]) {
-  const scores = reports.map(calculateLessonScore);
+  const metrics = reports.map(getLessonMetrics);
+  const scores = metrics.map((metric) => metric.score);
 
   return {
     lessonsAnalyzed: reports.length,
     averageScore: average(scores),
-    averageCoverage: average(reports.map(r => toNumberMetric(r.coverage ?? r.coverage_score, 0))),
-    averageClarity: average(reports.map(r => toNumberMetric(r.clarity ?? r.clarity_rating, 0))),
-    averageEngagement: average(reports.map(r => toNumberMetric(r.engagement ?? r.engagement_level, 0))),
-    averageAssessment: average(reports.map(r => toNumberMetric(r.assessment ?? r.assessment_quality, 0))),
-    totalGaps: reports.reduce((sum, r) => sum + toNumberMetric(r.gaps ?? r.gaps_detected, 0), 0),
+    averageCoverage: average(metrics.map((metric) => metric.coverage)),
+    averageClarity: average(metrics.map((metric) => metric.clarity)),
+    averageEngagement: average(metrics.map((metric) => metric.engagement)),
+    averageAssessment: average(metrics.map((metric) => metric.assessment)),
+    totalGaps: metrics.reduce((sum, metric) => sum + metric.gaps, 0),
   };
 }
 
@@ -311,14 +525,17 @@ export function getTeacherRankings(reports: LessonReport[]) {
 export function getTrendData(reports: AnalysisReport[]) {
   return [...reports]
     .sort((a, b) => (a.date ?? a.created_at ?? '').localeCompare(b.date ?? b.created_at ?? ''))
-    .map(report => ({
+    .map(report => {
+      const metrics = getLessonMetrics(report);
+      return {
       date: report.date ?? report.created_at?.slice(0, 10),
-      score: calculateLessonScore(report),
-      coverage: toNumberMetric(report.coverage ?? report.coverage_score, 0),
-      clarity: toNumberMetric(report.clarity ?? report.clarity_rating, 0),
-      engagement: toNumberMetric(report.engagement ?? report.engagement_level, 0),
-      assessment: toNumberMetric(report.assessment ?? report.assessment_quality, 0),
-    }));
+      score: metrics.score,
+      coverage: metrics.coverage,
+      clarity: metrics.clarity,
+      engagement: metrics.engagement,
+      assessment: metrics.assessment,
+    };
+    });
 }
 
 export function sortReportsNewestFirst(reports: AnalysisReport[]) {
@@ -328,5 +545,5 @@ export function sortReportsNewestFirst(reports: AnalysisReport[]) {
 export function getLatestLessonTrend(reports: AnalysisReport[]) {
   const sortedReports = sortReportsNewestFirst(reports);
   if (sortedReports.length < 2) return 0;
-  return calculateLessonScore(sortedReports[0]) - calculateLessonScore(sortedReports[1]);
+  return getLessonMetrics(sortedReports[0]).score - getLessonMetrics(sortedReports[1]).score;
 }

@@ -14,6 +14,53 @@ export interface TEKSGradeSubject {
   overviewStatement: string;
 }
 
+function normalizeGrade(grade: string): string {
+  const value = grade.trim().toLowerCase();
+  if (!value) return '';
+
+  const numericMatch = value.match(/^(\d{1,2})(?:st|nd|rd|th)?(?:\s+grade)?$/);
+  if (numericMatch) {
+    return numericMatch[1];
+  }
+
+  const aliases: Record<string, string> = {
+    kindergarten: 'k',
+    '3rd grade': '3',
+    '4th grade': '4',
+    '5th grade': '5',
+    '6th grade': '6',
+    '7th grade': '7',
+    '8th grade': '8',
+    '9th grade': '9',
+    '10th grade': '10',
+    '11th grade': '11',
+    '12th grade': '12',
+  };
+
+  return aliases[value] || value;
+}
+
+function normalizeSubject(subject: string): string {
+  const value = subject.trim().toLowerCase().replace(/\./g, '');
+
+  const aliases: Record<string, string> = {
+    ela: 'english language arts',
+    english: 'english language arts',
+    'english language arts': 'english language arts',
+    math: 'mathematics',
+    mathematics: 'mathematics',
+    'algebra 1': 'algebra i',
+    'algebra i': 'algebra i',
+    'english 2': 'english ii',
+    'english ii': 'english ii',
+    'us history': 'us history',
+    'u s history': 'us history',
+    'u.s. history': 'us history',
+  };
+
+  return aliases[value] || value;
+}
+
 const teksDatabase: TEKSGradeSubject[] = [
   // GRADE 3 ELA
   {
@@ -523,8 +570,8 @@ export function getTEKSStandards(
 } {
   const match = teksDatabase.find(
     (ts) =>
-      ts.grade.toLowerCase() === grade.toLowerCase() &&
-      ts.subject.toLowerCase() === subject.toLowerCase()
+      normalizeGrade(ts.grade) === normalizeGrade(grade) &&
+      normalizeSubject(ts.subject) === normalizeSubject(subject)
   );
 
   if (match) {

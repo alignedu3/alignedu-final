@@ -173,7 +173,7 @@ export default function AdminDashboard() {
 
         const { data, error: analysesError } = await supabase
           .from('analyses')
-          .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, transcript, result, analysis_result')
+          .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, assessment_quality, gaps_detected, transcript, result, analysis_result')
           .in('user_id', visibleUserIds)
           .order('created_at', { ascending: false });
 
@@ -196,7 +196,7 @@ export default function AdminDashboard() {
           coverage: toNumber(r.coverage_score, 75),
           clarity: toNumber(r.clarity_rating, 75),
           engagement: toNumber(r.engagement_level, 75),
-          assessment: 75,
+          assessment: toNumber((r as AnalysisReport).assessment_quality, 75),
           gaps: toNumber(r.gaps_detected, 0),
         }));
 

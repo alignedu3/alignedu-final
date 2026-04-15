@@ -3,169 +3,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import {
+  cleanDisplayText,
+  getScoreBand,
+  parseAnalysisMetrics,
+  parseAnalysisResult,
+  parseFeedbackSections,
+} from "@/lib/analysisReport";
 
 // Simulate premium check (replace with real check if available)
 const isPremium = true;
-
-type ReportSection = {
-  title: string;
-  content: string;
-  bullets: string[];
-};
-
-const REPORT_HEADING_MAP: Record<string, string> = {
-  "instructional coaching feedback": "Coaching Priorities",
-  "texas teks standards alignment": "Standards Alignment",
-  "staar teks coverage": "Assessment Readiness",
-  metrics: "Performance Snapshot",
-  summary: "Executive Summary",
-};
-
-function cleanDisplayText(text: string) {
-  return text
-    .replace(/\r/g, "")
-    .replace(/^#{1,6}\s*/gm, "")
-    .replace(/\*\*(.*?)\*\*/g, "$1")
-    .replace(/\*(.*?)\*/g, "$1")
-    .replace(/^\s*>\s?/gm, "")
-    .replace(/^\s*[-•*]\s+/gm, "- ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-function normalizeTitle(title: string) {
-  const cleaned = cleanDisplayText(title)
-    .replace(/^=+\s*/, "")
-    .replace(/\s*=+$/, "")
-    .replace(/:+$/, "")
-    .trim();
-
-  const mapped = REPORT_HEADING_MAP[cleaned.toLowerCase()];
-  if (mapped) return mapped;
-  if (!cleaned) return "Summary";
-  return cleaned;
-}
-
-function cleanBulletText(line: string) {
-  return cleanDisplayText(line)
-    .replace(/^[-•*]\s*/, "")
-    .replace(/^[0-9]+\.\s*/, "")
-    .trim();
-}
-
-function parseLabeledSection(content: string): ReportSection[] {
-  if (!content.trim()) return [];
-
-  const matches = Array.from(
-    content.matchAll(/(?:^|\n)\s*[-•*]\s*([^:\n]+):\s*([\s\S]*?)(?=(?:\n\s*[-•*]\s*[^:\n]+:\s*)|$)/g)
-  );
-
-  if (matches.length > 0) {
-    return matches
-      .map((match) => {
-        const body = cleanDisplayText(match[2] || "");
-        const bullets = body
-          .split(/\n+/)
-          .map((line) => cleanBulletText(line))
-          .filter(Boolean);
-
-        return {
-          title: normalizeTitle(match[1] || "Summary"),
-          content: body,
-          bullets: bullets.length > 1 ? bullets : [],
-        };
-      })
-      .filter((section) => section.content || section.bullets.length);
-  }
-
-  const fallback = cleanDisplayText(content);
-  return fallback
-    ? [{ title: "Summary", content: fallback, bullets: [] }]
-    : [];
-}
-
-function parseAnalysisResult(text: string): ReportSection[] {
-  if (!text) return [];
-
-  const cleaned = cleanDisplayText(text)
-    .replace(/Metrics:\s*[\s\S]*?(?=\n(?:===|[A-Z][A-Za-z\s]+:)|$)/i, "")
-    .replace(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===/gi, "")
-    .replace(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===/gi, "")
-    .replace(/===\s*STAAR TEKS COVERAGE\s*===/gi, "")
-    .trim();
-
-  if (!cleaned) return [];
-
-  return cleaned
-    .split(/\n{2,}/)
-    .map((chunk) => chunk.trim())
-    .filter(Boolean)
-    .map((chunk) => {
-      const lines = chunk
-        .split(/\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      const firstLine = lines[0] || "";
-      const bodyLines = lines.slice(1);
-      const isHeading =
-        lines.length > 1 &&
-        !/^[-•*]/.test(firstLine) &&
-        !/^[0-9]+\./.test(firstLine) &&
-        firstLine.length < 80;
-
-      const content = cleanDisplayText(isHeading ? bodyLines.join("\n") : lines.join("\n"));
-      const bullets = (isHeading ? bodyLines : lines)
-        .filter((line) => /^[-•*]/.test(line) || /^[0-9]+\./.test(line))
-        .map((line) => cleanBulletText(line))
-        .filter(Boolean);
-
-      return {
-        title: normalizeTitle(isHeading ? firstLine : "Summary"),
-        content,
-        bullets: bullets.length === lines.length || bullets.length > 1 ? bullets : [],
-      };
-    })
-    .filter((section) => section.content || section.bullets.length);
-}
-
-function parseAnalysisMetrics(text: string) {
-  const stringValue = (match: RegExpMatchArray | null) =>
-    match ? Number(match[1]) : null;
-
-  const score = stringValue(text.match(/Instructional Score[\s\S]*?:\s*([0-9]{1,3})/i));
-  const coverage = stringValue(text.match(/Coverage[\s\S]*?:\s*([0-9]{1,3})/i));
-  const clarity = stringValue(text.match(/Clarity[\s\S]*?:\s*([0-9]{1,3})/i));
-  const engagement = stringValue(text.match(/Engagement[\s\S]*?:\s*([0-9]{1,3})/i));
-  const gaps = stringValue(text.match(/Gaps(?:\s*Flagged)?[\s\S]*?:\s*([0-9]{1,3})/i));
-
-  return {
-    score: score ?? null,
-    coverage: coverage ?? null,
-    clarity: clarity ?? null,
-    engagement: engagement ?? null,
-    gaps: gaps ?? null,
-  };
-}
-
-function parseFeedbackSections(text: string) {
-  const coachingMatch = text.match(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===([\s\S]*?)(?====|$)/i);
-  const teksMatch = text.match(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===([\s\S]*?)(?====|$)/i);
-  const staarMatch = text.match(/===\s*STAAR TEKS COVERAGE\s*===([\s\S]*?)(?====|$)/i);
-
-  return {
-    coaching: coachingMatch ? parseLabeledSection(coachingMatch[1]) : [],
-    teks: teksMatch ? parseLabeledSection(teksMatch[1]) : [],
-    staar: staarMatch ? parseLabeledSection(staarMatch[1]) : [],
-  };
-}
-
-function getScoreBand(score: number | null) {
-  if (score === null) return { label: "Report Ready", tone: "#64748b" };
-  if (score >= 85) return { label: "Strong Practice", tone: "#15803d" };
-  if (score >= 70) return { label: "Solid With Refinements", tone: "#b45309" };
-  return { label: "Priority Support Area", tone: "#b91c1c" };
-}
 
 export default function AnalysisPage() {
     // Audio Recorder State
@@ -721,16 +568,22 @@ export default function AnalysisPage() {
     }
   };
 
+  type TranscriptionChunkResult = {
+    transcript: string;
+    responseWaitEvidence?: string | null;
+  };
+
   const resultSections = parseAnalysisResult(result);
   const resultMetrics = parseAnalysisMetrics(result);
   const feedbackSections = parseFeedbackSections(result);
   const scoreBand = getScoreBand(resultMetrics.score);
   const executiveSummary =
+    feedbackSections.executiveSummary ||
     feedbackSections.coaching[0]?.content ||
     resultSections.find((section) => section.content)?.content ||
     "";
 
-  const transcribeChunk = async (chunk: File, index: number, total: number) => {
+  const transcribeChunk = async (chunk: File, index: number, total: number): Promise<TranscriptionChunkResult> => {
     setProcessingStep(`Transcribing chunk ${index + 1} of ${total}...`);
     const chunkForm = new FormData();
     chunkForm.append("file", chunk);
@@ -750,7 +603,13 @@ export default function AnalysisPage() {
       throw new Error(message);
     }
 
-    return String(chunkData.transcript || "");
+    return {
+      transcript: String(chunkData.transcript || ""),
+      responseWaitEvidence:
+        typeof chunkData.responseWaitEvidence === "string"
+          ? chunkData.responseWaitEvidence
+          : null,
+    };
   };
 
   const handleAudioChange = (file: File | null) => {
@@ -904,21 +763,24 @@ export default function AnalysisPage() {
       }
 
       let transcriptText = lessonNotes.trim();
+      const responseWaitNotes: string[] = [];
 
       if (audioFile) {
         const spokenParts: string[] = [];
 
         // If duration is unknown or short, transcribe directly as one chunk.
         if (!resolvedDuration || resolvedDuration <= 60) {
-          const spokenText = await transcribeChunk(audioFile, 0, 1);
-          if (spokenText) spokenParts.push(spokenText);
+          const chunkResult = await transcribeChunk(audioFile, 0, 1);
+          if (chunkResult.transcript) spokenParts.push(chunkResult.transcript);
+          if (chunkResult.responseWaitEvidence) responseWaitNotes.push(chunkResult.responseWaitEvidence);
         } else {
           setProcessingStep("Splitting audio into chunks...");
           const chunks = await splitAudioIntoChunks(audioFile, resolvedDuration);
 
           for (let index = 0; index < chunks.length; index += 1) {
-            const spokenText = await transcribeChunk(chunks[index], index, chunks.length);
-            if (spokenText) spokenParts.push(spokenText);
+            const chunkResult = await transcribeChunk(chunks[index], index, chunks.length);
+            if (chunkResult.transcript) spokenParts.push(chunkResult.transcript);
+            if (chunkResult.responseWaitEvidence) responseWaitNotes.push(chunkResult.responseWaitEvidence);
           }
         }
 
@@ -940,6 +802,9 @@ export default function AnalysisPage() {
       analysisForm.append("grade", grade);
       analysisForm.append("subject", subject);
       analysisForm.append("lecture", transcriptText);
+      if (responseWaitNotes.length > 0) {
+        analysisForm.append("waitTimeEvidence", responseWaitNotes.join("\n"));
+      }
       if (isAdminObservationMode) {
         analysisForm.append("observedTeacherId", observedTeacherId);
       }
@@ -1226,6 +1091,11 @@ export default function AnalysisPage() {
                   <div style={metricSubtextStyle}>Student participation</div>
                 </div>
                 <div style={metricCardStyle}>
+                  <div style={metricLabelStyle}>Assessment</div>
+                  <div style={metricValueStyle}>{resultMetrics.assessment ?? '—'}</div>
+                  <div style={metricSubtextStyle}>Evidence of mastery</div>
+                </div>
+                <div style={metricCardStyle}>
                   <div style={metricLabelStyle}>Gaps</div>
                   <div style={metricValueStyle}>{resultMetrics.gaps ?? '—'}</div>
                   <div style={metricSubtextStyle}>Priority issues to address</div>
@@ -1236,7 +1106,7 @@ export default function AnalysisPage() {
                 <div style={reportNoticeStyle}>{saveNotice}</div>
               )}
 
-              {resultSections.length === 0 && feedbackSections.coaching.length === 0 && feedbackSections.teks.length === 0 && feedbackSections.staar.length === 0 ? (
+              {resultSections.length === 0 && feedbackSections.coaching.length === 0 && feedbackSections.teks.length === 0 && feedbackSections.staar.length === 0 && !feedbackSections.whatWentWell.length && !feedbackSections.whatCanImprove.length && !feedbackSections.recommendedNextStep ? (
                 <div style={{ ...reportSummaryStyle, marginTop: 22 }}>
                   <div style={reportPanelTextStyle}>{cleanDisplayText(result)}</div>
                 </div>
@@ -1246,6 +1116,41 @@ export default function AnalysisPage() {
                     <div style={reportSummaryStyle}>
                       <div style={reportPanelTitleStyle}>Executive Summary</div>
                       <div style={reportPanelTextStyle}>{executiveSummary}</div>
+                    </div>
+                  )}
+
+                  {(feedbackSections.whatWentWell.length > 0 || feedbackSections.whatCanImprove.length > 0) && (
+                    <>
+                      <div style={reportSectionHeadingStyle}>Instructional Snapshot</div>
+                      <div style={reportGridStyle}>
+                        {feedbackSections.whatWentWell.length > 0 && (
+                          <div style={reportPanelStyle}>
+                            <div style={reportPanelTitleStyle}>What Went Well</div>
+                            <ul style={reportPanelListStyle}>
+                              {feedbackSections.whatWentWell.map((item, index) => (
+                                <li key={`went-well-${index}`}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {feedbackSections.whatCanImprove.length > 0 && (
+                          <div style={reportPanelStyle}>
+                            <div style={reportPanelTitleStyle}>What Can Improve</div>
+                            <ul style={reportPanelListStyle}>
+                              {feedbackSections.whatCanImprove.map((item, index) => (
+                                <li key={`improve-${index}`}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {feedbackSections.recommendedNextStep && (
+                    <div style={reportSummaryStyle}>
+                      <div style={reportPanelTitleStyle}>Recommended Next Step</div>
+                      <div style={reportPanelTextStyle}>{feedbackSections.recommendedNextStep}</div>
                     </div>
                   )}
 
