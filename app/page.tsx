@@ -161,7 +161,7 @@ export default function HomePage() {
                   color: theme.heroSubtext,
                 }}
               >
-                Upload a lecture and instantly see curriculum alignment, instructional gaps,
+                Record or upload a lecture and instantly see curriculum alignment, instructional gaps,
                 and actionable feedback for teachers, administrators, and districts.
               </p>
 
