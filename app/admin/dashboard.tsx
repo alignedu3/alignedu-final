@@ -815,7 +815,7 @@ export default function AdminDashboard() {
                       {row.childAdmins.map((child) => (
                         <div key={child.id} style={{ ...pillBtn, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <button
-                            onClick={() => router.push(`/admin/teacher/${child.id}`)}
+                            onClick={() => router.push(`/admin?adminId=${child.id}`)}
                             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', fontSize: 'inherit' }}
                           >
                             {child.name}
