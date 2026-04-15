@@ -77,19 +77,61 @@ export async function DELETE(
     }
   }
 
+  const profileSnapshot = {
+    id: targetId,
+    name: targetProfile.name,
+    role: targetProfile.role,
+  };
+  const { data: teacherLinks } = await supabase
+    .from('managed_teachers')
+    .select('admin_id, teacher_id')
+    .or(`teacher_id.eq.${targetId},admin_id.eq.${targetId}`);
+  const { data: adminLinks } = await supabase
+    .from('managed_admins')
+    .select('parent_admin_id, child_admin_id')
+    .or(`child_admin_id.eq.${targetId},parent_admin_id.eq.${targetId}`);
+
   // Remove relationship rows first to avoid FK constraint issues.
-  await supabase.from('managed_teachers').delete().eq('teacher_id', targetId);
-  await supabase.from('managed_teachers').delete().eq('admin_id', targetId);
-  await supabase.from('managed_admins').delete().eq('child_admin_id', targetId);
-  await supabase.from('managed_admins').delete().eq('parent_admin_id', targetId);
+  const { error: deleteManagedTeacherByTeacherError } = await supabase.from('managed_teachers').delete().eq('teacher_id', targetId);
+  const { error: deleteManagedTeacherByAdminError } = await supabase.from('managed_teachers').delete().eq('admin_id', targetId);
+  const { error: deleteManagedAdminByChildError } = await supabase.from('managed_admins').delete().eq('child_admin_id', targetId);
+  const { error: deleteManagedAdminByParentError } = await supabase.from('managed_admins').delete().eq('parent_admin_id', targetId);
+
+  if (deleteManagedTeacherByTeacherError || deleteManagedTeacherByAdminError || deleteManagedAdminByChildError || deleteManagedAdminByParentError) {
+    console.error('Relationship delete error:', {
+      deleteManagedTeacherByTeacherError,
+      deleteManagedTeacherByAdminError,
+      deleteManagedAdminByChildError,
+      deleteManagedAdminByParentError,
+    });
+    return NextResponse.json({ error: 'Failed to remove the user relationships.' }, { status: 500 });
+  }
 
   // Delete profile first (avoids FK issues if cascade isn't set)
-  await supabase.from('profiles').delete().eq('id', targetId);
+  const { error: deleteProfileError } = await supabase.from('profiles').delete().eq('id', targetId);
+
+  if (deleteProfileError) {
+    console.error('Profile delete error:', deleteProfileError);
+    if (teacherLinks?.length) {
+      await supabase.from('managed_teachers').upsert(teacherLinks, { onConflict: 'admin_id,teacher_id', ignoreDuplicates: true });
+    }
+    if (adminLinks?.length) {
+      await supabase.from('managed_admins').upsert(adminLinks, { onConflict: 'parent_admin_id,child_admin_id', ignoreDuplicates: true });
+    }
+    return NextResponse.json({ error: 'Failed to remove the user profile.' }, { status: 500 });
+  }
 
   // Delete the auth user
   const { error: deleteError } = await supabase.auth.admin.deleteUser(targetId);
 
   if (deleteError) {
+    await supabase.from('profiles').upsert(profileSnapshot, { onConflict: 'id' });
+    if (teacherLinks?.length) {
+      await supabase.from('managed_teachers').upsert(teacherLinks, { onConflict: 'admin_id,teacher_id', ignoreDuplicates: true });
+    }
+    if (adminLinks?.length) {
+      await supabase.from('managed_admins').upsert(adminLinks, { onConflict: 'parent_admin_id,child_admin_id', ignoreDuplicates: true });
+    }
     return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
 

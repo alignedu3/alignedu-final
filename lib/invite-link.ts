@@ -9,14 +9,20 @@ export interface InviteTokenPayload {
   email: string;
   name: string;
   role: InviteRole;
+  issuedAt?: number;
+  expiresAt?: number;
 }
 
 export interface RecoveryTokenPayload {
   type: 'recovery';
   email: string;
+  issuedAt?: number;
+  expiresAt?: number;
 }
 
 type EmailActionPayload = InviteTokenPayload | RecoveryTokenPayload;
+const INVITE_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 14;
+const RECOVERY_TOKEN_TTL_MS = 1000 * 60 * 60 * 2;
 
 function getInviteSigningSecret() {
   return process.env.INVITE_SIGNING_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -67,11 +73,23 @@ function verifySignedToken(token: string) {
 }
 
 export function createInviteToken(payload: Omit<InviteTokenPayload, 'type'>) {
-  return createSignedToken({ ...payload, type: 'invite' });
+  const issuedAt = Date.now();
+  return createSignedToken({
+    ...payload,
+    type: 'invite',
+    issuedAt,
+    expiresAt: issuedAt + INVITE_TOKEN_TTL_MS,
+  });
 }
 
 export function createRecoveryToken(payload: Omit<RecoveryTokenPayload, 'type'>) {
-  return createSignedToken({ ...payload, type: 'recovery' });
+  const issuedAt = Date.now();
+  return createSignedToken({
+    ...payload,
+    type: 'recovery',
+    issuedAt,
+    expiresAt: issuedAt + RECOVERY_TOKEN_TTL_MS,
+  });
 }
 
 export function verifyInviteToken(token: string) {
@@ -89,6 +107,10 @@ export function verifyInviteToken(token: string) {
     return null;
   }
 
+  if (payload.expiresAt && payload.expiresAt < Date.now()) {
+    return null;
+  }
+
   return payload;
 }
 
@@ -100,6 +122,10 @@ export function verifyRecoveryToken(token: string) {
   }
 
   if (!payload.email) {
+    return null;
+  }
+
+  if (payload.expiresAt && payload.expiresAt < Date.now()) {
     return null;
   }
 

@@ -30,8 +30,10 @@ function getSiteUrl(req: Request) {
 
 export async function POST(req: Request) {
   const { name, email, role } = await req.json();
+  const normalizedName = typeof name === 'string' ? name.trim() : '';
+  const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
-  if (!name || !email || !role) {
+  if (!normalizedName || !normalizedEmail || !role) {
     return new Response(JSON.stringify({ error: 'name, email, and role are required.' }), { status: 400 });
   }
 
@@ -76,50 +78,47 @@ export async function POST(req: Request) {
 
   const newUserId = authData.user.id;
 
+  const rollbackInviteCreation = async () => {
+    await supabase.from('managed_teachers').delete().eq('teacher_id', newUserId);
+    await supabase.from('managed_teachers').delete().eq('admin_id', newUserId);
+    await supabase.from('managed_admins').delete().eq('child_admin_id', newUserId);
+    await supabase.from('managed_admins').delete().eq('parent_admin_id', newUserId);
+    await supabase.from('profiles').delete().eq('id', newUserId);
+    await supabase.auth.admin.deleteUser(newUserId);
+  };
+
   const safeRole = role === 'admin' ? 'admin' : 'teacher';
   const inviteLink = buildReusableInviteLink(getSiteUrl(req), {
     userId: newUserId,
-    email,
-    name,
+    email: normalizedEmail,
+    name: normalizedName,
     role: safeRole,
   });
-
-  // Send invite via Resend
-  let inviteEmailId: string;
-  try {
-    const inviteEmail = await sendInviteEmail(email, name, safeRole, inviteLink);
-    inviteEmailId = inviteEmail.id;
-    console.log('Invite email queued via Resend', {
-      inviteEmailId,
-      to: email,
-      role: safeRole,
-    });
-  } catch (emailError) {
-    console.error('Failed to send invite email via Resend:', emailError);
-    const detail = emailError instanceof Error ? emailError.message : 'Unknown email provider error';
-    return new Response(JSON.stringify({ error: `Failed to send invite email: ${detail}` }), { status: 500 });
-  }
 
   // Insert profile — enforce role explicitly.
   // Two-step: upsert to create if missing, then update to guarantee role is correct
   // even if a Supabase trigger already created the profile with a different default role.
   const { error: upsertError } = await supabase.from('profiles').upsert(
-    { id: newUserId, name, email, role: safeRole },
+    { id: newUserId, name: normalizedName, email: normalizedEmail, role: safeRole },
     { onConflict: 'id' }
   );
 
   if (upsertError) {
     console.error('Profile upsert error:', upsertError.message);
+    await rollbackInviteCreation();
+    return new Response(JSON.stringify({ error: 'Failed to create the invited user profile.' }), { status: 500 });
   }
 
   // Force role via direct update — overrides any Supabase trigger defaults.
   const { error: roleUpdateError } = await supabase
     .from('profiles')
-    .update({ role: safeRole, name, email })
+    .update({ role: safeRole, name: normalizedName, email: normalizedEmail })
     .eq('id', newUserId);
 
   if (roleUpdateError) {
     console.error('Profile role update error:', roleUpdateError.message);
+    await rollbackInviteCreation();
+    return new Response(JSON.stringify({ error: 'Failed to finalize the invited user profile.' }), { status: 500 });
   }
 
   // Verify what actually ended up in the DB and log it for diagnostics.
@@ -131,15 +130,22 @@ export async function POST(req: Request) {
 
   if (verifyError) {
     console.error('Profile verify error:', verifyError.message);
+    await rollbackInviteCreation();
+    return new Response(JSON.stringify({ error: 'Failed to verify the invited user profile.' }), { status: 500 });
   } else {
     console.log('Profile role after invite:', { userId: newUserId, role: verifyProfile?.role, expected: safeRole });
     if (verifyProfile?.role !== safeRole) {
-      // Trigger or policy overrode our update — try once more via RPC-style update.
       console.warn(`Role mismatch! Got ${verifyProfile?.role}, expected ${safeRole}. Forcing again...`);
-      await supabase
+      const { error: retryRoleError } = await supabase
         .from('profiles')
         .update({ role: safeRole })
         .eq('id', newUserId);
+
+      if (retryRoleError) {
+        console.error('Profile role retry error:', retryRoleError.message);
+        await rollbackInviteCreation();
+        return new Response(JSON.stringify({ error: 'Failed to finalize the invited user role.' }), { status: 500 });
+      }
     }
   }
 
@@ -152,7 +158,8 @@ export async function POST(req: Request) {
 
     if (linkError) {
       console.error('managed_teachers insert error:', linkError.message);
-      // Don't fail — user was created; log the link failure
+      await rollbackInviteCreation();
+      return new Response(JSON.stringify({ error: 'Failed to link the invited teacher to this admin.' }), { status: 500 });
     }
   } else if (role === 'admin') {
     const { error: linkError } = await supabase.from('managed_admins').insert({
@@ -162,8 +169,25 @@ export async function POST(req: Request) {
 
     if (linkError) {
       console.error('managed_admins insert error:', linkError.message);
-      // Keep success so invite still sends even if hierarchy link fails.
+      await rollbackInviteCreation();
+      return new Response(JSON.stringify({ error: 'Failed to link the invited admin to this hierarchy.' }), { status: 500 });
     }
+  }
+
+  let inviteEmailId: string;
+  try {
+    const inviteEmail = await sendInviteEmail(normalizedEmail, normalizedName, safeRole, inviteLink);
+    inviteEmailId = inviteEmail.id;
+    console.log('Invite email queued via Resend', {
+      inviteEmailId,
+      to: normalizedEmail,
+      role: safeRole,
+    });
+  } catch (emailError) {
+    console.error('Failed to send invite email via Resend:', emailError);
+    await rollbackInviteCreation();
+    const detail = emailError instanceof Error ? emailError.message : 'Unknown email provider error';
+    return new Response(JSON.stringify({ error: `Failed to send invite email: ${detail}` }), { status: 500 });
   }
 
   return new Response(JSON.stringify({ success: true, inviteEmailId }), { status: 200 });

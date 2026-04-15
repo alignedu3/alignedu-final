@@ -6,8 +6,10 @@ import { createServerClient } from '@supabase/ssr';
 export async function POST(req: Request) {
   try {
     const { email, name } = await req.json();
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const normalizedName = typeof name === 'string' ? name.trim() : '';
 
-    if (!email || !name) {
+    if (!normalizedEmail || !normalizedName) {
       return NextResponse.json(
         { success: false, error: 'Missing email or name' },
         { status: 400 }
@@ -63,15 +65,37 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
+    const { data: existingProfile, error: existingProfileError } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    if (existingProfileError) {
+      console.error('PROFILE LOOKUP ERROR:', existingProfileError);
+      return NextResponse.json(
+        { success: false, error: 'Failed to validate the teacher email.' },
+        { status: 500 }
+      );
+    }
+
+    if (existingProfile && existingProfile.role !== 'teacher') {
+      return NextResponse.json(
+        { success: false, error: 'This email already belongs to a non-teacher account.' },
+        { status: 409 }
+      );
+    }
+
     // ================================
     // 1. CHECK IF AUTH USER EXISTS
     // ================================
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
 
     let userId: string;
+    let createdAuthUser = false;
 
     const existingUser = existingUsers?.users?.find(
-      (u) => u.email === email
+      (u) => (u.email || '').toLowerCase() === normalizedEmail
     );
 
     if (existingUser) {
@@ -79,7 +103,7 @@ export async function POST(req: Request) {
     } else {
       const { data: authUser, error: authError } =
         await supabase.auth.admin.createUser({
-          email,
+          email: normalizedEmail,
           email_confirm: true,
         });
 
@@ -108,6 +132,7 @@ export async function POST(req: Request) {
       }
 
       userId = authUser.user.id;
+      createdAuthUser = true;
     }
 
     // ================================
@@ -117,8 +142,8 @@ export async function POST(req: Request) {
       .from('profiles')
       .upsert({
         id: userId,
-        email,
-        name,
+        email: normalizedEmail,
+        name: normalizedName,
         role: 'teacher',
       })
       .select()
@@ -126,6 +151,10 @@ export async function POST(req: Request) {
 
     if (error) {
       console.error('PROFILE ERROR:', error);
+
+      if (createdAuthUser) {
+        await supabase.auth.admin.deleteUser(userId);
+      }
 
       return NextResponse.json(
         {
@@ -140,16 +169,25 @@ export async function POST(req: Request) {
     // ================================
     // 3. CREATE MANAGED_TEACHERS RELATIONSHIP
     // ================================
-    const { error: relationError } = await serverClient
+    const { error: relationError } = await supabase
       .from('managed_teachers')
-      .insert({
+      .upsert({
         admin_id: adminUser.id,
         teacher_id: userId,
-      });
+      }, { onConflict: 'admin_id,teacher_id', ignoreDuplicates: true });
 
     if (relationError) {
-      console.warn('Managed teacher relation error:', relationError);
-      // Don't fail - teacher is still created
+      console.error('Managed teacher relation error:', relationError);
+
+      if (createdAuthUser) {
+        await supabase.from('profiles').delete().eq('id', userId);
+        await supabase.auth.admin.deleteUser(userId);
+      }
+
+      return NextResponse.json(
+        { success: false, error: 'Failed to assign the teacher to this admin.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
