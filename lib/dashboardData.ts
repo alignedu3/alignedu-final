@@ -241,3 +241,13 @@ export function getTrendData(reports: AnalysisReport[]) {
       assessment: toNumberMetric(report.assessment ?? report.assessment_quality, 0),
     }));
 }
+
+export function sortReportsNewestFirst(reports: AnalysisReport[]) {
+  return [...reports].sort((a, b) => (b.date ?? b.created_at ?? '').localeCompare(a.date ?? a.created_at ?? ''));
+}
+
+export function getLatestLessonTrend(reports: AnalysisReport[]) {
+  const sortedReports = sortReportsNewestFirst(reports);
+  if (sortedReports.length < 2) return 0;
+  return calculateLessonScore(sortedReports[0]) - calculateLessonScore(sortedReports[1]);
+}

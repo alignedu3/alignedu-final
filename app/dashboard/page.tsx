@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { getDashboardSummary, getTrendData, calculateLessonScore, getLessonInsights, sampleReports, type AnalysisReport } from '@/lib/dashboardData';
+import { getDashboardSummary, getTrendData, calculateLessonScore, getLatestLessonTrend, getLessonInsights, sampleReports, type AnalysisReport } from '@/lib/dashboardData';
 
 export default function TeacherDashboard() {
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
@@ -137,8 +137,7 @@ export default function TeacherDashboard() {
       alert('Unable to delete the lesson. Please try again.');
     }
   };
-  const prevScore = reports[1] ? calculateLessonScore(reports[1]) : latestScore;
-  const scoreDiff = latestScore - prevScore;
+  const scoreDiff = getLatestLessonTrend(reports);
 
   const trendInsight =
     scoreDiff > 0

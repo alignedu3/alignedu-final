@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   getDashboardSummary,
   calculateLessonScore,
+  getLatestLessonTrend,
   sampleReports,
   type AnalysisReport,
   type ProfileRecord,
@@ -334,7 +335,6 @@ export default function AdminDashboard() {
   }, [trendReports]);
 
   const TEACHER_COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#84cc16'];
-  const ADMIN_COLORS = ['#0f766e', '#1d4ed8', '#be123c', '#334155', '#0f172a'];
 
   const getStablePaletteColor = (key: string, palette: string[]) => {
     let hash = 0;
@@ -388,84 +388,8 @@ export default function AdminDashboard() {
     return Array.from(keys).filter((key) => getPointCountForKey(teacherTrendData, key) >= 2);
   }, [teacherTrendData]);
 
-  const adminTrendData = useMemo(() => {
-    const scopedAdminIds = dashboardVisibleAdminIds.filter((id) => {
-      const role = dashboardProfileById.get(id)?.role;
-      return role === 'admin' || role === 'super_admin';
-    });
-
-    const adminNameById = new Map<string, string>();
-    scopedAdminIds.forEach((id) => {
-      const profile = dashboardProfileById.get(id);
-      const label = profile?.name || profile?.email || 'Unknown';
-      adminNameById.set(id, label);
-    });
-
-    const adminIdsByTeacherId = new Map<string, string[]>();
-    dashboardManagedTeachers.forEach((link) => {
-      if (!scopedAdminIds.includes(link.admin_id)) return;
-      const existing = adminIdsByTeacherId.get(link.teacher_id) || [];
-      existing.push(link.admin_id);
-      adminIdsByTeacherId.set(link.teacher_id, existing);
-    });
-
-    const byDate: Record<string, Record<string, number[]>> = {};
-    trendReports.forEach((r) => {
-      const date = r.date ?? r.created_at?.slice(0, 10);
-      if (!date) return;
-
-      const adminIds = r.user_id ? (adminIdsByTeacherId.get(r.user_id) || []) : [];
-      if (!adminIds.length) return;
-
-      adminIds.forEach((adminId) => {
-        const adminLabel = adminNameById.get(adminId);
-        if (!adminLabel) return;
-        if (!byDate[date]) byDate[date] = {};
-        if (!byDate[date][adminLabel]) byDate[date][adminLabel] = [];
-        byDate[date][adminLabel].push(calculateLessonScore(r));
-      });
-    });
-
-    return Object.entries(byDate)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, admins]) => {
-        const entry: Record<string, string | number> = { date };
-        Object.entries(admins).forEach(([admin, scores]) => {
-          entry[admin] = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-        });
-        return entry;
-      });
-  }, [dashboardManagedTeachers, dashboardProfileById, trendReports, dashboardVisibleAdminIds]);
-
-  const adminLineKeys = useMemo(() => {
-    const keys = new Set<string>();
-    adminTrendData.forEach(entry => {
-      Object.keys(entry).forEach(k => { if (k !== 'date') keys.add(k); });
-    });
-    return Array.from(keys).filter((key) => getPointCountForKey(adminTrendData, key) >= 2);
-  }, [adminTrendData]);
-
-  const combinedTrendData = useMemo(() => {
-    const byDate = new Map<string, Record<string, string | number>>();
-
-    teacherTrendData.forEach((entry) => {
-      const dateKey = String(entry.date);
-      byDate.set(dateKey, { ...entry, date: dateKey });
-    });
-
-    adminTrendData.forEach((entry) => {
-      const dateKey = String(entry.date);
-      const existing = byDate.get(dateKey) || { date: dateKey };
-      Object.keys(entry).forEach((key) => {
-        if (key !== 'date') existing[key] = entry[key];
-      });
-      byDate.set(dateKey, existing);
-    });
-
-    return Array.from(byDate.values()).sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
-  }, [teacherTrendData, adminTrendData]);
-  const trendChartHeight = isNarrowScreen ? 230 : combinedTrendData.length > 22 ? 320 : 280;
-  const trendMinTickGap = combinedTrendData.length > 22 ? 40 : combinedTrendData.length > 14 ? 28 : isNarrowScreen ? 20 : 10;
+  const trendChartHeight = isNarrowScreen ? 230 : teacherTrendData.length > 22 ? 320 : 280;
+  const trendMinTickGap = teacherTrendData.length > 22 ? 40 : teacherTrendData.length > 14 ? 28 : isNarrowScreen ? 20 : 10;
 
   const lessonRows = useMemo(() =>
     [...dashboardReports]
@@ -497,7 +421,7 @@ export default function AdminDashboard() {
       const profile = dashboardProfileById.get(id);
       const scores = reps.map(r => calculateLessonScore(r));
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-      const trend = scores.length > 1 ? scores[scores.length - 1] - scores[0] : 0;
+      const trend = getLatestLessonTrend(reps);
 
       let teacherName = 'Unknown Teacher';
       if (profile?.name) {
@@ -810,47 +734,41 @@ export default function AdminDashboard() {
               border: '1px solid var(--border)',
               borderRadius: 18,
               padding: isNarrowScreen ? '12px 8px 6px' : '18px 16px 10px',
-              background: 'radial-gradient(circle at top, rgba(59,130,246,0.12), transparent 36%), linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(15,23,42,0.9) 100%)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), 0 24px 60px rgba(2,6,23,0.24)',
+              background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, var(--bg-tertiary) 100%)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), var(--shadow-card)',
               minWidth: 0,
             }}
           >
             {chartReady ? (
               <ResponsiveContainer width="100%" height={trendChartHeight}>
-                <LineChart data={combinedTrendData}>
-                  <defs>
-                    <linearGradient id="teacherStrokeGlow" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#fb923c" />
-                      <stop offset="100%" stopColor="#38bdf8" />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.16)" vertical={false} />
+                <LineChart data={teacherTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <ReferenceLine y={75} stroke="rgba(244,114,182,0.35)" strokeDasharray="6 6" />
                   <XAxis
                     dataKey="date"
                     tickFormatter={formatTrendAxisLabel}
-                    stroke="rgba(148,163,184,0.9)"
+                    stroke="var(--text-secondary)"
                     tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
                     minTickGap={trendMinTickGap}
                     interval="preserveStartEnd"
                   />
                   <YAxis
                     domain={[0, 100]}
-                    stroke="rgba(148,163,184,0.9)"
+                    stroke="var(--text-secondary)"
                     tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
                     width={isNarrowScreen ? 28 : 40}
                   />
                   <Tooltip
                     labelFormatter={(value) => formatTrendAxisLabel(String(value))}
                     contentStyle={{
-                      background: 'rgba(15,23,42,0.96)',
-                      border: '1px solid rgba(148,163,184,0.22)',
+                      background: 'var(--surface-card-solid)',
+                      border: '1px solid var(--border)',
                       borderRadius: 12,
                       fontSize: 12,
-                      boxShadow: '0 14px 32px rgba(2,6,23,0.28)',
+                      boxShadow: 'var(--shadow-soft)',
                     }}
-                    itemStyle={{ color: '#e5e7eb' }}
-                    labelStyle={{ color: '#94a3b8', marginBottom: 6 }}
+                    itemStyle={{ color: 'var(--text-primary)' }}
+                    labelStyle={{ color: 'var(--text-secondary)', marginBottom: 6 }}
                   />
                   {teacherLineKeys.map((key) => (
                     <Line
@@ -861,19 +779,6 @@ export default function AdminDashboard() {
                       strokeWidth={3}
                       dot={{ r: 0 }}
                       activeDot={{ r: 5, strokeWidth: 0, fill: getStablePaletteColor(key, TEACHER_COLORS) }}
-                      connectNulls
-                    />
-                  ))}
-                  {adminLineKeys.map((key) => (
-                    <Line
-                      key={key}
-                      type="monotone"
-                      dataKey={key}
-                      stroke={getStablePaletteColor(key, ADMIN_COLORS)}
-                      strokeWidth={2.5}
-                      strokeDasharray="6 4"
-                      dot={{ r: 0 }}
-                      activeDot={{ r: 4, strokeWidth: 0, fill: getStablePaletteColor(key, ADMIN_COLORS) }}
                       connectNulls
                     />
                   ))}
@@ -890,7 +795,7 @@ export default function AdminDashboard() {
             paddingTop: 14,
             borderTop: '1px solid var(--border)',
           }}>
-            {teacherLineKeys.length === 0 && adminLineKeys.length === 0 ? (
+            {teacherLineKeys.length === 0 ? (
               <p style={{ ...text, fontSize: 12, textAlign: 'center', margin: 0 }}>
                 No trend data available yet
               </p>
@@ -932,41 +837,6 @@ export default function AdminDashboard() {
                   </div>
                 ))}
 
-                {adminLineKeys.map((key) => (
-                  <div
-                    key={key}
-                    title={key}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 7,
-                      padding: '5px 10px',
-                      borderRadius: 999,
-                      background: 'var(--surface-hover, rgba(0,0,0,0.04))',
-                      border: '1px solid var(--border)',
-                      overflow: 'hidden',
-                      maxWidth: 260,
-                    }}
-                  >
-                    <span style={{
-                      flexShrink: 0,
-                      width: 10,
-                      height: 10,
-                      borderRadius: 2,
-                      background: getStablePaletteColor(key, ADMIN_COLORS),
-                    }} />
-                    <span style={{
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: 'var(--text-primary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      {key}
-                    </span>
-                  </div>
-                ))}
               </div>
             )}
           </div>
@@ -1367,8 +1237,8 @@ const trendHeader: React.CSSProperties = { display: 'flex', justifyContent: 'spa
 const trendControls: React.CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-start' };
 const trendFilterField: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 6, minWidth: 170 };
 const trendFilterLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 700 };
-const trendSelect: React.CSSProperties = { background: 'rgba(15,23,42,0.88)', color: 'var(--text-primary)', border: '1px solid rgba(148,163,184,0.2)', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, minHeight: 42, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' };
+const trendSelect: React.CSSProperties = { background: 'var(--surface-input)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, minHeight: 42, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' };
 const trendSummaryBar: React.CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 14 };
-const trendSummaryPill: React.CSSProperties = { display: 'inline-flex', alignItems: 'baseline', gap: 8, padding: '8px 12px', borderRadius: 999, background: 'rgba(15,23,42,0.7)', border: '1px solid rgba(148,163,184,0.18)' };
+const trendSummaryPill: React.CSSProperties = { display: 'inline-flex', alignItems: 'baseline', gap: 8, padding: '8px 12px', borderRadius: 999, background: 'var(--surface-chip)', border: '1px solid var(--border)' };
 const trendSummaryValue: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 15, fontWeight: 800 };
 const trendSummaryLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12 };

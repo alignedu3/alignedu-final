@@ -14,7 +14,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
-import { calculateLessonScore, getDashboardSummary, getLessonInsights, getTrendData, type AnalysisReport } from '@/lib/dashboardData';
+import { calculateLessonScore, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getTrendData, type AnalysisReport } from '@/lib/dashboardData';
 
 export default function TeacherDetailPage() {
   const params = useParams<{ id: string }>();
@@ -67,7 +67,7 @@ export default function TeacherDetailPage() {
 
     const scores = reports.map((report) => calculateLessonScore(report));
     const avg = summary.averageScore;
-    const trend = scores.length > 1 ? scores[0] - scores[scores.length - 1] : 0;
+    const trend = getLatestLessonTrend(reports);
     const risk = avg < 70 ? 'High Risk' : avg < 80 ? 'Moderate Risk' : 'Strong';
     const summaryText =
       avg >= 85
