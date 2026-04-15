@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import {
   LineChart,
   Line,
@@ -14,7 +13,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
-import { buildSampleAnalysisReports, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
+import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
 
 export default function TeacherDetailPage() {
   const params = useParams<{ id: string }>();
@@ -35,24 +34,21 @@ export default function TeacherDetailPage() {
         setReports(sampleReports);
         return;
       }
+      const response = await fetch(`/api/admin/teacher/${id}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const data = await response.json();
 
-      const supabase = createClient();
+      if (!response.ok || !data.success) {
+        console.error('Admin teacher load error:', data.error || 'Unknown error');
+        setName('Teacher');
+        setReports([]);
+        return;
+      }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('name')
-        .eq('id', id as string)
-        .maybeSingle();
-
-      setName(profile?.name || 'Teacher');
-
-      const { data: analyses } = await supabase
-        .from('analyses')
-        .select('*')
-        .eq('user_id', id as string)
-        .order('created_at', { ascending: false });
-
-      setReports(analyses || []);
+      setName(data.teacher?.name || 'Teacher');
+      setReports(data.analyses || []);
     }
 
     if (id) load();
@@ -99,6 +95,10 @@ export default function TeacherDetailPage() {
     if (!activeReport) return null;
     return getLessonInsights(activeReport);
   }, [activeReport]);
+
+  const adminSupportPlan = useMemo(() => {
+    return buildAdminSupportPlanForTeacher(name || 'Teacher', reports, typeof id === 'string' ? id : undefined);
+  }, [id, name, reports]);
 
   const previousReports = useMemo(() => reports.slice(1), [reports]);
 
@@ -180,6 +180,32 @@ export default function TeacherDetailPage() {
             </div>
           </div>
         </div>
+
+        {adminSupportPlan && (
+          <div style={cardFull}>
+            <h2 style={title}>Administrator Support Plan</h2>
+            <div style={supportHeader}>
+              <div>
+                <div style={label}>Priority Focus</div>
+                <div style={findingsTitle}>{adminSupportPlan.teacherName}</div>
+              </div>
+              <div style={supportChip}>{adminSupportPlan.followUpTimeline}</div>
+            </div>
+            <p style={text}>{adminSupportPlan.summary}</p>
+            <div style={{ ...text, marginTop: 10 }}>
+              <strong>Why this teacher:</strong> {adminSupportPlan.priorityReason}
+            </div>
+            <div style={{ ...text, marginTop: 10 }}>
+              <strong>Administrator action:</strong> {adminSupportPlan.adminAction}
+            </div>
+            <div style={{ ...label, marginTop: 14, marginBottom: 8 }}>Look-fors in the next observation</div>
+            <ul style={findingsList}>
+              {adminSupportPlan.lookFors.map((item, index) => (
+                <li key={`support-${index}`} style={findingItem}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div style={cardFull}>
           <h2 style={title}>Performance Trend</h2>
@@ -425,6 +451,27 @@ const overviewPanel: React.CSSProperties = {
   borderRadius: 12,
   padding: 14,
   background: 'rgba(15,23,42,0.45)'
+};
+
+const supportHeader: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  gap: 12,
+  flexWrap: 'wrap',
+  marginBottom: 8
+};
+
+const supportChip: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  padding: '8px 12px',
+  borderRadius: 999,
+  background: 'rgba(249,115,22,0.12)',
+  border: '1px solid rgba(249,115,22,0.18)',
+  color: '#fdba74',
+  fontSize: 12,
+  fontWeight: 700
 };
 
 const findingsHeader: React.CSSProperties = {

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { buildSampleAnalysisReports, getLessonInsights, getLessonReportSections, getTEKSCoverageInsights, SAMPLE_TEACHER_IDS, type AnalysisReport, type ProfileRecord } from "@/lib/dashboardData";
 
 export default function LessonReportPage() {
@@ -29,22 +28,22 @@ export default function LessonReportPage() {
         return;
       }
 
-      const supabase = createClient();
-      const { data: lessonData } = await supabase
-        .from("analyses")
-        .select("*")
-        .eq("id", lessonId)
-        .maybeSingle();
-      setLesson(lessonData);
+      const response = await fetch(`/api/admin/teacher/${teacherId}/lesson/${lessonId}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+      const data = await response.json();
 
-      if (lessonData?.user_id) {
-        const { data: teacherData } = await supabase
-          .from("profiles")
-          .select("id, name")
-          .eq("id", lessonData.user_id)
-          .maybeSingle();
-        setTeacher(teacherData);
+      if (!response.ok || !data.success) {
+        console.error('Admin lesson load error:', data.error || 'Unknown error');
+        setLesson(null);
+        setTeacher(null);
+        setLoading(false);
+        return;
       }
+
+      setLesson(data.lesson || null);
+      setTeacher(data.teacher || null);
       setLoading(false);
     }
     if (lessonId) load();
@@ -56,6 +55,15 @@ export default function LessonReportPage() {
   const insights = getLessonInsights(lesson);
   const reportSections = getLessonReportSections(lesson);
   const teksCoverage = getTEKSCoverageInsights(lesson);
+  const hasStructuredReport = Boolean(
+    reportSections.executiveSummary ||
+    reportSections.strengths.length ||
+    reportSections.improvements.length ||
+    reportSections.recommendedNextStep ||
+    reportSections.coaching.length ||
+    reportSections.teks.length ||
+    reportSections.staar.length
+  );
   const lessonDate = lesson.created_at ? new Date(lesson.created_at).toLocaleString() : '—';
   const titleText = lesson.title || `${lesson.grade || 'Grade'} ${lesson.subject || 'Lesson'}`;
 
@@ -76,13 +84,6 @@ export default function LessonReportPage() {
             <div>
               <div style={summaryTitle}>Executive Summary</div>
               <div style={summaryText}>{reportSections.executiveSummary}</div>
-              <p style={summarySupportText}>
-                {insights.score >= 85
-                  ? 'This lesson provides strong evidence of effective instruction and is trending in a healthy direction.'
-                  : insights.score >= 75
-                  ? 'This lesson is on solid footing, with a few high-leverage moves that could strengthen impact and consistency.'
-                  : 'This lesson needs targeted refinement so instructional clarity, student evidence, and closure are more secure.'}
-              </p>
             </div>
             <div style={summaryScoreCard}>
               <div style={summaryScore}>{insights.score}/100</div>
@@ -160,6 +161,28 @@ export default function LessonReportPage() {
           <h2 style={sectionTitle}>Next Best Action</h2>
           <p style={bodyText}>{reportSections.recommendedNextStep}</p>
         </div>
+
+        {reportSections.coaching.length > 0 && (
+          <div style={{ ...sectionCard, ...analysisSectionCard }}>
+            <h2 style={sectionTitle}>Coaching Notes</h2>
+            <div style={sectionStack}>
+              {reportSections.coaching.map((section, index) => (
+                <div key={`coaching-section-${index}`}>
+                  <div style={subsectionTitle}>{section.title}</div>
+                  {section.bullets.length > 0 ? (
+                    <ul style={findingsList}>
+                      {section.bullets.map((item, itemIndex) => (
+                        <li key={`coaching-item-${itemIndex}`} style={findingItem}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p style={bodyText}>{section.content}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {(reportSections.staar.length > 0 || reportSections.teks.length > 0 || teksCoverage) && (
           <div style={{ ...sectionCard, ...teksSectionCard }}>
@@ -239,22 +262,12 @@ export default function LessonReportPage() {
           </div>
         )}
 
-        <div style={{ ...sectionCard, ...summarySectionCard }}>
-          <h2 style={sectionTitle}>Lesson Summary</h2>
-          <p style={bodyText}>
-            {(reportSections.strengths[0] || insights.celebration)} {(reportSections.improvements[0] || insights.improvementSummary)}
-          </p>
-        </div>
-
-        <div style={{ ...sectionCard, ...analysisSectionCard }}>
-          <h2 style={sectionTitle}>AI Analysis</h2>
-          <div style={longformText}>{lesson.result || lesson.analysis_result || 'No saved analysis text available.'}</div>
-        </div>
-
-        <div style={{ ...sectionCard, ...transcriptSectionCard }}>
-          <h2 style={sectionTitle}>Transcript</h2>
-          <div style={longformText}>{lesson.transcript || 'No transcript available.'}</div>
-        </div>
+        {!hasStructuredReport && (
+          <div style={{ ...sectionCard, ...analysisSectionCard }}>
+            <h2 style={sectionTitle}>AI Analysis</h2>
+            <div style={longformText}>{lesson.result || lesson.analysis_result || 'No saved analysis text available.'}</div>
+          </div>
+        )}
       </div>
     </main>
   );
@@ -334,12 +347,6 @@ const summaryTitle: React.CSSProperties = {
 const summaryText: React.CSSProperties = {
   color: 'var(--text-primary)',
   lineHeight: 1.6,
-};
-
-const summarySupportText: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  lineHeight: 1.65,
-  margin: '10px 0 0 0',
 };
 
 const summaryScoreCard: React.CSSProperties = {
@@ -533,17 +540,7 @@ const teksSectionCard: React.CSSProperties = {
   borderColor: 'rgba(59,130,246,0.18)',
 };
 
-const summarySectionCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(15,23,42,0.04), rgba(255,255,255,0.98))',
-  borderColor: 'rgba(15,23,42,0.12)',
-};
-
 const analysisSectionCard: React.CSSProperties = {
   background: 'linear-gradient(180deg, rgba(99,102,241,0.05), rgba(255,255,255,0.98))',
   borderColor: 'rgba(99,102,241,0.16)',
-};
-
-const transcriptSectionCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(107,114,128,0.05), rgba(255,255,255,0.98))',
-  borderColor: 'rgba(107,114,128,0.14)',
 };

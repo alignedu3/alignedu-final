@@ -80,13 +80,13 @@ export function parseAnalysisResult(text: string): ReportSection[] {
 
   const cleaned = cleanDisplayText(text)
     .replace(/Metrics:\s*[\s\S]*?(?=\n(?:===|[A-Z][A-Za-z\s]+:)|$)/i, "")
-    .replace(/===\s*EXECUTIVE SUMMARY\s*===/gi, "")
-    .replace(/===\s*WHAT WENT WELL\s*===/gi, "")
-    .replace(/===\s*WHAT CAN IMPROVE\s*===/gi, "")
-    .replace(/===\s*RECOMMENDED NEXT STEP\s*===/gi, "")
-    .replace(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===/gi, "")
-    .replace(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===/gi, "")
-    .replace(/===\s*STAAR TEKS COVERAGE\s*===/gi, "")
+    .replace(/===\s*EXECUTIVE SUMMARY\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*WHAT WENT WELL\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*WHAT CAN IMPROVE\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*RECOMMENDED NEXT STEP\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*STAAR TEKS COVERAGE\s*===[\s\S]*?(?====|$)/gi, "")
     .trim();
 
   if (!cleaned) return [];

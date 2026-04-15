@@ -40,6 +40,16 @@ export type ProfileRecord = {
   role?: string | null;
 };
 
+export type AdminSupportPlan = {
+  teacherId?: string;
+  teacherName: string;
+  summary: string;
+  priorityReason: string;
+  adminAction: string;
+  lookFors: string[];
+  followUpTimeline: string;
+};
+
 export const SAMPLE_PREVIEW_TEACHER_ID = 'sample-teacher-1';
 export const SAMPLE_TEACHER_IDS = {
   'Ms. Carter': 'sample-teacher-1',
@@ -480,6 +490,78 @@ export function getLessonReportSections(report: AnalysisReport): {
     coaching: parsed.coaching,
     teks: parsed.teks,
     staar: parsed.staar,
+  };
+}
+
+export function buildAdminSupportPlanForTeacher(
+  teacherName: string,
+  reports: AnalysisReport[],
+  teacherId?: string
+): AdminSupportPlan | null {
+  if (!reports.length) return null;
+
+  const sortedReports = sortReportsNewestFirst(reports);
+  const latestReport = sortedReports[0];
+  const latestMetrics = getLessonMetrics(latestReport);
+  const trend = getLatestLessonTrend(sortedReports);
+  const reportSections = getLessonReportSections(latestReport);
+
+  const weakestDomain = [
+    { key: 'coverage', label: 'standards alignment', value: latestMetrics.coverage },
+    { key: 'clarity', label: 'instructional clarity', value: latestMetrics.clarity },
+    { key: 'engagement', label: 'student engagement', value: latestMetrics.engagement },
+    { key: 'assessment', label: 'checks for understanding', value: latestMetrics.assessment },
+  ].sort((a, b) => a.value - b.value)[0];
+
+  const trendText =
+    trend < 0
+      ? `recent lesson performance is down ${Math.abs(trend)} points`
+      : trend > 0
+        ? `recent lesson performance is up ${trend} points but still needs support`
+        : 'recent lesson performance is flat';
+
+  const priorityReason =
+    latestMetrics.gaps > 0
+      ? `${teacherName} is the priority because ${trendText} and the most recent lesson flagged ${latestMetrics.gaps} content gap${latestMetrics.gaps === 1 ? '' : 's'}.`
+      : `${teacherName} is the priority because ${trendText} and the weakest area is ${weakestDomain.label}.`;
+
+  const adminAction =
+    reportSections.recommendedNextStep
+      ? `Coach ${teacherName} on ${weakestDomain.label} during the next planning touchpoint, then align the follow-up observation to the recommended next step: ${reportSections.recommendedNextStep}`
+      : `Coach ${teacherName} on ${weakestDomain.label} during the next planning touchpoint and preview one concrete move before the next lesson.`;
+
+  const lookFors = [
+    weakestDomain.key === 'coverage'
+      ? 'The lesson objective and modeled work stay tightly aligned to the target standard.'
+      : weakestDomain.key === 'clarity'
+        ? 'Directions, exemplars, and success criteria are explicitly modeled before students work independently.'
+        : weakestDomain.key === 'engagement'
+          ? 'Students have visible response opportunities and are asked to explain their thinking during instruction.'
+          : 'The teacher uses a clear mastery check before closure and responds to misconceptions before moving on.',
+    latestMetrics.gaps > 0
+      ? `Previously flagged gaps are revisited and checked for mastery before the lesson closes.`
+      : 'Students can demonstrate understanding before the lesson ends.',
+    trend < 0
+      ? 'The teacher follows the agreed coaching move consistently from the start of the lesson.'
+      : 'The targeted support move is visible and strengthens overall lesson coherence.',
+  ];
+
+  const followUpTimeline =
+    latestMetrics.score < 70 || latestMetrics.gaps >= 3
+      ? 'Follow up within 5 instructional days.'
+      : 'Follow up within 7 to 10 instructional days.';
+
+  const summary =
+    `${teacherName} needs support in ${weakestDomain.label}. Latest lesson score: ${latestMetrics.score}/100, and ${trendText}.`;
+
+  return {
+    teacherId,
+    teacherName,
+    summary,
+    priorityReason,
+    adminAction,
+    lookFors,
+    followUpTimeline,
   };
 }
 

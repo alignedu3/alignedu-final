@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
+  buildAdminSupportPlanForTeacher,
   buildSampleAnalysisReports,
   getDashboardSummary,
   calculateLessonScore,
@@ -484,37 +485,55 @@ export default function AdminDashboard() {
       ? "System performance is declining due to gaps in lesson closure and concept reinforcement."
       : "Instructional quality is strong with consistent standards alignment.";
 
+  const adminSupportPlans = useMemo(() => {
+    const reportsByTeacher = new Map<string, AnalysisReport[]>();
+    dashboardReports.forEach((report) => {
+      if (!report.user_id) return;
+      const existing = reportsByTeacher.get(report.user_id) || [];
+      existing.push(report);
+      reportsByTeacher.set(report.user_id, existing);
+    });
+
+    return teacherStats
+      .map((teacher) => {
+        const plan = buildAdminSupportPlanForTeacher(
+          teacher.name,
+          reportsByTeacher.get(teacher.id) || [],
+          teacher.id
+        );
+        if (!plan) return null;
+        return {
+          ...plan,
+          avgScore: teacher.avgScore,
+          trend: teacher.trend,
+          needsAttention: teacher.needsAttention,
+        };
+      })
+      .filter((plan): plan is NonNullable<typeof plan> => Boolean(plan))
+      .sort((a, b) => {
+        if (a.needsAttention !== b.needsAttention) return a.needsAttention ? -1 : 1;
+        return a.avgScore - b.avgScore;
+      });
+  }, [dashboardReports, teacherStats]);
+
   const recommendedSupportPlan = useMemo(() => {
-    if (!atRiskTeachers.length) {
+    const primary = adminSupportPlans[0];
+    if (!primary) {
       return {
+        teacherName: 'Instructional Team',
         summary: 'No immediate teacher intervention is required.',
-        actions: [
-          'Continue monthly walkthroughs to sustain instruction quality.',
-          'Highlight strong teacher practices during PLC and team meetings.',
+        priorityReason: 'Current lesson data does not show a teacher who needs urgent support.',
+        adminAction: 'Continue regular walkthroughs and highlight strong practice during PLC or leadership meetings.',
+        lookFors: [
+          'High-leverage teacher moves stay visible across lessons.',
+          'Strong practice is shared with the broader team.',
         ],
+        followUpTimeline: 'Review again during the next monthly leadership cycle.',
       };
     }
 
-    const primary = atRiskTeachers[0];
-    const secondary = atRiskTeachers[1] || null;
-    const trendText =
-      primary.trend < 0
-        ? `trend is down ${Math.abs(primary.trend)} points`
-        : primary.trend > 0
-          ? `trend is up ${primary.trend} points but still below target`
-          : 'trend is flat';
-
-    return {
-      summary: `Priority teacher: ${primary.name} (${primary.avgScore}/100, ${trendText}).`,
-      actions: [
-        `Schedule a 1:1 coaching cycle with ${primary.name} this week focused on lesson closure and concept reinforcement.`,
-        secondary
-          ? `Set a peer-observation and debrief between ${primary.name} and ${secondary.name} to model high-impact moves.`
-          : `Pair ${primary.name} with a strong-performing teacher for one observation and debrief this week.`,
-        `Require ${primary.name} to submit the next 2 lesson plans for pre-brief feedback before instruction.`,
-      ],
-    };
-  }, [atRiskTeachers]);
+    return primary;
+  }, [adminSupportPlans]);
 
   const handleRemoveUser = async (userId: string) => {
     setDeletingUserId(userId);
@@ -601,10 +620,24 @@ export default function AdminDashboard() {
 
         {/* ACTION */}
         <div style={card}>
-          <h2 style={title}>Recommended Actions</h2>
+          <h2 style={title}>Administrator Support Plan</h2>
+          <div style={supportPlanHeader}>
+            <div>
+              <div style={supportPlanLabel}>Priority Teacher</div>
+              <div style={supportPlanTeacher}>{recommendedSupportPlan.teacherName}</div>
+            </div>
+            <div style={supportPlanChip}>{recommendedSupportPlan.followUpTimeline}</div>
+          </div>
           <p style={text}>{recommendedSupportPlan.summary}</p>
+          <div style={{ ...text, marginTop: 10 }}>
+            <strong>Why this teacher:</strong> {recommendedSupportPlan.priorityReason}
+          </div>
+          <div style={{ ...text, marginTop: 10 }}>
+            <strong>Administrator action:</strong> {recommendedSupportPlan.adminAction}
+          </div>
+          <div style={{ ...supportPlanLabel, marginTop: 14, marginBottom: 8 }}>Look-fors in the next observation</div>
           <ul style={actionList}>
-            {recommendedSupportPlan.actions.map((action, idx) => (
+            {recommendedSupportPlan.lookFors.map((action, idx) => (
               <li key={idx} style={actionItem}>{action}</li>
             ))}
           </ul>
@@ -1212,6 +1245,10 @@ const actionsMenuPanel: React.CSSProperties = { position: 'absolute', top: 32, r
 const menuItemBtn: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--text-primary)', textAlign: 'left', borderRadius: 7, padding: '8px 10px', fontSize: 12, cursor: 'pointer' };
 const menuItemDanger: React.CSSProperties = { color: '#dc2626' };
 const mutedInline: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12 };
+const supportPlanHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 8 };
+const supportPlanLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 700, marginBottom: 4 };
+const supportPlanTeacher: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 20, fontWeight: 800 };
+const supportPlanChip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', padding: '8px 12px', borderRadius: 999, background: 'rgba(249,115,22,0.10)', color: '#c2410c', border: '1px solid rgba(249,115,22,0.18)', fontSize: 12, fontWeight: 700 };
 const actionList: React.CSSProperties = { margin: '10px 0 0 18px', color: 'var(--text-primary)', padding: 0 };
 const actionItem: React.CSSProperties = { marginBottom: 8, lineHeight: 1.4 };
 const modalCancelBtn: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 8, padding: '8px 12px', fontSize: 13, cursor: 'pointer' };

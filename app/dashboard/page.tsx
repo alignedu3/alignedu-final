@@ -171,6 +171,18 @@ export default function TeacherDashboard() {
     () => (selectedReport ? getTEKSCoverageInsights(selectedReport) : null),
     [selectedReport]
   );
+  const hasStructuredSelectedLesson = useMemo(() => {
+    if (!selectedLessonSections) return false;
+    return Boolean(
+      selectedLessonSections.executiveSummary ||
+      selectedLessonSections.strengths.length ||
+      selectedLessonSections.improvements.length ||
+      selectedLessonSections.recommendedNextStep ||
+      selectedLessonSections.coaching.length ||
+      selectedLessonSections.teks.length ||
+      selectedLessonSections.staar.length
+    );
+  }, [selectedLessonSections]);
 
   const keyFindings = useMemo(() => {
     if (!activeKeyFindingsReport) return [];
@@ -476,13 +488,6 @@ export default function TeacherDashboard() {
                   <div>
                     <div style={reportEyebrow}>Executive Summary</div>
                     <div style={summaryLead}>{selectedLessonSections.executiveSummary}</div>
-                    <p style={summarySupportText}>
-                      {selectedLessonInsights.score >= 85
-                        ? 'This lesson is performing at a strong level and provides a solid model for consistent instructional execution.'
-                        : selectedLessonInsights.score >= 75
-                        ? 'This lesson shows solid foundations with a few targeted opportunities to improve precision and mastery.'
-                        : 'This lesson needs targeted refinement so students receive clearer instruction, stronger checks for understanding, and a more secure close.'}
-                    </p>
                   </div>
                   <div style={summaryScorePill}>
                     <div style={summaryScoreValue}>{selectedLessonInsights.score}</div>
@@ -536,6 +541,28 @@ export default function TeacherDashboard() {
                   <div style={reportSectionTitle}>Recommended Next Step</div>
                   <p style={reportBodyText}>{selectedLessonSections.recommendedNextStep}</p>
                 </div>
+
+                {selectedLessonSections.coaching.length > 0 && (
+                  <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
+                    <div style={reportSectionTitle}>Coaching Notes</div>
+                    <div style={reportSectionStack}>
+                      {selectedLessonSections.coaching.map((section, index) => (
+                        <div key={`coaching-section-${index}`}>
+                          <div style={reportSubsectionTitle}>{section.title}</div>
+                          {section.bullets.length > 0 ? (
+                            <ul style={reportList}>
+                              {section.bullets.map((item, itemIndex) => (
+                                <li key={`coaching-item-${itemIndex}`} style={reportListItem}>{item}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p style={reportBodyText}>{section.content}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {(selectedLessonSections.staar.length > 0 || selectedLessonSections.teks.length > 0 || selectedLessonTEKS) && (
                   <div style={{ ...reportSectionCard, ...teksSectionCard }}>
@@ -615,19 +642,14 @@ export default function TeacherDashboard() {
                   </div>
                 )}
 
-                <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
-                  <div style={reportSectionTitle}>Full Analysis Notes</div>
-                  <div style={reportLongformText}>
-                    {selectedReport.result || 'No saved analysis text available.'}
+                {!hasStructuredSelectedLesson && (
+                  <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
+                    <div style={reportSectionTitle}>Full Analysis Notes</div>
+                    <div style={reportLongformText}>
+                      {selectedReport.result || 'No saved analysis text available.'}
+                    </div>
                   </div>
-                </div>
-
-                <div style={{ ...reportSectionCard, ...summarySectionCard }}>
-                  <div style={reportSectionTitle}>Lesson Summary</div>
-                  <p style={reportBodyText}>
-                    {(selectedLessonSections.strengths[0] || selectedLessonInsights.celebration)} {(selectedLessonSections.improvements[0] || selectedLessonInsights.improvementSummary)}
-                  </p>
-                </div>
+                )}
               </div>
             )}
           </div>
@@ -721,12 +743,6 @@ const summaryLead: React.CSSProperties = {
   fontSize: 20,
   lineHeight: 1.35,
   fontWeight: 700,
-};
-
-const summarySupportText: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  margin: '10px 0 0 0',
-  lineHeight: 1.65,
 };
 
 const summaryScorePill: React.CSSProperties = {
@@ -894,9 +910,4 @@ const teksSectionCard: React.CSSProperties = {
 const analysisSectionCard: React.CSSProperties = {
   background: 'linear-gradient(180deg, rgba(99,102,241,0.05), rgba(255,255,255,0.98))',
   borderColor: 'rgba(99,102,241,0.16)',
-};
-
-const summarySectionCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(15,23,42,0.04), rgba(255,255,255,0.98))',
-  borderColor: 'rgba(15,23,42,0.12)',
 };
