@@ -369,7 +369,7 @@ export default function TeacherDashboard() {
                   <th style={{ ...th, width: '40%', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Lesson</th>
                   <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Score</th>
                   <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Trend</th>
-                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Actions</th>
+                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -395,12 +395,31 @@ export default function TeacherDashboard() {
                               : '→ 0'}
                       </td>
                       <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding }}>
-                        <button
-                          style={{ ...actionButton, padding: isNarrowScreen ? '3px 7px' : actionButton.padding, fontSize: isNarrowScreen ? 11 : undefined }}
-                          onClick={() => handleViewReport(r)}
-                        >
-                          View
-                        </button>
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <button
+                            style={{ ...actionButton, padding: isNarrowScreen ? '3px 7px' : actionButton.padding, fontSize: isNarrowScreen ? 11 : undefined }}
+                            onClick={() => handleViewReport(r)}
+                          >
+                            View
+                          </button>
+                          <button
+                            style={{
+                              ...deleteButton,
+                              padding: isNarrowScreen ? '3px 7px' : deleteButton.padding,
+                              fontSize: isNarrowScreen ? 11 : undefined,
+                              opacity: isSampleMode ? 0.55 : 1,
+                              cursor: isSampleMode ? 'not-allowed' : 'pointer',
+                            }}
+                            onClick={() => {
+                              if (isSampleMode) return;
+                              handleDeleteReport(r.id);
+                            }}
+                            disabled={isSampleMode}
+                            title={isSampleMode ? 'Sample lessons cannot be deleted.' : 'Delete lesson'}
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
