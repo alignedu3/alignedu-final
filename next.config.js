@@ -4,7 +4,8 @@ module.exports = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname),
   experimental: {
-    appDir: true,
-    forceDynamic: true
-  }
+    serverActions: {
+      bodySizeLimit: '50mb',
+    },
+  },
 };

@@ -23,6 +23,7 @@ export default function TeacherDetailPage() {
   const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [name, setName] = useState('');
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
+  const [chartReady, setChartReady] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -47,6 +48,10 @@ export default function TeacherDetailPage() {
 
     if (id) load();
   }, [id]);
+
+  useEffect(() => {
+    setChartReady(true);
+  }, []);
 
   const resolvedActiveReportId = useMemo(() => {
     if (!reports.length) return null;
@@ -181,15 +186,19 @@ export default function TeacherDetailPage() {
               minWidth: 0,
             }}
           >
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis domain={[0, 100]} />
-                <Tooltip />
-                <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            {chartReady ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: 280 }} />
+            )}
           </div>
         </div>
 

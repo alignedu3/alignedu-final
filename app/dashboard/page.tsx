@@ -13,6 +13,7 @@ export default function TeacherDashboard() {
   }
   const supabase = supabaseRef.current;
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  const [chartReady, setChartReady] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null>(null);
   const [dbReports, setDbReports] = useState<AnalysisReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
@@ -68,6 +69,7 @@ export default function TeacherDashboard() {
   useEffect(() => {
     const checkScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
     checkScreen();
+    setChartReady(true);
     window.addEventListener('resize', checkScreen);
     return () => window.removeEventListener('resize', checkScreen);
   }, []);
@@ -234,26 +236,30 @@ export default function TeacherDashboard() {
               minWidth: 0,
             }}
           >
-            <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
-                <XAxis
-                  dataKey="date"
-                  stroke="#94a3b8"
-                  tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
-                  minTickGap={isNarrowScreen ? 20 : 10}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  stroke="#94a3b8"
-                  tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
-                  width={isNarrowScreen ? 28 : 40}
-                />
-                <Tooltip />
-                <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} />
-              </LineChart>
-            </ResponsiveContainer>
+            {chartReady ? (
+              <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.1)" />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#94a3b8"
+                    tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                    minTickGap={isNarrowScreen ? 20 : 10}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    stroke="#94a3b8"
+                    tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                    width={isNarrowScreen ? 28 : 40}
+                  />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: isNarrowScreen ? 210 : 260 }} />
+            )}
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   getDashboardSummary,
   calculateLessonScore,
+  sampleReports,
   type AnalysisReport,
   type ProfileRecord,
 } from '@/lib/dashboardData';
@@ -26,6 +27,7 @@ export default function AdminDashboard() {
   const [managedTeachers, setManagedTeachers] = useState<Array<{ admin_id: string; teacher_id: string }>>([]);
   const [managedAdmins, setManagedAdmins] = useState<Array<{ parent_admin_id: string; child_admin_id: string }>>([]);
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  const [chartReady, setChartReady] = useState(false);
   const [ready, setReady] = useState(false);
   const [modalType, setModalType] = useState<null | 'quality' | 'lessons' | 'strong' | 'atrisk'>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -46,6 +48,7 @@ export default function AdminDashboard() {
   };
 
   const navigateToUserDashboard = (userId: string, role?: string | null, fromTeam = false) => {
+    if (userId.startsWith('sample-')) return;
     const params = fromTeam ? '?fromTeam=1' : '';
     if (role === 'admin' || role === 'super_admin') {
       router.push(`/admin?adminId=${userId}${params ? `&${params.slice(1)}` : ''}`);
@@ -175,12 +178,90 @@ export default function AdminDashboard() {
   useEffect(() => {
     const checkScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
     checkScreen();
+    setChartReady(true);
     window.addEventListener('resize', checkScreen);
     return () => window.removeEventListener('resize', checkScreen);
   }, []);
 
   const reports = dbReports;
-  const summary = getDashboardSummary(reports);
+  const profileById = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
+  const activeAdminId = selectedAdminId || currentUserId;
+  const activeAdminProfile = activeAdminId ? profileById.get(activeAdminId) : undefined;
+  const activeAdminName =
+    activeAdminProfile?.name ||
+    activeAdminProfile?.email ||
+    (currentUserRole === 'super_admin' && selectedAdminId ? 'Selected Admin' : 'Admin');
+  const isViewingAnotherAdmin =
+    currentUserRole === 'super_admin' &&
+    !!selectedAdminId &&
+    selectedAdminId !== currentUserId;
+  const isSampleEntityId = (id: string | null | undefined) => Boolean(id && id.startsWith('sample-'));
+  const isSampleMode = managedTeachers.length === 0 && managedAdmins.length === 0 && reports.length === 0;
+
+  const sampleProfiles = useMemo<ProfileRecord[]>(() => {
+    const rootAdminId = activeAdminId || 'sample-root-admin';
+    const rootAdminName = activeAdminName || 'Admin';
+
+    return [
+      { id: rootAdminId, name: rootAdminName, role: currentUserRole || 'admin' },
+      { id: 'sample-admin-1', name: 'Assistant Principal Jordan', role: 'admin' },
+      { id: 'sample-teacher-1', name: 'Ms. Carter', role: 'teacher' },
+      { id: 'sample-teacher-2', name: 'Mr. Evans', role: 'teacher' },
+      { id: 'sample-teacher-3', name: 'Dr. Lee', role: 'teacher' },
+    ];
+  }, [activeAdminId, activeAdminName, currentUserRole]);
+
+  const sampleManagedAdmins = useMemo(
+    () => (activeAdminId ? [{ parent_admin_id: activeAdminId, child_admin_id: 'sample-admin-1' }] : []),
+    [activeAdminId]
+  );
+
+  const sampleManagedTeachers = useMemo(
+    () => (
+      activeAdminId
+        ? [
+            { admin_id: activeAdminId, teacher_id: 'sample-teacher-1' },
+            { admin_id: activeAdminId, teacher_id: 'sample-teacher-2' },
+            { admin_id: 'sample-admin-1', teacher_id: 'sample-teacher-3' },
+          ]
+        : []
+    ),
+    [activeAdminId]
+  );
+
+  const sampleVisibleAdminIds = useMemo(
+    () => (activeAdminId ? [activeAdminId, 'sample-admin-1'] : ['sample-admin-1']),
+    [activeAdminId]
+  );
+
+  const sampleAnalysisReports = useMemo<AnalysisReport[]>(
+    () =>
+      sampleReports.map((report, index) => ({
+        ...report,
+        user_id:
+          index < 2
+            ? 'sample-teacher-1'
+            : index < 4
+              ? 'sample-teacher-2'
+              : 'sample-teacher-3',
+        teacher_name: report.teacher,
+        created_at: `${report.date}T14:00:00.000Z`,
+        title: report.title,
+        coverage_score: report.coverage,
+        clarity_rating: report.clarity,
+        engagement_level: report.engagement,
+        assessment_quality: report.assessment,
+        gaps_detected: report.gaps,
+      })),
+    []
+  );
+  const dashboardReports = isSampleMode ? sampleAnalysisReports : reports;
+  const dashboardProfiles = isSampleMode ? sampleProfiles : profiles;
+  const dashboardProfileById = useMemo(() => new Map(dashboardProfiles.map((p) => [p.id, p])), [dashboardProfiles]);
+  const dashboardManagedTeachers = isSampleMode ? sampleManagedTeachers : managedTeachers;
+  const dashboardManagedAdmins = isSampleMode ? sampleManagedAdmins : managedAdmins;
+  const dashboardVisibleAdminIds = isSampleMode ? sampleVisibleAdminIds : visibleAdminIds;
+  const summary = getDashboardSummary(dashboardReports);
 
   const TEACHER_COLORS = ['#f97316', '#3b82f6', '#10b981', '#8b5cf6', '#ec4899', '#f59e0b', '#06b6d4', '#84cc16'];
   const ADMIN_COLORS = ['#0f766e', '#1d4ed8', '#be123c', '#334155', '#0f172a'];
@@ -202,16 +283,15 @@ export default function AdminDashboard() {
   };
 
   const teacherTrendData = useMemo(() => {
-    const profileById = new Map(profiles.map((p) => [p.id, p]));
     const getTeacherName = (r: AnalysisReport) => {
-      const profile = r.user_id ? profileById.get(r.user_id) : undefined;
+      const profile = r.user_id ? dashboardProfileById.get(r.user_id) : undefined;
       if (profile?.name) return profile.name;
       if (r.teacher_name) return r.teacher_name;
       if (r.name) return r.name;
       return 'Unknown';
     };
     const byDate: Record<string, Record<string, number[]>> = {};
-    reports.forEach((r) => {
+    dashboardReports.forEach((r) => {
       const date = r.date ?? r.created_at?.slice(0, 10);
       if (!date) return;
       const teacher = getTeacherName(r);
@@ -228,7 +308,7 @@ export default function AdminDashboard() {
         });
         return entry;
       });
-  }, [reports, profiles]);
+  }, [dashboardProfileById, dashboardReports]);
 
   const teacherLineKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -239,21 +319,20 @@ export default function AdminDashboard() {
   }, [teacherTrendData]);
 
   const adminTrendData = useMemo(() => {
-    const profileById = new Map(profiles.map((p) => [p.id, p]));
-    const scopedAdminIds = visibleAdminIds.filter((id) => {
-      const role = profileById.get(id)?.role;
+    const scopedAdminIds = dashboardVisibleAdminIds.filter((id) => {
+      const role = dashboardProfileById.get(id)?.role;
       return role === 'admin' || role === 'super_admin';
     });
 
     const adminNameById = new Map<string, string>();
     scopedAdminIds.forEach((id) => {
-      const profile = profileById.get(id);
+      const profile = dashboardProfileById.get(id);
       const label = profile?.name || profile?.email || 'Unknown';
       adminNameById.set(id, label);
     });
 
     const adminIdsByTeacherId = new Map<string, string[]>();
-    (managedTeachers || []).forEach((link) => {
+    dashboardManagedTeachers.forEach((link) => {
       if (!scopedAdminIds.includes(link.admin_id)) return;
       const existing = adminIdsByTeacherId.get(link.teacher_id) || [];
       existing.push(link.admin_id);
@@ -261,7 +340,7 @@ export default function AdminDashboard() {
     });
 
     const byDate: Record<string, Record<string, number[]>> = {};
-    reports.forEach((r) => {
+    dashboardReports.forEach((r) => {
       const date = r.date ?? r.created_at?.slice(0, 10);
       if (!date) return;
 
@@ -286,7 +365,7 @@ export default function AdminDashboard() {
         });
         return entry;
       });
-  }, [reports, profiles, visibleAdminIds, managedTeachers]);
+  }, [dashboardManagedTeachers, dashboardProfileById, dashboardReports, dashboardVisibleAdminIds]);
 
   const adminLineKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -317,9 +396,9 @@ export default function AdminDashboard() {
   }, [teacherTrendData, adminTrendData]);
 
   const lessonRows = useMemo(() =>
-    [...reports]
+    [...dashboardReports]
       .map((r) => {
-        const p = profiles.find((x) => x.id === r.user_id);
+        const p = r.user_id ? dashboardProfileById.get(r.user_id) : undefined;
         const teacher = p?.name ?? r.teacher_name ?? r.name ?? 'Unknown';
         return {
           id: r.id ?? Math.random(),
@@ -330,13 +409,12 @@ export default function AdminDashboard() {
         };
       })
       .sort((a, b) => b.date.localeCompare(a.date)),
-  [reports, profiles]);
+  [dashboardProfileById, dashboardReports]);
 
   const teacherStats = useMemo(() => {
-    const profileById = new Map(profiles.map((p) => [p.id, p]));
     const map: Record<string, AnalysisReport[]> = {};
 
-    reports.forEach((r) => {
+    dashboardReports.forEach((r) => {
       const key = r.user_id;
       if (!key) return;
       if (!map[key]) map[key] = [];
@@ -344,7 +422,7 @@ export default function AdminDashboard() {
     });
 
     return Object.entries(map).map(([id, reps]) => {
-      const profile = profileById.get(id);
+      const profile = dashboardProfileById.get(id);
       const scores = reps.map(r => calculateLessonScore(r));
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
       const trend = scores.length > 1 ? scores[scores.length - 1] - scores[0] : 0;
@@ -367,7 +445,7 @@ export default function AdminDashboard() {
         needsAttention: avg < 75,
       };
     });
-  }, [reports, profiles]);
+  }, [dashboardProfileById, dashboardReports]);
 
   const atRiskTeachers = teacherStats
     .filter(t => t.needsAttention)
@@ -375,35 +453,34 @@ export default function AdminDashboard() {
     .slice(0, 3);
 
   const hierarchyRows = useMemo(() => {
-    const profileById = new Map(profiles.map((p) => [p.id, p]));
-    const adminIds = visibleAdminIds.filter((id) => {
-      const role = profileById.get(id)?.role;
+    const adminIds = dashboardVisibleAdminIds.filter((id) => {
+      const role = dashboardProfileById.get(id)?.role;
       return role === 'admin' || role === 'super_admin';
     });
 
     return adminIds
       .map((adminId) => {
-        const adminProfile = profileById.get(adminId);
-        const childAdminIds = managedAdmins
+        const adminProfile = dashboardProfileById.get(adminId);
+        const childAdminIds = dashboardManagedAdmins
           .filter((link) => link.parent_admin_id === adminId)
           .map((link) => link.child_admin_id)
-          .filter((id) => !!profileById.get(id));
+          .filter((id) => !!dashboardProfileById.get(id));
 
-        const teacherIds = managedTeachers
+        const teacherIds = dashboardManagedTeachers
           .filter((link) => link.admin_id === adminId)
           .map((link) => link.teacher_id)
-          .filter((id) => profileById.get(id)?.role === 'teacher');
+          .filter((id) => dashboardProfileById.get(id)?.role === 'teacher');
 
         return {
           id: adminId,
           name: adminProfile?.name || adminProfile?.email || 'Admin',
           role: adminProfile?.role || 'admin',
           childAdmins: childAdminIds
-            .map((id) => profileById.get(id))
+            .map((id) => dashboardProfileById.get(id))
             .filter((p): p is ProfileRecord => Boolean(p))
             .map((p) => ({ id: p.id, name: p.name || p.email || 'Admin', role: p.role })),
           teachers: teacherIds
-            .map((id) => profileById.get(id))
+            .map((id) => dashboardProfileById.get(id))
             .filter((p): p is ProfileRecord => Boolean(p))
             .map((p) => ({ id: p.id, name: p.name || p.email || 'Teacher' })),
         };
@@ -413,7 +490,7 @@ export default function AdminDashboard() {
         if (currentUserId && b.id === currentUserId) return 1;
         return a.name.localeCompare(b.name);
       });
-  }, [profiles, managedAdmins, managedTeachers, visibleAdminIds, currentUserId]);
+  }, [currentUserId, dashboardManagedAdmins, dashboardManagedTeachers, dashboardProfileById, dashboardVisibleAdminIds]);
 
   const strongCount = teacherStats.filter(t => !t.needsAttention).length;
   const supportCount = teacherStats.filter(t => t.needsAttention).length;
@@ -496,8 +573,12 @@ export default function AdminDashboard() {
         {/* HEADER */}
         <div style={header}>
           <div>
-            <h1 style={heading}>Admin Dashboard</h1>
-            <p style={subheading}>System-wide instructional intelligence</p>
+            <h1 style={heading}>{activeAdminName}</h1>
+            <p style={subheading}>
+              {isViewingAnotherAdmin
+                ? `Viewing ${activeAdminName}'s dashboard`
+                : `${activeAdminName}'s instructional dashboard`}
+            </p>
           </div>
           <div style={actions}>
             <button onClick={handleObserveLesson} style={btn}>
@@ -505,6 +586,25 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
+
+        {isSampleMode && (
+          <div
+            style={{
+              ...card,
+              marginBottom: 12,
+              border: '1px solid rgba(56,189,248,0.24)',
+              background: 'linear-gradient(135deg, rgba(14,165,233,0.14), rgba(15,23,42,0.08))',
+            }}
+          >
+            <div style={{ ...statLabel, color: '#7dd3fc', marginBottom: 8 }}>Sample Data</div>
+            <p style={{ ...text, marginBottom: 8 }}>
+              This example dashboard shows how trends, lesson results, and team structure will look once your team is set up.
+            </p>
+            <p style={{ ...text, marginBottom: 0 }}>
+              It will disappear automatically after you add your first teacher or child admin.
+            </p>
+          </div>
+        )}
 
         {/* AT RISK */}
         <div style={card}>
@@ -559,7 +659,7 @@ export default function AdminDashboard() {
               style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
               onClick={() => setModalType('lessons')}
             >
-              {reports.length}
+              {dashboardReports.length}
             </button>
             <div style={statSub}>Based on recent submissions</div>
           </div>
@@ -601,53 +701,57 @@ export default function AdminDashboard() {
               minWidth: 0,
             }}
           >
-            <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
-              <LineChart data={combinedTrendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
-                  minTickGap={isNarrowScreen ? 20 : 10}
-                  interval="preserveStartEnd"
-                />
-                <YAxis
-                  domain={[0, 100]}
-                  tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
-                  width={isNarrowScreen ? 28 : 40}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: 'var(--surface-card-solid)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                />
-                {teacherLineKeys.map((key) => (
-                  <Line
-                    key={key}
-                    type="monotone"
-                    dataKey={key}
-                    stroke={getStablePaletteColor(key, TEACHER_COLORS)}
-                    strokeWidth={2}
-                    dot={false}
-                    connectNulls
+            {chartReady ? (
+              <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
+                <LineChart data={combinedTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                    minTickGap={isNarrowScreen ? 20 : 10}
+                    interval="preserveStartEnd"
                   />
-                ))}
-                {adminLineKeys.map((key) => (
-                  <Line
-                    key={key}
-                    type="monotone"
-                    dataKey={key}
-                    stroke={getStablePaletteColor(key, ADMIN_COLORS)}
-                    strokeWidth={2}
-                    strokeDasharray="6 4"
-                    dot={false}
-                    connectNulls
+                  <YAxis
+                    domain={[0, 100]}
+                    tick={{ fontSize: isNarrowScreen ? 10 : 12 }}
+                    width={isNarrowScreen ? 28 : 40}
                   />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
+                  <Tooltip
+                    contentStyle={{
+                      background: 'var(--surface-card-solid)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  {teacherLineKeys.map((key) => (
+                    <Line
+                      key={key}
+                      type="monotone"
+                      dataKey={key}
+                      stroke={getStablePaletteColor(key, TEACHER_COLORS)}
+                      strokeWidth={2}
+                      dot={false}
+                      connectNulls
+                    />
+                  ))}
+                  {adminLineKeys.map((key) => (
+                    <Line
+                      key={key}
+                      type="monotone"
+                      dataKey={key}
+                      stroke={getStablePaletteColor(key, ADMIN_COLORS)}
+                      strokeWidth={2}
+                      strokeDasharray="6 4"
+                      dot={false}
+                      connectNulls
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ height: isNarrowScreen ? 210 : 260 }} />
+            )}
           </div>
 
           {/* Custom legend */}
@@ -764,9 +868,13 @@ export default function AdminDashboard() {
                     <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding }}>
                       <button
                         style={{ ...actionButton, padding: isNarrowScreen ? '3px 7px' : actionButton.padding, fontSize: isNarrowScreen ? 11 : undefined }}
-                        onClick={() => router.push(`/admin/teacher/${t.id}`)}
+                        onClick={() => {
+                          if (isSampleEntityId(t.id)) return;
+                          router.push(`/admin/teacher/${t.id}`);
+                        }}
+                        disabled={isSampleEntityId(t.id)}
                       >
-                        View
+                        {isSampleEntityId(t.id) ? 'Preview' : 'View'}
                       </button>
                     </td>
                   </tr>
@@ -791,7 +899,7 @@ export default function AdminDashboard() {
                   >
                     {row.name} <span style={mutedInline}>({row.role})</span>
                   </button>
-                  {currentUserRole === 'super_admin' && row.id !== currentUserId && (
+                  {currentUserRole === 'super_admin' && row.id !== currentUserId && !isSampleEntityId(row.id) && (
                     <div style={actionsMenuWrap}>
                       <button
                         onClick={() => setOpenActionsForId((prev) => (prev === `admin:${row.id}` ? null : `admin:${row.id}`))}
@@ -835,7 +943,7 @@ export default function AdminDashboard() {
                         <div key={child.id} style={{ ...pillBtn, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <button
                             onClick={() => navigateToUserDashboard(child.id, child.role)}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', fontSize: 'inherit' }}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(child.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(child.id) ? 0.72 : 1 }}
                           >
                             {child.name}
                           </button>
@@ -854,12 +962,15 @@ export default function AdminDashboard() {
                       {row.teachers.map((teacher) => (
                         <div key={teacher.id} style={{ ...pillBtn, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <button
-                            onClick={() => router.push(`/admin/teacher/${teacher.id}`)}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', fontSize: 'inherit' }}
+                            onClick={() => {
+                              if (isSampleEntityId(teacher.id)) return;
+                              router.push(`/admin/teacher/${teacher.id}`);
+                            }}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(teacher.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(teacher.id) ? 0.72 : 1 }}
                           >
                             {teacher.name}
                           </button>
-                          {['admin', 'super_admin'].includes(currentUserRole || '') && teacher.id !== currentUserId && (
+                          {['admin', 'super_admin'].includes(currentUserRole || '') && teacher.id !== currentUserId && !isSampleEntityId(teacher.id) && (
                             <div style={actionsMenuWrap}>
                               <button
                                 onClick={() => setOpenActionsForId((prev) => (prev === `teacher:${teacher.id}` ? null : `teacher:${teacher.id}`))}
@@ -961,15 +1072,24 @@ export default function AdminDashboard() {
                   </thead>
                   <tbody>
                     {(rows as typeof teacherStats).map((t, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => { setModalType(null); router.push(`/admin/teacher/${t.id}`); }}>
+                      <tr
+                        key={i}
+                        style={{ borderBottom: '1px solid var(--border)', cursor: isSampleEntityId(t.id) ? 'default' : 'pointer' }}
+                        onClick={() => {
+                          if (isSampleEntityId(t.id)) return;
+                          setModalType(null);
+                          router.push(`/admin/teacher/${t.id}`);
+                        }}
+                      >
                         <td style={{ padding: '8px 8px' }}>
                           <button
                             onClick={(e) => {
+                              if (isSampleEntityId(t.id)) return;
                               e.stopPropagation();
                               setModalType(null);
                               router.push(`/admin/teacher/${t.id}`);
                             }}
-                            style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
+                            style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: isSampleEntityId(t.id) ? 'default' : 'pointer', textDecoration: isSampleEntityId(t.id) ? 'none' : 'underline', textUnderlineOffset: 2, opacity: isSampleEntityId(t.id) ? 0.72 : 1 }}
                           >
                             {t.name}
                           </button>
@@ -994,9 +1114,9 @@ export default function AdminDashboard() {
                     {(rows as typeof lessonRows).map((r, i) => (
                       <tr
                         key={i}
-                        style={{ borderBottom: '1px solid var(--border)', cursor: r.teacherId && r.id ? 'pointer' : 'default' }}
+                        style={{ borderBottom: '1px solid var(--border)', cursor: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'pointer' : 'default' }}
                         onClick={() => {
-                          if (!r.teacherId || !r.id) return;
+                          if (!r.teacherId || !r.id || isSampleEntityId(r.teacherId)) return;
                           setModalType(null);
                           router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
                         }}
@@ -1005,11 +1125,11 @@ export default function AdminDashboard() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              if (!r.teacherId || !r.id) return;
+                              if (!r.teacherId || !r.id || isSampleEntityId(r.teacherId)) return;
                               setModalType(null);
                               router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
                             }}
-                            style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: r.teacherId && r.id ? 'pointer' : 'default', textDecoration: r.teacherId && r.id ? 'underline' : 'none', textUnderlineOffset: 2 }}
+                            style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'pointer' : 'default', textDecoration: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'underline' : 'none', textUnderlineOffset: 2, opacity: r.teacherId && isSampleEntityId(r.teacherId) ? 0.72 : 1 }}
                           >
                             {r.teacher}
                           </button>
