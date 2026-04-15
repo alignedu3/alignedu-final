@@ -320,7 +320,9 @@ const headerMeta: React.CSSProperties = {
   border: '1px solid rgba(148,163,184,0.18)',
   borderRadius: 12,
   padding: '10px 12px',
-  minWidth: 160
+  minWidth: 0,
+  width: '100%',
+  maxWidth: 220
 };
 
 const metaLabel: React.CSSProperties = {
@@ -435,7 +437,8 @@ const detailLink: React.CSSProperties = {
   color: '#f97316',
   textDecoration: 'none',
   fontWeight: 600,
-  whiteSpace: 'nowrap'
+  whiteSpace: 'normal',
+  lineHeight: 1.4
 };
 
 const findingsList: React.CSSProperties = {
@@ -471,7 +474,7 @@ const chip: React.CSSProperties = {
   padding: '7px 11px',
   fontSize: 12,
   cursor: 'pointer',
-  maxWidth: 280,
+  maxWidth: '100%',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
   whiteSpace: 'nowrap'
@@ -497,7 +500,8 @@ const historyTopRow: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   gap: 12,
-  alignItems: 'flex-start'
+  alignItems: 'flex-start',
+  flexWrap: 'wrap'
 };
 
 const historyTitle: React.CSSProperties = {

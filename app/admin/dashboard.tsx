@@ -1061,85 +1061,89 @@ export default function AdminDashboard() {
               {rows.length === 0 ? (
                 <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px 0' }}>No data to display.</p>
               ) : isTeacherList ? (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                      <th style={{ textAlign: 'left', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Teacher</th>
-                      <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Avg Score</th>
-                      <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Lessons</th>
-                      <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Trend</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(rows as typeof teacherStats).map((t, i) => (
-                      <tr
-                        key={i}
-                        style={{ borderBottom: '1px solid var(--border)', cursor: isSampleEntityId(t.id) ? 'default' : 'pointer' }}
-                        onClick={() => {
-                          if (isSampleEntityId(t.id)) return;
-                          setModalType(null);
-                          router.push(`/admin/teacher/${t.id}`);
-                        }}
-                      >
-                        <td style={{ padding: '8px 8px' }}>
-                          <button
-                            onClick={(e) => {
-                              if (isSampleEntityId(t.id)) return;
-                              e.stopPropagation();
-                              setModalType(null);
-                              router.push(`/admin/teacher/${t.id}`);
-                            }}
-                            style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: isSampleEntityId(t.id) ? 'default' : 'pointer', textDecoration: isSampleEntityId(t.id) ? 'none' : 'underline', textUnderlineOffset: 2, opacity: isSampleEntityId(t.id) ? 0.72 : 1 }}
-                          >
-                            {t.name}
-                          </button>
-                        </td>
-                        <td style={{ padding: '8px 8px', textAlign: 'center', color: t.needsAttention ? '#ef4444' : '#22c55e', fontWeight: 700 }}>{t.avgScore}</td>
-                        <td style={{ padding: '8px 8px', textAlign: 'center', color: 'var(--text-secondary)' }}>{t.count}</td>
-                        <td style={{ padding: '8px 8px', textAlign: 'center', color: t.trend > 0 ? '#22c55e' : t.trend < 0 ? '#ef4444' : 'var(--text-secondary)' }}>{t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'}</td>
+                <div className="table-scroll-wrap" style={{ border: '1px solid var(--border)', borderRadius: 10 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                        <th style={{ textAlign: 'left', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Teacher</th>
+                        <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Avg Score</th>
+                        <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Lessons</th>
+                        <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Trend</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {(rows as typeof teacherStats).map((t, i) => (
+                        <tr
+                          key={i}
+                          style={{ borderBottom: '1px solid var(--border)', cursor: isSampleEntityId(t.id) ? 'default' : 'pointer' }}
+                          onClick={() => {
+                            if (isSampleEntityId(t.id)) return;
+                            setModalType(null);
+                            router.push(`/admin/teacher/${t.id}`);
+                          }}
+                        >
+                          <td style={{ padding: '8px 8px' }}>
+                            <button
+                              onClick={(e) => {
+                                if (isSampleEntityId(t.id)) return;
+                                e.stopPropagation();
+                                setModalType(null);
+                                router.push(`/admin/teacher/${t.id}`);
+                              }}
+                              style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: isSampleEntityId(t.id) ? 'default' : 'pointer', textDecoration: isSampleEntityId(t.id) ? 'none' : 'underline', textUnderlineOffset: 2, opacity: isSampleEntityId(t.id) ? 0.72 : 1 }}
+                            >
+                              {t.name}
+                            </button>
+                          </td>
+                          <td style={{ padding: '8px 8px', textAlign: 'center', color: t.needsAttention ? '#ef4444' : '#22c55e', fontWeight: 700 }}>{t.avgScore}</td>
+                          <td style={{ padding: '8px 8px', textAlign: 'center', color: 'var(--text-secondary)' }}>{t.count}</td>
+                          <td style={{ padding: '8px 8px', textAlign: 'center', color: t.trend > 0 ? '#22c55e' : t.trend < 0 ? '#ef4444' : 'var(--text-secondary)' }}>{t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                      <th style={{ textAlign: 'left', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Teacher</th>
-                      <th style={{ textAlign: 'left', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Date</th>
-                      <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Score</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(rows as typeof lessonRows).map((r, i) => (
-                      <tr
-                        key={i}
-                        style={{ borderBottom: '1px solid var(--border)', cursor: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'pointer' : 'default' }}
-                        onClick={() => {
-                          if (!r.teacherId || !r.id || isSampleEntityId(r.teacherId)) return;
-                          setModalType(null);
-                          router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
-                        }}
-                      >
-                        <td style={{ padding: '8px 8px' }}>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (!r.teacherId || !r.id || isSampleEntityId(r.teacherId)) return;
-                              setModalType(null);
-                              router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
-                            }}
-                            style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'pointer' : 'default', textDecoration: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'underline' : 'none', textUnderlineOffset: 2, opacity: r.teacherId && isSampleEntityId(r.teacherId) ? 0.72 : 1 }}
-                          >
-                            {r.teacher}
-                          </button>
-                        </td>
-                        <td style={{ padding: '8px 8px', color: 'var(--text-secondary)' }}>{r.date}</td>
-                        <td style={{ padding: '8px 8px', textAlign: 'center', fontWeight: 700, color: r.score >= 75 ? '#22c55e' : '#ef4444' }}>{r.score}</td>
+                <div className="table-scroll-wrap" style={{ border: '1px solid var(--border)', borderRadius: 10 }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                        <th style={{ textAlign: 'left', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Teacher</th>
+                        <th style={{ textAlign: 'left', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Date</th>
+                        <th style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '6px 8px', fontWeight: 600 }}>Score</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {(rows as typeof lessonRows).map((r, i) => (
+                        <tr
+                          key={i}
+                          style={{ borderBottom: '1px solid var(--border)', cursor: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'pointer' : 'default' }}
+                          onClick={() => {
+                            if (!r.teacherId || !r.id || isSampleEntityId(r.teacherId)) return;
+                            setModalType(null);
+                            router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
+                          }}
+                        >
+                          <td style={{ padding: '8px 8px' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!r.teacherId || !r.id || isSampleEntityId(r.teacherId)) return;
+                                setModalType(null);
+                                router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
+                              }}
+                              style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'pointer' : 'default', textDecoration: r.teacherId && r.id && !isSampleEntityId(r.teacherId) ? 'underline' : 'none', textUnderlineOffset: 2, opacity: r.teacherId && isSampleEntityId(r.teacherId) ? 0.72 : 1 }}
+                            >
+                              {r.teacher}
+                            </button>
+                          </td>
+                          <td style={{ padding: '8px 8px', color: 'var(--text-secondary)' }}>{r.date}</td>
+                          <td style={{ padding: '8px 8px', textAlign: 'center', fontWeight: 700, color: r.score >= 75 ? '#22c55e' : '#ef4444' }}>{r.score}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>
