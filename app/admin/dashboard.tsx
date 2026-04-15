@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
   getDashboardSummary,
@@ -34,6 +34,8 @@ export default function AdminDashboard() {
   const [openActionsForId, setOpenActionsForId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedAdminId = searchParams.get('adminId');
 
   const handleObserveLesson = () => {
     router.push('/admin/observe');
@@ -68,7 +70,14 @@ export default function AdminDashboard() {
 
         const supabase = createClient();
 
-        const visibilityResponse = await fetch('/api/admin/visibility', {
+        // If super_admin and adminId is present, load that admin's data
+        let targetAdminId = user.id;
+        if (authData.profile?.role === 'super_admin' && selectedAdminId) {
+          targetAdminId = selectedAdminId;
+        }
+
+        // Fetch visibility for the target admin
+        const visibilityResponse = await fetch(`/api/admin/visibility?adminId=${targetAdminId}`, {
           credentials: 'include',
           cache: 'no-store',
         });
@@ -152,7 +161,7 @@ export default function AdminDashboard() {
     }
 
     safeLoad();
-  }, [router]);
+  }, [router, selectedAdminId]);
 
   useEffect(() => {
     const checkScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
