@@ -150,7 +150,11 @@ export default function TeacherDetailPage() {
             </div>
             <div style={overviewPanel}>
               <div style={label}>Admin Readout</div>
-              <div style={text}>All detailed results remain behind the teacher and lesson drill-down links below.</div>
+              <div style={text}>
+                {overview.summary
+                  ? overview.summary
+                  : 'No additional admin notes for this teacher yet.'}
+              </div>
             </div>
             <div style={overviewPanel}>
               <div style={label}>Recommended Focus</div>
