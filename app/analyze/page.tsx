@@ -1,11 +1,171 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 // Simulate premium check (replace with real check if available)
 const isPremium = true;
+
+type ReportSection = {
+  title: string;
+  content: string;
+  bullets: string[];
+};
+
+const REPORT_HEADING_MAP: Record<string, string> = {
+  "instructional coaching feedback": "Coaching Priorities",
+  "texas teks standards alignment": "Standards Alignment",
+  "staar teks coverage": "Assessment Readiness",
+  metrics: "Performance Snapshot",
+  summary: "Executive Summary",
+};
+
+function cleanDisplayText(text: string) {
+  return text
+    .replace(/\r/g, "")
+    .replace(/^#{1,6}\s*/gm, "")
+    .replace(/\*\*(.*?)\*\*/g, "$1")
+    .replace(/\*(.*?)\*/g, "$1")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/^\s*[-•*]\s+/gm, "- ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function normalizeTitle(title: string) {
+  const cleaned = cleanDisplayText(title)
+    .replace(/^=+\s*/, "")
+    .replace(/\s*=+$/, "")
+    .replace(/:+$/, "")
+    .trim();
+
+  const mapped = REPORT_HEADING_MAP[cleaned.toLowerCase()];
+  if (mapped) return mapped;
+  if (!cleaned) return "Summary";
+  return cleaned;
+}
+
+function cleanBulletText(line: string) {
+  return cleanDisplayText(line)
+    .replace(/^[-•*]\s*/, "")
+    .replace(/^[0-9]+\.\s*/, "")
+    .trim();
+}
+
+function parseLabeledSection(content: string): ReportSection[] {
+  if (!content.trim()) return [];
+
+  const matches = Array.from(
+    content.matchAll(/(?:^|\n)\s*[-•*]\s*([^:\n]+):\s*([\s\S]*?)(?=(?:\n\s*[-•*]\s*[^:\n]+:\s*)|$)/g)
+  );
+
+  if (matches.length > 0) {
+    return matches
+      .map((match) => {
+        const body = cleanDisplayText(match[2] || "");
+        const bullets = body
+          .split(/\n+/)
+          .map((line) => cleanBulletText(line))
+          .filter(Boolean);
+
+        return {
+          title: normalizeTitle(match[1] || "Summary"),
+          content: body,
+          bullets: bullets.length > 1 ? bullets : [],
+        };
+      })
+      .filter((section) => section.content || section.bullets.length);
+  }
+
+  const fallback = cleanDisplayText(content);
+  return fallback
+    ? [{ title: "Summary", content: fallback, bullets: [] }]
+    : [];
+}
+
+function parseAnalysisResult(text: string): ReportSection[] {
+  if (!text) return [];
+
+  const cleaned = cleanDisplayText(text)
+    .replace(/Metrics:\s*[\s\S]*?(?=\n(?:===|[A-Z][A-Za-z\s]+:)|$)/i, "")
+    .replace(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===/gi, "")
+    .replace(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===/gi, "")
+    .replace(/===\s*STAAR TEKS COVERAGE\s*===/gi, "")
+    .trim();
+
+  if (!cleaned) return [];
+
+  return cleaned
+    .split(/\n{2,}/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .map((chunk) => {
+      const lines = chunk
+        .split(/\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      const firstLine = lines[0] || "";
+      const bodyLines = lines.slice(1);
+      const isHeading =
+        lines.length > 1 &&
+        !/^[-•*]/.test(firstLine) &&
+        !/^[0-9]+\./.test(firstLine) &&
+        firstLine.length < 80;
+
+      const content = cleanDisplayText(isHeading ? bodyLines.join("\n") : lines.join("\n"));
+      const bullets = (isHeading ? bodyLines : lines)
+        .filter((line) => /^[-•*]/.test(line) || /^[0-9]+\./.test(line))
+        .map((line) => cleanBulletText(line))
+        .filter(Boolean);
+
+      return {
+        title: normalizeTitle(isHeading ? firstLine : "Summary"),
+        content,
+        bullets: bullets.length === lines.length || bullets.length > 1 ? bullets : [],
+      };
+    })
+    .filter((section) => section.content || section.bullets.length);
+}
+
+function parseAnalysisMetrics(text: string) {
+  const stringValue = (match: RegExpMatchArray | null) =>
+    match ? Number(match[1]) : null;
+
+  const score = stringValue(text.match(/Instructional Score[\s\S]*?:\s*([0-9]{1,3})/i));
+  const coverage = stringValue(text.match(/Coverage[\s\S]*?:\s*([0-9]{1,3})/i));
+  const clarity = stringValue(text.match(/Clarity[\s\S]*?:\s*([0-9]{1,3})/i));
+  const engagement = stringValue(text.match(/Engagement[\s\S]*?:\s*([0-9]{1,3})/i));
+  const gaps = stringValue(text.match(/Gaps(?:\s*Flagged)?[\s\S]*?:\s*([0-9]{1,3})/i));
+
+  return {
+    score: score ?? null,
+    coverage: coverage ?? null,
+    clarity: clarity ?? null,
+    engagement: engagement ?? null,
+    gaps: gaps ?? null,
+  };
+}
+
+function parseFeedbackSections(text: string) {
+  const coachingMatch = text.match(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===([\s\S]*?)(?====|$)/i);
+  const teksMatch = text.match(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===([\s\S]*?)(?====|$)/i);
+  const staarMatch = text.match(/===\s*STAAR TEKS COVERAGE\s*===([\s\S]*?)(?====|$)/i);
+
+  return {
+    coaching: coachingMatch ? parseLabeledSection(coachingMatch[1]) : [],
+    teks: teksMatch ? parseLabeledSection(teksMatch[1]) : [],
+    staar: staarMatch ? parseLabeledSection(staarMatch[1]) : [],
+  };
+}
+
+function getScoreBand(score: number | null) {
+  if (score === null) return { label: "Report Ready", tone: "#64748b" };
+  if (score >= 85) return { label: "Strong Practice", tone: "#15803d" };
+  if (score >= 70) return { label: "Solid With Refinements", tone: "#b45309" };
+  return { label: "Priority Support Area", tone: "#b91c1c" };
+}
 
 export default function AnalysisPage() {
     // Audio Recorder State
@@ -176,7 +336,6 @@ export default function AnalysisPage() {
         }
       };
     }, []);
-  const router = useRouter();
   const pathname = usePathname();
   const isAdminObservationMode = pathname?.startsWith('/admin/observe');
 
@@ -191,6 +350,7 @@ export default function AnalysisPage() {
   const [processingStep, setProcessingStep] = useState("");
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
+  const [saveNotice, setSaveNotice] = useState("");
   const [observerReady, setObserverReady] = useState(!isAdminObservationMode);
   const [observedTeacherId, setObservedTeacherId] = useState("");
   const [observedTeachers, setObservedTeachers] = useState<Array<{ id: string; name: string }>>([]);
@@ -284,55 +444,6 @@ export default function AnalysisPage() {
     boxShadow: '0 24px 80px rgba(15,23,42,0.18)',
   };
 
-  const resultSectionStyle: React.CSSProperties = {
-    background: 'var(--surface-card-solid)',
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 18,
-    border: '1px solid rgba(148,163,184,0.08)',
-  };
-
-  const resultHeaderStyle: React.CSSProperties = {
-    color: 'var(--accent)',
-    marginBottom: 10,
-    fontSize: 14,
-    letterSpacing: '0.12em',
-    textTransform: 'uppercase',
-  };
-
-  const resultTitleStyle: React.CSSProperties = {
-    color: 'var(--text-primary)',
-    fontSize: 18,
-    marginBottom: 10,
-  };
-
-  const resultTextStyle: React.CSSProperties = {
-    color: 'var(--text-secondary)',
-    lineHeight: 1.75,
-    fontSize: 15,
-    whiteSpace: 'pre-wrap',
-  };
-
-  const resultListStyle: React.CSSProperties = {
-    color: 'var(--text-secondary)',
-    paddingLeft: 20,
-    margin: 0,
-    fontSize: 15,
-    lineHeight: 1.7,
-  };
-
-  const resultItemStyle: React.CSSProperties = {
-    marginBottom: 8,
-  };
-
-  const resultLabelStyle: React.CSSProperties = {
-    color: 'var(--text-secondary)',
-    marginBottom: 6,
-    fontSize: 13,
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-  };
-
   const summaryBarStyle: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
@@ -366,6 +477,126 @@ export default function AnalysisPage() {
     color: 'var(--text-secondary)',
     fontSize: 13,
     marginTop: 6,
+  };
+
+  const reportIntroStyle: React.CSSProperties = {
+    display: 'grid',
+    gap: 14,
+    marginBottom: 24,
+  };
+
+  const reportBannerStyle: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap',
+    paddingBottom: 18,
+    borderBottom: '1px solid rgba(148,163,184,0.12)',
+    marginBottom: 20,
+  };
+
+  const reportEyebrowStyle: React.CSSProperties = {
+    color: 'var(--accent-blue)',
+    fontSize: 12,
+    textTransform: 'uppercase',
+    letterSpacing: '0.12em',
+    fontWeight: 800,
+  };
+
+  const reportHeadingStyle: React.CSSProperties = {
+    color: 'var(--text-primary)',
+    fontSize: 28,
+    lineHeight: 1.1,
+    fontWeight: 800,
+    marginTop: 6,
+  };
+
+  const reportSubheadingStyle: React.CSSProperties = {
+    color: 'var(--text-secondary)',
+    fontSize: 15,
+    lineHeight: 1.7,
+    maxWidth: 760,
+  };
+
+  const reportChipRowStyle: React.CSSProperties = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 10,
+  };
+
+  const reportChipStyle: React.CSSProperties = {
+    padding: '8px 12px',
+    borderRadius: 999,
+    border: '1px solid rgba(148,163,184,0.14)',
+    background: 'rgba(15,23,42,0.18)',
+    color: 'var(--text-secondary)',
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
+  };
+
+  const reportGridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    gap: 18,
+    marginTop: 24,
+  };
+
+  const reportPanelStyle: React.CSSProperties = {
+    background: 'var(--surface-card-solid)',
+    borderRadius: 18,
+    padding: 20,
+    border: '1px solid rgba(148,163,184,0.1)',
+  };
+
+  const reportPanelTitleStyle: React.CSSProperties = {
+    color: 'var(--text-primary)',
+    fontSize: 17,
+    fontWeight: 750,
+    marginBottom: 10,
+  };
+
+  const reportPanelTextStyle: React.CSSProperties = {
+    color: 'var(--text-secondary)',
+    fontSize: 15,
+    lineHeight: 1.75,
+    whiteSpace: 'pre-wrap',
+  };
+
+  const reportPanelListStyle: React.CSSProperties = {
+    color: 'var(--text-secondary)',
+    paddingLeft: 18,
+    margin: 0,
+    fontSize: 15,
+    lineHeight: 1.7,
+    display: 'grid',
+    gap: 8,
+  };
+
+  const reportSectionHeadingStyle: React.CSSProperties = {
+    color: 'var(--text-primary)',
+    fontSize: 20,
+    fontWeight: 800,
+    margin: '28px 0 14px',
+  };
+
+  const reportSummaryStyle: React.CSSProperties = {
+    padding: 20,
+    borderRadius: 18,
+    background: 'linear-gradient(135deg, rgba(14,165,233,0.12), rgba(15,23,42,0.08))',
+    border: '1px solid rgba(56,189,248,0.18)',
+  };
+
+  const reportNoticeStyle: React.CSSProperties = {
+    padding: '12px 14px',
+    borderRadius: 14,
+    border: '1px solid rgba(16,185,129,0.2)',
+    background: 'rgba(16,185,129,0.12)',
+    color: 'var(--text-primary)',
+    fontSize: 14,
+    marginTop: 16,
   };
 
   const recorderCardStyle: React.CSSProperties = {
@@ -490,75 +721,14 @@ export default function AnalysisPage() {
     }
   };
 
-  const parseAnalysisResult = (text: string) => {
-    if (!text) return [];
-
-    const groups = text
-      .split(/\n{2,}/)
-      .map((chunk) => chunk.trim())
-      .filter(Boolean);
-
-    return groups.map((chunk) => {
-      const lines = chunk
-        .split(/\n/)
-        .map((line) => line.trim())
-        .filter(Boolean);
-
-      const firstLine = lines[0] || "";
-      const titleCandidate = firstLine.replace(/^[-•*]\s*/, "");
-      const isTitle = lines.length > 1 && !/^[-•*\s]/.test(firstLine);
-
-      return {
-        title: isTitle ? titleCandidate : "Summary",
-        content: isTitle ? lines.slice(1).join("\n") : lines.join("\n"),
-      };
-    });
-  };
-
-  // ── FIX 1: updated regex to handle "(0-100)" in label ──
-  const parseAnalysisMetrics = (text: string) => {
-    const stringValue = (match: RegExpMatchArray | null) =>
-      match ? Number(match[1]) : null;
-
-    const score = stringValue(text.match(/Instructional Score[\s\S]*?:\s*([0-9]{1,3})/i));
-    const coverage = stringValue(text.match(/Coverage[\s\S]*?:\s*([0-9]{1,3})/i));
-    const clarity = stringValue(text.match(/Clarity[\s\S]*?:\s*([0-9]{1,3})/i));
-    const engagement = stringValue(text.match(/Engagement[\s\S]*?:\s*([0-9]{1,3})/i));
-    const gaps = stringValue(text.match(/Gaps(?:\s*Flagged)?[\s\S]*?:\s*([0-9]{1,3})/i));
-
-    return {
-      score: score ?? null,
-      coverage: coverage ?? null,
-      clarity: clarity ?? null,
-      engagement: engagement ?? null,
-      gaps: gaps ?? null,
-    };
-  };
-
-  // Parse both instructional coaching and TEKS sections from response
-  const parseFeedbackSections = (text: string) => {
-    const coachingMatch = text.match(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===([\s\S]*?)(?====|$)/i);
-    const teksMatch = text.match(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===([\s\S]*?)$/i);
-
-    const parseSection = (content: string) => {
-      if (!content) return [];
-      const groups = content
-        .split(/(?:^|\n)[-•*]\s+[A-Z][^\n:]*:\s*/)
-        .filter(Boolean)
-        .map(chunk => chunk.trim())
-        .filter(Boolean);
-      return groups;
-    };
-
-    return {
-      coaching: coachingMatch ? parseSection(coachingMatch[1]) : [],
-      teks: teksMatch ? parseSection(teksMatch[1]) : [],
-    };
-  };
-
   const resultSections = parseAnalysisResult(result);
   const resultMetrics = parseAnalysisMetrics(result);
   const feedbackSections = parseFeedbackSections(result);
+  const scoreBand = getScoreBand(resultMetrics.score);
+  const executiveSummary =
+    feedbackSections.coaching[0]?.content ||
+    resultSections.find((section) => section.content)?.content ||
+    "";
 
   const transcribeChunk = async (chunk: File, index: number, total: number) => {
     setProcessingStep(`Transcribing chunk ${index + 1} of ${total}...`);
@@ -718,6 +888,7 @@ export default function AnalysisPage() {
       setLoading(true);
       setError("");
       setResult("");
+      setSaveNotice("");
       setProcessingStep("Preparing analysis...");
 
       let resolvedDuration = audioDuration;
@@ -794,14 +965,13 @@ export default function AnalysisPage() {
 
       setProcessingStep("Finalizing results...");
       setResult(data?.result || "No result returned");
-
-      // ── FIX 2: only redirect if logged in and saved ──
       if (data?.saved) {
-        setTimeout(() => {
-          router.push(isAdminObservationMode ? '/admin/dashboard' : '/dashboard');
-        }, 1500);
+        setSaveNotice(
+          isAdminObservationMode
+            ? "Observation saved. Review the report below and return to the admin dashboard when you are ready."
+            : "Analysis saved. Review the report below and return to your dashboard when you are ready."
+        );
       }
-      // ── END FIX 2 ──
 
     } catch (err: unknown) {
       console.error(err);
@@ -816,12 +986,12 @@ export default function AnalysisPage() {
     <main className="analysis-wrapper">
       <div className="analysis-container">
         <div className="analysis-header">
-          <span className="analysis-badge">{isAdminObservationMode ? 'Admin Observation' : 'Premium AI Insights'}</span>
-          <h1 className="analysis-title">{isAdminObservationMode ? 'Teacher Observation Analysis' : 'Lesson Analysis for Next-Level Teaching'}</h1>
+          <span className="analysis-badge">{isAdminObservationMode ? 'Admin Observation' : 'Lesson Review'}</span>
+          <h1 className="analysis-title">{isAdminObservationMode ? 'Observation Report Builder' : 'Instructional Review'}</h1>
           <p className="analysis-subtitle">
             {isAdminObservationMode
-              ? 'Observe a teacher under your scope and submit a full coaching analysis that is saved for both teacher growth and admin oversight.'
-              : 'Upload notes or audio and get an instructor-ready review with teaching scores, engagement signals, and targeted next steps.'}
+              ? 'Create a clear observation report for school and district leaders, with coaching priorities and standards alignment in one place.'
+              : 'Generate a clean coaching report with clear strengths, priority moves, and standards-aligned feedback teachers can act on quickly.'}
           </p>
         </div>
 
@@ -831,7 +1001,7 @@ export default function AnalysisPage() {
               <div className="analysis-section-top">
                 <h2>Lesson submission</h2>
                 <p>
-                  Share your lesson details or audio recording and let our AI produce a polished coaching report.
+                  Submit notes or audio to generate a concise instructional report built for teachers, campus leaders, and district teams.
                 </p>
               </div>
 
@@ -891,7 +1061,7 @@ export default function AnalysisPage() {
                 <textarea
                   value={lessonNotes}
                   onChange={(e) => setLessonNotes(e.target.value)}
-                  placeholder="Paste lesson here..."
+                  placeholder="Paste lesson notes, observation notes, or transcript excerpts..."
                 />
               </div>
 
@@ -1002,22 +1172,37 @@ export default function AnalysisPage() {
             </section>
 
             <aside className="analysis-side-card">
-              <h3>What you get</h3>
+              <h3>Report at a glance</h3>
               <p>
-                A premium report with instructional feedback, equity checks, and strategic next steps.
+                A streamlined review designed to support classroom coaching, school leadership, and district reporting.
               </p>
               <ul className="analysis-side-list">
-                <li>Instructional Score</li>
-                <li>Coverage & clarity assessment</li>
-                <li>Engagement and student signals</li>
-                <li>Gaps, missed opportunities, and next steps</li>
+                <li>Clear performance snapshot</li>
+                <li>Key strengths and coaching priorities</li>
+                <li>Standards alignment and readiness notes</li>
+                <li>Practical next steps for follow-up</li>
               </ul>
             </aside>
           </div>
 
           {result && (
             <section style={resultCardStyle}>
-              <div style={resultHeaderStyle}>Lesson Analysis</div>
+              <div style={reportBannerStyle}>
+                <div style={reportIntroStyle}>
+                  <div style={reportEyebrowStyle}>District-ready report</div>
+                  <div style={reportHeadingStyle}>Lesson Review</div>
+                  <div style={reportSubheadingStyle}>
+                    A clean instructional summary built for quick review, coaching conversations, and leadership follow-up.
+                  </div>
+                </div>
+                <div style={reportChipRowStyle}>
+                  {grade && <div style={reportChipStyle}>{grade}</div>}
+                  {subject && <div style={reportChipStyle}>{subject}</div>}
+                  <div style={{ ...reportChipStyle, color: scoreBand.tone, borderColor: `${scoreBand.tone}33` }}>
+                    {scoreBand.label}
+                  </div>
+                </div>
+              </div>
 
               <div style={summaryBarStyle}>
                 <div style={metricCardStyle}>
@@ -1040,59 +1225,117 @@ export default function AnalysisPage() {
                   <div style={metricValueStyle}>{resultMetrics.engagement ?? '—'}</div>
                   <div style={metricSubtextStyle}>Student participation</div>
                 </div>
+                <div style={metricCardStyle}>
+                  <div style={metricLabelStyle}>Gaps</div>
+                  <div style={metricValueStyle}>{resultMetrics.gaps ?? '—'}</div>
+                  <div style={metricSubtextStyle}>Priority issues to address</div>
+                </div>
               </div>
 
-              {resultSections.length === 0 ? (
-                <div style={resultTextStyle}>{result}</div>
+              {saveNotice && (
+                <div style={reportNoticeStyle}>{saveNotice}</div>
+              )}
+
+              {resultSections.length === 0 && feedbackSections.coaching.length === 0 && feedbackSections.teks.length === 0 && feedbackSections.staar.length === 0 ? (
+                <div style={{ ...reportSummaryStyle, marginTop: 22 }}>
+                  <div style={reportPanelTextStyle}>{cleanDisplayText(result)}</div>
+                </div>
               ) : (
                 <>
+                  {executiveSummary && (
+                    <div style={reportSummaryStyle}>
+                      <div style={reportPanelTitleStyle}>Executive Summary</div>
+                      <div style={reportPanelTextStyle}>{executiveSummary}</div>
+                    </div>
+                  )}
+
                   {feedbackSections.coaching.length > 0 && (
-                    <div style={{ marginBottom: 32 }}>
-                      <div style={{ ...resultTitleStyle, color: '#0f172a', fontSize: 16, marginBottom: 12, paddingBottom: 8, borderBottom: '2px solid #e2e8f0' }}>🎓 Instructional Coaching Feedback</div>
-                      {feedbackSections.coaching.map((item, i) => (
-                        <div key={i} style={{ marginBottom: 12 }}>
-                          <div style={resultTextStyle}>{item}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {feedbackSections.teks.length > 0 && (
-                    <div style={{ marginBottom: 32 }}>
-                      <div style={{ ...resultTitleStyle, color: '#0369a1', fontSize: 16, marginBottom: 12, paddingBottom: 8, borderBottom: '2px solid #cffafe' }}>📋 Texas TEKS Standards Alignment</div>
-                      {feedbackSections.teks.map((item, i) => (
-                        <div key={i} style={{ marginBottom: 12 }}>
-                          <div style={resultTextStyle}>{item}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {resultSections.map((section, index) => {
-                    const lines = section.content
-                      .split(/\n/)
-                      .map((line) => line.trim())
-                      .filter(Boolean);
-
-                    const hasBullets = lines.every((line) => /^[-•*]/.test(line));
-
-                    return (
-                      <div key={index} style={resultSectionStyle}>
-                        {section.title && <div style={resultTitleStyle}>{section.title}</div>}
-                        {hasBullets ? (
-                          <ul style={resultListStyle}>
-                            {lines.map((line, li) => (
-                              <li key={li} style={resultItemStyle}>
-                                {line.replace(/^[-•*]\s*/, '')}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div style={resultTextStyle}>{section.content}</div>
-                        )}
+                    <>
+                      <div style={reportSectionHeadingStyle}>Coaching Priorities</div>
+                      <div style={reportGridStyle}>
+                        {feedbackSections.coaching.map((section, index) => (
+                          <div key={index} style={reportPanelStyle}>
+                            <div style={reportPanelTitleStyle}>{section.title}</div>
+                            {section.bullets.length > 0 ? (
+                              <ul style={reportPanelListStyle}>
+                                {section.bullets.map((item, li) => (
+                                  <li key={li}>{item}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <div style={reportPanelTextStyle}>{section.content}</div>
+                            )}
+                          </div>
+                        ))}
                       </div>
-                    );
-                  })}
+                    </>
+                  )}
+
+                  {feedbackSections.staar.length > 0 && (
+                    <>
+                      <div style={reportSectionHeadingStyle}>Assessment Readiness</div>
+                      <div style={reportGridStyle}>
+                        {feedbackSections.staar.map((section, index) => (
+                          <div key={index} style={reportPanelStyle}>
+                            <div style={reportPanelTitleStyle}>{section.title}</div>
+                            {section.bullets.length > 0 ? (
+                              <ul style={reportPanelListStyle}>
+                                {section.bullets.map((item, li) => (
+                                  <li key={li}>{item}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <div style={reportPanelTextStyle}>{section.content}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {feedbackSections.teks.length > 0 && (
+                    <>
+                      <div style={reportSectionHeadingStyle}>Standards Alignment</div>
+                      <div style={reportGridStyle}>
+                        {feedbackSections.teks.map((section, index) => (
+                          <div key={index} style={reportPanelStyle}>
+                            <div style={reportPanelTitleStyle}>{section.title}</div>
+                            {section.bullets.length > 0 ? (
+                              <ul style={reportPanelListStyle}>
+                                {section.bullets.map((item, li) => (
+                                  <li key={li}>{item}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <div style={reportPanelTextStyle}>{section.content}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {resultSections.length > 0 && (
+                    <>
+                      <div style={reportSectionHeadingStyle}>Detailed Notes</div>
+                      <div style={reportGridStyle}>
+                        {resultSections.map((section, index) => (
+                          <div key={index} style={reportPanelStyle}>
+                            <div style={reportPanelTitleStyle}>{section.title}</div>
+                            {section.bullets.length > 0 ? (
+                              <ul style={reportPanelListStyle}>
+                                {section.bullets.map((item, li) => (
+                                  <li key={li}>{item}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <div style={reportPanelTextStyle}>{section.content}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </section>

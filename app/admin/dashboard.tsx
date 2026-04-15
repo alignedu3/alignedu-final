@@ -45,6 +45,15 @@ export default function AdminDashboard() {
     router.push('/admin/invite');
   };
 
+  const navigateToUserDashboard = (userId: string, role?: string | null, fromTeam = false) => {
+    const params = fromTeam ? '?fromTeam=1' : '';
+    if (role === 'admin' || role === 'super_admin') {
+      router.push(`/admin?adminId=${userId}${params ? `&${params.slice(1)}` : ''}`);
+      return;
+    }
+    router.push(`/admin/teacher/${userId}${params}`);
+  };
+
   useEffect(() => {
     async function safeLoad() {
       try {
@@ -777,12 +786,7 @@ export default function AdminDashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                   {/* Only add fromTeam param for Team Structure section navigation */}
                   <button
-                    onClick={() => {
-                      const url = row.role === 'admin' || row.role === 'super_admin'
-                        ? `/admin?adminId=${row.id}&fromTeam=1`
-                        : `/admin/teacher/${row.id}?fromTeam=1`;
-                      router.push(url);
-                    }}
+                    onClick={() => navigateToUserDashboard(row.id, row.role, true)}
                     style={entityLinkBtn}
                   >
                     {row.name} <span style={mutedInline}>({row.role})</span>
@@ -801,7 +805,7 @@ export default function AdminDashboard() {
                           <button
                             onClick={() => {
                               setOpenActionsForId(null);
-                              router.push(`/admin/teacher/${row.id}`);
+                              navigateToUserDashboard(row.id, row.role);
                             }}
                             style={menuItemBtn}
                           >
@@ -830,7 +834,7 @@ export default function AdminDashboard() {
                       {row.childAdmins.map((child) => (
                         <div key={child.id} style={{ ...pillBtn, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           <button
-                            onClick={() => router.push(`/admin?adminId=${child.id}`)}
+                            onClick={() => navigateToUserDashboard(child.id, child.role)}
                             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', fontSize: 'inherit' }}
                           >
                             {child.name}
