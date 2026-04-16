@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { getTEKSStandards, formatTEKSForPrompt } from "@/lib/teksStandards";
+import { formatTEKSForPrompt, getRelatedTEKSStandards, getTEKSStandards } from "@/lib/teksStandards";
 import { STAAR_SUBJECTS } from "@/lib/staarSubjects";
 import { getAdminVisibility } from "@/lib/adminVisibility";
 
@@ -220,16 +220,23 @@ export async function POST(req: Request) {
 
     // Load TEKS standards for this grade/subject combination
     const { standards, overview, found: hasStandards } = getTEKSStandards(grade, subject);
-    const teksContext = formatTEKSForPrompt(standards, overview);
-
-    let systemPrompt = `You are an elite instructional coach analyzing classroom teaching. Be specific, evidence-based, and actionable. Organize the report with clear sections, bullet points, and concise language so it is easy to follow.`;
-    const waitTimeGuidance = `Important wait-time rule: once the lesson is underway, assume the teacher typically allows about 8 to 10 seconds for student response after questions unless the transcript gives clear evidence that the teacher rushed, answered their own questions, cut students off, or rapidly moved on without space for thinking. Audio transcription often removes silence, pauses, and think time, so do not criticize wait time based only on the absence of transcribed silence. Only flag weak wait time when there is explicit evidence of it in the lesson record.`;
-    let userPrompt = '';
 
     // Check if this is a STAAR-tested subject/grade
     const isSTAAR = STAAR_SUBJECTS.some(
       (s) => s.grade.toLowerCase() === grade.toLowerCase() && s.subject.toLowerCase() === subject.toLowerCase()
     );
+    const promptStandards = hasStandards
+      ? getRelatedTEKSStandards(grade, subject, transcript, {
+          limit: isSTAAR ? 24 : 18,
+        })
+      : [];
+    const teksContext = formatTEKSForPrompt(promptStandards, overview, {
+      totalCount: standards.length,
+    });
+
+    let systemPrompt = `You are an elite instructional coach analyzing classroom teaching. Be specific, evidence-based, and actionable. Organize the report with clear sections, bullet points, and concise language so it is easy to follow.`;
+    const waitTimeGuidance = `Important wait-time rule: once the lesson is underway, assume the teacher typically allows about 8 to 10 seconds for student response after questions unless the transcript gives clear evidence that the teacher rushed, answered their own questions, cut students off, or rapidly moved on without space for thinking. Audio transcription often removes silence, pauses, and think time, so do not criticize wait time based only on the absence of transcribed silence. Only flag weak wait time when there is explicit evidence of it in the lesson record.`;
+    let userPrompt = '';
 
     const reportFormat = `Analyze this lesson transcript and provide feedback in the following structured format. Use these exact section headers and keep the feedback evidence-based, specific, and unbiased.
 
