@@ -304,6 +304,11 @@ export default function AnalysisPage() {
     borderRadius: 16,
     padding: 16,
     textAlign: 'center',
+    minHeight: 138,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    gap: 8,
   };
 
   const metricLabelStyle: React.CSSProperties = {
@@ -316,14 +321,22 @@ export default function AnalysisPage() {
 
   const metricValueStyle: React.CSSProperties = {
     color: 'var(--text-primary)',
-    fontSize: 22,
-    fontWeight: 700,
+    fontSize: 28,
+    fontWeight: 800,
+    lineHeight: 1,
+    letterSpacing: '-0.03em',
+    fontVariantNumeric: 'tabular-nums',
   };
 
   const metricSubtextStyle: React.CSSProperties = {
     color: 'var(--text-secondary)',
     fontSize: 13,
-    marginTop: 6,
+    marginTop: 0,
+    minHeight: 34,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1.35,
   };
 
   const reportIntroStyle: React.CSSProperties = {
@@ -397,6 +410,11 @@ export default function AnalysisPage() {
     border: '1px solid rgba(148,163,184,0.1)',
   };
 
+  const reportSectionPanelStyle: React.CSSProperties = {
+    ...reportPanelStyle,
+    marginTop: 10,
+  };
+
   const reportSectionRowStyle: React.CSSProperties = {
     padding: '18px 0',
     borderBottom: '1px solid rgba(148,163,184,0.12)',
@@ -431,37 +449,6 @@ export default function AnalysisPage() {
     fontSize: 20,
     fontWeight: 800,
     margin: '28px 0 14px',
-  };
-
-  const recommendationHighlightStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: 'minmax(160px, 220px) minmax(0, 1fr)',
-    gap: 16,
-    alignItems: 'start',
-    marginTop: 8,
-    padding: '18px 0',
-    borderTop: '1px solid rgba(148,163,184,0.12)',
-    borderBottom: '1px solid rgba(148,163,184,0.12)',
-  };
-
-  const recommendationLabelBlockStyle: React.CSSProperties = {
-    display: 'grid',
-    gap: 6,
-  };
-
-  const recommendationEyebrowStyle: React.CSSProperties = {
-    color: 'var(--accent-blue)',
-    fontSize: 11,
-    textTransform: 'uppercase',
-    letterSpacing: '0.1em',
-    fontWeight: 800,
-  };
-
-  const recommendationTitleStyle: React.CSSProperties = {
-    color: 'var(--text-primary)',
-    fontSize: 16,
-    lineHeight: 1.25,
-    fontWeight: 800,
   };
 
   const reportSummaryStyle: React.CSSProperties = {
@@ -633,6 +620,45 @@ export default function AnalysisPage() {
   const notCoveredStandardsSections = standardsAlignmentSections.filter((section) =>
     ["Standards Not Observed"].includes(section.title)
   );
+  const findCoachingSection = (...titles: string[]) =>
+    feedbackSections.coaching.find((section) => titles.includes(section.title));
+  const keyFindingsSection = findCoachingSection("Key Findings");
+  const missedOpportunitiesSection = findCoachingSection("Missed Opportunities");
+  const engagementSignalsSection = findCoachingSection("Student Engagement Signals");
+  const suggestedNextStepsSection = findCoachingSection("Suggested Next Steps");
+  const instructionalHighlights = [
+    {
+      title: "Key Findings",
+      bullets: keyFindingsSection?.bullets.length
+        ? keyFindingsSection.bullets
+        : feedbackSections.whatWentWell,
+      content:
+        keyFindingsSection?.content ||
+        (!keyFindingsSection?.bullets.length ? feedbackSections.whatWentWell.join(" ") : ""),
+    },
+    {
+      title: "Missed Opportunities",
+      bullets: missedOpportunitiesSection?.bullets.length
+        ? missedOpportunitiesSection.bullets
+        : feedbackSections.whatCanImprove,
+      content:
+        missedOpportunitiesSection?.content ||
+        (!missedOpportunitiesSection?.bullets.length ? feedbackSections.whatCanImprove.join(" ") : ""),
+    },
+    {
+      title: "Student Engagement Signals",
+      bullets: engagementSignalsSection?.bullets ?? [],
+      content: engagementSignalsSection?.content || "",
+    },
+    {
+      title: "Suggested Next Steps",
+      bullets: suggestedNextStepsSection?.bullets ?? [],
+      content:
+        suggestedNextStepsSection?.content ||
+        feedbackSections.recommendedNextStep ||
+        "",
+    },
+  ].filter((section) => section.bullets.length > 0 || section.content.trim());
   const scoreBand = getScoreBand(resultMetrics.score);
   const executiveSummary =
     feedbackSections.executiveSummary ||
@@ -1175,52 +1201,17 @@ export default function AnalysisPage() {
                     </div>
                   )}
 
-                  {(feedbackSections.whatWentWell.length > 0 || feedbackSections.whatCanImprove.length > 0) && (
+                  {instructionalHighlights.length > 0 && (
                     <>
-                      <div style={reportSectionHeadingStyle}>Instructional Snapshot</div>
+                      <div style={reportSectionHeadingStyle}>Instructional Insights</div>
                       <div style={reportGridStyle}>
-                        {feedbackSections.whatWentWell.length > 0 && (
-                          <div style={reportPanelStyle}>
-                            <div style={reportPanelTitleStyle}>What Went Well</div>
-                            <ul style={reportPanelListStyle}>
-                              {feedbackSections.whatWentWell.map((item, index) => (
-                                <li key={`went-well-${index}`}>{item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {feedbackSections.whatCanImprove.length > 0 && (
-                          <div style={reportPanelStyle}>
-                            <div style={reportPanelTitleStyle}>What Can Improve</div>
-                            <ul style={reportPanelListStyle}>
-                              {feedbackSections.whatCanImprove.map((item, index) => (
-                                <li key={`improve-${index}`}>{item}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-
-                  {feedbackSections.recommendedNextStep && (
-                    <div style={reportSummaryStyle}>
-                      <div style={reportPanelTitleStyle}>Recommended Next Step</div>
-                      <div style={reportPanelTextStyle}>{feedbackSections.recommendedNextStep}</div>
-                    </div>
-                  )}
-
-                  {feedbackSections.coaching.length > 0 && (
-                    <>
-                      <div style={reportSectionHeadingStyle}>Coaching Priorities</div>
-                      <div style={reportStackStyle}>
-                        {feedbackSections.coaching.map((section, index) => (
-                          <div key={index} style={reportSectionRowStyle}>
+                        {instructionalHighlights.map((section) => (
+                          <div key={section.title} style={reportPanelStyle}>
                             <div style={reportPanelTitleStyle}>{section.title}</div>
                             {section.bullets.length > 0 ? (
                               <ul style={reportPanelListStyle}>
-                                {section.bullets.map((item, li) => (
-                                  <li key={li}>{item}</li>
+                                {section.bullets.map((item, index) => (
+                                  <li key={`${section.title}-${index}`}>{item}</li>
                                 ))}
                               </ul>
                             ) : (
@@ -1260,58 +1251,60 @@ export default function AnalysisPage() {
                     notCoveredStandardsSections.length > 0) && (
                     <>
                       <div style={reportSectionHeadingStyle}>Standards Alignment</div>
-                      <div style={reportStackStyle}>
-                        {standardsMasterySection && (
-                          <div style={reportSectionRowStyle}>
-                            <div style={reportPanelTitleStyle}>Standards Mastery Notes</div>
-                            <div style={reportPanelTextStyle}>{standardsMasterySection.content}</div>
-                          </div>
-                        )}
+                      <div style={reportSectionPanelStyle}>
+                        <div style={reportStackStyle}>
+                          {standardsMasterySection && (
+                            <div style={reportSectionRowStyle}>
+                              <div style={reportPanelTitleStyle}>Standards Mastery Notes</div>
+                              <div style={reportPanelTextStyle}>{standardsMasterySection.content}</div>
+                            </div>
+                          )}
 
-                        {coveredStandardsSections.map((section, index) => (
-                          <div key={`covered-${index}`} style={reportSectionRowStyle}>
-                            <div style={reportPanelTitleStyle}>Covered in the Lesson</div>
-                            {section.bullets.length > 0 ? (
-                              <ul style={reportPanelListStyle}>
-                                {section.bullets.map((item, li) => (
-                                  <li key={li}>{item}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <div style={reportPanelTextStyle}>{section.content}</div>
-                            )}
-                          </div>
-                        ))}
+                          {coveredStandardsSections.map((section, index) => (
+                            <div key={`covered-${index}`} style={reportSectionRowStyle}>
+                              <div style={reportPanelTitleStyle}>Covered in the Lesson</div>
+                              {section.bullets.length > 0 ? (
+                                <ul style={reportPanelListStyle}>
+                                  {section.bullets.map((item, li) => (
+                                    <li key={li}>{item}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div style={reportPanelTextStyle}>{section.content}</div>
+                              )}
+                            </div>
+                          ))}
 
-                        {reinforcementStandardsSections.map((section, index) => (
-                          <div key={`reinforcement-${index}`} style={reportSectionRowStyle}>
-                            <div style={reportPanelTitleStyle}>Needs Reinforcement</div>
-                            {section.bullets.length > 0 ? (
-                              <ul style={reportPanelListStyle}>
-                                {section.bullets.map((item, li) => (
-                                  <li key={li}>{item}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <div style={reportPanelTextStyle}>{section.content}</div>
-                            )}
-                          </div>
-                        ))}
+                          {reinforcementStandardsSections.map((section, index) => (
+                            <div key={`reinforcement-${index}`} style={reportSectionRowStyle}>
+                              <div style={reportPanelTitleStyle}>Needs Reinforcement</div>
+                              {section.bullets.length > 0 ? (
+                                <ul style={reportPanelListStyle}>
+                                  {section.bullets.map((item, li) => (
+                                    <li key={li}>{item}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div style={reportPanelTextStyle}>{section.content}</div>
+                              )}
+                            </div>
+                          ))}
 
-                        {notCoveredStandardsSections.map((section, index) => (
-                          <div key={`not-covered-${index}`} style={reportSectionRowStyle}>
-                            <div style={reportPanelTitleStyle}>Not Covered in the Lesson</div>
-                            {section.bullets.length > 0 ? (
-                              <ul style={reportPanelListStyle}>
-                                {section.bullets.map((item, li) => (
-                                  <li key={li}>{item}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <div style={reportPanelTextStyle}>{section.content}</div>
-                            )}
-                          </div>
-                        ))}
+                          {notCoveredStandardsSections.map((section, index) => (
+                            <div key={`not-covered-${index}`} style={reportSectionRowStyle}>
+                              <div style={reportPanelTitleStyle}>Not Covered in the Lesson</div>
+                              {section.bullets.length > 0 ? (
+                                <ul style={reportPanelListStyle}>
+                                  {section.bullets.map((item, li) => (
+                                    <li key={li}>{item}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div style={reportPanelTextStyle}>{section.content}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </>
                   )}
@@ -1319,11 +1312,8 @@ export default function AnalysisPage() {
                   {standardsRecommendationSections.length > 0 && (
                     <>
                       {standardsRecommendationSections.map((section, index) => (
-                        <div key={`standards-recommendation-${index}`} style={recommendationHighlightStyle}>
-                          <div style={recommendationLabelBlockStyle}>
-                            <div style={recommendationEyebrowStyle}>Standards Follow-Up</div>
-                            <div style={recommendationTitleStyle}>Recommended Standards Follow-Up</div>
-                          </div>
+                        <div key={`standards-recommendation-${index}`} style={reportSectionPanelStyle}>
+                          <div style={reportPanelTitleStyle}>Recommended Standards Follow-Up</div>
                           <div style={reportPanelTextStyle}>
                             {section.bullets.length > 0 ? section.bullets.join(' ') : section.content}
                           </div>
