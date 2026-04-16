@@ -273,10 +273,18 @@ Provide generic, high-quality instructional coaching feedback using labeled bull
       }
 
       userPrompt += `\n\n=== TEXAS TEKS STANDARDS ALIGNMENT ===\nProvide specific curriculum alignment feedback using labeled bullets:
-- Standards Addressed: cite the actual TEKS codes and descriptions that were explicitly taught or practiced.
-- Standards Not Observed: cite the actual TEKS codes and descriptions that were missing, underdeveloped, or not evidenced.
+- Covered in the Lesson:
+  - CODE: exact TEKS description
+  - CODE: exact TEKS description
+- Needs Reinforcement:
+  - CODE: exact TEKS description
+  - CODE: exact TEKS description
+- Not Covered in the Lesson:
+  - CODE: exact TEKS description
+  - CODE: exact TEKS description
 - Standards Mastery Notes: observations about depth and quality of standards instruction.
-- Recommendations for Standards Integration: how to better integrate missing standards with concrete instructional moves.
+- Recommended Standards Follow-Up: how to better integrate missing or partially developed standards with concrete instructional moves.
+For the three standards lists above, use only actual TEKS codes with their matching descriptions from the standards reference. Do not use generic prose in those list fields.
 \nTranscript:\n${transcript}\n`;
     } else {
       userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}\n\nTranscript:\n${transcript}\n`;

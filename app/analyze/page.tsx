@@ -631,24 +631,26 @@ export default function AnalysisPage() {
   const standardsRecommendationSections = feedbackSections.teks.filter(
     (section) =>
       section.title === "Recommendations for Standards Integration" ||
+      section.title === "Recommended Standards Follow-Up" ||
       section.title === "STAAR Readiness Recommendation"
   );
   const standardsAlignmentSections = feedbackSections.teks.filter(
     (section) =>
       section.title !== "Recommendations for Standards Integration" &&
+      section.title !== "Recommended Standards Follow-Up" &&
       section.title !== "STAAR Readiness Recommendation"
   );
   const standardsMasterySection = standardsAlignmentSections.find(
     (section) => section.title === "Standards Mastery Notes"
   );
   const coveredStandardsSections = standardsAlignmentSections.filter((section) =>
-    ["Standards Reinforced", "Standards Addressed"].includes(section.title)
+    ["Standards Reinforced", "Standards Addressed", "Covered in the Lesson"].includes(section.title)
   );
   const reinforcementStandardsSections = standardsAlignmentSections.filter((section) =>
-    ["Standards That Need Stronger Assessment Evidence", "Standards To Revisit"].includes(section.title)
+    ["Standards That Need Stronger Assessment Evidence", "Standards To Revisit", "Needs Reinforcement"].includes(section.title)
   );
   const notCoveredStandardsSections = standardsAlignmentSections.filter((section) =>
-    ["Standards Not Observed"].includes(section.title)
+    ["Standards Not Observed", "Not Covered in the Lesson"].includes(section.title)
   );
   const findCoachingSection = (...titles: string[]) =>
     feedbackSections.coaching.find((section) => titles.includes(section.title));
