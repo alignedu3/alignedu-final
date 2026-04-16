@@ -650,7 +650,7 @@ export default function HomePage() {
               }}
             >
               {[
-                'Percent of standards or concepts visibly covered',
+                'Percent of standards or concepts covered',
                 'Potential instructional gaps and missed content',
                 'Clear feedback on lesson delivery and pacing',
                 'A more consistent, scalable review process for schools',

@@ -204,10 +204,6 @@ export default function AnalysisPage() {
   const [observedTeachers, setObservedTeachers] = useState<Array<{ id: string; name: string }>>([]);
 
   const gradeOptions = [
-    'Pre-K',
-    'Kindergarten',
-    '1st Grade',
-    '2nd Grade',
     '3rd Grade',
     '4th Grade',
     '5th Grade',
