@@ -24,6 +24,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
+import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 
 type TrendTerm = 'full_year' | 'fall' | 'spring';
 
@@ -72,9 +73,18 @@ export default function AdminDashboard() {
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
   const [selectedSchoolYear, setSelectedSchoolYear] = useState<string>('');
   const [selectedTrendTerm, setSelectedTrendTerm] = useState<TrendTerm>('full_year');
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedAdminId = searchParams ? searchParams.get('adminId') : null;
+
+  const pushToast = (message: string, tone: ToastItem['tone'] = 'info') => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((current) => [...current, { id, message, tone }]);
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 4200);
+  };
 
   const handleObserveLesson = () => {
     router.push('/admin/observe');
@@ -553,15 +563,16 @@ export default function AdminDashboard() {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'Failed to remove user.');
+        pushToast(data.error || 'Failed to remove user.', 'error');
         return;
       }
       setProfiles(prev => prev.filter(p => p.id !== userId));
       setManagedTeachers(prev => prev.filter(l => l.teacher_id !== userId && l.admin_id !== userId));
       setManagedAdmins(prev => prev.filter(l => l.child_admin_id !== userId && l.parent_admin_id !== userId));
       setVisibleAdminIds(prev => prev.filter(id => id !== userId));
+      pushToast('User removed successfully.', 'success');
     } catch {
-      alert('Network error removing user.');
+      pushToast('Network error removing user.', 'error');
     } finally {
       setDeletingUserId(null);
       setPendingDelete(null);
@@ -575,6 +586,10 @@ export default function AdminDashboard() {
 
   return (
     <main style={page} className="dashboard-page">
+      <ToastViewport
+        toasts={toasts}
+        onDismiss={(id) => setToasts((current) => current.filter((toast) => toast.id !== id))}
+      />
       <div style={container} className="dashboard-container">
 
         {/* HEADER */}

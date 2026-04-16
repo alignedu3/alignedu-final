@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { buildTeacherDashboardSampleReports, getDashboardSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
 import { extractSectionText, extractStandardEntries } from '@/lib/analysisReport';
+import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 
 export default function TeacherDashboard() {
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
@@ -20,7 +21,18 @@ export default function TeacherDashboard() {
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
   const [keyFindingsReportId, setKeyFindingsReportId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [pendingDeleteReport, setPendingDeleteReport] = useState<AnalysisReport | null>(null);
+  const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
   const selectedLessonRef = useRef<HTMLDivElement | null>(null);
+
+  const pushToast = useCallback((message: string, tone: ToastItem['tone'] = 'info') => {
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    setToasts((current) => [...current, { id, message, tone }]);
+    window.setTimeout(() => {
+      setToasts((current) => current.filter((toast) => toast.id !== id));
+    }, 4200);
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!supabase) return;
@@ -121,25 +133,28 @@ export default function TeacherDashboard() {
     });
   };
 
-  const handleDeleteReport = async (id: string) => {
-    if (!confirm('Delete this analysis? This action cannot be undone.')) return;
-
+  const handleDeleteReport = async (report: AnalysisReport) => {
+    setDeletingReportId(report.id);
     try {
-      const response = await fetch(`/api/analyses/${id}`, {
+      const response = await fetch(`/api/analyses/${report.id}`, {
         method: 'DELETE',
       });
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        alert(data.error || 'Unable to delete this analysis.');
+        pushToast(data.error || 'Unable to delete this analysis.', 'error');
         return;
       }
 
-      setSelectedReport((current) => (current?.id === id ? null : current));
+      setSelectedReport((current) => (current?.id === report.id ? null : current));
+      setPendingDeleteReport(null);
+      pushToast('Lesson deleted successfully.', 'success');
       await loadData();
     } catch (error) {
       console.error(error);
-      alert('Unable to delete the lesson. Please try again.');
+      pushToast('Unable to delete the lesson. Please try again.', 'error');
+    } finally {
+      setDeletingReportId(null);
     }
   };
   const scoreDiff = getLatestLessonTrend(reports);
@@ -233,6 +248,10 @@ export default function TeacherDashboard() {
 
   return (
     <main style={page} className="dashboard-page">
+      <ToastViewport
+        toasts={toasts}
+        onDismiss={(id) => setToasts((current) => current.filter((toast) => toast.id !== id))}
+      />
       <div style={glow1} />
       <div style={glow2} />
 
@@ -479,7 +498,7 @@ export default function TeacherDashboard() {
                             }}
                             onClick={() => {
                               if (isSampleMode) return;
-                              handleDeleteReport(r.id);
+                              setPendingDeleteReport(r);
                             }}
                             disabled={isSampleMode}
                             title={isSampleMode ? 'Sample lessons cannot be deleted.' : 'Delete lesson'}
@@ -713,6 +732,44 @@ export default function TeacherDashboard() {
                 )}
               </div>
             )}
+          </div>
+        )}
+
+        {pendingDeleteReport && (
+          <div
+            style={modalOverlay}
+            onClick={() => {
+              if (!deletingReportId) setPendingDeleteReport(null);
+            }}
+          >
+            <div style={modalCard} onClick={(e) => e.stopPropagation()}>
+              <div style={modalTitle}>Delete Lesson Analysis</div>
+              <p style={modalText}>
+                Delete{' '}
+                <strong>
+                  {pendingDeleteReport.title || `${pendingDeleteReport.grade || 'Grade'} ${pendingDeleteReport.subject || 'Lesson'}`}
+                </strong>
+                ? This action cannot be undone.
+              </p>
+              <div style={modalActions}>
+                <button
+                  type="button"
+                  onClick={() => setPendingDeleteReport(null)}
+                  disabled={Boolean(deletingReportId)}
+                  style={modalCancelBtn}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteReport(pendingDeleteReport)}
+                  disabled={Boolean(deletingReportId)}
+                  style={modalDangerBtn}
+                >
+                  {deletingReportId ? 'Deleting...' : 'Confirm Delete'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -1011,4 +1068,65 @@ const teksRecommendationCard: React.CSSProperties = {
 const analysisSectionCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   borderColor: 'rgba(99,102,241,0.16)',
+};
+
+const modalOverlay: React.CSSProperties = {
+  position: 'fixed',
+  inset: 0,
+  zIndex: 10000,
+  background: 'rgba(2, 6, 23, 0.66)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 16,
+};
+
+const modalCard: React.CSSProperties = {
+  background: 'var(--surface-card-solid)',
+  border: '1px solid var(--border)',
+  borderRadius: 14,
+  width: '100%',
+  maxWidth: 460,
+  padding: 20,
+  boxShadow: '0 24px 80px rgba(2,6,23,0.35)',
+};
+
+const modalTitle: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontSize: 18,
+  fontWeight: 700,
+  marginBottom: 8,
+};
+
+const modalText: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  lineHeight: 1.5,
+  margin: '0 0 16px 0',
+};
+
+const modalActions: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'flex-end',
+  gap: 10,
+};
+
+const modalCancelBtn: React.CSSProperties = {
+  background: 'var(--surface-chip)',
+  color: 'var(--text-primary)',
+  border: '1px solid var(--border)',
+  borderRadius: 10,
+  padding: '10px 14px',
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
+const modalDangerBtn: React.CSSProperties = {
+  background: '#dc2626',
+  color: '#fff',
+  border: 'none',
+  borderRadius: 10,
+  padding: '10px 14px',
+  fontWeight: 700,
+  cursor: 'pointer',
 };
