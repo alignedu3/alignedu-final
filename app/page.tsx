@@ -617,128 +617,76 @@ export default function HomePage() {
 
           <div
             style={{
-              ...glassCard,
-              background:
-                isDarkMode
-                  ? 'linear-gradient(180deg, rgba(15,23,42,0.72), rgba(15,23,42,0.9))'
-                  : 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.96))',
-              border: `1px solid ${theme.cardBorder}`,
-              padding: '24px',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gap: '18px',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                flexWrap: 'wrap',
-                gap: '10px',
-                marginBottom: '22px',
-              }}
-            >
-              {teksCoverageGroups.map((group) => (
+            {teksCoverageGroups.map((group) => (
+              <div
+                key={group.label}
+                style={{
+                  ...glassCard,
+                  background: isDarkMode ? 'rgba(15,23,42,0.72)' : '#ffffff',
+                  border: `1px solid ${theme.cardBorder}`,
+                  padding: '22px 20px',
+                  boxShadow: isDarkMode ? '0 14px 36px rgba(2,6,23,0.18)' : '0 18px 38px rgba(15,23,42,0.06)',
+                }}
+              >
                 <div
-                  key={`${group.label}-count`}
                   style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 14px',
-                    borderRadius: '999px',
-                    background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)',
-                    border: `1px solid ${theme.cardBorder}`,
                     color: theme.text,
-                    fontSize: '12px',
-                    fontWeight: 700,
+                    fontSize: '18px',
+                    fontWeight: 800,
+                    marginBottom: '6px',
+                    textAlign: 'center',
                   }}
                 >
-                  <span style={{ color: '#0f766e' }}>{group.items.length}</span>
-                  <span>{group.label}</span>
+                  {group.label}
                 </div>
-              ))}
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-                gap: '18px',
-              }}
-            >
-              {teksCoverageGroups.map((group) => (
                 <div
-                  key={group.label}
                   style={{
-                    ...glassCard,
-                    background: isDarkMode ? 'rgba(15,23,42,0.72)' : '#ffffff',
-                    border: `1px solid ${theme.cardBorder}`,
-                    padding: '22px 20px',
-                    boxShadow: isDarkMode ? '0 14px 36px rgba(2,6,23,0.18)' : '0 18px 38px rgba(15,23,42,0.06)',
+                    color: theme.mutedText,
+                    fontSize: '13px',
+                    textAlign: 'center',
+                    lineHeight: 1.5,
+                    marginBottom: '14px',
                   }}
                 >
-                  <div
-                    style={{
-                      width: '42px',
-                      height: '4px',
-                      borderRadius: '999px',
-                      margin: '0 auto 14px',
-                      background: 'linear-gradient(90deg, #2563eb, #0f766e)',
-                    }}
-                  />
-                  <div
-                    style={{
-                      color: theme.text,
-                      fontSize: '18px',
-                      fontWeight: 800,
-                      marginBottom: '6px',
-                      textAlign: 'center',
-                    }}
-                  >
-                    {group.label}
-                  </div>
-                  <div
-                    style={{
-                      color: theme.mutedText,
-                      fontSize: '13px',
-                      textAlign: 'center',
-                      lineHeight: 1.5,
-                      marginBottom: '14px',
-                    }}
-                  >
-                    {group.note}
-                  </div>
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexWrap: 'wrap',
-                      justifyContent: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    {group.items.map((item) => (
-                      <div
-                        key={item}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '7px 10px',
-                          borderRadius: '999px',
-                          background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)',
-                          border: `1px solid ${theme.cardBorder}`,
-                          color: theme.text,
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          lineHeight: 1.2,
-                          textAlign: 'center',
-                        }}
-                      >
-                        <span>{item}</span>
-                      </div>
-                    ))}
-                  </div>
+                  {group.note}
                 </div>
-              ))}
-            </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  {group.items.map((item) => (
+                    <div
+                      key={item}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '7px 10px',
+                        borderRadius: '999px',
+                        background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)',
+                        border: `1px solid ${theme.cardBorder}`,
+                        color: theme.text,
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        lineHeight: 1.2,
+                        textAlign: 'center',
+                      }}
+                    >
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
