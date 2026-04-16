@@ -15,6 +15,7 @@ import {
 
 import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
 
+export default function AdminTeacherPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id;
 

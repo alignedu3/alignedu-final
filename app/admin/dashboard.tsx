@@ -376,21 +376,6 @@ export default function AdminDashboard() {
         };
       });
   }, [dashboardProfileById, trendReports]);
-    // Each lesson gets its own point (no grouping by date)
-    return reports
-      .map((r) => {
-        const teacher = getTeacherName(r);
-        // Use a readable label for the x-axis: date + time or lesson title
-        const label = r.created_at
-          ? `${new Date(r.created_at).toLocaleString()}${r.title ? ' — ' + r.title : ''}`
-          : r.id;
-        return {
-          date: label,
-          [teacher]: calculateLessonScore(r),
-        };
->>>>>>> 7c0e1e8 (Show each lesson as a separate point in admin dashboard stats)
-      });
-  }, [dashboardProfileById, trendReports]);
 
   const teacherLineKeys = useMemo(() => {
     const keys = new Set<string>();

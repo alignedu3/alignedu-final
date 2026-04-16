@@ -1,15 +1,24 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { useTheme } from './context/ThemeContext';
+import { getTEKSStandards, type TEKSStandard } from '@/lib/teksStandards';
+
+type TeksCoverageItem = {
+  label: string;
+  grade: string;
+  subject: string;
+};
 
 export default function HomePage() {
   const { theme: currentTheme } = useTheme();
   const [isDarkMode, setIsDarkMode] = useState(currentTheme === 'dark');
   const [chartReady, setChartReady] = useState(false);
+  const [selectedTeksItem, setSelectedTeksItem] = useState<TeksCoverageItem | null>(null);
   const router = useRouter();
+  const teksSectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     setIsDarkMode(currentTheme === 'dark');
@@ -109,23 +118,82 @@ export default function HomePage() {
     },
   ];
 
-  const teksCoverageGroups = [
+  const teksCoverageGroups: Array<{ label: string; note: string; items: TeksCoverageItem[] }> = [
     {
       label: 'Elementary School',
       note: 'Foundational STAAR-tested coverage',
-      items: ['Grade 3 Math', 'Grade 3 ELA', 'Grade 4 Math', 'Grade 4 ELA', 'Grade 5 Math', 'Grade 5 ELA', 'Grade 5 Science'],
+      items: [
+        { label: 'Grade 3 Math', grade: '3rd Grade', subject: 'Mathematics' },
+        { label: 'Grade 3 ELA', grade: '3rd Grade', subject: 'English Language Arts' },
+        { label: 'Grade 4 Math', grade: '4th Grade', subject: 'Mathematics' },
+        { label: 'Grade 4 ELA', grade: '4th Grade', subject: 'English Language Arts' },
+        { label: 'Grade 5 Math', grade: '5th Grade', subject: 'Mathematics' },
+        { label: 'Grade 5 ELA', grade: '5th Grade', subject: 'English Language Arts' },
+        { label: 'Grade 5 Science', grade: '5th Grade', subject: 'Science' },
+      ],
     },
     {
       label: 'Middle School',
       note: 'Core tested subjects by grade band',
-      items: ['Grade 6 Math', 'Grade 6 ELA', 'Grade 6 Science', 'Grade 7 Math', 'Grade 7 ELA', 'Grade 8 Math', 'Grade 8 ELA', 'Grade 8 Science', 'Grade 8 Social Studies'],
+      items: [
+        { label: 'Grade 6 Math', grade: '6th Grade', subject: 'Mathematics' },
+        { label: 'Grade 6 ELA', grade: '6th Grade', subject: 'English Language Arts' },
+        { label: 'Grade 6 Science', grade: '6th Grade', subject: 'Science' },
+        { label: 'Grade 7 Math', grade: '7th Grade', subject: 'Mathematics' },
+        { label: 'Grade 7 ELA', grade: '7th Grade', subject: 'English Language Arts' },
+        { label: 'Grade 8 Math', grade: '8th Grade', subject: 'Mathematics' },
+        { label: 'Grade 8 ELA', grade: '8th Grade', subject: 'English Language Arts' },
+        { label: 'Grade 8 Science', grade: '8th Grade', subject: 'Science' },
+        { label: 'Grade 8 Social Studies', grade: '8th Grade', subject: 'Social Studies' },
+      ],
     },
     {
       label: 'High School',
       note: 'End-of-course tested content areas',
-      items: ['Algebra I', 'English II', 'Biology', 'U.S. History'],
+      items: [
+        { label: 'Algebra I', grade: '9th Grade', subject: 'Algebra I' },
+        { label: 'English II', grade: '10th Grade', subject: 'English II' },
+        { label: 'Biology', grade: '9th Grade', subject: 'Biology' },
+        { label: 'U.S. History', grade: '11th Grade', subject: 'U.S. History' },
+      ],
     },
   ];
+
+  const selectedTeksDetail = useMemo(() => {
+    if (!selectedTeksItem) return null;
+    return getTEKSStandards(selectedTeksItem.grade, selectedTeksItem.subject);
+  }, [selectedTeksItem]);
+
+  const closeTeksModal = () => {
+    if (window.history.state?.teksModal) {
+      window.history.back();
+      return;
+    }
+    setSelectedTeksItem(null);
+    window.requestAnimationFrame(() => {
+      teksSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const openTeksModal = (item: TeksCoverageItem) => {
+    setSelectedTeksItem(item);
+    window.history.pushState({ teksModal: true }, '', `${window.location.pathname}${window.location.search}#teks-coverage`);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setSelectedTeksItem((current) => {
+        if (!current) return current;
+        window.requestAnimationFrame(() => {
+          teksSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        return null;
+      });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   return (
     <main
@@ -599,6 +667,8 @@ export default function HomePage() {
 
       {/* TEKS COVERAGE */}
       <section
+        id="teks-coverage"
+        ref={teksSectionRef}
         style={{
           padding: 'clamp(60px, 7vw, 76px) 20px clamp(44px, 5vw, 56px)',
           background: theme.sectionSoft,
@@ -664,8 +734,10 @@ export default function HomePage() {
                   }}
                 >
                   {group.items.map((item) => (
-                    <div
-                      key={item}
+                    <button
+                      type="button"
+                      key={item.label}
+                      onClick={() => openTeksModal(item)}
                       style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -679,10 +751,12 @@ export default function HomePage() {
                         fontWeight: 600,
                         lineHeight: 1.2,
                         textAlign: 'center',
+                        cursor: 'pointer',
+                        transition: 'transform 0.18s ease, border-color 0.18s ease, background 0.18s ease',
                       }}
                     >
-                      <span>{item}</span>
-                    </div>
+                      <span>{item.label}</span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -690,6 +764,137 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {selectedTeksItem && selectedTeksDetail?.found && (
+        <div
+          onClick={closeTeksModal}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: isDarkMode ? 'rgba(2,6,23,0.74)' : 'rgba(15,23,42,0.42)',
+            backdropFilter: 'blur(8px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '24px',
+            zIndex: 80,
+          }}
+        >
+          <div
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: 'min(920px, 100%)',
+              maxHeight: 'min(82vh, 920px)',
+              overflowY: 'auto',
+              borderRadius: '24px',
+              background: theme.cardBg,
+              border: `1px solid ${theme.cardBorder}`,
+              boxShadow: isDarkMode ? '0 30px 80px rgba(2,6,23,0.55)' : '0 28px 80px rgba(15,23,42,0.18)',
+              padding: '28px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: '16px',
+                alignItems: 'flex-start',
+                flexWrap: 'wrap',
+                marginBottom: '20px',
+              }}
+            >
+              <div>
+                <div style={eyebrowLight}>TEKS Details</div>
+                <h3 style={{ margin: '0 0 8px', color: theme.text, fontSize: 'clamp(1.5rem, 2.6vw, 2rem)' }}>
+                  {selectedTeksItem.label}
+                </h3>
+                <p style={{ margin: 0, color: theme.mutedText, lineHeight: 1.7 }}>
+                  {selectedTeksDetail.overview}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={closeTeksModal}
+                  style={{
+                    ...secondaryBtnDark,
+                    background: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.05)',
+                    color: theme.text,
+                    border: `1px solid ${theme.cardBorder}`,
+                    minWidth: 'unset',
+                    height: '44px',
+                    padding: '0 16px',
+                  }}
+                >
+                  Back to TEKS
+                </button>
+                <button
+                  type="button"
+                  onClick={closeTeksModal}
+                  aria-label="Close TEKS details"
+                  style={{
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '12px',
+                    border: `1px solid ${theme.cardBorder}`,
+                    background: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.05)',
+                    color: theme.text,
+                    fontSize: '20px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gap: '12px',
+              }}
+            >
+              {selectedTeksDetail.standards.map((standard: TEKSStandard) => (
+                <div
+                  key={`${selectedTeksItem.label}-${standard.code}`}
+                  style={{
+                    borderRadius: '16px',
+                    border: `1px solid ${theme.cardBorder}`,
+                    background: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.86)',
+                    padding: '16px 18px',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: '14px',
+                      flexWrap: 'wrap',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    <div style={{ color: theme.text, fontWeight: 800, fontSize: '15px' }}>{standard.code}</div>
+                    <div
+                      style={{
+                        color: isDarkMode ? '#93c5fd' : '#1d4ed8',
+                        fontSize: '12px',
+                        fontWeight: 700,
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {standard.category}
+                    </div>
+                  </div>
+                  <div style={{ color: theme.mutedText, lineHeight: 1.7, fontSize: '15px' }}>
+                    {standard.description}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* BEFORE / AFTER */}
       <section
