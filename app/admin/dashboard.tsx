@@ -119,12 +119,16 @@ export default function AdminDashboard() {
         const user = authData.user ?? null;
 
         if (!user) {
-          window.location.replace('/login');
+          if (typeof window !== 'undefined') {
+            window.location.replace('/login');
+          }
           return;
         }
 
         if (!['admin', 'super_admin'].includes(authData.profile?.role)) {
-          window.location.replace('/dashboard');
+          if (typeof window !== 'undefined') {
+            window.location.replace('/dashboard');
+          }
           return;
         }
 
@@ -353,28 +357,61 @@ export default function AdminDashboard() {
   const teacherTrendData = useMemo(() => {
     const getTeacherName = (r: AnalysisReport) => {
       const profile = r.user_id ? dashboardProfileById.get(r.user_id) : undefined;
+        if (profile?.name) return profile.name;
+        if (r.teacher_name) return r.teacher_name;
+        if (r.name) return r.name;
+        return 'Unknown';
+    };
+    // Each lesson gets its own point (no grouping by date)
+    return trendReports
+      .map((r) => {
+        const teacher = getTeacherName(r);
+        // Use a readable label for the x-axis: date + time or lesson title
+        const label = r.created_at
+          ? `${new Date(r.created_at).toLocaleString()}${r.title ? ' — ' + r.title : ''}`
+          : r.id;
+        return {
+          date: label,
+          [teacher]: calculateLessonScore(r),
+        };
+      });
+  }, [dashboardProfileById, trendReports]);
+  
+  const teacherTrendData = useMemo(() => {
+    const getTeacherName = (r: AnalysisReport) => {
+      const profile = r.user_id ? dashboardProfileById.get(r.user_id) : undefined;
       if (profile?.name) return profile.name;
       if (r.teacher_name) return r.teacher_name;
       if (r.name) return r.name;
       return 'Unknown';
     };
-    const byDate: Record<string, Record<string, number[]>> = {};
-    trendReports.forEach((r) => {
-      const date = r.date ?? r.created_at?.slice(0, 10);
-      if (!date) return;
-      const teacher = getTeacherName(r);
-      if (!byDate[date]) byDate[date] = {};
-      if (!byDate[date][teacher]) byDate[date][teacher] = [];
-      byDate[date][teacher].push(calculateLessonScore(r));
-    });
-    return Object.entries(byDate)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, teachers]) => {
-        const entry: Record<string, string | number> = { date };
-        Object.entries(teachers).forEach(([teacher, scores]) => {
-          entry[teacher] = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-        });
-        return entry;
+    // Each lesson gets its own point (no grouping by date)
+    return reports
+      .map((r) => {
+        const teacher = getTeacherName(r);
+        // Use a readable label for the x-axis: date + time or lesson title
+        const label = r.created_at
+          ? `${new Date(r.created_at).toLocaleString()}${r.title ? ' — ' + r.title : ''}`
+          : r.id;
+        return {
+          date: label,
+          [teacher]: calculateLessonScore(r),
+        };
+      });
+  }, [dashboardProfileById, trendReports]);
+    // Each lesson gets its own point (no grouping by date)
+    return reports
+      .map((r) => {
+        const teacher = getTeacherName(r);
+        // Use a readable label for the x-axis: date + time or lesson title
+        const label = r.created_at
+          ? `${new Date(r.created_at).toLocaleString()}${r.title ? ' — ' + r.title : ''}`
+          : r.id;
+        return {
+          date: label,
+          [teacher]: calculateLessonScore(r),
+        };
+>>>>>>> 7c0e1e8 (Show each lesson as a separate point in admin dashboard stats)
       });
   }, [dashboardProfileById, trendReports]);
 
