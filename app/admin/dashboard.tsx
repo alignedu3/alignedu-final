@@ -362,19 +362,44 @@ export default function AdminDashboard() {
       if (r.name) return r.name;
       return 'Unknown';
     };
-    // Each lesson gets its own point (no grouping by date)
-    return trendReports
-      .map((r) => {
-        const teacher = getTeacherName(r);
-        // Use a readable label for the x-axis: date + time or lesson title
-        const label = r.created_at
-          ? `${new Date(r.created_at).toLocaleString()}${r.title ? ' — ' + r.title : ''}`
-          : r.id;
-        return {
-          date: label,
-          [teacher]: calculateLessonScore(r),
-        };
+    const reportsByTeacher = new Map<string, AnalysisReport[]>();
+
+    trendReports.forEach((report) => {
+      const teacher = getTeacherName(report);
+      const existing = reportsByTeacher.get(teacher) || [];
+      existing.push(report);
+      reportsByTeacher.set(teacher, existing);
+    });
+
+    const sortOldestFirst = (a: AnalysisReport, b: AnalysisReport) => {
+      const aDate = parseReportDate(a)?.getTime() ?? 0;
+      const bDate = parseReportDate(b)?.getTime() ?? 0;
+      return aDate - bDate;
+    };
+
+    const orderedTeachers = Array.from(reportsByTeacher.entries()).map(([teacher, reports]) => ({
+      teacher,
+      reports: [...reports].sort(sortOldestFirst),
+    }));
+
+    const maxLessonCount = orderedTeachers.reduce(
+      (count, entry) => Math.max(count, entry.reports.length),
+      0
+    );
+
+    return Array.from({ length: maxLessonCount }, (_, index) => {
+      const row: Record<string, string | number> = {
+        date: `Lesson ${index + 1}`,
+      };
+
+      orderedTeachers.forEach(({ teacher, reports }) => {
+        const report = reports[index];
+        if (!report) return;
+        row[teacher] = calculateLessonScore(report);
       });
+
+      return row;
+    });
   }, [dashboardProfileById, trendReports]);
 
   const teacherLineKeys = useMemo(() => {
