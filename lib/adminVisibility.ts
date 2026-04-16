@@ -1,0 +1,116 @@
+import { createClient as createServiceClient } from '@supabase/supabase-js';
+
+type AdminVisibility = {
+  adminIds: string[];
+  teacherIds: string[];
+  visibleUserIds: string[];
+};
+
+export type AdminRole = 'admin' | 'super_admin';
+
+function unique(values: string[]) {
+  return [...new Set(values)];
+}
+
+function isMissingTableError(error: any) {
+  const text = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+  return text.includes('does not exist') || text.includes('relation') || text.includes('managed_admins');
+}
+
+function getServiceSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error('Server configuration error: NEXT_PUBLIC_SUPABASE_URL is not set.');
+  }
+
+  if (!serviceRoleKey) {
+    throw new Error('Server configuration error: SUPABASE_SERVICE_ROLE_KEY is not set.');
+  }
+
+  return createServiceClient(
+    supabaseUrl,
+    serviceRoleKey
+  );
+}
+
+export async function getAdminVisibility(adminId: string, role: AdminRole = 'admin'): Promise<AdminVisibility> {
+  const supabase = getServiceSupabase();
+
+  if (role === 'super_admin') {
+    const { data: admins, error: adminsError } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('role', ['admin', 'super_admin']);
+
+    if (adminsError) {
+      throw adminsError;
+    }
+
+    const resolvedAdminIds = unique((admins || []).map((row: any) => row.id as string).filter(Boolean));
+
+    const { data: teachers, error: teachersError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('role', 'teacher');
+
+    if (teachersError) {
+      throw teachersError;
+    }
+
+    const teacherIds = unique((teachers || []).map((row: any) => row.id as string).filter(Boolean));
+    const visibleUserIds = unique([...resolvedAdminIds, ...teacherIds]);
+
+    return {
+      adminIds: resolvedAdminIds,
+      teacherIds,
+      visibleUserIds,
+    };
+  }
+
+  const adminIds = new Set<string>([adminId]);
+  let frontier = [adminId];
+
+  // Traverse managed_admins so parent admins inherit visibility into child admins.
+  while (frontier.length > 0) {
+    const { data, error } = await supabase
+      .from('managed_admins')
+      .select('child_admin_id')
+      .in('parent_admin_id', frontier);
+
+    if (error) {
+      if (isMissingTableError(error)) {
+        break;
+      }
+      throw error;
+    }
+
+    const nextFrontier = (data || [])
+      .map((row: any) => row.child_admin_id as string)
+      .filter((id: string) => !!id && !adminIds.has(id));
+
+    nextFrontier.forEach((id) => adminIds.add(id));
+    frontier = nextFrontier;
+  }
+
+  const resolvedAdminIds = unique(Array.from(adminIds));
+
+  const { data: managedTeachers, error: managedTeachersError } = await supabase
+    .from('managed_teachers')
+    .select('teacher_id')
+    .in('admin_id', resolvedAdminIds);
+
+  if (managedTeachersError) {
+    throw managedTeachersError;
+  }
+
+  const teacherIds = unique((managedTeachers || []).map((row: any) => row.teacher_id as string).filter(Boolean));
+  const visibleUserIds = unique([...resolvedAdminIds, ...teacherIds]);
+
+  return {
+    adminIds: resolvedAdminIds,
+    teacherIds,
+    visibleUserIds,
+  };
+}

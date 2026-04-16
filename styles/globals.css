@@ -1,0 +1,40 @@
+/* styles/globals.css */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f0f0f0;
+  color: #333;
+}/* Global styles */
+:root {
+  --primary-bg-light: #ffffff;
+  --primary-bg-dark: #111827;
+
+  --primary-text-light: #0f172a;
+  --primary-text-dark: #ffffff;
+
+  --primary-btn-light: #facc15;
+  --primary-btn-dark: #facc15;
+
+  --secondary-text-light: #64748b;
+  --secondary-text-dark: #94a3b8;
+
+  --card-bg-light: #f8fafc;
+  --card-bg-dark: #1f2937;
+}
+
+[data-theme='light'] {
+  background-color: var(--primary-bg-light);
+  color: var(--primary-text-light);
+}
+
+[data-theme='dark'] {
+  background-color: var(--primary-bg-dark);
+  color: var(--primary-text-dark);
+}
+
+/* Additional theme-specific styles can be added here */
