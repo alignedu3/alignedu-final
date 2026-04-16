@@ -108,28 +108,39 @@ export async function POST(req: Request) {
       return safeJson({ result: null, error: 'Not authenticated' }, 401);
     }
 
+    const { data: callerProfile, error: callerProfileError } = await anonSupabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (callerProfileError) {
+      return safeJson({ result: null, error: callerProfileError.message }, 500);
+    }
+
+    const callerRole = callerProfile?.role || null;
     const observedTeacherValue = formData.get("observedTeacherId");
     const observedTeacherId = typeof observedTeacherValue === "string"
       ? observedTeacherValue.trim()
       : "";
     let targetUserId = user.id;
 
+    if (['admin', 'super_admin'].includes(callerRole) && !observedTeacherId) {
+      return safeJson(
+        {
+          result: null,
+          error: 'Admins must select a teacher from the observation flow so reports save to the correct teacher profile.',
+        },
+        400
+      );
+    }
+
     if (observedTeacherId) {
-      const { data: callerProfile, error: callerProfileError } = await anonSupabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (callerProfileError) {
-        return safeJson({ result: null, error: callerProfileError.message }, 500);
-      }
-
-      if (!['admin', 'super_admin'].includes(callerProfile?.role)) {
+      if (!['admin', 'super_admin'].includes(callerRole)) {
         return safeJson({ result: null, error: 'Forbidden' }, 403);
       }
 
-      const visibility = await getAdminVisibility(user.id, callerProfile.role);
+      const visibility = await getAdminVisibility(user.id, callerRole);
       if (!visibility.teacherIds.includes(observedTeacherId)) {
         return safeJson({ result: null, error: 'You can only observe teachers under your scope.' }, 403);
       }

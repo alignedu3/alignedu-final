@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   cleanDisplayText,
@@ -184,6 +184,7 @@ export default function AnalysisPage() {
       };
     }, []);
   const pathname = usePathname();
+  const router = useRouter();
   const isAdminObservationMode = pathname?.startsWith('/admin/observe');
 
   const [grade, setGrade] = useState("");
@@ -247,6 +248,35 @@ export default function AnalysisPage() {
     'Art',
     'Music',
   ];
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadViewerRole = async () => {
+      try {
+        const authResponse = await fetch('/api/auth/me', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const authData = await authResponse.json();
+        const role = authData?.profile?.role ?? null;
+
+        if (!isMounted) return;
+
+        if (!isAdminObservationMode && ['admin', 'super_admin'].includes(role)) {
+          router.replace('/admin/observe');
+        }
+      } catch {
+        // Allow teacher flow to continue even if the role prefetch fails.
+      }
+    };
+
+    loadViewerRole();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isAdminObservationMode, router]);
 
   const filePreviewCardStyle: React.CSSProperties = {
     background: 'var(--bg-secondary)',
