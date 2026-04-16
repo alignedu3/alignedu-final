@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getAdminVisibility } from '@/lib/adminVisibility';
@@ -14,12 +14,8 @@ function getServiceSupabase() {
   return createServiceClient(supabaseUrl, serviceRoleKey);
 }
 
-export async function GET(
-  _request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
+export async function GET() {
   try {
-    const { id } = await context.params;
     const serverSupabase = await createServerClient();
     const {
       data: { user },
@@ -36,7 +32,7 @@ export async function GET(
 
     const { data: callerProfile, error: callerProfileError } = await serverSupabase
       .from('profiles')
-      .select('role')
+      .select('id, name, role')
       .eq('id', user.id)
       .single();
 
@@ -44,32 +40,30 @@ export async function GET(
       return NextResponse.json({ success: false, error: callerProfileError.message }, { status: 500 });
     }
 
-    if (!['admin', 'super_admin'].includes(callerProfile?.role)) {
+    if (callerProfile?.role !== 'super_admin') {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
     const visibility = await getAdminVisibility(user.id, callerProfile.role);
-    if (!visibility.teacherIds.includes(id)) {
-      return NextResponse.json({ success: false, error: 'Teacher not in admin scope' }, { status: 403 });
-    }
-
     const serviceSupabase = getServiceSupabase();
 
-    const [{ data: teacher, error: teacherError }, { data: analyses, error: analysesError }] = await Promise.all([
-      serviceSupabase
-        .from('profiles')
-        .select('id, name')
-        .eq('id', id)
-        .maybeSingle(),
-      serviceSupabase
-        .from('analyses')
-        .select('*')
-        .eq('user_id', id)
-        .order('created_at', { ascending: false }),
-    ]);
+    const [{ data: profiles, error: profilesError }, { data: analyses, error: analysesError }] =
+      await Promise.all([
+        serviceSupabase
+          .from('profiles')
+          .select('id, name, role')
+          .in('id', visibility.visibleUserIds),
+        visibility.teacherIds.length
+          ? serviceSupabase
+              .from('analyses')
+              .select('*')
+              .in('user_id', visibility.teacherIds)
+              .order('created_at', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+      ]);
 
-    if (teacherError) {
-      return NextResponse.json({ success: false, error: teacherError.message }, { status: 500 });
+    if (profilesError) {
+      return NextResponse.json({ success: false, error: profilesError.message }, { status: 500 });
     }
 
     if (analysesError) {
@@ -78,11 +72,13 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      teacher: teacher || { id, name: 'Teacher' },
+      caller: callerProfile,
+      profiles: profiles || [],
       analyses: analyses || [],
+      visibility,
     });
   } catch (error: any) {
-    console.error('Admin teacher route error:', error);
+    console.error('Admin district route error:', error);
     return NextResponse.json({ success: false, error: error.message || 'Server error' }, { status: 500 });
   }
 }

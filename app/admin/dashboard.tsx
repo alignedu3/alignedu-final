@@ -84,6 +84,10 @@ export default function AdminDashboard() {
     router.push('/admin/invite');
   };
 
+  const handleOpenDistrictDashboard = () => {
+    router.push('/admin/district');
+  };
+
   const navigateToUserDashboard = (userId: string, role?: string | null, fromTeam = false) => {
     if (userId.startsWith('sample-')) return;
     const params = fromTeam ? '?fromTeam=1' : '';
@@ -584,6 +588,11 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div style={actions}>
+            {currentUserRole === 'super_admin' && (
+              <button onClick={handleOpenDistrictDashboard} style={btnAlt}>
+                District Dashboard
+              </button>
+            )}
             <button onClick={handleObserveLesson} style={btn}>
               Observe Lesson
             </button>

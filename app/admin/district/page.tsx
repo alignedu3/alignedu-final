@@ -1,199 +1,506 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import type { AnalysisReport, ProfileRecord } from '@/lib/dashboardData';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  calculateLessonScore,
+  getLatestLessonTrend,
+  getLessonMetrics,
+  type AnalysisReport,
+  type ProfileRecord,
+} from '@/lib/dashboardData';
+
+type DistrictPayload = {
+  success: boolean;
+  error?: string;
+  caller?: { id: string; name?: string | null; role?: string | null };
+  profiles?: ProfileRecord[];
+  analyses?: AnalysisReport[];
+};
 
 export default function DistrictDashboard() {
-  const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
+  const [reports, setReports] = useState<AnalysisReport[]>([]);
+  const [districtName, setDistrictName] = useState('District Dashboard');
+  const [ready, setReady] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     async function load() {
-      const supabase = createClient();
+      try {
+        const authResponse = await fetch('/api/auth/me', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const authData = await authResponse.json();
 
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('id, name, role')
-        .eq('role', 'teacher');
+        if (!authData.user) {
+          window.location.replace('/login');
+          return;
+        }
 
-      setProfiles(profileData || []);
+        if (authData.profile?.role !== 'super_admin') {
+          window.location.replace('/admin');
+          return;
+        }
 
-      const teacherIds = (profileData || []).map(p => p.id);
+        const response = await fetch('/api/admin/district', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        const data: DistrictPayload = await response.json();
 
-      const { data: analysisData } = await supabase
-        .from('analyses')
-        .select('*')
-        .in('user_id', teacherIds)
-        .order('created_at', { ascending: false });
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Unable to load district dashboard');
+        }
 
-      setReports(analysisData || []);
+        setProfiles(data.profiles || []);
+        setReports(data.analyses || []);
+        setDistrictName(data.caller?.name ? `${data.caller.name}'s District View` : 'District Dashboard');
+      } catch (error) {
+        console.error('District dashboard load error:', error);
+      } finally {
+        setReady(true);
+      }
     }
 
     load();
   }, []);
 
-  const teacherStats = useMemo(() => {
-    const map: Record<string, AnalysisReport[]> = {};
+  const teacherProfiles = useMemo(
+    () => profiles.filter((profile) => profile.role === 'teacher'),
+    [profiles]
+  );
 
-    reports.forEach((r) => {
-      const userId = r.user_id;
-      if (!userId) return;
-      if (!map[userId]) map[userId] = [];
-      map[userId].push(r);
+  const teacherStats = useMemo(() => {
+    const reportsByTeacher = new Map<string, AnalysisReport[]>();
+    reports.forEach((report) => {
+      if (!report.user_id) return;
+      const existing = reportsByTeacher.get(report.user_id) || [];
+      existing.push(report);
+      reportsByTeacher.set(report.user_id, existing);
     });
 
-    return Object.entries(map).map(([id, reps]) => {
-      const scores = reps.map(r => {
-        const v = r.score;
-        if (typeof v === 'number' && Number.isFinite(v)) return v;
-        if (typeof v === 'string') { const n = Number(v); return Number.isFinite(n) ? n : 0; }
-        return 0;
-      });
-
-      const avg =
-        scores.reduce((a, b) => a + b, 0) / scores.length;
-
-      const trend =
-        scores.length > 2
-          ? (scores.slice(-3).reduce((a, b) => a + b, 0) / 3) -
-            (scores.slice(0, 3).reduce((a, b) => a + b, 0) / 3)
+    return teacherProfiles
+      .map((teacher) => {
+        const teacherReports = reportsByTeacher.get(teacher.id) || [];
+        const latestReport = teacherReports[0];
+        const latestMetrics = latestReport ? getLessonMetrics(latestReport) : null;
+        const averageScore = teacherReports.length
+          ? Math.round(
+              teacherReports.reduce((sum, report) => sum + calculateLessonScore(report), 0) / teacherReports.length
+            )
           : 0;
 
-      const profile = profiles.find(p => p.id === id);
+        return {
+          id: teacher.id,
+          name: teacher.name || 'Teacher',
+          lessons: teacherReports.length,
+          avgScore: averageScore,
+          latestScore: latestMetrics?.score ?? 0,
+          latestCoverage: latestMetrics?.coverage ?? 0,
+          latestAssessment: latestMetrics?.assessment ?? 0,
+          gaps: latestMetrics?.gaps ?? 0,
+          trend: getLatestLessonTrend(teacherReports),
+          supportLevel:
+            averageScore < 75 || (latestMetrics?.gaps ?? 0) >= 2
+              ? 'Priority'
+              : averageScore < 82
+                ? 'Monitor'
+                : 'Stable',
+        };
+      })
+      .sort((a, b) => {
+        const supportRank = { Priority: 0, Monitor: 1, Stable: 2 };
+        if (supportRank[a.supportLevel as keyof typeof supportRank] !== supportRank[b.supportLevel as keyof typeof supportRank]) {
+          return supportRank[a.supportLevel as keyof typeof supportRank] - supportRank[b.supportLevel as keyof typeof supportRank];
+        }
+        return a.avgScore - b.avgScore;
+      });
+  }, [profiles, reports, teacherProfiles]);
 
-      return {
-        name: profile?.name || 'Unknown',
-        avg: Math.round(avg),
-        trend: Math.round(trend),
-        count: reps.length,
-        risk: avg < 70 ? 'High' : avg < 80 ? 'Medium' : 'Strong'
-      };
-    });
-  }, [reports, profiles]);
-
-  const sorted = useMemo(() => {
-    return [...teacherStats].sort((a, b) => a.avg - b.avg);
-  }, [teacherStats]);
-
-  const atRisk = sorted.filter(t => t.risk === 'High');
-  const strong = sorted.filter(t => t.risk === 'Strong');
-
-  const systemAvg =
-    teacherStats.length
-      ? teacherStats.reduce((a, b) => a + b.avg, 0) / teacherStats.length
+  const summary = useMemo(() => {
+    const analyzedTeachers = teacherStats.filter((teacher) => teacher.lessons > 0);
+    const systemAverage = analyzedTeachers.length
+      ? Math.round(analyzedTeachers.reduce((sum, teacher) => sum + teacher.avgScore, 0) / analyzedTeachers.length)
       : 0;
 
-  const systemInsight =
-    systemAvg < 70
-      ? "District performance is below standard. Immediate intervention required."
-      : systemAvg < 80
-      ? "District is developing but inconsistent across classrooms."
-      : "District performance is strong and stable.";
+    return {
+      systemAverage,
+      teachersTracked: teacherProfiles.length,
+      lessonsAnalyzed: reports.length,
+      priorityTeachers: teacherStats.filter((teacher) => teacher.supportLevel === 'Priority').length,
+      stableTeachers: teacherStats.filter((teacher) => teacher.supportLevel === 'Stable').length,
+    };
+  }, [reports.length, teacherProfiles.length, teacherStats]);
+
+  const topPerformers = teacherStats.filter((teacher) => teacher.lessons > 0).slice(-3).reverse();
+  const priorityTeachers = teacherStats.filter((teacher) => teacher.supportLevel === 'Priority').slice(0, 5);
+
+  if (!ready) {
+    return <div style={loading}>Loading...</div>;
+  }
 
   return (
     <main style={page}>
       <div style={container}>
-
-        <h1 style={heading}>District Intelligence Dashboard</h1>
-        <p style={subheading}>System-wide instructional performance overview</p>
-
-        {/* SYSTEM SCORE */}
-        <div style={card}>
-          <div style={big}>
-            System Average: {Math.round(systemAvg)}/100
+        <div style={header}>
+          <div>
+            <div style={eyebrow}>District View</div>
+            <h1 style={heading}>{districtName}</h1>
+            <p style={subheading}>
+              A secure system-wide view of teacher lesson quality, trend movement, and support priorities across your visible campuses.
+            </p>
           </div>
-          <p style={text}>{systemInsight}</p>
+          <button onClick={() => router.push('/admin')} style={btn}>
+            Back to Admin Dashboard
+          </button>
         </div>
 
-        {/* AT RISK */}
-        <div style={card}>
-          <h2 style={title}>At-Risk Teachers</h2>
-          {atRisk.length === 0 ? (
-            <p style={text}>No high-risk teachers 🎉</p>
-          ) : (
-            atRisk.map((t, i) => (
-              <div key={i} style={item}>
-                {t.name} — {t.avg}/100
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* TOP PERFORMERS */}
-        <div style={card}>
-          <h2 style={title}>Top Performers</h2>
-          {strong.map((t, i) => (
-            <div key={i} style={item}>
-              {t.name} — {t.avg}/100
+        <div style={statsGrid}>
+          <div style={statCard}>
+            <div style={statLabel}>System Average</div>
+            <div style={{ ...statValue, color: summary.systemAverage >= 80 ? '#15803d' : '#c2410c' }}>
+              {summary.systemAverage}/100
             </div>
-          ))}
-        </div>
-
-        {/* FULL RANKING */}
-        <div style={card}>
-          <h2 style={title}>Full Teacher Ranking</h2>
-
-          {sorted.map((t, i) => (
-            <div key={i} style={item}>
-              #{i + 1} {t.name} — {t.avg}/100 ({t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'})
+            <div style={statSub}>Average teacher score across visible lesson data</div>
+          </div>
+          <div style={statCard}>
+            <div style={statLabel}>Teachers Tracked</div>
+            <div style={statValue}>{summary.teachersTracked}</div>
+            <div style={statSub}>Teachers currently in district scope</div>
+          </div>
+          <div style={statCard}>
+            <div style={statLabel}>Lessons Analyzed</div>
+            <div style={statValue}>{summary.lessonsAnalyzed}</div>
+            <div style={statSub}>Saved submissions contributing to the district view</div>
+          </div>
+          <div style={statCard}>
+            <div style={statLabel}>Priority Teachers</div>
+            <div style={{ ...statValue, color: summary.priorityTeachers > 0 ? '#b91c1c' : 'var(--text-primary)' }}>
+              {summary.priorityTeachers}
             </div>
-          ))}
+            <div style={statSub}>Teachers currently crossing support thresholds</div>
+          </div>
         </div>
 
+        <div style={twoColumn}>
+          <section style={card}>
+            <div style={sectionEyebrow}>District Focus</div>
+            <h2 style={title}>Teachers Needing the Closest Support</h2>
+            {priorityTeachers.length === 0 ? (
+              <p style={text}>No teachers currently cross the district priority threshold. Continue monitoring trends and reinforcing strong practice.</p>
+            ) : (
+              priorityTeachers.map((teacher) => (
+                <div key={teacher.id} style={row}>
+                  <div>
+                    <div style={rowTitle}>{teacher.name}</div>
+                    <div style={rowMeta}>
+                      Avg {teacher.avgScore}/100, latest {teacher.latestScore}/100, assessment {teacher.latestAssessment}/100, gaps {teacher.gaps}
+                    </div>
+                  </div>
+                  <div style={pillDanger}>
+                    {teacher.trend > 0 ? `+${teacher.trend}` : teacher.trend < 0 ? `${teacher.trend}` : '0'}
+                  </div>
+                </div>
+              ))
+            )}
+          </section>
+
+          <section style={card}>
+            <div style={sectionEyebrow}>District Strength</div>
+            <h2 style={title}>Top Performing Teachers</h2>
+            {topPerformers.length === 0 ? (
+              <p style={text}>No lesson data has been submitted yet.</p>
+            ) : (
+              topPerformers.map((teacher) => (
+                <div key={teacher.id} style={row}>
+                  <div>
+                    <div style={rowTitle}>{teacher.name}</div>
+                    <div style={rowMeta}>
+                      Avg {teacher.avgScore}/100, latest coverage {teacher.latestCoverage}/100, {teacher.lessons} lesson{teacher.lessons === 1 ? '' : 's'}
+                    </div>
+                  </div>
+                  <div style={pillSuccess}>{teacher.supportLevel}</div>
+                </div>
+              ))
+            )}
+          </section>
+        </div>
+
+        <section style={card}>
+          <div style={sectionEyebrow}>District Roster</div>
+          <h2 style={title}>Teacher Performance Snapshot</h2>
+          <div style={tableWrap}>
+            <table style={table}>
+              <thead>
+                <tr>
+                  <th style={th}>Teacher</th>
+                  <th style={th}>Lessons</th>
+                  <th style={th}>Average</th>
+                  <th style={th}>Latest</th>
+                  <th style={th}>Trend</th>
+                  <th style={th}>Support Level</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teacherStats.map((teacher) => (
+                  <tr key={teacher.id}>
+                    <td style={tdStrong}>{teacher.name}</td>
+                    <td style={td}>{teacher.lessons}</td>
+                    <td style={td}>{teacher.avgScore ? `${teacher.avgScore}/100` : '—'}</td>
+                    <td style={td}>{teacher.latestScore ? `${teacher.latestScore}/100` : '—'}</td>
+                    <td style={td}>
+                      {teacher.trend > 0 ? `+${teacher.trend}` : teacher.trend < 0 ? `${teacher.trend}` : '0'}
+                    </td>
+                    <td style={td}>
+                      <span
+                        style={
+                          teacher.supportLevel === 'Priority'
+                            ? pillDanger
+                            : teacher.supportLevel === 'Monitor'
+                              ? pillWarn
+                              : pillSuccess
+                        }
+                      >
+                        {teacher.supportLevel}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </main>
   );
 }
 
-/* ===== STYLES ===== */
-
 const page: React.CSSProperties = {
   minHeight: '100vh',
-  background: '#081120',
-  padding: 40
+  background: 'linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%)',
+  padding: '32px 18px 48px',
 };
 
 const container: React.CSSProperties = {
-  maxWidth: 1000,
-  margin: '0 auto'
+  maxWidth: 1220,
+  margin: '0 auto',
+};
+
+const loading: React.CSSProperties = {
+  minHeight: '100vh',
+  display: 'grid',
+  placeItems: 'center',
+  color: 'var(--text-secondary)',
+  background: 'var(--bg-primary)',
+};
+
+const header: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  gap: 16,
+  flexWrap: 'wrap',
+  marginBottom: 22,
+};
+
+const eyebrow: React.CSSProperties = {
+  fontSize: 12,
+  textTransform: 'uppercase',
+  letterSpacing: 1.1,
+  color: '#0f766e',
+  fontWeight: 800,
+  marginBottom: 8,
 };
 
 const heading: React.CSSProperties = {
-  color: '#fff',
-  fontSize: 30,
-  marginBottom: 6
+  margin: 0,
+  fontSize: 'clamp(2rem, 4vw, 3rem)',
+  color: 'var(--text-primary)',
+  lineHeight: 1.05,
 };
 
 const subheading: React.CSSProperties = {
-  color: '#94a3b8',
-  marginBottom: 20
+  color: 'var(--text-secondary)',
+  maxWidth: 760,
+  marginTop: 10,
+  fontSize: 16,
+  lineHeight: 1.6,
+};
+
+const btn: React.CSSProperties = {
+  border: '1px solid var(--border-strong)',
+  background: 'var(--surface-card)',
+  color: 'var(--text-primary)',
+  padding: '12px 16px',
+  borderRadius: 14,
+  cursor: 'pointer',
+  fontWeight: 700,
+  boxShadow: 'var(--shadow-sm)',
+};
+
+const statsGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+  gap: 16,
+  marginBottom: 18,
+};
+
+const statCard: React.CSSProperties = {
+  borderRadius: 22,
+  padding: 20,
+  background: 'var(--surface-card)',
+  border: '1px solid var(--border)',
+  boxShadow: 'var(--shadow-md)',
+};
+
+const statLabel: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  textTransform: 'uppercase',
+  letterSpacing: 0.8,
+  fontWeight: 800,
+  marginBottom: 10,
+};
+
+const statValue: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontSize: 34,
+  fontWeight: 800,
+  lineHeight: 1,
+  marginBottom: 10,
+};
+
+const statSub: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 14,
+  lineHeight: 1.5,
+};
+
+const twoColumn: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+  gap: 16,
+  marginBottom: 18,
 };
 
 const card: React.CSSProperties = {
-  background: '#111827',
-  padding: 20,
-  borderRadius: 12,
-  marginBottom: 20
+  borderRadius: 24,
+  padding: 22,
+  background: 'var(--surface-card)',
+  border: '1px solid var(--border)',
+  boxShadow: 'var(--shadow-md)',
+};
+
+const sectionEyebrow: React.CSSProperties = {
+  color: '#0f766e',
+  fontSize: 11,
+  textTransform: 'uppercase',
+  letterSpacing: 0.8,
+  fontWeight: 800,
+  marginBottom: 8,
 };
 
 const title: React.CSSProperties = {
-  color: '#fff',
-  marginBottom: 10
+  margin: 0,
+  color: 'var(--text-primary)',
+  fontSize: 22,
+  fontWeight: 800,
+  marginBottom: 12,
 };
 
 const text: React.CSSProperties = {
-  color: '#94a3b8'
+  color: 'var(--text-secondary)',
+  fontSize: 15,
+  lineHeight: 1.6,
+  margin: 0,
 };
 
-const big: React.CSSProperties = {
-  color: '#fff',
-  fontSize: 22,
-  marginBottom: 10
+const row: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 14,
+  padding: '14px 0',
+  borderTop: '1px solid var(--border)',
 };
 
-const item: React.CSSProperties = {
-  padding: 10,
-  borderBottom: '1px solid #1f2937',
-  color: '#fff'
+const rowTitle: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontWeight: 700,
+  fontSize: 16,
+  marginBottom: 4,
+};
+
+const rowMeta: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 14,
+  lineHeight: 1.5,
+};
+
+const pillBase: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '8px 12px',
+  borderRadius: 999,
+  fontSize: 12,
+  fontWeight: 800,
+  border: '1px solid transparent',
+  minWidth: 70,
+};
+
+const pillDanger: React.CSSProperties = {
+  ...pillBase,
+  color: '#b91c1c',
+  background: 'rgba(239,68,68,0.10)',
+  borderColor: 'rgba(239,68,68,0.20)',
+};
+
+const pillWarn: React.CSSProperties = {
+  ...pillBase,
+  color: '#b45309',
+  background: 'rgba(245,158,11,0.10)',
+  borderColor: 'rgba(245,158,11,0.20)',
+};
+
+const pillSuccess: React.CSSProperties = {
+  ...pillBase,
+  color: '#166534',
+  background: 'rgba(34,197,94,0.10)',
+  borderColor: 'rgba(34,197,94,0.20)',
+};
+
+const tableWrap: React.CSSProperties = {
+  overflowX: 'auto',
+};
+
+const table: React.CSSProperties = {
+  width: '100%',
+  borderCollapse: 'collapse',
+  minWidth: 720,
+};
+
+const th: React.CSSProperties = {
+  textAlign: 'left',
+  padding: '14px 12px',
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  textTransform: 'uppercase',
+  letterSpacing: 0.7,
+  borderBottom: '1px solid var(--border)',
+};
+
+const td: React.CSSProperties = {
+  padding: '14px 12px',
+  color: 'var(--text-secondary)',
+  borderBottom: '1px solid var(--border)',
+  fontSize: 14,
+};
+
+const tdStrong: React.CSSProperties = {
+  ...td,
+  color: 'var(--text-primary)',
+  fontWeight: 700,
 };
