@@ -111,7 +111,7 @@ export default function HomePage() {
 
   const teksCoverageGroups = [
     {
-      label: 'Elementary',
+      label: 'Elementary School',
       items: ['Grade 3 Math', 'Grade 3 ELA', 'Grade 4 Math', 'Grade 4 ELA', 'Grade 5 Math', 'Grade 5 ELA', 'Grade 5 Science'],
     },
     {
@@ -499,7 +499,7 @@ export default function HomePage() {
       {/* FEATURES */}
       <section
         style={{
-          padding: 'clamp(58px, 8vw, 78px) 20px',
+          padding: 'clamp(68px, 9vw, 90px) 20px',
           background: theme.sectionSoft,
         }}
       >
@@ -547,7 +547,7 @@ export default function HomePage() {
       {/* WHAT YOU GET */}
       <section
         style={{
-          padding: 'clamp(58px, 8vw, 78px) 20px',
+          padding: 'clamp(68px, 9vw, 90px) 20px',
           background: theme.sectionAlt,
         }}
       >
@@ -597,7 +597,7 @@ export default function HomePage() {
       {/* TEKS COVERAGE */}
       <section
         style={{
-          padding: 'clamp(58px, 8vw, 78px) 20px',
+          padding: 'clamp(68px, 9vw, 90px) 20px',
           background: theme.sectionSoft,
         }}
       >
@@ -626,43 +626,56 @@ export default function HomePage() {
                   ...glassCard,
                   background: theme.cardBg,
                   border: `1px solid ${theme.cardBorder}`,
-                  padding: '24px',
+                  padding: '26px',
                 }}
               >
                 <div
                   style={{
                     color: theme.text,
                     fontSize: '18px',
-                    fontWeight: 750,
-                    marginBottom: '14px',
+                    fontWeight: 800,
+                    marginBottom: '16px',
+                    textDecoration: 'underline',
+                    textDecorationThickness: '2px',
+                    textUnderlineOffset: '5px',
                   }}
                 >
                   {group.label}
                 </div>
                 <div
                   style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '10px',
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+                    gap: '10px 12px',
                   }}
                 >
                   {group.items.map((item) => (
                     <div
                       key={item}
                       style={{
-                        display: 'inline-flex',
+                        display: 'flex',
                         alignItems: 'center',
-                        padding: '8px 12px',
-                        borderRadius: '999px',
-                        background: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.04)',
+                        gap: '8px',
+                        padding: '10px 12px',
+                        borderRadius: '14px',
+                        background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)',
                         border: `1px solid ${theme.cardBorder}`,
                         color: theme.text,
                         fontSize: '13px',
                         fontWeight: 600,
-                        lineHeight: 1.3,
+                        lineHeight: 1.35,
                       }}
                     >
-                      {item}
+                      <span
+                        style={{
+                          width: '7px',
+                          height: '7px',
+                          borderRadius: '999px',
+                          background: '#0f766e',
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span>{item}</span>
                     </div>
                   ))}
                 </div>
@@ -675,7 +688,7 @@ export default function HomePage() {
       {/* BEFORE / AFTER */}
       <section
         style={{
-          padding: 'clamp(58px, 8vw, 78px) 20px',
+          padding: 'clamp(68px, 9vw, 90px) 20px',
           background: theme.sectionSoft,
         }}
       >
@@ -733,7 +746,7 @@ export default function HomePage() {
       {/* HOW IT WORKS */}
       <section
         style={{
-          padding: 'clamp(58px, 8vw, 78px) 20px',
+          padding: 'clamp(68px, 9vw, 90px) 20px',
           background: theme.sectionAlt,
         }}
       >
@@ -771,7 +784,7 @@ export default function HomePage() {
       {/* WHO IT'S FOR */}
       <section
         style={{
-          padding: 'clamp(58px, 8vw, 78px) 20px',
+          padding: 'clamp(68px, 9vw, 90px) 20px',
           background:
             isDarkMode
               ? 'linear-gradient(135deg, #0b1730 0%, #0f3d5e 100%)'
@@ -811,7 +824,7 @@ export default function HomePage() {
       {/* DISTRICT SCALE */}
       <section
         style={{
-          padding: 'clamp(58px, 8vw, 78px) 20px',
+          padding: 'clamp(68px, 9vw, 90px) 20px',
           background: theme.sectionSoft,
         }}
       >
@@ -1241,7 +1254,7 @@ const container: React.CSSProperties = {
 const sectionHeader: React.CSSProperties = {
   textAlign: 'center',
   maxWidth: '860px',
-  margin: '0 auto 44px',
+  margin: '0 auto 52px',
 };
 
 const sectionTitle: React.CSSProperties = {
