@@ -48,6 +48,8 @@ export type AdminSupportPlan = {
   adminAction: string;
   lookFors: string[];
   followUpTimeline: string;
+  supportPriorityScore?: number;
+  requiresPrioritySupport?: boolean;
 };
 
 export const SAMPLE_PREVIEW_TEACHER_ID = 'sample-teacher-1';
@@ -301,26 +303,26 @@ export const sampleReports: LessonReport[] = [
   buildSampleReport('8', 'Ms. Carter', 'Food Webs and Energy Flow', '2026-04-03', { coverage: 91, clarity: 88, engagement: 86, assessment: 81, gaps: 1 }),
   buildSampleReport('9', 'Ms. Carter', 'Adaptation and Survival', '2026-04-17', { coverage: 93, clarity: 90, engagement: 88, assessment: 83, gaps: 1 }),
   buildSampleReport('10', 'Ms. Carter', 'Scientific Argumentation', '2026-05-01', { coverage: 94, clarity: 91, engagement: 89, assessment: 84, gaps: 1 }),
-  buildSampleReport('11', 'Mr. Evans', 'Introduction to Ecosystems', '2026-01-08', { coverage: 75, clarity: 73, engagement: 70, assessment: 66, gaps: 4 }),
-  buildSampleReport('12', 'Mr. Evans', 'Food Webs and Energy Flow', '2026-01-22', { coverage: 77, clarity: 75, engagement: 72, assessment: 68, gaps: 3 }),
-  buildSampleReport('13', 'Mr. Evans', 'DNA and Inheritance', '2026-02-05', { coverage: 79, clarity: 77, engagement: 74, assessment: 69, gaps: 3 }),
-  buildSampleReport('14', 'Mr. Evans', 'Natural Selection', '2026-02-19', { coverage: 80, clarity: 78, engagement: 75, assessment: 70, gaps: 3 }),
-  buildSampleReport('15', 'Mr. Evans', 'Protein Synthesis', '2026-03-05', { coverage: 82, clarity: 79, engagement: 76, assessment: 72, gaps: 2 }),
-  buildSampleReport('16', 'Mr. Evans', 'Ecological Change Over Time', '2026-03-19', { coverage: 83, clarity: 80, engagement: 77, assessment: 73, gaps: 2 }),
+  buildSampleReport('11', 'Mr. Evans', 'Introduction to Ecosystems', '2026-01-08', { coverage: 76, clarity: 74, engagement: 71, assessment: 67, gaps: 3 }),
+  buildSampleReport('12', 'Mr. Evans', 'Food Webs and Energy Flow', '2026-01-22', { coverage: 78, clarity: 76, engagement: 73, assessment: 69, gaps: 3 }),
+  buildSampleReport('13', 'Mr. Evans', 'DNA and Inheritance', '2026-02-05', { coverage: 80, clarity: 77, engagement: 74, assessment: 70, gaps: 2 }),
+  buildSampleReport('14', 'Mr. Evans', 'Natural Selection', '2026-02-19', { coverage: 78, clarity: 75, engagement: 72, assessment: 68, gaps: 3 }),
+  buildSampleReport('15', 'Mr. Evans', 'Protein Synthesis', '2026-03-05', { coverage: 81, clarity: 78, engagement: 75, assessment: 71, gaps: 2 }),
+  buildSampleReport('16', 'Mr. Evans', 'Ecological Change Over Time', '2026-03-19', { coverage: 82, clarity: 80, engagement: 76, assessment: 73, gaps: 2 }),
   buildSampleReport('17', 'Mr. Evans', 'Genetic Variation', '2026-04-02', { coverage: 84, clarity: 81, engagement: 78, assessment: 74, gaps: 2 }),
-  buildSampleReport('18', 'Mr. Evans', 'Scientific Modeling', '2026-04-16', { coverage: 85, clarity: 82, engagement: 79, assessment: 75, gaps: 2 }),
+  buildSampleReport('18', 'Mr. Evans', 'Scientific Modeling', '2026-04-16', { coverage: 83, clarity: 80, engagement: 77, assessment: 72, gaps: 2 }),
   buildSampleReport('19', 'Mr. Evans', 'Population Dynamics', '2026-04-30', { coverage: 86, clarity: 83, engagement: 80, assessment: 76, gaps: 1 }),
-  buildSampleReport('20', 'Mr. Evans', 'Biology Review Seminar', '2026-05-14', { coverage: 87, clarity: 84, engagement: 81, assessment: 77, gaps: 1 }),
-  buildSampleReport('21', 'Dr. Lee', 'Enzymes', '2026-01-10', { coverage: 88, clarity: 86, engagement: 84, assessment: 79, gaps: 2 }),
-  buildSampleReport('22', 'Dr. Lee', 'Cellular Respiration', '2026-01-24', { coverage: 89, clarity: 87, engagement: 85, assessment: 80, gaps: 2 }),
-  buildSampleReport('23', 'Dr. Lee', 'Genetic Variation', '2026-02-07', { coverage: 91, clarity: 88, engagement: 86, assessment: 82, gaps: 1 }),
-  buildSampleReport('24', 'Dr. Lee', 'Scientific Modeling', '2026-02-21', { coverage: 92, clarity: 89, engagement: 87, assessment: 83, gaps: 1 }),
-  buildSampleReport('25', 'Dr. Lee', 'Protein Synthesis', '2026-03-07', { coverage: 93, clarity: 90, engagement: 88, assessment: 84, gaps: 1 }),
-  buildSampleReport('26', 'Dr. Lee', 'Ecological Change Over Time', '2026-03-21', { coverage: 94, clarity: 91, engagement: 89, assessment: 85, gaps: 1 }),
-  buildSampleReport('27', 'Dr. Lee', 'Adaptation and Survival', '2026-04-04', { coverage: 95, clarity: 92, engagement: 90, assessment: 86, gaps: 1 }),
-  buildSampleReport('28', 'Dr. Lee', 'Scientific Argumentation', '2026-04-18', { coverage: 95, clarity: 92, engagement: 90, assessment: 87, gaps: 1 }),
-  buildSampleReport('29', 'Dr. Lee', 'Population Dynamics', '2026-05-02', { coverage: 96, clarity: 93, engagement: 91, assessment: 88, gaps: 1 }),
-  buildSampleReport('30', 'Dr. Lee', 'Biology Review Seminar', '2026-05-16', { coverage: 96, clarity: 94, engagement: 92, assessment: 89, gaps: 1 }),
+  buildSampleReport('20', 'Mr. Evans', 'Biology Review Seminar', '2026-05-14', { coverage: 85, clarity: 82, engagement: 79, assessment: 75, gaps: 1 }),
+  buildSampleReport('21', 'Dr. Lee', 'Enzymes', '2026-01-10', { coverage: 88, clarity: 86, engagement: 84, assessment: 79, gaps: 1 }),
+  buildSampleReport('22', 'Dr. Lee', 'Cellular Respiration', '2026-01-24', { coverage: 89, clarity: 87, engagement: 85, assessment: 80, gaps: 1 }),
+  buildSampleReport('23', 'Dr. Lee', 'Genetic Variation', '2026-02-07', { coverage: 90, clarity: 88, engagement: 86, assessment: 81, gaps: 1 }),
+  buildSampleReport('24', 'Dr. Lee', 'Scientific Modeling', '2026-02-21', { coverage: 91, clarity: 89, engagement: 86, assessment: 82, gaps: 1 }),
+  buildSampleReport('25', 'Dr. Lee', 'Protein Synthesis', '2026-03-07', { coverage: 92, clarity: 90, engagement: 88, assessment: 84, gaps: 1 }),
+  buildSampleReport('26', 'Dr. Lee', 'Ecological Change Over Time', '2026-03-21', { coverage: 91, clarity: 89, engagement: 87, assessment: 83, gaps: 1 }),
+  buildSampleReport('27', 'Dr. Lee', 'Adaptation and Survival', '2026-04-04', { coverage: 93, clarity: 91, engagement: 89, assessment: 85, gaps: 1 }),
+  buildSampleReport('28', 'Dr. Lee', 'Scientific Argumentation', '2026-04-18', { coverage: 92, clarity: 90, engagement: 88, assessment: 84, gaps: 1 }),
+  buildSampleReport('29', 'Dr. Lee', 'Population Dynamics', '2026-05-02', { coverage: 94, clarity: 92, engagement: 90, assessment: 86, gaps: 1 }),
+  buildSampleReport('30', 'Dr. Lee', 'Biology Review Seminar', '2026-05-16', { coverage: 93, clarity: 91, engagement: 89, assessment: 85, gaps: 1 }),
 ];
 
 export function buildSampleAnalysisReports() {
@@ -536,17 +538,31 @@ export function buildAdminSupportPlanForTeacher(
     { key: 'assessment', label: 'checks for understanding', value: latestMetrics.assessment },
   ].sort((a, b) => a.value - b.value)[0];
 
+  const trendMagnitude = Math.abs(trend);
   const trendText =
     trend < 0
-      ? `recent lesson performance is down ${Math.abs(trend)} points`
+      ? `the latest lesson declined by ${trendMagnitude} point${trendMagnitude === 1 ? '' : 's'} from the previous lesson`
       : trend > 0
-        ? `recent lesson performance is up ${trend} points but still needs support`
-        : 'recent lesson performance is flat';
+        ? `the latest lesson improved by ${trendMagnitude} point${trendMagnitude === 1 ? '' : 's'} from the previous lesson`
+        : 'the latest lesson held steady compared with the previous lesson';
+
+  const supportPriorityScore =
+    Math.max(0, 78 - latestMetrics.score) +
+    Math.max(0, 76 - weakestDomain.value) +
+    latestMetrics.gaps * 6 +
+    (trend < 0 ? Math.min(12, trendMagnitude * 2) : 0);
+
+  const requiresPrioritySupport =
+    latestMetrics.score < 75 ||
+    weakestDomain.value < 72 ||
+    latestMetrics.gaps >= 2 ||
+    trend <= -4 ||
+    (latestMetrics.score < 78 && latestMetrics.gaps > 0 && weakestDomain.value < 74);
 
   const priorityReason =
     latestMetrics.gaps > 0
-      ? `${teacherName} is the priority because ${trendText} and the most recent lesson flagged ${latestMetrics.gaps} content gap${latestMetrics.gaps === 1 ? '' : 's'}.`
-      : `${teacherName} is the priority because ${trendText} and the weakest area is ${weakestDomain.label}.`;
+      ? `${teacherName} is the priority because ${trendText}, the latest lesson scored ${latestMetrics.score}/100, ${weakestDomain.label} was ${weakestDomain.value}/100, and the most recent lesson flagged ${latestMetrics.gaps} content gap${latestMetrics.gaps === 1 ? '' : 's'}.`
+      : `${teacherName} is the priority because ${trendText}, the latest lesson scored ${latestMetrics.score}/100, and the weakest current area is ${weakestDomain.label} at ${weakestDomain.value}/100.`;
 
   const adminAction =
     reportSections.recommendedNextStep
@@ -575,7 +591,7 @@ export function buildAdminSupportPlanForTeacher(
       : 'Follow up within 7 to 10 instructional days.';
 
   const summary =
-    `${teacherName} needs support in ${weakestDomain.label}. Latest lesson score: ${latestMetrics.score}/100, and ${trendText}.`;
+    `${teacherName} needs targeted support in ${weakestDomain.label}. Latest lesson score: ${latestMetrics.score}/100, ${weakestDomain.label}: ${weakestDomain.value}/100, and ${trendText}.`;
 
   return {
     teacherId,
@@ -585,6 +601,8 @@ export function buildAdminSupportPlanForTeacher(
     adminAction,
     lookFors,
     followUpTimeline,
+    supportPriorityScore,
+    requiresPrioritySupport,
   };
 }
 

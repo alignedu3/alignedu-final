@@ -511,19 +511,24 @@ export default function AdminDashboard() {
       })
       .filter((plan): plan is NonNullable<typeof plan> => Boolean(plan))
       .sort((a, b) => {
-        if (a.needsAttention !== b.needsAttention) return a.needsAttention ? -1 : 1;
+        const aPriority = a.requiresPrioritySupport ? 1 : 0;
+        const bPriority = b.requiresPrioritySupport ? 1 : 0;
+        if (aPriority !== bPriority) return bPriority - aPriority;
+        const aSeverity = a.supportPriorityScore ?? 0;
+        const bSeverity = b.supportPriorityScore ?? 0;
+        if (aSeverity !== bSeverity) return bSeverity - aSeverity;
         return a.avgScore - b.avgScore;
       });
   }, [dashboardReports, teacherStats]);
 
   const recommendedSupportPlan = useMemo(() => {
-    const primary = adminSupportPlans[0];
+    const primary = adminSupportPlans.find((plan) => plan.requiresPrioritySupport);
     if (!primary) {
       return {
         teacherName: 'Instructional Team',
-        summary: 'No immediate teacher intervention is required.',
-        priorityReason: 'Current lesson data does not show a teacher who needs urgent support.',
-        adminAction: 'Continue regular walkthroughs and highlight strong practice during PLC or leadership meetings.',
+        summary: 'No individual teacher currently meets the threshold for priority support.',
+        priorityReason: 'Current lesson data does not show a teacher with a significant decline, multiple content gaps, or a low enough recent score to justify naming one priority teacher.',
+        adminAction: 'Continue regular walkthroughs, monitor emerging trends, and use PLC or coaching touchpoints to reinforce strong practice across the team.',
         lookFors: [
           'High-leverage teacher moves stay visible across lessons.',
           'Strong practice is shared with the broader team.',
@@ -678,14 +683,16 @@ export default function AdminDashboard() {
           <h2 style={title}>Administrator Support Plan</h2>
           <div style={supportPlanHeader}>
             <div>
-              <div style={supportPlanLabel}>Priority Teacher</div>
+              <div style={supportPlanLabel}>
+                {recommendedSupportPlan.teacherName === 'Instructional Team' ? 'Current Focus' : 'Priority Teacher'}
+              </div>
               <div style={supportPlanTeacher}>{recommendedSupportPlan.teacherName}</div>
             </div>
             <div style={supportPlanChip}>{recommendedSupportPlan.followUpTimeline}</div>
           </div>
           <p style={text}>{recommendedSupportPlan.summary}</p>
           <div style={{ ...text, marginTop: 10 }}>
-            <strong>Why this teacher:</strong> {recommendedSupportPlan.priorityReason}
+            <strong>{recommendedSupportPlan.teacherName === 'Instructional Team' ? 'Why this focus:' : 'Why this teacher:'}</strong> {recommendedSupportPlan.priorityReason}
           </div>
           <div style={{ ...text, marginTop: 10 }}>
             <strong>Administrator action:</strong> {recommendedSupportPlan.adminAction}
