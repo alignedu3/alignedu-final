@@ -343,20 +343,12 @@ export default function AnalysisPage() {
     marginBottom: 20,
   };
 
-  const reportEyebrowStyle: React.CSSProperties = {
-    color: 'var(--accent-blue)',
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: '0.12em',
-    fontWeight: 800,
-  };
-
   const reportHeadingStyle: React.CSSProperties = {
     color: 'var(--text-primary)',
     fontSize: 28,
     lineHeight: 1.1,
     fontWeight: 800,
-    marginTop: 6,
+    marginTop: 0,
   };
 
   const reportSubheadingStyle: React.CSSProperties = {
@@ -391,11 +383,23 @@ export default function AnalysisPage() {
     marginTop: 24,
   };
 
+  const reportStackStyle: React.CSSProperties = {
+    display: 'grid',
+    gap: 0,
+    marginTop: 8,
+    borderTop: '1px solid rgba(148,163,184,0.12)',
+  };
+
   const reportPanelStyle: React.CSSProperties = {
     background: 'var(--surface-card-solid)',
     borderRadius: 18,
     padding: 20,
     border: '1px solid rgba(148,163,184,0.1)',
+  };
+
+  const reportSectionRowStyle: React.CSSProperties = {
+    padding: '18px 0',
+    borderBottom: '1px solid rgba(148,163,184,0.12)',
   };
 
   const reportPanelTitleStyle: React.CSSProperties = {
@@ -427,6 +431,37 @@ export default function AnalysisPage() {
     fontSize: 20,
     fontWeight: 800,
     margin: '28px 0 14px',
+  };
+
+  const recommendationHighlightStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(160px, 220px) minmax(0, 1fr)',
+    gap: 16,
+    alignItems: 'start',
+    marginTop: 8,
+    padding: '18px 0',
+    borderTop: '1px solid rgba(148,163,184,0.12)',
+    borderBottom: '1px solid rgba(148,163,184,0.12)',
+  };
+
+  const recommendationLabelBlockStyle: React.CSSProperties = {
+    display: 'grid',
+    gap: 6,
+  };
+
+  const recommendationEyebrowStyle: React.CSSProperties = {
+    color: 'var(--accent-blue)',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: '0.1em',
+    fontWeight: 800,
+  };
+
+  const recommendationTitleStyle: React.CSSProperties = {
+    color: 'var(--text-primary)',
+    fontSize: 16,
+    lineHeight: 1.25,
+    fontWeight: 800,
   };
 
   const reportSummaryStyle: React.CSSProperties = {
@@ -576,6 +611,16 @@ export default function AnalysisPage() {
   const resultSections = parseAnalysisResult(result);
   const resultMetrics = parseAnalysisMetrics(result);
   const feedbackSections = parseFeedbackSections(result);
+  const standardsRecommendationSections = feedbackSections.teks.filter(
+    (section) =>
+      section.title === "Recommendations for Standards Integration" ||
+      section.title === "STAAR Readiness Recommendation"
+  );
+  const standardsAlignmentSections = feedbackSections.teks.filter(
+    (section) =>
+      section.title !== "Recommendations for Standards Integration" &&
+      section.title !== "STAAR Readiness Recommendation"
+  );
   const scoreBand = getScoreBand(resultMetrics.score);
   const executiveSummary =
     feedbackSections.executiveSummary ||
@@ -1054,7 +1099,6 @@ export default function AnalysisPage() {
             <section style={resultCardStyle}>
               <div style={reportBannerStyle}>
                 <div style={reportIntroStyle}>
-                  <div style={reportEyebrowStyle}>District-ready report</div>
                   <div style={reportHeadingStyle}>Lesson Review</div>
                   <div style={reportSubheadingStyle}>
                     A clean instructional summary built for quick review, coaching conversations, and leadership follow-up.
@@ -1157,9 +1201,9 @@ export default function AnalysisPage() {
                   {feedbackSections.coaching.length > 0 && (
                     <>
                       <div style={reportSectionHeadingStyle}>Coaching Priorities</div>
-                      <div style={reportGridStyle}>
+                      <div style={reportStackStyle}>
                         {feedbackSections.coaching.map((section, index) => (
-                          <div key={index} style={reportPanelStyle}>
+                          <div key={index} style={reportSectionRowStyle}>
                             <div style={reportPanelTitleStyle}>{section.title}</div>
                             {section.bullets.length > 0 ? (
                               <ul style={reportPanelListStyle}>
@@ -1179,9 +1223,9 @@ export default function AnalysisPage() {
                   {feedbackSections.staar.length > 0 && (
                     <>
                       <div style={reportSectionHeadingStyle}>Assessment Readiness</div>
-                      <div style={reportGridStyle}>
+                      <div style={reportStackStyle}>
                         {feedbackSections.staar.map((section, index) => (
-                          <div key={index} style={reportPanelStyle}>
+                          <div key={index} style={reportSectionRowStyle}>
                             <div style={reportPanelTitleStyle}>{section.title}</div>
                             {section.bullets.length > 0 ? (
                               <ul style={reportPanelListStyle}>
@@ -1198,12 +1242,12 @@ export default function AnalysisPage() {
                     </>
                   )}
 
-                  {feedbackSections.teks.length > 0 && (
+                  {standardsAlignmentSections.length > 0 && (
                     <>
                       <div style={reportSectionHeadingStyle}>Standards Alignment</div>
-                      <div style={reportGridStyle}>
-                        {feedbackSections.teks.map((section, index) => (
-                          <div key={index} style={reportPanelStyle}>
+                      <div style={reportStackStyle}>
+                        {standardsAlignmentSections.map((section, index) => (
+                          <div key={index} style={reportSectionRowStyle}>
                             <div style={reportPanelTitleStyle}>{section.title}</div>
                             {section.bullets.length > 0 ? (
                               <ul style={reportPanelListStyle}>
@@ -1217,15 +1261,31 @@ export default function AnalysisPage() {
                           </div>
                         ))}
                       </div>
+                    </>
+                  )}
+
+                  {standardsRecommendationSections.length > 0 && (
+                    <>
+                      {standardsRecommendationSections.map((section, index) => (
+                        <div key={`standards-recommendation-${index}`} style={recommendationHighlightStyle}>
+                          <div style={recommendationLabelBlockStyle}>
+                            <div style={recommendationEyebrowStyle}>Standards Follow-Up</div>
+                            <div style={recommendationTitleStyle}>Recommendations for Standards Integration</div>
+                          </div>
+                          <div style={reportPanelTextStyle}>
+                            {section.bullets.length > 0 ? section.bullets.join(' ') : section.content}
+                          </div>
+                        </div>
+                      ))}
                     </>
                   )}
 
                   {resultSections.length > 0 && (
                     <>
                       <div style={reportSectionHeadingStyle}>Detailed Notes</div>
-                      <div style={reportGridStyle}>
+                      <div style={reportStackStyle}>
                         {resultSections.map((section, index) => (
-                          <div key={index} style={reportPanelStyle}>
+                          <div key={index} style={reportSectionRowStyle}>
                             <div style={reportPanelTitleStyle}>{section.title}</div>
                             {section.bullets.length > 0 ? (
                               <ul style={reportPanelListStyle}>

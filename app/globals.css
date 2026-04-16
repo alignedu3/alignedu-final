@@ -322,10 +322,6 @@ button:disabled {
     padding: 0;
     border-radius: 10px;
   }
-
-  .header-theme-toggle span:last-child {
-    display: none;
-  }
 }
 
 /* Generic Hero */
