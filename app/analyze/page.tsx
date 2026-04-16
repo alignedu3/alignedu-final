@@ -689,6 +689,18 @@ export default function AnalysisPage() {
         "",
     },
   ].filter((section) => section.bullets.length > 0 || section.content.trim());
+  const submissionContextText = feedbackSections.submissionContext
+    .map((section) => {
+      if (section.bullets.length > 0) {
+        return section.bullets.join(' · ');
+      }
+      if (section.title && section.title !== 'Summary' && section.content) {
+        return `${section.title}: ${section.content}`;
+      }
+      return section.content;
+    })
+    .filter(Boolean)
+    .join(' · ');
   const scoreBand = getScoreBand(resultMetrics.score);
   const executiveSummary =
     feedbackSections.executiveSummary ||
@@ -1141,7 +1153,11 @@ export default function AnalysisPage() {
               </div>
 
               <div className="analysis-actions">
-                <button className="analyze-btn" onClick={handleSubmit} disabled={loading || (isAdminObservationMode && (!observerReady || !observedTeacherId))}>
+                <button
+                  className="analyze-btn"
+                  onClick={handleSubmit}
+                  disabled={loading || (isAdminObservationMode && (!observerReady || !observedTeacherId || !subject.trim()))}
+                >
                   {loading ? processingStep || "Analyzing..." : "Analyze Lesson"}
                 </button>
               </div>
@@ -1216,6 +1232,12 @@ export default function AnalysisPage() {
 
               {saveNotice && (
                 <div style={reportNoticeStyle}>{saveNotice}</div>
+              )}
+
+              {submissionContextText && (
+                <div style={{ ...reportNoticeStyle, marginTop: 12 }}>
+                  {submissionContextText}
+                </div>
               )}
 
               {resultSections.length === 0 && feedbackSections.coaching.length === 0 && feedbackSections.teks.length === 0 && feedbackSections.staar.length === 0 && !feedbackSections.whatWentWell.length && !feedbackSections.whatCanImprove.length && !feedbackSections.recommendedNextStep ? (

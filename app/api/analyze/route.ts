@@ -110,7 +110,7 @@ export async function POST(req: Request) {
 
     const { data: callerProfile, error: callerProfileError } = await anonSupabase
       .from("profiles")
-      .select("role")
+      .select("role, name")
       .eq("id", user.id)
       .single();
 
@@ -146,6 +146,17 @@ export async function POST(req: Request) {
       }
 
       targetUserId = observedTeacherId;
+    }
+
+    let observedTeacherName = '';
+    if (observedTeacherId) {
+      const { data: observedTeacherProfile } = await anonSupabase
+        .from("profiles")
+        .select("name")
+        .eq("id", observedTeacherId)
+        .maybeSingle();
+
+      observedTeacherName = observedTeacherProfile?.name || '';
     }
 
     const grade = String(formData.get("grade") || "");
@@ -278,9 +289,14 @@ Provide generic, high-quality instructional coaching feedback using labeled bull
 
     const result =
       completion.choices[0]?.message?.content || "No result returned";
+    const submissionContext =
+      observedTeacherId
+        ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfile?.name || 'Admin').trim()} (Admin Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
+        : "";
+    const finalResult = `${result}${submissionContext}`;
 
-    const score = extractScoreFromResult(result);
-    const metrics = extractMetricsFromResult(result);
+    const score = extractScoreFromResult(finalResult);
+    const metrics = extractMetricsFromResult(finalResult);
 
     // Service role client to bypass RLS for the insert
     const serviceSupabase = createServerClient(
@@ -308,7 +324,7 @@ Provide generic, high-quality instructional coaching feedback using labeled bull
         assessment_quality: metrics.assessment_quality,
         gaps_detected: metrics.gaps_detected,
         transcript: transcript.slice(0, 5000),
-        result: result.slice(0, 5000),
+        result: finalResult.slice(0, 5000),
         created_at: new Date().toISOString(),
       };
 
@@ -341,7 +357,7 @@ Provide generic, high-quality instructional coaching feedback using labeled bull
     }
 
     return safeJson({
-      result,
+      result: finalResult,
       error: null,
       score,
       saved: dbSaved,

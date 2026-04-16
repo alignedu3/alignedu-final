@@ -68,6 +68,16 @@ export default function LessonReportPage() {
     masteryNotes: extractSectionText(reportSections.teks, ['Standards Mastery Notes']),
     recommendations: extractSectionText([...reportSections.staar, ...reportSections.teks], ['Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
   };
+  const submissionContextText = reportSections.submissionContext
+    .map((section) => {
+      if (section.bullets.length > 0) return section.bullets.join(' · ');
+      if (section.title && section.title !== 'Summary' && section.content) {
+        return `${section.title}: ${section.content}`;
+      }
+      return section.content;
+    })
+    .filter(Boolean)
+    .join(' · ');
   const hasStructuredReport = Boolean(
     reportSections.executiveSummary ||
     reportSections.strengths.length ||
@@ -103,6 +113,12 @@ export default function LessonReportPage() {
               <div style={summaryScoreLabel}>Overall Score</div>
             </div>
           </div>
+
+          {submissionContextText && (
+            <div style={submissionNote}>
+              {submissionContextText}
+            </div>
+          )}
         </div>
 
         <div style={metricGrid}>
@@ -413,6 +429,17 @@ const summaryScoreLabel: React.CSSProperties = {
   textTransform: 'uppercase',
   letterSpacing: 0.5,
   marginTop: 4,
+};
+
+const submissionNote: React.CSSProperties = {
+  marginTop: 14,
+  padding: '10px 14px',
+  borderRadius: 12,
+  border: '1px solid rgba(148,163,184,0.18)',
+  background: 'var(--surface-card-solid)',
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  lineHeight: 1.5,
 };
 
 const metricGrid: React.CSSProperties = {

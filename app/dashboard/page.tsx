@@ -191,6 +191,19 @@ export default function TeacherDashboard() {
     () => (selectedReport ? getLessonReportSections(selectedReport) : null),
     [selectedReport]
   );
+  const selectedSubmissionContext = useMemo(() => {
+    if (!selectedLessonSections) return '';
+    return selectedLessonSections.submissionContext
+      .map((section) => {
+        if (section.bullets.length > 0) return section.bullets.join(' · ');
+        if (section.title && section.title !== 'Summary' && section.content) {
+          return `${section.title}: ${section.content}`;
+        }
+        return section.content;
+      })
+      .filter(Boolean)
+      .join(' · ');
+  }, [selectedLessonSections]);
   const selectedLessonTEKS = useMemo(
     () => (selectedReport ? getTEKSCoverageInsights(selectedReport) : null),
     [selectedReport]
@@ -548,6 +561,12 @@ export default function TeacherDashboard() {
                   </div>
                 </div>
 
+                {selectedSubmissionContext && (
+                  <div style={reportMetaNote}>
+                    {selectedSubmissionContext}
+                  </div>
+                )}
+
                 <div style={reportMetricGrid}>
                   <div style={{ ...reportMetricCard, ...coverageMetricCard }}>
                     <div style={reportMetricLabel}>Coverage</div>
@@ -889,6 +908,17 @@ const summaryScoreLabel: React.CSSProperties = {
   marginTop: 6,
   textTransform: 'uppercase',
   letterSpacing: 0.5,
+};
+
+const reportMetaNote: React.CSSProperties = {
+  marginBottom: 16,
+  padding: '10px 14px',
+  borderRadius: 12,
+  border: '1px solid rgba(148,163,184,0.18)',
+  background: 'var(--surface-chip)',
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  lineHeight: 1.5,
 };
 
 const reportMetricGrid: React.CSSProperties = {

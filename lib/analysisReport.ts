@@ -97,6 +97,7 @@ export function parseAnalysisResult(text: string): ReportSection[] {
     .replace(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*STAAR TEKS COVERAGE\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*SUBMISSION CONTEXT\s*===[\s\S]*?(?====|$)/gi, "")
     .trim();
 
   if (!cleaned) return [];
@@ -171,6 +172,7 @@ export function parseFeedbackSections(text: string) {
   const coachingMatch = text.match(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===([\s\S]*?)(?====|$)/i);
   const teksMatch = text.match(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===([\s\S]*?)(?====|$)/i);
   const staarMatch = text.match(/===\s*STAAR TEKS COVERAGE\s*===([\s\S]*?)(?====|$)/i);
+  const submissionContextMatch = text.match(/===\s*SUBMISSION CONTEXT\s*===([\s\S]*?)(?====|$)/i);
 
   return {
     executiveSummary: extractSimpleSection(text, "EXECUTIVE SUMMARY"),
@@ -180,6 +182,7 @@ export function parseFeedbackSections(text: string) {
     coaching: coachingMatch ? parseLabeledSection(coachingMatch[1]) : [],
     teks: teksMatch ? parseLabeledSection(teksMatch[1]) : [],
     staar: staarMatch ? parseLabeledSection(staarMatch[1]) : [],
+    submissionContext: submissionContextMatch ? parseLabeledSection(submissionContextMatch[1]) : [],
   };
 }
 

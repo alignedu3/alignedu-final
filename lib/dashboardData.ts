@@ -503,6 +503,7 @@ export function getLessonReportSections(report: AnalysisReport): {
   coaching: ReportSection[];
   teks: ReportSection[];
   staar: ReportSection[];
+  submissionContext: ReportSection[];
 } {
   const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
   const insights = getLessonInsights(report);
@@ -515,6 +516,7 @@ export function getLessonReportSections(report: AnalysisReport): {
     coaching: parsed.coaching,
     teks: parsed.teks,
     staar: parsed.staar,
+    submissionContext: parsed.submissionContext,
   };
 }
 
