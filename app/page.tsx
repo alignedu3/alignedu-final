@@ -1451,6 +1451,26 @@ export default function HomePage() {
             font-size: 12px;
           }
         }
+
+        @media (max-width: 560px) {
+          .hero-cta-row {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+
+          .hero-cta-unified {
+            width: 100% !important;
+          }
+
+          .preview-subject-row {
+            grid-template-columns: 1fr !important;
+            gap: 10px !important;
+          }
+
+          .preview-school-card:last-child {
+            grid-column: auto !important;
+          }
+        }
       `}</style>
     </main>
   );

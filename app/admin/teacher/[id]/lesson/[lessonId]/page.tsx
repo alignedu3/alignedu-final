@@ -64,8 +64,9 @@ export default function LessonReportPage() {
     reinforced: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards Reinforced', 'Standards Addressed', 'Covered in the Lesson']),
     revisit: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards That Need Stronger Assessment Evidence', 'Needs Reinforcement']),
     notObserved: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards Not Observed', 'Not Covered in the Lesson']),
-    readinessSummary: extractSectionText(reportSections.staar, ['Readiness Summary']),
-    masteryNotes: extractSectionText(reportSections.teks, ['Standards Mastery Notes']),
+    summary:
+      extractSectionText(reportSections.teks, ['Standards Mastery Notes']) ||
+      extractSectionText(reportSections.staar, ['Readiness Summary']),
     recommendations: extractSectionText([...reportSections.staar, ...reportSections.teks], ['Recommended Standards Follow-Up', 'Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
   };
   const submissionContextText = reportSections.submissionContext
@@ -103,7 +104,7 @@ export default function LessonReportPage() {
             <Link href={`/admin/teacher/${teacherId}`} style={backLink}>Back to Teacher</Link>
           </div>
 
-          <div style={summaryBanner}>
+          <div style={summaryBanner} className="lesson-report-summary-banner">
             <div>
               <div style={summaryTitle}>Executive Summary</div>
               <div style={summaryText}>{reportSections.executiveSummary}</div>
@@ -121,11 +122,7 @@ export default function LessonReportPage() {
           )}
         </div>
 
-        <div style={metricGrid}>
-          <div style={{ ...metricCard, ...overallMetricCard }}>
-            <div style={metricLabel}>Overall</div>
-            <div style={metricValue}>{insights.score}/100</div>
-          </div>
+        <div style={metricGrid} className="lesson-report-metric-grid">
           <div style={{ ...metricCard, ...coverageMetricCard }}>
             <div style={metricLabel}>Coverage</div>
             <div style={metricValue}>{insights.coverage}%</div>
@@ -150,7 +147,7 @@ export default function LessonReportPage() {
 
         <div style={{ ...sectionCard, ...contextSectionCard }}>
           <h2 style={sectionTitle}>Lesson Context</h2>
-          <div style={contextGrid}>
+          <div style={contextGrid} className="lesson-report-context-grid">
             <div style={contextBox}>
               <div style={metricLabel}>Grade</div>
               <div style={contextValue}>{lesson.grade || '—'}</div>
@@ -166,7 +163,7 @@ export default function LessonReportPage() {
           </div>
         </div>
 
-        <div style={twoColumnGrid}>
+        <div style={twoColumnGrid} className="lesson-report-two-column-grid">
           <div style={{ ...sectionCard, ...successSectionCard }}>
             <h2 style={sectionTitle}>What Went Well</h2>
             <ul style={findingsList}>
@@ -218,22 +215,16 @@ export default function LessonReportPage() {
             <h2 style={sectionTitle}>TEKS Coverage</h2>
             <div style={teksSectionStack}>
               <div style={teksSectionRow}>
-                <div style={subsectionTitle}>Readiness Summary</div>
+                <div style={subsectionTitle}>Standards Summary</div>
                 <p style={bodyText}>
-                  {lessonStandards.readinessSummary || teksCoverage?.readinessSummary || 'This lesson includes standards evidence that can support a TEKS-aligned coaching conversation.'}
-                </p>
-              </div>
-              <div style={teksSectionRow}>
-                <div style={subsectionTitle}>Standards Mastery Notes</div>
-                <p style={bodyText}>
-                  {lessonStandards.masteryNotes || teksCoverage?.overview || 'Review the standards groups below to see which TEKS were reinforced, which need to be revisited, and which were not yet clearly observed in the lesson evidence.'}
+                  {lessonStandards.summary || teksCoverage?.readinessSummary || teksCoverage?.overview || 'Review the standards groups below to see which TEKS were reinforced, which need to be revisited, and which were not yet clearly observed in the lesson evidence.'}
                 </p>
               </div>
             </div>
             {(lessonStandards.reinforced.length > 0 || lessonStandards.revisit.length > 0 || lessonStandards.notObserved.length > 0) ? (
               <div style={teksSectionStack}>
                 <div style={teksSectionRow}>
-                  <div style={subsectionTitle}>Standards Reinforced</div>
+                  <div style={subsectionTitle}>Standards Covered</div>
                   {lessonStandards.reinforced.length > 0 ? (
                     <ul style={findingsList}>
                       {lessonStandards.reinforced.map((standard) => (
@@ -444,7 +435,7 @@ const submissionNote: React.CSSProperties = {
 
 const metricGrid: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
   gap: 14,
   marginBottom: 22,
 };
@@ -556,11 +547,6 @@ const twoColumnGrid: React.CSSProperties = {
 const sectionStack: React.CSSProperties = {
   display: 'grid',
   gap: 14,
-};
-
-const overallMetricCard: React.CSSProperties = {
-  background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(249,115,22,0.16)',
 };
 
 const coverageMetricCard: React.CSSProperties = {

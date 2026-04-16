@@ -1638,6 +1638,29 @@ h1, h2, h3 {
   margin: 0 auto;
 }
 
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding: 18px 12px 48px;
+  }
+
+  .dashboard-container {
+    max-width: 100%;
+  }
+
+  .lesson-report-summary-banner {
+    grid-template-columns: 1fr !important;
+  }
+
+  .lesson-report-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .lesson-report-context-grid,
+  .lesson-report-two-column-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ---- TABLE SCROLL ---- */
 
 .table-scroll-wrap {
@@ -1648,6 +1671,17 @@ h1, h2, h3 {
 
 .table-scroll-wrap table {
   min-width: 480px;
+}
+
+@media (max-width: 768px) {
+  .table-scroll-wrap {
+    margin-inline: -2px;
+    padding-bottom: 4px;
+  }
+
+  .table-scroll-wrap table {
+    min-width: 620px;
+  }
 }
 
 /* ---- HOMEPAGE RESPONSIVE ---- */
@@ -1689,6 +1723,14 @@ h1, h2, h3 {
   .row {
     grid-template-columns: 1fr !important;
   }
+
+  .analysis-shell {
+    max-width: 100%;
+  }
+
+  .analysis-panel-grid {
+    gap: 16px !important;
+  }
 }
 
 /* ---- GENERAL MOBILE POLISH ---- */
@@ -1697,6 +1739,10 @@ h1, h2, h3 {
 html, body {
   max-width: 100%;
   overflow-x: hidden;
+}
+
+body {
+  overflow-wrap: break-word;
 }
 
 /* Make sure cards don't overflow on small screens */
@@ -1813,6 +1859,17 @@ a[role="button"],
 @media (max-width: 480px) {
   .analysis-metrics-grid {
     grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .analysis-badge {
+    padding: 7px 12px;
+    font-size: 11px;
+  }
+
+  .analysis-section-top h2,
+  .analysis-results-header h2,
+  .analysis-side-card h3 {
+    font-size: 20px;
   }
 }
 

@@ -226,8 +226,9 @@ export default function TeacherDashboard() {
       reinforced: extractStandardEntries(allSections, ['Standards Reinforced', 'Standards Addressed', 'Covered in the Lesson']),
       revisit: extractStandardEntries(allSections, ['Standards That Need Stronger Assessment Evidence', 'Needs Reinforcement']),
       notObserved: extractStandardEntries(allSections, ['Standards Not Observed', 'Not Covered in the Lesson']),
-      readinessSummary: extractSectionText(selectedLessonSections.staar, ['Readiness Summary']),
-      masteryNotes: extractSectionText(selectedLessonSections.teks, ['Standards Mastery Notes']),
+      summary:
+        extractSectionText(selectedLessonSections.teks, ['Standards Mastery Notes']) ||
+        extractSectionText(selectedLessonSections.staar, ['Readiness Summary']),
       recommendations: extractSectionText(allSections, ['Recommended Standards Follow-Up', 'Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
     };
   }, [selectedLessonSections]);
@@ -641,15 +642,9 @@ export default function TeacherDashboard() {
                     <div style={reportSectionTitle}>TEKS Coverage</div>
                     <div style={teksSectionStack}>
                       <div style={teksSectionRow}>
-                        <div style={reportSubsectionTitle}>Readiness Summary</div>
+                        <div style={reportSubsectionTitle}>Standards Summary</div>
                         <p style={reportBodyText}>
-                          {selectedLessonStandards.readinessSummary || selectedLessonTEKS?.readinessSummary || 'This lesson includes standards evidence that can support a TEKS-aligned coaching conversation.'}
-                        </p>
-                      </div>
-                      <div style={teksSectionRow}>
-                        <div style={reportSubsectionTitle}>Standards Mastery Notes</div>
-                        <p style={reportBodyText}>
-                          {selectedLessonStandards.masteryNotes || selectedLessonTEKS?.overview || 'Review the standards groups below to see which TEKS were reinforced, which need to be revisited, and which were not yet clearly observed in the lesson evidence.'}
+                          {selectedLessonStandards.summary || selectedLessonTEKS?.readinessSummary || selectedLessonTEKS?.overview || 'Review the standards groups below to see which TEKS were reinforced, which need to be revisited, and which were not yet clearly observed in the lesson evidence.'}
                         </p>
                       </div>
                     </div>
@@ -658,7 +653,7 @@ export default function TeacherDashboard() {
                       selectedLessonStandards.notObserved.length > 0) ? (
                       <div style={teksSectionStack}>
                         <div style={teksSectionRow}>
-                          <div style={reportSubsectionTitle}>Standards Reinforced</div>
+                          <div style={reportSubsectionTitle}>Standards Covered</div>
                           {selectedLessonStandards.reinforced.length > 0 ? (
                             <ul style={reportList}>
                               {selectedLessonStandards.reinforced.map((standard) => (

@@ -643,6 +643,13 @@ export default function AnalysisPage() {
   const standardsMasterySection = standardsAlignmentSections.find(
     (section) => section.title === "Standards Mastery Notes"
   );
+  const readinessSummarySection = feedbackSections.staar.find(
+    (section) => section.title === "Readiness Summary"
+  );
+  const standardsSummary =
+    standardsMasterySection?.content ||
+    readinessSummarySection?.content ||
+    "";
   const coveredStandardsSections = standardsAlignmentSections.filter((section) =>
     ["Standards Reinforced", "Standards Addressed", "Covered in the Lesson"].includes(section.title)
   );
@@ -1277,29 +1284,7 @@ export default function AnalysisPage() {
                     </>
                   )}
 
-                  {feedbackSections.staar.length > 0 && (
-                    <>
-                      <div style={reportSectionHeadingStyle}>Assessment Readiness</div>
-                      <div style={reportStackStyle}>
-                        {feedbackSections.staar.map((section, index) => (
-                          <div key={index} style={reportSectionRowStyle}>
-                            <div style={reportPanelTitleStyle}>{section.title}</div>
-                            {section.bullets.length > 0 ? (
-                              <ul style={reportPanelListStyle}>
-                                {section.bullets.map((item, li) => (
-                                  <li key={li}>{item}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <div style={reportPanelTextStyle}>{section.content}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
-
-                  {(standardsMasterySection ||
+                  {(standardsSummary ||
                     coveredStandardsSections.length > 0 ||
                     reinforcementStandardsSections.length > 0 ||
                     notCoveredStandardsSections.length > 0) && (
@@ -1307,16 +1292,16 @@ export default function AnalysisPage() {
                       <div style={reportSectionHeadingStyle}>Standards Alignment</div>
                       <div style={reportSectionPanelStyle}>
                         <div style={reportStackStyle}>
-                          {standardsMasterySection && (
+                          {standardsSummary && (
                             <div style={reportSectionRowStyle}>
-                              <div style={reportPanelTitleStyle}>Standards Mastery Notes</div>
-                              <div style={reportPanelTextStyle}>{standardsMasterySection.content}</div>
+                              <div style={reportPanelTitleStyle}>Standards Summary</div>
+                              <div style={reportPanelTextStyle}>{standardsSummary}</div>
                             </div>
                           )}
 
                           {coveredStandardsSections.map((section, index) => (
                             <div key={`covered-${index}`} style={reportSectionRowStyle}>
-                              <div style={reportPanelTitleStyle}>Covered in the Lesson</div>
+                              <div style={reportPanelTitleStyle}>Standards Covered</div>
                               {section.bullets.length > 0 ? (
                                 <ul style={reportPanelListStyle}>
                                   {section.bullets.map((item, li) => (
@@ -1331,7 +1316,7 @@ export default function AnalysisPage() {
 
                           {reinforcementStandardsSections.map((section, index) => (
                             <div key={`reinforcement-${index}`} style={reportSectionRowStyle}>
-                              <div style={reportPanelTitleStyle}>Needs Reinforcement</div>
+                              <div style={reportPanelTitleStyle}>Standards To Revisit</div>
                               {section.bullets.length > 0 ? (
                                 <ul style={reportPanelListStyle}>
                                   {section.bullets.map((item, li) => (
@@ -1346,7 +1331,7 @@ export default function AnalysisPage() {
 
                           {notCoveredStandardsSections.map((section, index) => (
                             <div key={`not-covered-${index}`} style={reportSectionRowStyle}>
-                              <div style={reportPanelTitleStyle}>Not Covered in the Lesson</div>
+                              <div style={reportPanelTitleStyle}>Standards Not Observed</div>
                               {section.bullets.length > 0 ? (
                                 <ul style={reportPanelListStyle}>
                                   {section.bullets.map((item, li) => (
@@ -1365,14 +1350,33 @@ export default function AnalysisPage() {
 
                   {standardsRecommendationSections.length > 0 && (
                     <>
-                      {standardsRecommendationSections.map((section, index) => (
-                        <div key={`standards-recommendation-${index}`} style={reportSectionPanelStyle}>
-                          <div style={reportPanelTitleStyle}>Recommended Standards Follow-Up</div>
-                          <div style={reportPanelTextStyle}>
-                            {section.bullets.length > 0 ? section.bullets.join(' ') : section.content}
-                          </div>
+                      <div style={reportSectionHeadingStyle}>Recommended Standards Follow-Up</div>
+                      <div style={reportSectionPanelStyle}>
+                        <div style={reportStackStyle}>
+                          {standardsRecommendationSections.map((section, index) => (
+                            <div
+                              key={`standards-recommendation-${index}`}
+                              style={{
+                                ...reportSectionRowStyle,
+                                borderBottom:
+                                  index === standardsRecommendationSections.length - 1
+                                    ? 'none'
+                                    : reportSectionRowStyle.borderBottom,
+                              }}
+                            >
+                              {section.bullets.length > 0 ? (
+                                <ul style={reportPanelListStyle}>
+                                  {section.bullets.map((item, li) => (
+                                    <li key={li}>{item}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div style={reportPanelTextStyle}>{section.content}</div>
+                              )}
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      </div>
                     </>
                   )}
 
