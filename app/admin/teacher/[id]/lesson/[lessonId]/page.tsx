@@ -50,6 +50,10 @@ export default function LessonReportPage() {
     if (lessonId) load();
   }, [lessonId, teacherId]);
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [lessonId, teacherId]);
+
   if (loading) return <div style={loadingState}>Loading lesson report...</div>;
   if (!lesson) return <div style={loadingState}>Lesson not found.</div>;
 
@@ -310,6 +314,7 @@ export default function LessonReportPage() {
 const page: React.CSSProperties = {
   minHeight: '100vh',
   background: 'var(--surface-page)',
+  paddingTop: 12,
 };
 
 const container: React.CSSProperties = {

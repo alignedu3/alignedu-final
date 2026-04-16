@@ -55,6 +55,10 @@ export default function TeacherDetailPage() {
   }, [id]);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [id]);
+
+  useEffect(() => {
     setChartReady(true);
   }, []);
 
@@ -331,6 +335,7 @@ export default function TeacherDetailPage() {
 const page: React.CSSProperties = {
   minHeight: '100vh',
   background: 'var(--surface-page)',
+  paddingTop: 12,
 };
 
 const container: React.CSSProperties = {

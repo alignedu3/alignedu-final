@@ -600,7 +600,7 @@ export default function HomePage() {
       {/* TEKS COVERAGE */}
       <section
         style={{
-          padding: 'clamp(64px, 8vw, 84px) 20px',
+          padding: 'clamp(60px, 7vw, 76px) 20px clamp(44px, 5vw, 56px)',
           background: theme.sectionSoft,
         }}
       >
@@ -694,7 +694,7 @@ export default function HomePage() {
       {/* BEFORE / AFTER */}
       <section
         style={{
-          padding: 'clamp(62px, 7.5vw, 80px) 20px clamp(66px, 8vw, 84px)',
+          padding: 'clamp(40px, 5vw, 52px) 20px clamp(66px, 8vw, 84px)',
           background: theme.sectionSoft,
         }}
       >
