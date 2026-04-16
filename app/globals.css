@@ -668,7 +668,7 @@ audio {
 .analysis-actions,
 .submit-btn-container {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   margin-top: 12px;
 }
 
