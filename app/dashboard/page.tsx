@@ -620,14 +620,14 @@ export default function TeacherDashboard() {
                 {(selectedLessonSections.staar.length > 0 || selectedLessonSections.teks.length > 0 || selectedLessonTEKS) && (
                   <div style={{ ...reportSectionCard, ...teksSectionCard }}>
                     <div style={reportSectionTitle}>TEKS Coverage</div>
-                    <div style={teksSummaryGrid}>
-                      <div style={teksNarrativeCard}>
+                    <div style={teksSectionStack}>
+                      <div style={teksSectionRow}>
                         <div style={reportSubsectionTitle}>Readiness Summary</div>
                         <p style={reportBodyText}>
                           {selectedLessonStandards.readinessSummary || selectedLessonTEKS?.readinessSummary || 'This lesson includes standards evidence that can support a TEKS-aligned coaching conversation.'}
                         </p>
                       </div>
-                      <div style={teksNarrativeCard}>
+                      <div style={teksSectionRow}>
                         <div style={reportSubsectionTitle}>Standards Mastery Notes</div>
                         <p style={reportBodyText}>
                           {selectedLessonStandards.masteryNotes || selectedLessonTEKS?.overview || 'Review the standards groups below to see which TEKS were reinforced, which need to be revisited, and which were not yet clearly observed in the lesson evidence.'}
@@ -637,8 +637,8 @@ export default function TeacherDashboard() {
                     {(selectedLessonStandards.reinforced.length > 0 ||
                       selectedLessonStandards.revisit.length > 0 ||
                       selectedLessonStandards.notObserved.length > 0) ? (
-                      <div style={teksStandardsGrid}>
-                        <div style={teksStandardsCard}>
+                      <div style={teksSectionStack}>
+                        <div style={teksSectionRow}>
                           <div style={reportSubsectionTitle}>Standards Reinforced</div>
                           {selectedLessonStandards.reinforced.length > 0 ? (
                             <ul style={reportList}>
@@ -652,7 +652,7 @@ export default function TeacherDashboard() {
                             <p style={reportBodyText}>No clearly reinforced TEKS were identified in the saved analysis.</p>
                           )}
                         </div>
-                        <div style={teksStandardsCard}>
+                        <div style={teksSectionRow}>
                           <div style={reportSubsectionTitle}>Standards To Revisit</div>
                           {selectedLessonStandards.revisit.length > 0 ? (
                             <ul style={reportList}>
@@ -666,7 +666,7 @@ export default function TeacherDashboard() {
                             <p style={reportBodyText}>No additional TEKS were flagged for stronger assessment evidence in this report.</p>
                           )}
                         </div>
-                        <div style={teksStandardsCard}>
+                        <div style={teksSectionRow}>
                           <div style={reportSubsectionTitle}>Standards Not Observed</div>
                           {selectedLessonStandards.notObserved.length > 0 ? (
                             <ul style={reportList}>
@@ -682,7 +682,7 @@ export default function TeacherDashboard() {
                         </div>
                       </div>
                     ) : selectedLessonTEKS?.hasStandards && (
-                      <div style={{ marginTop: 14 }}>
+                      <div style={{ ...teksSectionRow, marginTop: 8 }}>
                         <div style={reportSubsectionTitle}>Priority TEKS Observed</div>
                         <ul style={reportList}>
                           {selectedLessonTEKS.standards.map((standard) => (
@@ -694,13 +694,13 @@ export default function TeacherDashboard() {
                       </div>
                     )}
                     {selectedLessonStandards.recommendations && (
-                      <div style={{ ...teksRecommendationCard, marginTop: 14 }}>
+                      <div style={{ ...teksSectionRow, marginTop: 8 }}>
                         <div style={reportSubsectionTitle}>Recommended Standards Follow-Up</div>
                         <p style={reportBodyText}>{selectedLessonStandards.recommendations}</p>
                       </div>
                     )}
                     {selectedLessonSections.teks.length === 0 && (selectedLessonTEKS?.strengths?.length ?? 0) > 0 && (
-                      <div style={{ marginTop: 14 }}>
+                      <div style={{ ...teksSectionRow, marginTop: 8 }}>
                         <div style={reportSubsectionTitle}>Alignment Strengths</div>
                         <ul style={reportList}>
                           {selectedLessonTEKS?.strengths.map((item, index) => (
@@ -710,7 +710,7 @@ export default function TeacherDashboard() {
                       </div>
                     )}
                     {selectedLessonSections.teks.length === 0 && (selectedLessonTEKS?.gaps?.length ?? 0) > 0 && (
-                      <div style={{ marginTop: 14 }}>
+                      <div style={{ ...teksSectionRow, marginTop: 8 }}>
                         <div style={reportSubsectionTitle}>Alignment Gaps</div>
                         <ul style={reportList}>
                           {selectedLessonTEKS?.gaps.map((item, index) => (
@@ -1031,38 +1031,16 @@ const teksSectionCard: React.CSSProperties = {
   borderColor: 'rgba(59,130,246,0.18)',
 };
 
-const teksSummaryGrid: React.CSSProperties = {
+const teksSectionStack: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-  gap: 12,
-  marginBottom: 14,
+  gap: 0,
+  marginTop: 8,
+  borderTop: '1px solid rgba(59,130,246,0.12)',
 };
 
-const teksNarrativeCard: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 14,
-  border: '1px solid rgba(59,130,246,0.14)',
-  background: 'var(--surface-chip)',
-};
-
-const teksStandardsGrid: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-  gap: 12,
-};
-
-const teksStandardsCard: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 14,
-  border: '1px solid rgba(59,130,246,0.14)',
-  background: 'var(--surface-chip)',
-};
-
-const teksRecommendationCard: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 14,
-  border: '1px solid rgba(37,99,235,0.16)',
-  background: 'var(--surface-chip)',
+const teksSectionRow: React.CSSProperties = {
+  padding: '18px 0',
+  borderBottom: '1px solid rgba(59,130,246,0.12)',
 };
 
 const analysisSectionCard: React.CSSProperties = {

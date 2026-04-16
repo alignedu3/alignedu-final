@@ -200,14 +200,14 @@ export default function LessonReportPage() {
         {(reportSections.staar.length > 0 || reportSections.teks.length > 0 || teksCoverage) && (
           <div style={{ ...sectionCard, ...teksSectionCard }}>
             <h2 style={sectionTitle}>TEKS Coverage</h2>
-            <div style={teksSummaryGrid}>
-              <div style={teksNarrativeCard}>
+            <div style={teksSectionStack}>
+              <div style={teksSectionRow}>
                 <div style={subsectionTitle}>Readiness Summary</div>
                 <p style={bodyText}>
                   {lessonStandards.readinessSummary || teksCoverage?.readinessSummary || 'This lesson includes standards evidence that can support a TEKS-aligned coaching conversation.'}
                 </p>
               </div>
-              <div style={teksNarrativeCard}>
+              <div style={teksSectionRow}>
                 <div style={subsectionTitle}>Standards Mastery Notes</div>
                 <p style={bodyText}>
                   {lessonStandards.masteryNotes || teksCoverage?.overview || 'Review the standards groups below to see which TEKS were reinforced, which need to be revisited, and which were not yet clearly observed in the lesson evidence.'}
@@ -215,8 +215,8 @@ export default function LessonReportPage() {
               </div>
             </div>
             {(lessonStandards.reinforced.length > 0 || lessonStandards.revisit.length > 0 || lessonStandards.notObserved.length > 0) ? (
-              <div style={teksStandardsGrid}>
-                <div style={teksStandardsCard}>
+              <div style={teksSectionStack}>
+                <div style={teksSectionRow}>
                   <div style={subsectionTitle}>Standards Reinforced</div>
                   {lessonStandards.reinforced.length > 0 ? (
                     <ul style={findingsList}>
@@ -230,7 +230,7 @@ export default function LessonReportPage() {
                     <p style={bodyText}>No clearly reinforced TEKS were identified in the saved analysis.</p>
                   )}
                 </div>
-                <div style={teksStandardsCard}>
+                <div style={teksSectionRow}>
                   <div style={subsectionTitle}>Standards To Revisit</div>
                   {lessonStandards.revisit.length > 0 ? (
                     <ul style={findingsList}>
@@ -244,7 +244,7 @@ export default function LessonReportPage() {
                     <p style={bodyText}>No additional TEKS were flagged for stronger assessment evidence in this report.</p>
                   )}
                 </div>
-                <div style={teksStandardsCard}>
+                <div style={teksSectionRow}>
                   <div style={subsectionTitle}>Standards Not Observed</div>
                   {lessonStandards.notObserved.length > 0 ? (
                     <ul style={findingsList}>
@@ -260,7 +260,7 @@ export default function LessonReportPage() {
                 </div>
               </div>
             ) : teksCoverage?.hasStandards && (
-              <div style={{ marginTop: 14 }}>
+              <div style={{ ...teksSectionRow, marginTop: 8 }}>
                 <div style={subsectionTitle}>Priority TEKS Observed</div>
                 <ul style={findingsList}>
                   {teksCoverage.standards.map((standard) => (
@@ -272,13 +272,13 @@ export default function LessonReportPage() {
               </div>
             )}
             {lessonStandards.recommendations && (
-              <div style={{ ...teksRecommendationCard, marginTop: 14 }}>
+              <div style={{ ...teksSectionRow, marginTop: 8 }}>
                 <div style={subsectionTitle}>Recommended Standards Follow-Up</div>
                 <p style={bodyText}>{lessonStandards.recommendations}</p>
               </div>
             )}
             {reportSections.teks.length === 0 && (teksCoverage?.strengths?.length ?? 0) > 0 && (
-              <div style={{ marginTop: 14 }}>
+              <div style={{ ...teksSectionRow, marginTop: 8 }}>
                 <div style={subsectionTitle}>Alignment Strengths</div>
                 <ul style={findingsList}>
                   {teksCoverage?.strengths.map((finding, index) => (
@@ -288,7 +288,7 @@ export default function LessonReportPage() {
               </div>
             )}
             {reportSections.teks.length === 0 && (teksCoverage?.gaps?.length ?? 0) > 0 && (
-              <div style={{ marginTop: 14 }}>
+              <div style={{ ...teksSectionRow, marginTop: 8 }}>
                 <div style={subsectionTitle}>Alignment Gaps</div>
                 <ul style={findingsList}>
                   {teksCoverage?.gaps.map((finding, index) => (
@@ -585,38 +585,16 @@ const teksSectionCard: React.CSSProperties = {
   borderColor: 'rgba(59,130,246,0.18)',
 };
 
-const teksSummaryGrid: React.CSSProperties = {
+const teksSectionStack: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-  gap: 12,
-  marginBottom: 14,
+  gap: 0,
+  marginTop: 8,
+  borderTop: '1px solid rgba(59,130,246,0.12)',
 };
 
-const teksNarrativeCard: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 14,
-  border: '1px solid rgba(59,130,246,0.14)',
-  background: 'var(--surface-chip)',
-};
-
-const teksStandardsGrid: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-  gap: 12,
-};
-
-const teksStandardsCard: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 14,
-  border: '1px solid rgba(59,130,246,0.14)',
-  background: 'var(--surface-chip)',
-};
-
-const teksRecommendationCard: React.CSSProperties = {
-  padding: 14,
-  borderRadius: 14,
-  border: '1px solid rgba(37,99,235,0.16)',
-  background: 'var(--surface-chip)',
+const teksSectionRow: React.CSSProperties = {
+  padding: '18px 0',
+  borderBottom: '1px solid rgba(59,130,246,0.12)',
 };
 
 const analysisSectionCard: React.CSSProperties = {
