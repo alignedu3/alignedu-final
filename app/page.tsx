@@ -279,7 +279,7 @@ export default function HomePage() {
                   style={primaryBtn}
                   className="hero-cta hero-cta-unified"
                 >
-                  Book Demo
+                  Request Demo
                 </button>
 
               </div>
@@ -1116,7 +1116,7 @@ export default function HomePage() {
                 style={primaryBtn}
                 className="hero-cta"
               >
-                Book Demo
+                Request Demo
               </button>
             </div>
           </div>
