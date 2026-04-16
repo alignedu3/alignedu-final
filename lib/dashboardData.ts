@@ -105,6 +105,14 @@ export function getTEKSCoverageInsights(report: AnalysisReport) {
 
   const metrics = getLessonMetrics(report);
   const { standards, overview, found } = getTEKSStandards(String(report.grade || ''), String(report.subject || ''));
+  const relatedStandards = found
+    ? getRelatedTEKSStandards(
+        String(report.grade || ''),
+        String(report.subject || ''),
+        `${report.title || ''} ${report.result || report.analysis_result || ''}`,
+        { limit: 3 }
+      )
+    : [];
   const strengths: string[] = [];
   const gaps: string[] = [];
 
@@ -141,11 +149,44 @@ export function getTEKSCoverageInsights(report: AnalysisReport) {
 
   return {
     overview,
-    standards: found ? standards.slice(0, 3) : [],
+    standards: found ? (relatedStandards.length ? relatedStandards : standards.slice(0, 3)) : [],
     hasStandards: found && standards.length > 0,
     strengths,
     gaps,
     readinessSummary,
+  };
+}
+
+function formatStandardsBlock(standards: TEKSStandard[]) {
+  return standards.map((standard) => `  - ${standard.code}: ${standard.description}`);
+}
+
+function buildSampleStandardsAlignment(report: LessonReport, improvements: string[]) {
+  const topicContext = `${report.title} ${report.subject} ${report.grade}`;
+  const covered = getRelatedTEKSStandards(report.grade, report.subject, topicContext, { limit: 3 });
+  const reinforcement = getRelatedTEKSStandards(
+    report.grade,
+    report.subject,
+    `${topicContext} ${improvements.join(' ')}`,
+    {
+      limit: 3,
+      excludeCodes: covered.map((standard) => standard.code),
+    }
+  );
+  const notCovered = getRelatedTEKSStandards(
+    report.grade,
+    report.subject,
+    `${topicContext} extension prerequisite application evidence lab analysis`,
+    {
+      limit: 3,
+      excludeCodes: [...covered, ...reinforcement].map((standard) => standard.code),
+    }
+  );
+
+  return {
+    covered,
+    reinforcement,
+    notCovered,
   };
 }
 
@@ -195,18 +236,7 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     improvements.push('Revisit unfinished content and close conceptual gaps before progressing to the next lesson sequence.');
   }
 
-  const reinforcedStandards = getRelatedTEKSStandards(report.grade, report.subject, report.title, { limit: 2 });
-  const weakerAssessmentStandards = getRelatedTEKSStandards(
-    report.grade,
-    report.subject,
-    `${report.title} ${improvements.join(' ')}`,
-    { limit: 2, excludeCodes: reinforcedStandards.map((standard) => standard.code) }
-  );
-
-  const formatStandardsBlock = (standards: TEKSStandard[], fallback: string) =>
-    standards.length
-      ? standards.map((standard) => `  - ${standard.code}: ${standard.description}`)
-      : [`  - ${fallback}`];
+  const standardsAlignment = buildSampleStandardsAlignment(report, improvements);
 
   return [
     'Metrics:',
@@ -238,24 +268,20 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     '=== STAAR TEKS COVERAGE ===',
     `- Readiness Summary: The lesson is ${report.coverage >= 88 ? 'strongly aligned' : 'partially aligned'} to the assessed Biology standard for this course sequence.`,
     '- Standards Reinforced:',
-    ...formatStandardsBlock(reinforcedStandards, 'BIO.5.A: Describe the structures of prokaryotic and eukaryotic cells, including cell membrane, cell wall, nucleus, and organelles.'),
+    ...formatStandardsBlock(standardsAlignment.covered),
     '- Standards That Need Stronger Assessment Evidence:',
-    ...formatStandardsBlock(
-      weakerAssessmentStandards,
-      'BIO.10.A: Construct and communicate scientific explanations and arguments using evidence from biological investigations.'
-    ),
+    ...formatStandardsBlock(standardsAlignment.reinforcement),
     `- STAAR Readiness Recommendation: ${report.coverage >= 88 ? 'Maintain strong standards alignment while deepening independent student evidence.' : 'Tighten the connection between instruction, practice, and the assessed TEKS expectation.'}`,
     '',
     '=== TEXAS TEKS STANDARDS ALIGNMENT ===',
-    '- Standards Addressed:',
-    ...formatStandardsBlock(reinforcedStandards, 'BIO.5.A: Describe the structures of prokaryotic and eukaryotic cells, including cell membrane, cell wall, nucleus, and organelles.'),
-    '- Standards Not Observed:',
-    ...formatStandardsBlock(
-      weakerAssessmentStandards,
-      'BIO.10.A: Construct and communicate scientific explanations and arguments using evidence from biological investigations.'
-    ),
-    '- Standards Mastery Notes: Students were introduced to the core concept, but mastery evidence was stronger when the lesson included concrete checks for understanding.',
-    '- Recommendations for Standards Integration: Add one short written response or labeled diagram task tied directly to the target TEKS before the lesson ends.',
+    '- Covered in the Lesson:',
+    ...formatStandardsBlock(standardsAlignment.covered),
+    '- Needs Reinforcement:',
+    ...formatStandardsBlock(standardsAlignment.reinforcement),
+    '- Not Covered in the Lesson:',
+    ...formatStandardsBlock(standardsAlignment.notCovered),
+    '- Standards Mastery Notes: Students engaged with the central biology concept, but the strongest mastery evidence appeared when the lesson required precise academic language, explanation, or transfer beyond the modeled example.',
+    '- Recommended Standards Follow-Up: Revisit one reinforcement TEKS in the next lesson with a brief written or verbal mastery check, then add one not-covered TEKS as an application or extension task so students connect the concept to broader course expectations.',
   ].join('\n');
 }
 

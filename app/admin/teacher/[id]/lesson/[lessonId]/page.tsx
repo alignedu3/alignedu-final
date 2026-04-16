@@ -61,12 +61,12 @@ export default function LessonReportPage() {
   const reportSections = getLessonReportSections(lesson);
   const teksCoverage = getTEKSCoverageInsights(lesson);
   const lessonStandards = {
-    reinforced: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards Reinforced', 'Standards Addressed']),
-    revisit: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards That Need Stronger Assessment Evidence']),
-    notObserved: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards Not Observed']),
+    reinforced: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards Reinforced', 'Standards Addressed', 'Covered in the Lesson']),
+    revisit: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards That Need Stronger Assessment Evidence', 'Needs Reinforcement']),
+    notObserved: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards Not Observed', 'Not Covered in the Lesson']),
     readinessSummary: extractSectionText(reportSections.staar, ['Readiness Summary']),
     masteryNotes: extractSectionText(reportSections.teks, ['Standards Mastery Notes']),
-    recommendations: extractSectionText([...reportSections.staar, ...reportSections.teks], ['Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
+    recommendations: extractSectionText([...reportSections.staar, ...reportSections.teks], ['Recommended Standards Follow-Up', 'Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
   };
   const submissionContextText = reportSections.submissionContext
     .map((section) => {

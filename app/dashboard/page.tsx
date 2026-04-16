@@ -223,12 +223,12 @@ export default function TeacherDashboard() {
     const allSections = [...selectedLessonSections.staar, ...selectedLessonSections.teks];
 
     return {
-      reinforced: extractStandardEntries(allSections, ['Standards Reinforced', 'Standards Addressed']),
-      revisit: extractStandardEntries(allSections, ['Standards That Need Stronger Assessment Evidence']),
-      notObserved: extractStandardEntries(allSections, ['Standards Not Observed']),
+      reinforced: extractStandardEntries(allSections, ['Standards Reinforced', 'Standards Addressed', 'Covered in the Lesson']),
+      revisit: extractStandardEntries(allSections, ['Standards That Need Stronger Assessment Evidence', 'Needs Reinforcement']),
+      notObserved: extractStandardEntries(allSections, ['Standards Not Observed', 'Not Covered in the Lesson']),
       readinessSummary: extractSectionText(selectedLessonSections.staar, ['Readiness Summary']),
       masteryNotes: extractSectionText(selectedLessonSections.teks, ['Standards Mastery Notes']),
-      recommendations: extractSectionText(allSections, ['Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
+      recommendations: extractSectionText(allSections, ['Recommended Standards Follow-Up', 'Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
     };
   }, [selectedLessonSections]);
   const hasStructuredSelectedLesson = useMemo(() => {

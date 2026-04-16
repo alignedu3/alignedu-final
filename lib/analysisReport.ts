@@ -219,7 +219,7 @@ export function extractStandardEntries(
 
   return sourceLines
     .map((line) => {
-      const match = line.match(/^([A-Za-z0-9().-]+)\s*:\s*(.+)$/);
+      const match = line.match(/^([^:\s][^:]*)\s*:\s*(.+)$/);
       if (!match) return null;
       return {
         code: match[1].trim(),
