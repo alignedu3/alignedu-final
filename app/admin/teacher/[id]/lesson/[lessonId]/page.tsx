@@ -318,11 +318,12 @@ const container: React.CSSProperties = {
 };
 
 const heroCard: React.CSSProperties = {
-  background: 'linear-gradient(135deg, rgba(249,115,22,0.08), rgba(255,255,255,0.78))',
+  background: 'var(--surface-card-solid)',
   border: '1px solid rgba(249,115,22,0.16)',
   borderRadius: 18,
   padding: 28,
   marginBottom: 22,
+  boxShadow: 'var(--shadow-soft)',
 };
 
 const heroTop: React.CSSProperties = {
@@ -367,7 +368,7 @@ const summaryBanner: React.CSSProperties = {
   alignItems: 'center',
   padding: 18,
   borderRadius: 14,
-  background: 'rgba(255,255,255,0.84)',
+  background: 'var(--surface-chip)',
   border: '1px solid rgba(249,115,22,0.14)',
 };
 
@@ -386,7 +387,7 @@ const summaryText: React.CSSProperties = {
 const summaryScoreCard: React.CSSProperties = {
   borderRadius: 14,
   border: '1px solid rgba(249,115,22,0.16)',
-  background: 'rgba(255,255,255,0.88)',
+  background: 'var(--surface-card-solid)',
   padding: 18,
   display: 'flex',
   flexDirection: 'column',
@@ -417,11 +418,15 @@ const metricGrid: React.CSSProperties = {
 };
 
 const metricCard: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
   borderRadius: 14,
-  padding: 18,
-  boxShadow: '0 8px 24px rgba(15,23,42,0.04)',
+  padding: '14px 16px',
+  boxShadow: 'var(--shadow-soft)',
 };
 
 const metricLabel: React.CSSProperties = {
@@ -434,9 +439,10 @@ const metricLabel: React.CSSProperties = {
 
 const metricValue: React.CSSProperties = {
   color: 'var(--text-primary)',
-  fontSize: 26,
-  marginTop: 8,
+  fontSize: 24,
   fontWeight: 700,
+  lineHeight: 1,
+  whiteSpace: 'nowrap',
 };
 
 const sectionCard: React.CSSProperties = {
@@ -445,7 +451,7 @@ const sectionCard: React.CSSProperties = {
   borderRadius: 14,
   padding: 22,
   marginBottom: 18,
-  boxShadow: '0 10px 28px rgba(15,23,42,0.05)',
+  boxShadow: 'var(--shadow-soft)',
 };
 
 const sectionTitle: React.CSSProperties = {
@@ -521,56 +527,56 @@ const sectionStack: React.CSSProperties = {
 };
 
 const overallMetricCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(249,115,22,0.08), rgba(255,255,255,0.96))',
+  background: 'var(--surface-card-solid)',
   borderColor: 'rgba(249,115,22,0.16)',
 };
 
 const coverageMetricCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(59,130,246,0.08), rgba(255,255,255,0.96))',
+  background: 'var(--surface-card-solid)',
   borderColor: 'rgba(59,130,246,0.16)',
 };
 
 const clarityMetricCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(14,165,233,0.08), rgba(255,255,255,0.96))',
+  background: 'var(--surface-card-solid)',
   borderColor: 'rgba(14,165,233,0.16)',
 };
 
 const engagementMetricCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(16,185,129,0.08), rgba(255,255,255,0.96))',
+  background: 'var(--surface-card-solid)',
   borderColor: 'rgba(16,185,129,0.16)',
 };
 
 const assessmentMetricCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(245,158,11,0.08), rgba(255,255,255,0.96))',
+  background: 'var(--surface-card-solid)',
   borderColor: 'rgba(245,158,11,0.16)',
 };
 
 const gapsMetricCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(239,68,68,0.08), rgba(255,255,255,0.96))',
+  background: 'var(--surface-card-solid)',
   borderColor: 'rgba(239,68,68,0.16)',
 };
 
 const contextSectionCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(15,23,42,0.03), rgba(255,255,255,0.98))',
+  background: 'var(--surface-card-solid)',
 };
 
 const successSectionCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(16,185,129,0.06), rgba(255,255,255,0.98))',
+  background: 'var(--surface-card-solid)',
   borderColor: 'rgba(16,185,129,0.18)',
 };
 
 const improvementSectionCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(245,158,11,0.07), rgba(255,255,255,0.98))',
+  background: 'var(--surface-card-solid)',
   borderColor: 'rgba(245,158,11,0.18)',
 };
 
 const nextStepSectionCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(249,115,22,0.06), rgba(255,255,255,0.98))',
+  background: 'var(--surface-card-solid)',
   borderColor: 'rgba(249,115,22,0.18)',
 };
 
 const teksSectionCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(59,130,246,0.06), rgba(255,255,255,0.98))',
+  background: 'var(--surface-card-solid)',
   borderColor: 'rgba(59,130,246,0.18)',
 };
 
@@ -585,7 +591,7 @@ const teksNarrativeCard: React.CSSProperties = {
   padding: 14,
   borderRadius: 14,
   border: '1px solid rgba(59,130,246,0.14)',
-  background: 'rgba(255,255,255,0.78)',
+  background: 'var(--surface-chip)',
 };
 
 const teksStandardsGrid: React.CSSProperties = {
@@ -598,17 +604,17 @@ const teksStandardsCard: React.CSSProperties = {
   padding: 14,
   borderRadius: 14,
   border: '1px solid rgba(59,130,246,0.14)',
-  background: 'rgba(255,255,255,0.78)',
+  background: 'var(--surface-chip)',
 };
 
 const teksRecommendationCard: React.CSSProperties = {
   padding: 14,
   borderRadius: 14,
   border: '1px solid rgba(37,99,235,0.16)',
-  background: 'linear-gradient(180deg, rgba(59,130,246,0.08), rgba(255,255,255,0.82))',
+  background: 'var(--surface-chip)',
 };
 
 const analysisSectionCard: React.CSSProperties = {
-  background: 'linear-gradient(180deg, rgba(99,102,241,0.05), rgba(255,255,255,0.98))',
+  background: 'var(--surface-card-solid)',
   borderColor: 'rgba(99,102,241,0.16)',
 };

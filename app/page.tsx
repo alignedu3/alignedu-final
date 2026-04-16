@@ -112,14 +112,17 @@ export default function HomePage() {
   const teksCoverageGroups = [
     {
       label: 'Elementary School',
+      note: 'Foundational STAAR-tested coverage',
       items: ['Grade 3 Math', 'Grade 3 ELA', 'Grade 4 Math', 'Grade 4 ELA', 'Grade 5 Math', 'Grade 5 ELA', 'Grade 5 Science'],
     },
     {
       label: 'Middle School',
+      note: 'Core tested subjects by grade band',
       items: ['Grade 6 Math', 'Grade 6 ELA', 'Grade 6 Science', 'Grade 7 Math', 'Grade 7 ELA', 'Grade 8 Math', 'Grade 8 ELA', 'Grade 8 Science', 'Grade 8 Social Studies'],
     },
     {
       label: 'High School',
+      note: 'End-of-course tested content areas',
       items: ['Algebra I', 'English II', 'Biology', 'U.S. History'],
     },
   ];
@@ -499,7 +502,7 @@ export default function HomePage() {
       {/* FEATURES */}
       <section
         style={{
-          padding: 'clamp(68px, 9vw, 90px) 20px',
+          padding: 'clamp(62px, 7.5vw, 78px) 20px clamp(66px, 8.5vw, 84px)',
           background: theme.sectionSoft,
         }}
       >
@@ -547,7 +550,7 @@ export default function HomePage() {
       {/* WHAT YOU GET */}
       <section
         style={{
-          padding: 'clamp(68px, 9vw, 90px) 20px',
+          padding: 'clamp(64px, 8vw, 84px) 20px',
           background: theme.sectionAlt,
         }}
       >
@@ -597,7 +600,7 @@ export default function HomePage() {
       {/* TEKS COVERAGE */}
       <section
         style={{
-          padding: 'clamp(68px, 9vw, 90px) 20px',
+          padding: 'clamp(64px, 8vw, 84px) 20px',
           background: theme.sectionSoft,
         }}
       >
@@ -614,64 +617,128 @@ export default function HomePage() {
 
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-              gap: '18px',
+              ...glassCard,
+              background:
+                isDarkMode
+                  ? 'linear-gradient(180deg, rgba(15,23,42,0.72), rgba(15,23,42,0.9))'
+                  : 'linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.96))',
+              border: `1px solid ${theme.cardBorder}`,
+              padding: '24px',
             }}
           >
-            {teksCoverageGroups.map((group) => (
-              <div
-                key={group.label}
-                style={{
-                  ...glassCard,
-                  background: theme.cardBg,
-                  border: `1px solid ${theme.cardBorder}`,
-                  padding: '22px 20px',
-                }}
-              >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                flexWrap: 'wrap',
+                gap: '10px',
+                marginBottom: '22px',
+              }}
+            >
+              {teksCoverageGroups.map((group) => (
                 <div
+                  key={`${group.label}-count`}
                   style={{
-                    color: theme.text,
-                    fontSize: '18px',
-                    fontWeight: 800,
-                    marginBottom: '14px',
-                    textAlign: 'center',
-                  }}
-                >
-                  {group.label}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    justifyContent: 'center',
+                    display: 'inline-flex',
+                    alignItems: 'center',
                     gap: '8px',
+                    padding: '10px 14px',
+                    borderRadius: '999px',
+                    background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)',
+                    border: `1px solid ${theme.cardBorder}`,
+                    color: theme.text,
+                    fontSize: '12px',
+                    fontWeight: 700,
                   }}
                 >
-                  {group.items.map((item) => (
-                    <div
-                      key={item}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '7px 10px',
-                        borderRadius: '999px',
-                        background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)',
-                        border: `1px solid ${theme.cardBorder}`,
-                        color: theme.text,
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        lineHeight: 1.2,
-                        textAlign: 'center',
-                      }}
-                    >
-                      <span>{item}</span>
-                    </div>
-                  ))}
+                  <span style={{ color: '#0f766e' }}>{group.items.length}</span>
+                  <span>{group.label}</span>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+                gap: '18px',
+              }}
+            >
+              {teksCoverageGroups.map((group) => (
+                <div
+                  key={group.label}
+                  style={{
+                    ...glassCard,
+                    background: isDarkMode ? 'rgba(15,23,42,0.72)' : '#ffffff',
+                    border: `1px solid ${theme.cardBorder}`,
+                    padding: '22px 20px',
+                    boxShadow: isDarkMode ? '0 14px 36px rgba(2,6,23,0.18)' : '0 18px 38px rgba(15,23,42,0.06)',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '42px',
+                      height: '4px',
+                      borderRadius: '999px',
+                      margin: '0 auto 14px',
+                      background: 'linear-gradient(90deg, #2563eb, #0f766e)',
+                    }}
+                  />
+                  <div
+                    style={{
+                      color: theme.text,
+                      fontSize: '18px',
+                      fontWeight: 800,
+                      marginBottom: '6px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    {group.label}
+                  </div>
+                  <div
+                    style={{
+                      color: theme.mutedText,
+                      fontSize: '13px',
+                      textAlign: 'center',
+                      lineHeight: 1.5,
+                      marginBottom: '14px',
+                    }}
+                  >
+                    {group.note}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      justifyContent: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    {group.items.map((item) => (
+                      <div
+                        key={item}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '7px 10px',
+                          borderRadius: '999px',
+                          background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)',
+                          border: `1px solid ${theme.cardBorder}`,
+                          color: theme.text,
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          lineHeight: 1.2,
+                          textAlign: 'center',
+                        }}
+                      >
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -679,7 +746,7 @@ export default function HomePage() {
       {/* BEFORE / AFTER */}
       <section
         style={{
-          padding: 'clamp(68px, 9vw, 90px) 20px',
+          padding: 'clamp(62px, 7.5vw, 80px) 20px clamp(66px, 8vw, 84px)',
           background: theme.sectionSoft,
         }}
       >
@@ -737,7 +804,7 @@ export default function HomePage() {
       {/* HOW IT WORKS */}
       <section
         style={{
-          padding: 'clamp(68px, 9vw, 90px) 20px',
+          padding: 'clamp(64px, 8vw, 84px) 20px',
           background: theme.sectionAlt,
         }}
       >
@@ -775,7 +842,7 @@ export default function HomePage() {
       {/* WHO IT'S FOR */}
       <section
         style={{
-          padding: 'clamp(68px, 9vw, 90px) 20px',
+          padding: 'clamp(64px, 8vw, 84px) 20px',
           background:
             isDarkMode
               ? 'linear-gradient(135deg, #0b1730 0%, #0f3d5e 100%)'
@@ -815,7 +882,7 @@ export default function HomePage() {
       {/* DISTRICT SCALE */}
       <section
         style={{
-          padding: 'clamp(68px, 9vw, 90px) 20px',
+          padding: 'clamp(64px, 8vw, 84px) 20px',
           background: theme.sectionSoft,
         }}
       >
@@ -845,7 +912,7 @@ export default function HomePage() {
       {/* FINAL CTA */}
       <section
         style={{
-          padding: 'clamp(68px, 9vw, 88px) 20px',
+          padding: 'clamp(66px, 8vw, 86px) 20px',
           background:
             'linear-gradient(135deg, #020617 0%, #0f172a 50%, #0f766e 100%)',
           color: '#ffffff',

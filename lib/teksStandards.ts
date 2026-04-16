@@ -75,6 +75,20 @@ function normalizeSubject(subject: string): string {
   return aliases[value] || value;
 }
 
+function getGradeCandidates(grade: string, subject: string): string[] {
+  const normalizedGrade = normalizeGrade(grade);
+  const normalizedSubject = normalizeSubject(subject);
+
+  if (
+    (normalizedSubject === 'biology' || normalizedSubject === 'chemistry') &&
+    (normalizedGrade === '9' || normalizedGrade === '10')
+  ) {
+    return ['9', '10'];
+  }
+
+  return [normalizedGrade];
+}
+
 const teksDatabase: TEKSGradeSubject[] = [
   // GRADE 3 ELA
   {
@@ -887,7 +901,7 @@ const teksDatabase: TEKSGradeSubject[] = [
 
   // BIOLOGY (HIGH SCHOOL)
   {
-    grade: "10th Grade",
+    grade: "9th Grade",
     subject: "Biology",
     overviewStatement:
       "Biology emphasizes structure and function of living systems, heredity, ecosystems, energy transfer, and scientific reasoning.",
@@ -950,6 +964,70 @@ const teksDatabase: TEKSGradeSubject[] = [
         code: "BIO.10.A",
         description:
           "Construct and communicate scientific explanations and arguments using evidence from biological investigations.",
+        category: "Scientific Reasoning",
+      },
+    ],
+  },
+
+  // CHEMISTRY (HIGH SCHOOL)
+  {
+    grade: "10th Grade",
+    subject: "Chemistry",
+    overviewStatement:
+      "Chemistry emphasizes atomic structure, the periodic table, bonding, reactions, stoichiometry, solutions, and scientific reasoning.",
+    standards: [
+      {
+        code: "CHEM.5.A",
+        description:
+          "Describe the structure of atoms, including protons, neutrons, electrons, and isotope notation.",
+        category: "Atomic Structure",
+      },
+      {
+        code: "CHEM.5.B",
+        description:
+          "Use the periodic table to predict reactivity, valence electrons, and trends in chemical properties.",
+        category: "Periodic Table",
+      },
+      {
+        code: "CHEM.6.A",
+        description:
+          "Compare ionic, covalent, and metallic bonding and explain how bonding influences compound properties.",
+        category: "Chemical Bonding",
+      },
+      {
+        code: "CHEM.6.B",
+        description:
+          "Write and interpret chemical formulas and balanced equations for reactions.",
+        category: "Chemical Reactions",
+      },
+      {
+        code: "CHEM.7.A",
+        description:
+          "Apply conservation of mass and mole relationships to analyze chemical reactions quantitatively.",
+        category: "Stoichiometry",
+      },
+      {
+        code: "CHEM.7.B",
+        description:
+          "Investigate factors that affect reaction rate, including temperature, concentration, and catalysts.",
+        category: "Reaction Rates",
+      },
+      {
+        code: "CHEM.8.A",
+        description:
+          "Analyze acids, bases, and pH as they relate to chemical systems and real-world applications.",
+        category: "Acids & Bases",
+      },
+      {
+        code: "CHEM.8.B",
+        description:
+          "Describe properties of solutions and calculate concentration using common representations.",
+        category: "Solutions",
+      },
+      {
+        code: "CHEM.9.A",
+        description:
+          "Construct and communicate scientific explanations and arguments using evidence from chemical investigations.",
         category: "Scientific Reasoning",
       },
     ],
@@ -1204,10 +1282,12 @@ export function getTEKSStandards(
   overview: string;
   found: boolean;
 } {
+  const gradeCandidates = getGradeCandidates(grade, subject);
+  const normalizedSubject = normalizeSubject(subject);
   const match = teksDatabase.find(
     (ts) =>
-      normalizeGrade(ts.grade) === normalizeGrade(grade) &&
-      normalizeSubject(ts.subject) === normalizeSubject(subject)
+      gradeCandidates.includes(normalizeGrade(ts.grade)) &&
+      normalizeSubject(ts.subject) === normalizedSubject
   );
 
   if (match) {

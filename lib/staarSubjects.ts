@@ -19,6 +19,6 @@ export const STAAR_SUBJECTS: Array<{ grade: string; subject: string }> = [
   { grade: '8th Grade', subject: 'Social Studies' },
   { grade: '9th Grade', subject: 'Algebra I' },
   { grade: '10th Grade', subject: 'English II' },
-  { grade: '10th Grade', subject: 'Biology' },
+  { grade: '9th Grade', subject: 'Biology' },
   { grade: '11th Grade', subject: 'U.S. History' },
 ];

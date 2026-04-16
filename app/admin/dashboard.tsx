@@ -701,9 +701,6 @@ export default function AdminDashboard() {
           </div>
           <p style={text}>{recommendedSupportPlan.summary}</p>
           <div style={{ ...text, marginTop: 10 }}>
-            <strong>{recommendedSupportPlan.teacherName === 'Instructional Team' ? 'Why this focus:' : 'Why this teacher:'}</strong> {recommendedSupportPlan.priorityReason}
-          </div>
-          <div style={{ ...text, marginTop: 10 }}>
             <strong>Administrator action:</strong> {recommendedSupportPlan.adminAction}
           </div>
           <div style={{ ...supportPlanLabel, marginTop: 14, marginBottom: 8 }}>Look-fors in the next observation</div>

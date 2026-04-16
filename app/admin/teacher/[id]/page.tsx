@@ -193,9 +193,6 @@ export default function TeacherDetailPage() {
             </div>
             <p style={text}>{adminSupportPlan.summary}</p>
             <div style={{ ...text, marginTop: 10 }}>
-              <strong>Why this teacher:</strong> {adminSupportPlan.priorityReason}
-            </div>
-            <div style={{ ...text, marginTop: 10 }}>
               <strong>Administrator action:</strong> {adminSupportPlan.adminAction}
             </div>
             <div style={{ ...label, marginTop: 14, marginBottom: 8 }}>Look-fors in the next observation</div>
@@ -213,20 +210,20 @@ export default function TeacherDetailPage() {
           <div
             style={{
               marginTop: 10,
-              border: '1px solid rgba(148,163,184,0.3)',
+              border: '1px solid var(--border-strong)',
               borderRadius: 14,
               padding: '14px 12px 8px',
-              background: 'linear-gradient(180deg, rgba(15,23,42,0.8) 0%, rgba(30,41,59,0.45) 100%)',
-              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08)',
+              background: 'var(--surface-chip)',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
               minWidth: 0,
             }}
           >
             {chartReady ? (
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis domain={[0, 100]} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="date" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                  <YAxis domain={[0, 100]} stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
                   <Tooltip />
                   <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} dot={false} />
                 </LineChart>
@@ -279,7 +276,7 @@ export default function TeacherDetailPage() {
                           style={{
                             ...chip,
                             borderColor: isActive ? '#f97316' : 'rgba(148,163,184,0.16)',
-                            background: isActive ? 'rgba(249,115,22,0.14)' : 'rgba(15,23,42,0.5)',
+                            background: isActive ? 'rgba(249,115,22,0.14)' : 'var(--surface-chip)',
                           }}
                           title={chipLabel}
                         >
@@ -333,7 +330,7 @@ export default function TeacherDetailPage() {
 
 const page: React.CSSProperties = {
   minHeight: '100vh',
-  background: '#081120',
+  background: 'var(--surface-page)',
 };
 
 const container: React.CSSProperties = {
@@ -351,8 +348,8 @@ const header: React.CSSProperties = {
 };
 
 const headerMeta: React.CSSProperties = {
-  background: 'rgba(17,24,39,0.85)',
-  border: '1px solid rgba(148,163,184,0.18)',
+  background: 'var(--surface-card-solid)',
+  border: '1px solid var(--border)',
   borderRadius: 12,
   padding: '10px 12px',
   minWidth: 0,
@@ -361,7 +358,7 @@ const headerMeta: React.CSSProperties = {
 };
 
 const metaLabel: React.CSSProperties = {
-  color: '#94a3b8',
+  color: 'var(--text-secondary)',
   fontSize: 11,
   textTransform: 'uppercase',
   letterSpacing: 0.6,
@@ -369,19 +366,19 @@ const metaLabel: React.CSSProperties = {
 };
 
 const metaValue: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text-primary)',
   fontSize: 15,
   marginTop: 4,
   fontWeight: 600
 };
 
 const heading: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text-primary)',
   fontSize: 28
 };
 
 const subheading: React.CSSProperties = {
-  color: '#94a3b8'
+  color: 'var(--text-secondary)'
 };
 
 const grid: React.CSSProperties = {
@@ -392,50 +389,50 @@ const grid: React.CSSProperties = {
 };
 
 const card: React.CSSProperties = {
-  background: '#111827',
+  background: 'var(--surface-card-solid)',
   padding: 18,
   borderRadius: 12,
-  border: '1px solid rgba(148,163,184,0.12)'
+  border: '1px solid var(--border)',
 };
 
 const cardFull: React.CSSProperties = {
-  background: '#111827',
+  background: 'var(--surface-card-solid)',
   padding: 20,
   borderRadius: 12,
   marginBottom: 20,
-  border: '1px solid rgba(148,163,184,0.12)',
+  border: '1px solid var(--border)',
   minWidth: 0,
 };
 
 const label: React.CSSProperties = {
-  color: '#94a3b8',
+  color: 'var(--text-secondary)',
   fontSize: 13
 };
 
 const big: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text-primary)',
   fontSize: 24,
   marginTop: 6
 };
 
 const valueLarge: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text-primary)',
   fontSize: 22,
   marginTop: 6,
   fontWeight: 700
 };
 
 const title: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text-primary)',
   marginBottom: 10
 };
 
 const text: React.CSSProperties = {
-  color: '#94a3b8'
+  color: 'var(--text-secondary)'
 };
 
 const muted: React.CSSProperties = {
-  color: '#64748b',
+  color: 'var(--text-secondary)',
   fontSize: 12
 };
 
@@ -447,10 +444,10 @@ const overviewRow: React.CSSProperties = {
 };
 
 const overviewPanel: React.CSSProperties = {
-  border: '1px solid rgba(148,163,184,0.14)',
+  border: '1px solid var(--border)',
   borderRadius: 12,
   padding: 14,
-  background: 'rgba(15,23,42,0.45)'
+  background: 'var(--surface-chip)'
 };
 
 const supportHeader: React.CSSProperties = {
@@ -483,7 +480,7 @@ const findingsHeader: React.CSSProperties = {
 };
 
 const findingsTitle: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text-primary)',
   fontSize: 16,
   fontWeight: 700,
   marginTop: 4
@@ -498,7 +495,7 @@ const detailLink: React.CSSProperties = {
 };
 
 const findingsList: React.CSSProperties = {
-  color: '#94a3b8',
+  color: 'var(--text-secondary)',
   margin: '16px 0 0 0',
   paddingLeft: 18
 };
@@ -512,8 +509,8 @@ const actionPanel: React.CSSProperties = {
   marginTop: 14,
   padding: 14,
   borderRadius: 12,
-  background: 'rgba(15,23,42,0.5)',
-  border: '1px solid rgba(148,163,184,0.14)'
+  background: 'var(--surface-chip)',
+  border: '1px solid var(--border)'
 };
 
 const chipWrap: React.CSSProperties = {
@@ -523,9 +520,9 @@ const chipWrap: React.CSSProperties = {
 };
 
 const chip: React.CSSProperties = {
-  border: '1px solid rgba(148,163,184,0.16)',
-  background: 'rgba(15,23,42,0.5)',
-  color: '#fff',
+  border: '1px solid var(--border)',
+  background: 'var(--surface-chip)',
+  color: 'var(--text-primary)',
   borderRadius: 999,
   padding: '7px 11px',
   fontSize: 12,
@@ -545,11 +542,11 @@ const historyGrid: React.CSSProperties = {
 const historyCard: React.CSSProperties = {
   display: 'block',
   textDecoration: 'none',
-  color: '#fff',
+  color: 'var(--text-primary)',
   padding: 16,
   borderRadius: 14,
-  border: '1px solid rgba(148,163,184,0.14)',
-  background: 'linear-gradient(180deg, rgba(15,23,42,0.82) 0%, rgba(17,24,39,0.92) 100%)'
+  border: '1px solid var(--border)',
+  background: 'var(--surface-card-solid)'
 };
 
 const historyTopRow: React.CSSProperties = {
@@ -561,7 +558,7 @@ const historyTopRow: React.CSSProperties = {
 };
 
 const historyTitle: React.CSSProperties = {
-  color: '#fff',
+  color: 'var(--text-primary)',
   fontSize: 16,
   fontWeight: 700
 };

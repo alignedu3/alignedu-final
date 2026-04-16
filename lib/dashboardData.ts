@@ -285,7 +285,7 @@ function buildSampleReport(
     id,
     title,
     subject: 'Biology',
-    grade: '10',
+    grade: '9',
     teacher,
     date,
     ...metrics,
@@ -561,13 +561,13 @@ export function buildAdminSupportPlanForTeacher(
 
   const priorityReason =
     latestMetrics.gaps > 0
-      ? `${teacherName} is the priority because ${trendText}, the latest lesson scored ${latestMetrics.score}/100, ${weakestDomain.label} was ${weakestDomain.value}/100, and the most recent lesson flagged ${latestMetrics.gaps} content gap${latestMetrics.gaps === 1 ? '' : 's'}.`
-      : `${teacherName} is the priority because ${trendText}, the latest lesson scored ${latestMetrics.score}/100, and the weakest current area is ${weakestDomain.label} at ${weakestDomain.value}/100.`;
+      ? `${teacherName} is the priority because the most recent lesson still showed ${latestMetrics.gaps} content gap${latestMetrics.gaps === 1 ? '' : 's'} and ${weakestDomain.label} remains the clearest support need.`
+      : `${teacherName} is the priority because ${weakestDomain.label} remains the clearest support need in the most recent lesson.`;
 
   const adminAction =
     reportSections.recommendedNextStep
-      ? `Coach ${teacherName} on ${weakestDomain.label} during the next planning touchpoint, then align the follow-up observation to the recommended next step: ${reportSections.recommendedNextStep}`
-      : `Coach ${teacherName} on ${weakestDomain.label} during the next planning touchpoint and preview one concrete move before the next lesson.`;
+      ? `Use the next planning touchpoint to coach ${teacherName} on ${weakestDomain.label}, then anchor the follow-up observation to this next step: ${reportSections.recommendedNextStep}`
+      : `Use the next planning touchpoint to coach ${teacherName} on ${weakestDomain.label} and preview one concrete move before the next lesson.`;
 
   const lookFors = [
     weakestDomain.key === 'coverage'
@@ -591,7 +591,7 @@ export function buildAdminSupportPlanForTeacher(
       : 'Follow up within 7 to 10 instructional days.';
 
   const summary =
-    `${teacherName} needs targeted support in ${weakestDomain.label}. Latest lesson score: ${latestMetrics.score}/100, ${weakestDomain.label}: ${weakestDomain.value}/100, and ${trendText}.`;
+    `${teacherName} needs targeted support in ${weakestDomain.label}. The latest lesson scored ${latestMetrics.score}/100, with ${weakestDomain.label} at ${weakestDomain.value}/100. ${trendText}.`;
 
   return {
     teacherId,
