@@ -5,6 +5,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { buildTeacherDashboardSampleReports, getDashboardSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
+import { extractSectionText, extractStandardEntries } from '@/lib/analysisReport';
 
 export default function TeacherDashboard() {
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
@@ -179,6 +180,29 @@ export default function TeacherDashboard() {
     () => (selectedReport ? getTEKSCoverageInsights(selectedReport) : null),
     [selectedReport]
   );
+  const selectedLessonStandards = useMemo(() => {
+    if (!selectedLessonSections) {
+      return {
+        reinforced: [],
+        revisit: [],
+        notObserved: [],
+        readinessSummary: '',
+        masteryNotes: '',
+        recommendations: '',
+      };
+    }
+
+    const allSections = [...selectedLessonSections.staar, ...selectedLessonSections.teks];
+
+    return {
+      reinforced: extractStandardEntries(allSections, ['Standards Reinforced', 'Standards Addressed']),
+      revisit: extractStandardEntries(allSections, ['Standards That Need Stronger Assessment Evidence']),
+      notObserved: extractStandardEntries(allSections, ['Standards Not Observed']),
+      readinessSummary: extractSectionText(selectedLessonSections.staar, ['Readiness Summary']),
+      masteryNotes: extractSectionText(selectedLessonSections.teks, ['Standards Mastery Notes']),
+      recommendations: extractSectionText(allSections, ['Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
+    };
+  }, [selectedLessonSections]);
   const hasStructuredSelectedLesson = useMemo(() => {
     if (!selectedLessonSections) return false;
     return Boolean(
@@ -577,45 +601,66 @@ export default function TeacherDashboard() {
                 {(selectedLessonSections.staar.length > 0 || selectedLessonSections.teks.length > 0 || selectedLessonTEKS) && (
                   <div style={{ ...reportSectionCard, ...teksSectionCard }}>
                     <div style={reportSectionTitle}>TEKS Coverage</div>
-                    {selectedLessonSections.staar.length > 0 ? (
-                      <div style={reportSectionStack}>
-                        {selectedLessonSections.staar.map((section, index) => (
-                          <div key={`staar-section-${index}`}>
-                            <div style={reportSubsectionTitle}>{section.title}</div>
-                            {section.bullets.length > 0 ? (
-                              <ul style={reportList}>
-                                {section.bullets.map((item, itemIndex) => (
-                                  <li key={`staar-item-${itemIndex}`} style={reportListItem}>{item}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p style={reportBodyText}>{section.content}</p>
-                            )}
-                          </div>
-                        ))}
+                    <div style={teksSummaryGrid}>
+                      <div style={teksNarrativeCard}>
+                        <div style={reportSubsectionTitle}>Readiness Summary</div>
+                        <p style={reportBodyText}>
+                          {selectedLessonStandards.readinessSummary || selectedLessonTEKS?.readinessSummary || 'This lesson includes standards evidence that can support a TEKS-aligned coaching conversation.'}
+                        </p>
                       </div>
-                    ) : selectedLessonTEKS ? (
-                      <>
-                        <p style={reportBodyText}>{selectedLessonTEKS.readinessSummary}</p>
-                        <p style={{ ...reportBodyText, marginTop: 10 }}>{selectedLessonTEKS.overview}</p>
-                      </>
-                    ) : null}
-                    {selectedLessonSections.teks.length > 0 ? (
-                      <div style={{ marginTop: 14 }}>
-                        {selectedLessonSections.teks.map((section, index) => (
-                          <div key={`teks-section-${index}`} style={{ marginTop: index === 0 ? 0 : 14 }}>
-                            <div style={reportSubsectionTitle}>{section.title}</div>
-                            {section.bullets.length > 0 ? (
-                              <ul style={reportList}>
-                                {section.bullets.map((item, itemIndex) => (
-                                  <li key={`teks-item-${itemIndex}`} style={reportListItem}>{item}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <p style={reportBodyText}>{section.content}</p>
-                            )}
-                          </div>
-                        ))}
+                      <div style={teksNarrativeCard}>
+                        <div style={reportSubsectionTitle}>Standards Mastery Notes</div>
+                        <p style={reportBodyText}>
+                          {selectedLessonStandards.masteryNotes || selectedLessonTEKS?.overview || 'Review the standards groups below to see which TEKS were reinforced, which need to be revisited, and which were not yet clearly observed in the lesson evidence.'}
+                        </p>
+                      </div>
+                    </div>
+                    {(selectedLessonStandards.reinforced.length > 0 ||
+                      selectedLessonStandards.revisit.length > 0 ||
+                      selectedLessonStandards.notObserved.length > 0) ? (
+                      <div style={teksStandardsGrid}>
+                        <div style={teksStandardsCard}>
+                          <div style={reportSubsectionTitle}>Standards Reinforced</div>
+                          {selectedLessonStandards.reinforced.length > 0 ? (
+                            <ul style={reportList}>
+                              {selectedLessonStandards.reinforced.map((standard) => (
+                                <li key={`reinforced-${standard.code}`} style={reportListItem}>
+                                  <strong>{standard.code}</strong>: {standard.description}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p style={reportBodyText}>No clearly reinforced TEKS were identified in the saved analysis.</p>
+                          )}
+                        </div>
+                        <div style={teksStandardsCard}>
+                          <div style={reportSubsectionTitle}>Standards To Revisit</div>
+                          {selectedLessonStandards.revisit.length > 0 ? (
+                            <ul style={reportList}>
+                              {selectedLessonStandards.revisit.map((standard) => (
+                                <li key={`revisit-${standard.code}`} style={reportListItem}>
+                                  <strong>{standard.code}</strong>: {standard.description}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p style={reportBodyText}>No additional TEKS were flagged for stronger assessment evidence in this report.</p>
+                          )}
+                        </div>
+                        <div style={teksStandardsCard}>
+                          <div style={reportSubsectionTitle}>Standards Not Observed</div>
+                          {selectedLessonStandards.notObserved.length > 0 ? (
+                            <ul style={reportList}>
+                              {selectedLessonStandards.notObserved.map((standard) => (
+                                <li key={`not-observed-${standard.code}`} style={reportListItem}>
+                                  <strong>{standard.code}</strong>: {standard.description}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p style={reportBodyText}>No topic-related TEKS were marked as missing or underdeveloped in the saved analysis.</p>
+                          )}
+                        </div>
                       </div>
                     ) : selectedLessonTEKS?.hasStandards && (
                       <div style={{ marginTop: 14 }}>
@@ -627,6 +672,12 @@ export default function TeacherDashboard() {
                             </li>
                           ))}
                         </ul>
+                      </div>
+                    )}
+                    {selectedLessonStandards.recommendations && (
+                      <div style={{ ...teksRecommendationCard, marginTop: 14 }}>
+                        <div style={reportSubsectionTitle}>Recommended Standards Follow-Up</div>
+                        <p style={reportBodyText}>{selectedLessonStandards.recommendations}</p>
                       </div>
                     )}
                     {selectedLessonSections.teks.length === 0 && (selectedLessonTEKS?.strengths?.length ?? 0) > 0 && (
@@ -915,6 +966,40 @@ const nextStepSectionCard: React.CSSProperties = {
 const teksSectionCard: React.CSSProperties = {
   background: 'linear-gradient(180deg, rgba(59,130,246,0.06), rgba(255,255,255,0.98))',
   borderColor: 'rgba(59,130,246,0.18)',
+};
+
+const teksSummaryGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+  gap: 12,
+  marginBottom: 14,
+};
+
+const teksNarrativeCard: React.CSSProperties = {
+  padding: 14,
+  borderRadius: 14,
+  border: '1px solid rgba(59,130,246,0.14)',
+  background: 'rgba(255,255,255,0.78)',
+};
+
+const teksStandardsGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+  gap: 12,
+};
+
+const teksStandardsCard: React.CSSProperties = {
+  padding: 14,
+  borderRadius: 14,
+  border: '1px solid rgba(59,130,246,0.14)',
+  background: 'rgba(255,255,255,0.78)',
+};
+
+const teksRecommendationCard: React.CSSProperties = {
+  padding: 14,
+  borderRadius: 14,
+  border: '1px solid rgba(37,99,235,0.16)',
+  background: 'linear-gradient(180deg, rgba(59,130,246,0.08), rgba(255,255,255,0.82))',
 };
 
 const analysisSectionCard: React.CSSProperties = {

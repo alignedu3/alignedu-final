@@ -4,6 +4,12 @@ export type ReportSection = {
   bullets: string[];
 };
 
+export type StandardEntry = {
+  code: string;
+  description: string;
+  raw: string;
+};
+
 const REPORT_HEADING_MAP: Record<string, string> = {
   "instructional coaching feedback": "Coaching Priorities",
   "texas teks standards alignment": "Standards Alignment",
@@ -35,6 +41,10 @@ function normalizeTitle(title: string) {
   if (mapped) return mapped;
   if (!cleaned) return "Summary";
   return cleaned;
+}
+
+function normalizeSectionLookup(value: string) {
+  return cleanDisplayText(value).toLowerCase().trim();
 }
 
 function cleanBulletText(line: string) {
@@ -171,6 +181,50 @@ export function parseFeedbackSections(text: string) {
     teks: teksMatch ? parseLabeledSection(teksMatch[1]) : [],
     staar: staarMatch ? parseLabeledSection(staarMatch[1]) : [],
   };
+}
+
+export function findReportSection(
+  sections: ReportSection[],
+  titles: string[]
+) {
+  const normalizedTitles = new Set(titles.map(normalizeSectionLookup));
+  return sections.find((section) => normalizedTitles.has(normalizeSectionLookup(section.title)));
+}
+
+export function extractSectionText(
+  sections: ReportSection[],
+  titles: string[]
+) {
+  const section = findReportSection(sections, titles);
+  if (!section) return '';
+  return cleanDisplayText(section.content || section.bullets.join('\n'));
+}
+
+export function extractStandardEntries(
+  sections: ReportSection[],
+  titles: string[]
+) {
+  const section = findReportSection(sections, titles);
+  if (!section) return [] as StandardEntry[];
+
+  const sourceLines = section.bullets.length
+    ? section.bullets
+    : cleanDisplayText(section.content)
+        .split(/\n+/)
+        .map((line) => cleanBulletText(line))
+        .filter(Boolean);
+
+  return sourceLines
+    .map((line) => {
+      const match = line.match(/^([A-Za-z0-9().-]+)\s*:\s*(.+)$/);
+      if (!match) return null;
+      return {
+        code: match[1].trim(),
+        description: match[2].trim(),
+        raw: line,
+      } satisfies StandardEntry;
+    })
+    .filter((entry): entry is StandardEntry => Boolean(entry));
 }
 
 export function getScoreBand(score: number | null) {

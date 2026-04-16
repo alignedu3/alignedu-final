@@ -626,7 +626,7 @@ export default function HomePage() {
                   ...glassCard,
                   background: theme.cardBg,
                   border: `1px solid ${theme.cardBorder}`,
-                  padding: '26px',
+                  padding: '22px 20px',
                 }}
               >
                 <div
@@ -634,47 +634,38 @@ export default function HomePage() {
                     color: theme.text,
                     fontSize: '18px',
                     fontWeight: 800,
-                    marginBottom: '16px',
-                    textDecoration: 'underline',
-                    textDecorationThickness: '2px',
-                    textUnderlineOffset: '5px',
+                    marginBottom: '14px',
+                    textAlign: 'center',
                   }}
                 >
                   {group.label}
                 </div>
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-                    gap: '10px 12px',
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    gap: '8px',
                   }}
                 >
                   {group.items.map((item) => (
                     <div
                       key={item}
                       style={{
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '8px',
-                        padding: '10px 12px',
-                        borderRadius: '14px',
+                        justifyContent: 'center',
+                        padding: '7px 10px',
+                        borderRadius: '999px',
                         background: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.035)',
                         border: `1px solid ${theme.cardBorder}`,
                         color: theme.text,
-                        fontSize: '13px',
+                        fontSize: '12px',
                         fontWeight: 600,
-                        lineHeight: 1.35,
+                        lineHeight: 1.2,
+                        textAlign: 'center',
                       }}
                     >
-                      <span
-                        style={{
-                          width: '7px',
-                          height: '7px',
-                          borderRadius: '999px',
-                          background: '#0f766e',
-                          flexShrink: 0,
-                        }}
-                      />
                       <span>{item}</span>
                     </div>
                   ))}
