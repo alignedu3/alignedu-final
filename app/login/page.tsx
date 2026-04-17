@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '../../lib/supabase/client';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -50,18 +49,6 @@ export default function LoginPage() {
         setError(payload?.error || 'Something went wrong while logging in.');
         setLoading(false);
         return;
-      }
-
-      if (payload?.session?.access_token && payload?.session?.refresh_token) {
-        const supabase = createClient();
-        try {
-          await supabase.auth.setSession({
-            access_token: payload.session.access_token,
-            refresh_token: payload.session.refresh_token,
-          });
-        } catch (sessionError) {
-          console.warn('Browser session sync failed after successful server login:', sessionError);
-        }
       }
 
       window.location.replace(payload?.destination || '/dashboard');
