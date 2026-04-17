@@ -2,7 +2,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import {
   cleanDisplayText,
   getScoreBand,
@@ -10,7 +9,7 @@ import {
   parseAnalysisResult,
   parseFeedbackSections,
 } from "@/lib/analysisReport";
-import { ensureBrowserSession } from "@/lib/supabase/ensureBrowserSession";
+import { fetchJsonWithTimeout } from "@/lib/fetchJsonWithTimeout";
 
 // Simulate premium check (replace with real check if available)
 const isPremium = true;
@@ -251,16 +250,17 @@ export default function AnalysisPage() {
 
     const loadViewerRole = async () => {
       try {
-        const authResponse = await fetch('/api/auth/me', {
+        const { data } = await fetchJsonWithTimeout<{
+          profile?: { role?: string | null };
+        }>('/api/auth/me', {
           credentials: 'include',
           cache: 'no-store',
         });
-        const authData = await authResponse.json();
-        const role = authData?.profile?.role ?? null;
+        const role = data?.profile?.role ?? null;
 
         if (!isMounted) return;
 
-        if (!isAdminObservationMode && ['admin', 'super_admin'].includes(role)) {
+        if (!isAdminObservationMode && role && ['admin', 'super_admin'].includes(role)) {
           router.replace('/admin/observe');
         }
       } catch {
@@ -788,63 +788,38 @@ export default function AnalysisPage() {
     const loadObservedTeachers = async () => {
       try {
         setObserverReady(false);
-
-        const authResponse = await fetch('/api/auth/me', {
+        setError('');
+        const { response, data } = await fetchJsonWithTimeout<{
+          success: boolean;
+          error?: string;
+          teachers?: Array<{ id: string; name: string }>;
+        }>('/api/admin/observe/teachers', {
           credentials: 'include',
           cache: 'no-store',
         });
-        const authData = await authResponse.json();
 
-        if (!authData?.user) {
+        if (response.status === 401) {
           window.location.replace('/login');
           return;
         }
 
-        if (!['admin', 'super_admin'].includes(authData?.profile?.role)) {
+        if (response.status === 403) {
           window.location.replace('/dashboard');
           return;
         }
 
-        const visibilityResponse = await fetch('/api/admin/visibility', {
-          credentials: 'include',
-          cache: 'no-store',
-        });
-        const visibility = await visibilityResponse.json();
-
-        if (!visibilityResponse.ok || !visibility.success) {
-          throw new Error(visibility.error || 'Unable to load teacher visibility');
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.error || 'Unable to load teachers for observation.');
         }
 
-        const teacherIds = (visibility.teacherIds || []) as string[];
-        if (!teacherIds.length) {
+        const teachers = (data.teachers || []) as Array<{ id: string; name: string }>;
+        if (!teachers.length) {
           if (!isMounted) return;
           setObservedTeachers([]);
           setObservedTeacherId('');
           setObserverReady(true);
           return;
         }
-
-        const supabase = createClient();
-        const session = await ensureBrowserSession(supabase, { attempts: 4, delayMs: 250 });
-        if (!session) {
-          throw new Error('Unable to initialize browser session for observation setup.');
-        }
-        const { data: teacherProfiles, error: teacherError } = await supabase
-          .from('profiles')
-          .select('id, name')
-          .in('id', teacherIds)
-          .eq('role', 'teacher');
-
-        if (teacherError) {
-          throw teacherError;
-        }
-
-        const teachers = (teacherProfiles || [])
-          .map((teacher) => ({
-            id: teacher.id,
-            name: teacher.name || 'Teacher',
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name));
 
         if (!isMounted) return;
 

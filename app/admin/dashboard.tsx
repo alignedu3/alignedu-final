@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import {
   buildAdminSupportPlanForTeacher,
   buildSampleAnalysisReports,
@@ -25,7 +24,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
-import { ensureBrowserSession } from '@/lib/supabase/ensureBrowserSession';
+import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 
 type TrendTerm = 'full_year' | 'fall' | 'spring';
 
@@ -66,6 +65,7 @@ export default function AdminDashboard() {
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [chartReady, setChartReady] = useState(false);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [modalType, setModalType] = useState<null | 'quality' | 'lessons' | 'strong' | 'atrisk'>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
@@ -112,98 +112,41 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function safeLoad() {
       try {
-        const authResponse = await fetch('/api/auth/me', {
+        setLoadError('');
+        const { response, data } = await fetchJsonWithTimeout<{
+          success: boolean;
+          error?: string;
+          caller?: { id?: string; role?: string | null };
+          visibility?: { adminIds?: string[] };
+          profiles?: ProfileRecord[];
+          managedTeachers?: Array<{ admin_id: string; teacher_id: string }>;
+          managedAdmins?: Array<{ parent_admin_id: string; child_admin_id: string }>;
+          analyses?: AnalysisReport[];
+        }>(`/api/admin/dashboard${selectedAdminId ? `?adminId=${encodeURIComponent(selectedAdminId)}` : ''}`, {
           credentials: 'include',
           cache: 'no-store',
         });
-        const authData = await authResponse.json();
-        const user = authData.user ?? null;
 
-        if (!user) {
-          if (typeof window !== 'undefined') {
-            window.location.replace('/login');
-          }
+        if (response.status === 401) {
+          window.location.replace('/login');
           return;
         }
 
-        if (!['admin', 'super_admin'].includes(authData.profile?.role)) {
-          if (typeof window !== 'undefined') {
-            window.location.replace('/dashboard');
-          }
+        if (response.status === 403) {
+          window.location.replace('/dashboard');
           return;
         }
 
-        setCurrentUserId(user.id);
-        setCurrentUserRole(authData.profile?.role ?? null);
-
-        const supabase = createClient();
-        const session = await ensureBrowserSession(supabase, { attempts: 4, delayMs: 250 });
-        if (!session) {
-          throw new Error('Unable to initialize browser session for admin dashboard queries.');
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.error || 'Unable to load admin dashboard.');
         }
 
-        // If super_admin and adminId is present, load that admin's data
-        let targetAdminId = user.id;
-        if (authData.profile?.role === 'super_admin' && selectedAdminId) {
-          targetAdminId = selectedAdminId;
-        }
-
-        // Fetch visibility for the target admin
-        const visibilityResponse = await fetch(`/api/admin/visibility?adminId=${targetAdminId}`, {
-          credentials: 'include',
-          cache: 'no-store',
-        });
-        const visibility = await visibilityResponse.json();
-
-        if (!visibilityResponse.ok || !visibility.success) {
-          throw new Error(visibility.error || 'Unable to load admin visibility');
-        }
-
-        const adminIds = (visibility.adminIds || []) as string[];
-        const visibleUserIds = (visibility.visibleUserIds || []) as string[];
-        setVisibleAdminIds(adminIds);
-
-        const { data: profileData } = visibleUserIds.length > 0
-          ? await supabase
-              .from('profiles')
-              .select('id, name, role')
-              .in('id', visibleUserIds)
-          : { data: [] };
-
-        setProfiles(profileData ?? []);
-
-        const { data: teacherLinks } = adminIds.length > 0
-          ? await supabase
-              .from('managed_teachers')
-              .select('admin_id, teacher_id')
-              .in('admin_id', adminIds)
-          : { data: [] };
-
-        setManagedTeachers((teacherLinks ?? []) as Array<{ admin_id: string; teacher_id: string }>);
-
-        const { data: adminLinks } = adminIds.length > 0
-          ? await supabase
-              .from('managed_admins')
-              .select('parent_admin_id, child_admin_id')
-              .in('parent_admin_id', adminIds)
-          : { data: [] };
-
-        setManagedAdmins((adminLinks ?? []) as Array<{ parent_admin_id: string; child_admin_id: string }>);
-
-        if (!visibleUserIds.length) {
-          setDbReports([]);
-          return;
-        }
-
-        const { data, error: analysesError } = await supabase
-          .from('analyses')
-          .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, assessment_quality, gaps_detected, transcript, result, analysis_result')
-          .in('user_id', visibleUserIds)
-          .order('created_at', { ascending: false });
-
-        if (analysesError) {
-          throw analysesError;
-        }
+        setCurrentUserId(data.caller?.id ?? null);
+        setCurrentUserRole(data.caller?.role ?? null);
+        setVisibleAdminIds((data.visibility?.adminIds || []) as string[]);
+        setProfiles((data.profiles || []) as ProfileRecord[]);
+        setManagedTeachers((data.managedTeachers || []) as Array<{ admin_id: string; teacher_id: string }>);
+        setManagedAdmins((data.managedAdmins || []) as Array<{ parent_admin_id: string; child_admin_id: string }>);
 
         const toNumber = (value: unknown, fallback = 0) => {
           if (typeof value === 'number' && Number.isFinite(value)) return value;
@@ -214,7 +157,7 @@ export default function AdminDashboard() {
           return fallback;
         };
 
-        const normalizedReports = (data ?? []).map((r: AnalysisReport) => ({
+        const normalizedReports = (data.analyses ?? []).map((r: AnalysisReport) => ({
           ...r,
           date: r.created_at?.slice(0, 10),
           coverage: toNumber(r.coverage_score, 75),
@@ -227,6 +170,7 @@ export default function AdminDashboard() {
         setDbReports(normalizedReports);
       } catch (err) {
         console.error('Admin dashboard load error:', err);
+        setLoadError(err instanceof Error ? err.message : 'Unable to load admin dashboard.');
       } finally {
         setReady(true);
       }
@@ -642,6 +586,12 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
+
+        {loadError && (
+          <div style={{ ...card, marginBottom: 12, border: '1px solid rgba(248,113,113,0.28)' }}>
+            <p style={{ ...text, marginBottom: 0 }}>{loadError}</p>
+          </div>
+        )}
 
         {isSampleMode && (
           <div

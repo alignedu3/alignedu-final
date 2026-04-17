@@ -1,5 +1,4 @@
 "use client";
-import { createClient } from '@/lib/supabase/client';
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
@@ -7,14 +6,9 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { buildTeacherDashboardSampleReports, getDashboardSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
 import { extractSectionText, extractStandardEntries } from '@/lib/analysisReport';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
-import { ensureBrowserSession } from '@/lib/supabase/ensureBrowserSession';
+import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 
 export default function TeacherDashboard() {
-  const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
-  if (typeof window !== 'undefined' && !supabaseRef.current) {
-    supabaseRef.current = createClient();
-  }
-  const supabase = supabaseRef.current;
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [chartReady, setChartReady] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null>(null);
@@ -22,6 +16,7 @@ export default function TeacherDashboard() {
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
   const [keyFindingsReportId, setKeyFindingsReportId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState<string>('');
   const [pendingDeleteReport, setPendingDeleteReport] = useState<AnalysisReport | null>(null);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -36,55 +31,45 @@ export default function TeacherDashboard() {
   }, []);
 
   const loadData = useCallback(async () => {
-    if (!supabase) return;
-
     try {
-      const authResponse = await fetch('/api/auth/me', {
+      setLoadError('');
+      const { response, data } = await fetchJsonWithTimeout<{
+        success: boolean;
+        error?: string;
+        teacher?: { name?: string | null };
+        analyses?: AnalysisReport[];
+      }>('/api/dashboard/teacher', {
         credentials: 'include',
         cache: 'no-store',
       });
-      const authData = await authResponse.json();
-      const user = authData.user ?? null;
 
-      if (!user) {
+      if (response.status === 401) {
         window.location.replace('/login');
         return;
       }
 
-      setReady(true);
-      setTeacherName(authData.profile?.name || 'Teacher');
-
-      const session = await ensureBrowserSession(supabase, { attempts: 4, delayMs: 250 });
-      if (!session) {
-        throw new Error('Unable to initialize browser session for dashboard queries.');
+      if (response.status === 403) {
+        window.location.replace('/admin');
+        return;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, name')
-        .eq('id', user.id)
-        .single();
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || 'Unable to load your dashboard.');
+      }
 
-      setTeacherName(profile?.name || 'Teacher');
-
-      const { data } = await supabase
-        .from('analyses')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      setDbReports(data || []);
+      setTeacherName(data.teacher?.name || 'Teacher');
+      setDbReports(data.analyses || []);
     } catch (err) {
       console.error('Dashboard load error:', err);
+      setLoadError(err instanceof Error ? err.message : 'Unable to load your dashboard.');
     } finally {
       setReady(true);
     }
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
-    if (!supabase) return;
     loadData();
-  }, [loadData, supabase]);
+  }, [loadData]);
 
   useEffect(() => {
     const checkScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
@@ -291,6 +276,12 @@ export default function TeacherDashboard() {
             <Link href="/analyze" style={primaryBtn}>+ Analyze Lesson</Link>
           </div>
         </div>
+
+        {loadError && (
+          <div style={{ ...card, marginBottom: 12, border: '1px solid rgba(248,113,113,0.28)' }}>
+            <p style={{ ...text, margin: 0 }}>{loadError}</p>
+          </div>
+        )}
 
         {isSampleMode && (
           <div
