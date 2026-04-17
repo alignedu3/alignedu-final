@@ -90,17 +90,17 @@ export async function POST(request: NextRequest) {
     let profile: { name?: string | null; role?: string | null } | null = null;
 
     try {
-      const { data: profileData } = await withTimeout(
+      const profileResult = await withTimeout<{ data: { name?: string | null; role?: string | null } | null }>(
         supabase
           .from('profiles')
           .select('name, role')
           .eq('id', data.user.id)
-          .maybeSingle(),
+          .maybeSingle() as Promise<{ data: { name?: string | null; role?: string | null } | null }>,
         PROFILE_TIMEOUT_MS,
         'Login profile lookup timeout'
       );
 
-      profile = profileData ?? null;
+      profile = profileResult.data ?? null;
     } catch (profileError) {
       console.error('Login profile lookup delayed, using default destination:', profileError);
       captureRouteException(profileError, {
