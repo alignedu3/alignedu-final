@@ -578,10 +578,6 @@ export default function TeacherDashboard() {
                     <div style={reportMetricLabel}>Engagement</div>
                     <div style={reportMetricValue}>{selectedLessonInsights.engagement}%</div>
                   </div>
-                  <div style={{ ...reportMetricCard, ...assessmentMetricCard }}>
-                    <div style={reportMetricLabel}>Assessment</div>
-                    <div style={reportMetricValue}>{selectedLessonInsights.assessment}%</div>
-                  </div>
                   <div style={{ ...reportMetricCard, ...gapsMetricCard }}>
                     <div style={reportMetricLabel}>Gaps Flagged</div>
                     <div style={reportMetricValue}>{selectedLessonInsights.gaps}</div>
@@ -1021,11 +1017,6 @@ const clarityMetricCard: React.CSSProperties = {
 const engagementMetricCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   borderColor: 'rgba(16,185,129,0.16)',
-};
-
-const assessmentMetricCard: React.CSSProperties = {
-  background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(245,158,11,0.16)',
 };
 
 const gapsMetricCard: React.CSSProperties = {

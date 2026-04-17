@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useTheme } from '@/app/context/ThemeContext';
 import type { ProfileRecord } from '@/lib/dashboardData';
+import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 
 type AuthUser = {
   id: string;
@@ -96,15 +97,6 @@ export default function Header() {
     setProfile(null);
 
     try {
-      const supabase = createClient();
-      await Promise.allSettled([
-        supabase.auth.signOut({ scope: 'global' }),
-        fetch('/api/auth/logout', {
-          method: 'POST',
-          credentials: 'include',
-        }),
-      ]);
-
       document.cookie
         .split(';')
         .map((cookie) => cookie.trim())
@@ -126,14 +118,22 @@ export default function Header() {
       } catch {
         // Ignore storage access issues in restricted browser contexts.
       }
+
+      const supabase = createClient();
+      void Promise.allSettled([
+        supabase.auth.signOut({ scope: 'local' }),
+        fetchJsonWithTimeout('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+          timeoutMs: 4000,
+        }),
+      ]);
     } catch (error) {
       console.error('Logout failed, forcing local reset:', error);
     } finally {
-      router.replace('/');
+      router.replace('/login');
       router.refresh();
-
-      // Force a final hard navigation so mobile browsers never get stuck in stale auth UI.
-      window.location.assign('/');
+      window.location.replace('/login');
     }
   };
 

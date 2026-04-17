@@ -1204,11 +1204,6 @@ export default function AnalysisPage() {
                   <div style={metricSubtextStyle}>Student participation</div>
                 </div>
                 <div style={metricCardStyle}>
-                  <div style={metricLabelStyle}>Assessment</div>
-                  <div style={metricValueStyle}>{resultMetrics.assessment ?? '—'}</div>
-                  <div style={metricSubtextStyle}>Evidence of mastery</div>
-                </div>
-                <div style={metricCardStyle}>
                   <div style={metricLabelStyle}>Gaps</div>
                   <div style={metricValueStyle}>{resultMetrics.gaps ?? '—'}</div>
                   <div style={metricSubtextStyle}>Priority issues to address</div>

@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     const visibility = await getAdminVisibility(targetAdminId, targetRole);
     const serviceSupabase = getServiceSupabase();
 
-    const [{ data: profiles, error: profilesError }, { data: teacherLinks, error: teacherLinksError }, { data: adminLinks, error: adminLinksError }, { data: analyses, error: analysesError }] = await Promise.all([
+    const [{ data: profiles, error: profilesError }, { data: teacherLinks, error: teacherLinksError }, { data: adminLinks, error: adminLinksError }, analysesResult] = await Promise.all([
       visibility.visibleUserIds.length
         ? serviceSupabase
             .from('profiles')
@@ -96,11 +96,12 @@ export async function GET(request: NextRequest) {
       visibility.visibleUserIds.length
         ? serviceSupabase
             .from('analyses')
-            .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, assessment_quality, gaps_detected, transcript, result, analysis_result')
+            .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, transcript, result, analysis_result')
             .in('user_id', visibility.visibleUserIds)
             .order('created_at', { ascending: false })
         : Promise.resolve({ data: [], error: null }),
     ]);
+    const { data: analyses, error: analysesError } = analysesResult;
 
     if (profilesError) {
       return NextResponse.json({ success: false, error: profilesError.message }, { status: 500 });

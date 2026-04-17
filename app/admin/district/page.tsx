@@ -196,7 +196,7 @@ export default function DistrictDashboard() {
                   <div>
                     <div style={rowTitle}>{teacher.name}</div>
                     <div style={rowMeta}>
-                      Avg {teacher.avgScore}/100, latest {teacher.latestScore}/100, assessment {teacher.latestAssessment}/100, gaps {teacher.gaps}
+                      Avg {teacher.avgScore}/100, latest {teacher.latestScore}/100, gaps {teacher.gaps}
                     </div>
                   </div>
                   <div style={pillDanger}>

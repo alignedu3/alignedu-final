@@ -163,7 +163,6 @@ export default function AdminDashboard() {
           coverage: toNumber(r.coverage_score, 75),
           clarity: toNumber(r.clarity_rating, 75),
           engagement: toNumber(r.engagement_level, 75),
-          assessment: toNumber((r as AnalysisReport).assessment_quality, 75),
           gaps: toNumber(r.gaps_detected, 0),
         }));
 
@@ -1059,7 +1058,7 @@ export default function AdminDashboard() {
           atrisk: 'At-Risk Teachers',
         };
         const modalSubs: Record<string, string> = {
-          quality: 'Sorted by score (high to low). Score = Coverage 35% · Clarity 30% · Engagement 20% · Assessment 15% minus gap penalty.',
+          quality: 'Sorted by score (high to low). Score is weighted across coverage, clarity, engagement, and gap impact.',
           lessons: 'Sorted by date (most recent first).',
           strong: 'Teachers with an average lesson score ≥ 75.',
           atrisk: 'Teachers with an average lesson score below 75.',
