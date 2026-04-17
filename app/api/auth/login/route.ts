@@ -12,7 +12,7 @@ class RouteTimeoutError extends Error {
   }
 }
 
-async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+async function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, message: string): Promise<T> {
   let timeoutId: NodeJS.Timeout | null = null;
 
   try {
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
           .from('profiles')
           .select('name, role')
           .eq('id', data.user.id)
-          .maybeSingle() as Promise<{ data: { name?: string | null; role?: string | null } | null }>,
+          .maybeSingle(),
         PROFILE_TIMEOUT_MS,
         'Login profile lookup timeout'
       );
