@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
+import { captureRouteException } from '@/lib/sentryRoute';
 
 function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -14,6 +15,8 @@ function getServiceSupabase() {
 }
 
 export async function GET() {
+  let sentryUser: { id?: string | null; email?: string | null; role?: string | null } | null = null;
+
   try {
     const serverSupabase = await createServerClient();
     const {
@@ -29,6 +32,12 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
     }
 
+    sentryUser = {
+      id: user.id,
+      email: user.email ?? null,
+      role: null,
+    };
+
     const { data: callerProfile, error: callerProfileError } = await serverSupabase
       .from('profiles')
       .select('id, name, role')
@@ -38,6 +47,8 @@ export async function GET() {
     if (callerProfileError) {
       return NextResponse.json({ success: false, error: callerProfileError.message }, { status: 500 });
     }
+
+    sentryUser.role = callerProfile?.role || 'teacher';
 
     const serviceSupabase = getServiceSupabase();
     const { data: analyses, error: analysesError } = await serviceSupabase
@@ -61,6 +72,10 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error('Teacher dashboard route error:', error);
+    captureRouteException(error, {
+      route: 'api/dashboard/teacher',
+      user: sentryUser,
+    });
     return NextResponse.json({ success: false, error: error.message || 'Server error' }, { status: 500 });
   }
 }

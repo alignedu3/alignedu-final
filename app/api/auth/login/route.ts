@@ -1,6 +1,6 @@
-import * as Sentry from '@sentry/nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
+import { captureRouteException } from '@/lib/sentryRoute';
 
 const LOGIN_TIMEOUT_MS = 8000;
 const PROFILE_TIMEOUT_MS = 3000;
@@ -31,6 +31,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: s
 
 export async function POST(request: NextRequest) {
   const response = NextResponse.json({ success: false }, { status: 500 });
+  let attemptedEmail: string | null = null;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,6 +54,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const email = String(body?.email || '').trim().toLowerCase();
     const password = String(body?.password || '');
+    attemptedEmail = email;
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
@@ -101,15 +103,14 @@ export async function POST(request: NextRequest) {
       profile = profileData ?? null;
     } catch (profileError) {
       console.error('Login profile lookup delayed, using default destination:', profileError);
-      Sentry.captureException(profileError, {
+      captureRouteException(profileError, {
+        route: 'api/auth/login',
+        stage: 'profile_lookup',
         level: 'warning',
-        tags: {
-          route: 'api/auth/login',
-          stage: 'profile_lookup',
-        },
         user: {
           id: data.user.id,
           email,
+          role: null,
         },
       });
     }
@@ -139,10 +140,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof RouteTimeoutError) {
       console.error(error.message);
-      Sentry.captureException(error, {
-        tags: {
-          route: 'api/auth/login',
-          stage: 'sign_in',
+      captureRouteException(error, {
+        route: 'api/auth/login',
+        stage: 'sign_in',
+        user: {
+          email: attemptedEmail,
+          role: null,
         },
       });
 
@@ -153,10 +156,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.error('Login route error:', error);
-    Sentry.captureException(error, {
-      tags: {
-        route: 'api/auth/login',
-      },
+    captureRouteException(error, {
+      route: 'api/auth/login',
+      user: attemptedEmail
+        ? {
+            email: attemptedEmail,
+            role: null,
+          }
+        : undefined,
     });
     return NextResponse.json({ error: 'Something went wrong while logging in.' }, { status: 500 });
   }

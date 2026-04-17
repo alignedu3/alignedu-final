@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getAdminVisibility, type AdminRole } from '@/lib/adminVisibility';
+import { captureRouteException } from '@/lib/sentryRoute';
 
 function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -15,6 +16,8 @@ function getServiceSupabase() {
 }
 
 export async function GET(request: NextRequest) {
+  let sentryUser: { id?: string | null; email?: string | null; role?: string | null } | null = null;
+
   try {
     const serverSupabase = await createServerClient();
     const {
@@ -30,6 +33,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
     }
 
+    sentryUser = {
+      id: user.id,
+      email: user.email ?? null,
+      role: null,
+    };
+
     const { data: callerProfile, error: callerProfileError } = await serverSupabase
       .from('profiles')
       .select('id, name, role')
@@ -39,6 +48,8 @@ export async function GET(request: NextRequest) {
     if (callerProfileError) {
       return NextResponse.json({ success: false, error: callerProfileError.message }, { status: 500 });
     }
+
+    sentryUser.role = callerProfile?.role || null;
 
     if (!['admin', 'super_admin'].includes(callerProfile?.role || '')) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
@@ -132,6 +143,10 @@ export async function GET(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Admin dashboard route error:', error);
+    captureRouteException(error, {
+      route: 'api/admin/dashboard',
+      user: sentryUser,
+    });
     return NextResponse.json({ success: false, error: error.message || 'Server error' }, { status: 500 });
   }
 }

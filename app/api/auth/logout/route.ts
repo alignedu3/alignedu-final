@@ -1,8 +1,14 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
+import { captureRouteException } from '@/lib/sentryRoute';
 
 export async function POST(request: NextRequest) {
   const response = NextResponse.json({ success: true });
+  const sentryUser = {
+    id: request.cookies.get('sb-user-id')?.value ?? null,
+    email: null,
+    role: null,
+  };
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -23,7 +29,12 @@ export async function POST(request: NextRequest) {
 
   try {
     await supabase.auth.signOut({ scope: 'global' });
-  } catch {
+  } catch (error) {
+    captureRouteException(error, {
+      route: 'api/auth/logout',
+      user: sentryUser,
+      level: 'warning',
+    });
     // Continue clearing cookies even if token revocation fails.
   }
 
