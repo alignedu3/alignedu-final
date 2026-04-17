@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '../../lib/supabase/client';
-import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -63,16 +62,6 @@ export default function LoginPage() {
         } catch (sessionError) {
           console.warn('Browser session sync failed after successful server login:', sessionError);
         }
-      }
-
-      try {
-        await fetchJsonWithTimeout('/api/auth/me', {
-          credentials: 'include',
-          cache: 'no-store',
-          timeoutMs: 4000,
-        });
-      } catch (sessionCheckError) {
-        console.warn('Post-login session verification timed out:', sessionCheckError);
       }
 
       window.location.replace(payload?.destination || '/dashboard');
