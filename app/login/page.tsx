@@ -28,6 +28,29 @@ export default function LoginPage() {
     }
   }, []);
 
+  const resolvePostLoginDestination = async () => {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+
+        if (response.ok) {
+          const authData = await response.json();
+          const role = authData?.profile?.role ?? null;
+          return ['admin', 'super_admin'].includes(role) ? '/admin' : '/dashboard';
+        }
+      } catch {
+        // Retry briefly while auth cookies settle.
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+
+    return '/auth/handle-auth?next=/dashboard';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -53,14 +76,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Check role and redirect accordingly
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-
-      const destination = ['admin', 'super_admin'].includes(profile?.role) ? '/admin' : '/dashboard';
+      const destination = await resolvePostLoginDestination();
 
       window.location.replace(destination);
       return;

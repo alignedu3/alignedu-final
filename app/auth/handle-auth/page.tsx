@@ -57,20 +57,24 @@ export default function AuthCallback() {
           return;
         }
 
-        const user = session.user;
+        try {
+          const response = await fetch('/api/auth/me', {
+            credentials: 'include',
+            cache: 'no-store',
+          });
+          const authData = await response.json();
+          const role = authData?.profile?.role ?? null;
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (['admin', 'super_admin'].includes(profile?.role)) {
-          router.replace('/admin');
-        } else if (profile?.role === 'teacher') {
-          router.replace('/dashboard');
-        } else {
-          router.replace('/');
+          if (['admin', 'super_admin'].includes(role)) {
+            router.replace('/admin');
+          } else if (role === 'teacher') {
+            router.replace('/dashboard');
+          } else {
+            router.replace(next || '/dashboard');
+          }
+        } catch (error) {
+          console.error('Auth callback profile lookup failed:', error);
+          router.replace(next || '/dashboard');
         }
       } else {
         // Invite/recovery links without an established session should return to login.
