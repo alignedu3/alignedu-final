@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '../../lib/supabase/client';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -10,7 +8,6 @@ export default function LoginPage() {
   const [isHovered, setIsHovered] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -28,61 +25,37 @@ export default function LoginPage() {
     }
   }, []);
 
-  const resolvePostLoginDestination = async () => {
-    for (let attempt = 0; attempt < 6; attempt += 1) {
-      try {
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include',
-          cache: 'no-store',
-        });
-
-        if (response.ok) {
-          const authData = await response.json();
-          const role = authData?.profile?.role ?? null;
-          return ['admin', 'super_admin'].includes(role) ? '/admin' : '/dashboard';
-        }
-      } catch {
-        // Retry briefly while auth cookies settle.
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
-
-    return '/auth/handle-auth?next=/dashboard';
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
-      const supabase = createClient();
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          email,
+          password,
+        }),
       });
 
-      if (error) {
-        setError(error.message);
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        setError(payload?.error || 'Something went wrong while logging in.');
         setLoading(false);
         return;
       }
 
-      if (!data.user) {
-        setError('Login succeeded, but no user session was returned. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      const destination = await resolvePostLoginDestination();
-
-      window.location.replace(destination);
+      window.location.replace(payload?.destination || '/dashboard');
       return;
     } catch (err) {
       console.error(err);
-      setError('Something went wrong while logging in.');
+      setError('Unable to reach the login service. Please try again.');
       setLoading(false);
     }
   };
