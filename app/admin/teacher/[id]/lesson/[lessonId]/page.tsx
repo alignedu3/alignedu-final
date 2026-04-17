@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { buildSampleAnalysisReports, getLessonInsights, getLessonReportSections, getTEKSCoverageInsights, SAMPLE_TEACHER_IDS, type AnalysisReport, type ProfileRecord } from "@/lib/dashboardData";
 import { extractSectionText, extractStandardEntries } from "@/lib/analysisReport";
+import ProtectedPageState from "@/components/ProtectedPageState";
 
 export default function LessonReportPage() {
   const params = useParams<{ id: string; lessonId: string }>();
@@ -14,9 +15,11 @@ export default function LessonReportPage() {
   const [lesson, setLesson] = useState<AnalysisReport | null>(null);
   const [teacher, setTeacher] = useState<ProfileRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     async function load() {
+      setLoadError('');
       if ((teacherId as string)?.startsWith('sample-') || (lessonId as string)?.startsWith('sample-report-')) {
         const sampleLesson = buildSampleAnalysisReports().find((report) => report.id === lessonId);
         setLesson(sampleLesson || null);
@@ -39,6 +42,7 @@ export default function LessonReportPage() {
         console.error('Admin lesson load error:', data.error || 'Unknown error');
         setLesson(null);
         setTeacher(null);
+        setLoadError(data.error || 'Unable to load lesson report.');
         setLoading(false);
         return;
       }
@@ -54,8 +58,37 @@ export default function LessonReportPage() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [lessonId, teacherId]);
 
-  if (loading) return <div style={loadingState}>Loading lesson report...</div>;
-  if (!lesson) return <div style={loadingState}>Lesson not found.</div>;
+  if (loading) {
+    return (
+      <ProtectedPageState
+        mode="loading"
+        title="Loading lesson report"
+        message="Preparing the lesson details, metrics, and standards alignment."
+      />
+    );
+  }
+  if (loadError) {
+    return (
+      <ProtectedPageState
+        mode="error"
+        title="Unable to load lesson report"
+        message={loadError}
+        actionHref={teacherId ? `/admin/teacher/${teacherId}` : '/admin'}
+        actionLabel={teacherId ? 'Back to Teacher' : 'Back to Admin Dashboard'}
+      />
+    );
+  }
+  if (!lesson) {
+    return (
+      <ProtectedPageState
+        mode="empty"
+        title="Lesson not found"
+        message="This lesson may have been removed or is no longer available in your current admin scope."
+        actionHref={teacherId ? `/admin/teacher/${teacherId}` : '/admin'}
+        actionLabel={teacherId ? 'Back to Teacher' : 'Back to Admin Dashboard'}
+      />
+    );
+  }
 
   const insights = getLessonInsights(lesson);
   const reportSections = getLessonReportSections(lesson);

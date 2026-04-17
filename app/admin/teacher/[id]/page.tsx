@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 
 import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
+import ProtectedPageState from '@/components/ProtectedPageState';
 
 export default function AdminTeacherPage() {
   const params = useParams<{ id: string }>();
@@ -23,15 +24,19 @@ export default function AdminTeacherPage() {
   const [name, setName] = useState('');
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
   const [chartReady, setChartReady] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     async function load() {
+      setLoadError('');
       if ((id as string)?.startsWith('sample-')) {
         const sampleReports = buildSampleAnalysisReports().filter((report) => report.user_id === id);
         const sampleTeacherName =
           Object.entries(SAMPLE_TEACHER_IDS).find(([, sampleId]) => sampleId === id)?.[0] || 'Sample Teacher';
         setName(sampleTeacherName);
         setReports(sampleReports);
+        setReady(true);
         return;
       }
       const response = await fetch(`/api/admin/teacher/${id}`, {
@@ -44,11 +49,14 @@ export default function AdminTeacherPage() {
         console.error('Admin teacher load error:', data.error || 'Unknown error');
         setName('Teacher');
         setReports([]);
+        setLoadError(data.error || 'Unable to load teacher details.');
+        setReady(true);
         return;
       }
 
       setName(data.teacher?.name || 'Teacher');
       setReports(data.analyses || []);
+      setReady(true);
     }
 
     if (id) load();
@@ -111,6 +119,28 @@ export default function AdminTeacherPage() {
     const date = activeReport.created_at ? new Date(activeReport.created_at).toLocaleDateString() : 'No date';
     return `${activeReport.grade || 'Grade'} ${activeReport.subject || 'Lesson'} · ${date}`;
   }, [activeReport]);
+
+  if (!ready) {
+    return (
+      <ProtectedPageState
+        mode="loading"
+        title="Loading teacher details"
+        message="Pulling this teacher’s lesson history, trends, and support view."
+      />
+    );
+  }
+
+  if (loadError) {
+    return (
+      <ProtectedPageState
+        mode="error"
+        title="Unable to load teacher details"
+        message={loadError}
+        actionHref="/admin"
+        actionLabel="Back to Admin Dashboard"
+      />
+    );
+  }
 
   return (
     <main style={page} className="dashboard-page">

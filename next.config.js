@@ -1,6 +1,7 @@
 const path = require('path');
+const { withSentryConfig } = require('@sentry/nextjs');
 
-module.exports = {
+const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname),
   experimental: {
@@ -9,3 +10,7 @@ module.exports = {
     },
   },
 };
+
+module.exports = withSentryConfig(nextConfig, {
+  silent: true,
+});

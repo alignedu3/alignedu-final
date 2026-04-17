@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
+import ProtectedPageState from '@/components/ProtectedPageState';
 import {
   calculateLessonScore,
   getLatestLessonTrend,
@@ -135,7 +136,13 @@ export default function DistrictDashboard() {
   const priorityTeachers = teacherStats.filter((teacher) => teacher.supportLevel === 'Priority').slice(0, 5);
 
   if (!ready) {
-    return <div style={loading}>Loading...</div>;
+    return (
+      <ProtectedPageState
+        mode="loading"
+        title="Loading district dashboard"
+        message="Building your district-wide snapshot across visible campuses, teachers, and lesson data."
+      />
+    );
   }
 
   return (

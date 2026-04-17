@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, hasSupabaseBrowserEnv } from '@/lib/supabase/client';
 import { useTheme } from '@/app/context/ThemeContext';
 import type { ProfileRecord } from '@/lib/dashboardData';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
@@ -27,10 +27,18 @@ export default function Header() {
   const isAdminUser = role === 'admin' || role === 'super_admin';
 
   useEffect(() => {
-    const supabase = createClient();
     let isMounted = true;
+    const canUseBrowserAuth = hasSupabaseBrowserEnv();
 
     const syncUserAndProfile = async () => {
+      if (!canUseBrowserAuth) {
+        if (!isMounted) return;
+        setUser(null);
+        setProfile(null);
+        setOpen(false);
+        return;
+      }
+
       try {
         const { data } = await fetchJsonWithTimeout<{
           user?: AuthUser | null;
@@ -67,6 +75,14 @@ export default function Header() {
     };
 
     loadUser();
+
+    if (!canUseBrowserAuth) {
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    const supabase = createClient();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       async () => {
@@ -129,15 +145,23 @@ export default function Header() {
         // Ignore storage access issues in restricted browser contexts.
       }
 
-      const supabase = createClient();
-      void Promise.allSettled([
-        supabase.auth.signOut({ scope: 'local' }),
-        fetchJsonWithTimeout('/api/auth/logout', {
+      if (hasSupabaseBrowserEnv()) {
+        const supabase = createClient();
+        void Promise.allSettled([
+          supabase.auth.signOut({ scope: 'local' }),
+          fetchJsonWithTimeout('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include',
+            timeoutMs: 4000,
+          }),
+        ]);
+      } else {
+        void fetchJsonWithTimeout('/api/auth/logout', {
           method: 'POST',
           credentials: 'include',
           timeoutMs: 4000,
-        }),
-      ]);
+        });
+      }
     } catch (error) {
       console.error('Logout failed, forcing local reset:', error);
     } finally {

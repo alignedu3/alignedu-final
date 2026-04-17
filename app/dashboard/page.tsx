@@ -7,6 +7,7 @@ import { buildTeacherDashboardSampleReports, getDashboardSummary, getTrendData, 
 import { extractSectionText, extractStandardEntries } from '@/lib/analysisReport';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
+import ProtectedPageState from '@/components/ProtectedPageState';
 
 export default function TeacherDashboard() {
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
@@ -245,9 +246,11 @@ export default function TeacherDashboard() {
 
   if (!ready) {
     return (
-      <div style={loadingContainer}>
-        <p style={loadingText}>Loading your dashboard...</p>
-      </div>
+      <ProtectedPageState
+        mode="loading"
+        title="Loading your dashboard"
+        message="Pulling together your lesson history, trend line, and report data."
+      />
     );
   }
 

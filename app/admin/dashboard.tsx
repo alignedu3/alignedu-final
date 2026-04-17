@@ -25,6 +25,7 @@ import {
 } from 'recharts';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
+import ProtectedPageState from '@/components/ProtectedPageState';
 
 type TrendTerm = 'full_year' | 'fall' | 'spring';
 
@@ -553,7 +554,13 @@ export default function AdminDashboard() {
   };
 
   if (!ready) {
-    return <div style={loading}>Loading...</div>;
+    return (
+      <ProtectedPageState
+        mode="loading"
+        title="Loading admin dashboard"
+        message="Gathering visibility, team performance, and lesson trends for your current scope."
+      />
+    );
   }
 
   return (
