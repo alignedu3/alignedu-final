@@ -25,6 +25,7 @@ import {
   ReferenceLine,
 } from 'recharts';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
+import { ensureBrowserSession } from '@/lib/supabase/ensureBrowserSession';
 
 type TrendTerm = 'full_year' | 'fall' | 'spring';
 
@@ -136,6 +137,10 @@ export default function AdminDashboard() {
         setCurrentUserRole(authData.profile?.role ?? null);
 
         const supabase = createClient();
+        const session = await ensureBrowserSession(supabase, { attempts: 4, delayMs: 250 });
+        if (!session) {
+          throw new Error('Unable to initialize browser session for admin dashboard queries.');
+        }
 
         // If super_admin and adminId is present, load that admin's data
         let targetAdminId = user.id;

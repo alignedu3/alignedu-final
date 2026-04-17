@@ -7,6 +7,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { buildTeacherDashboardSampleReports, getDashboardSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
 import { extractSectionText, extractStandardEntries } from '@/lib/analysisReport';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
+import { ensureBrowserSession } from '@/lib/supabase/ensureBrowserSession';
 
 export default function TeacherDashboard() {
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
@@ -52,6 +53,11 @@ export default function TeacherDashboard() {
 
       setReady(true);
       setTeacherName(authData.profile?.name || 'Teacher');
+
+      const session = await ensureBrowserSession(supabase, { attempts: 4, delayMs: 250 });
+      if (!session) {
+        throw new Error('Unable to initialize browser session for dashboard queries.');
+      }
 
       const { data: profile } = await supabase
         .from('profiles')

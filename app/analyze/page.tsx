@@ -10,6 +10,7 @@ import {
   parseAnalysisResult,
   parseFeedbackSections,
 } from "@/lib/analysisReport";
+import { ensureBrowserSession } from "@/lib/supabase/ensureBrowserSession";
 
 // Simulate premium check (replace with real check if available)
 const isPremium = true;
@@ -824,6 +825,10 @@ export default function AnalysisPage() {
         }
 
         const supabase = createClient();
+        const session = await ensureBrowserSession(supabase, { attempts: 4, delayMs: 250 });
+        if (!session) {
+          throw new Error('Unable to initialize browser session for observation setup.');
+        }
         const { data: teacherProfiles, error: teacherError } = await supabase
           .from('profiles')
           .select('id, name')
