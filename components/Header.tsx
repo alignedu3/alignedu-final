@@ -31,25 +31,35 @@ export default function Header() {
     let isMounted = true;
 
     const syncUserAndProfile = async () => {
-      const authResponse = await fetch('/api/auth/me', {
-        credentials: 'include',
-        cache: 'no-store',
-      });
-      const authData = await authResponse.json();
-      const resolvedUser = authData.user ?? null;
+      try {
+        const { data } = await fetchJsonWithTimeout<{
+          user?: AuthUser | null;
+          profile?: ProfileRecord | null;
+        }>('/api/auth/me', {
+          credentials: 'include',
+          cache: 'no-store',
+          timeoutMs: 5000,
+        });
 
-      if (!isMounted) return;
+        if (!isMounted) return;
 
-      setUser(resolvedUser);
+        const resolvedUser = data?.user ?? null;
+        setUser(resolvedUser);
 
-      if (!resolvedUser) {
+        if (!resolvedUser) {
+          setProfile(null);
+          setOpen(false);
+          return;
+        }
+
+        setProfile(data?.profile ?? null);
+      } catch (error) {
+        if (!isMounted) return;
+        console.error('Header auth sync failed:', error);
+        setUser(null);
         setProfile(null);
         setOpen(false);
-        return;
       }
-
-      if (!isMounted) return;
-      setProfile(authData.profile ?? null);
     };
 
     const loadUser = async () => {
@@ -142,14 +152,7 @@ export default function Header() {
       router.push('/');
       return;
     }
-    // Always fetch the latest role to ensure accuracy
-    const supabase = createClient();
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-    const userRole = (profileData?.role || profile?.role || '').toLowerCase();
+    const userRole = (profile?.role || '').toLowerCase();
     if (userRole === 'admin' || userRole === 'super_admin') {
       router.push('/admin');
     } else {

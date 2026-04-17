@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -58,14 +59,16 @@ export default function AuthCallback() {
         }
 
         try {
-          const response = await fetch('/api/auth/me', {
+          const { data: authData } = await fetchJsonWithTimeout<{
+            profile?: { role?: string | null };
+          }>('/api/auth/me', {
             credentials: 'include',
             cache: 'no-store',
+            timeoutMs: 5000,
           });
-          const authData = await response.json();
           const role = authData?.profile?.role ?? null;
 
-          if (['admin', 'super_admin'].includes(role)) {
+          if (role && ['admin', 'super_admin'].includes(role)) {
             router.replace('/admin');
           } else if (role === 'teacher') {
             router.replace('/dashboard');

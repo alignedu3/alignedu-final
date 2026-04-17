@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 
 export default function ResetPassword() {
   const router = useRouter();
@@ -97,20 +98,21 @@ export default function ResetPassword() {
     setSuccess('Password updated! Redirecting…');
 
     // Redirect to the correct dashboard based on role
-    const { data: { session } } = await supabase.auth.getSession();
-    const user = session?.user ?? null;
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle();
+    try {
+      const { data } = await fetchJsonWithTimeout<{
+        user?: { id: string } | null;
+        profile?: { role?: string | null } | null;
+      }>('/api/auth/me', {
+        credentials: 'include',
+        cache: 'no-store',
+        timeoutMs: 5000,
+      });
 
       setTimeout(() => {
-        const destination = ['admin', 'super_admin'].includes(profile?.role) ? '/admin' : '/dashboard';
-        router.push(destination);
+        const destination = ['admin', 'super_admin'].includes(data?.profile?.role || '') ? '/admin' : '/dashboard';
+        router.push(data?.user ? destination : '/login');
       }, 1200);
-    } else {
+    } catch {
       setTimeout(() => { router.push('/login'); }, 1200);
     }
 

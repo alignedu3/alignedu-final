@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 import {
   calculateLessonScore,
   getLatestLessonTrend,
@@ -23,35 +24,31 @@ export default function DistrictDashboard() {
   const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [districtName, setDistrictName] = useState('District Dashboard');
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
     async function load() {
       try {
-        const authResponse = await fetch('/api/auth/me', {
+        setLoadError('');
+        const { response, data } = await fetchJsonWithTimeout<DistrictPayload>('/api/admin/district', {
           credentials: 'include',
           cache: 'no-store',
+          timeoutMs: 12000,
         });
-        const authData = await authResponse.json();
 
-        if (!authData.user) {
+        if (response.status === 401) {
           window.location.replace('/login');
           return;
         }
 
-        if (authData.profile?.role !== 'super_admin') {
+        if (response.status === 403) {
           window.location.replace('/admin');
           return;
         }
 
-        const response = await fetch('/api/admin/district', {
-          credentials: 'include',
-          cache: 'no-store',
-        });
-        const data: DistrictPayload = await response.json();
-
-        if (!response.ok || !data.success) {
-          throw new Error(data.error || 'Unable to load district dashboard');
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.error || 'Unable to load district dashboard');
         }
 
         setProfiles(data.profiles || []);
@@ -59,6 +56,7 @@ export default function DistrictDashboard() {
         setDistrictName(data.caller?.name ? `${data.caller.name}'s District View` : 'District Dashboard');
       } catch (error) {
         console.error('District dashboard load error:', error);
+        setLoadError(error instanceof Error ? error.message : 'Unable to load district dashboard.');
       } finally {
         setReady(true);
       }
@@ -99,7 +97,6 @@ export default function DistrictDashboard() {
           avgScore: averageScore,
           latestScore: latestMetrics?.score ?? 0,
           latestCoverage: latestMetrics?.coverage ?? 0,
-          latestAssessment: latestMetrics?.assessment ?? 0,
           gaps: latestMetrics?.gaps ?? 0,
           trend: getLatestLessonTrend(teacherReports),
           supportLevel:
@@ -156,6 +153,12 @@ export default function DistrictDashboard() {
             Back to Admin Dashboard
           </button>
         </div>
+
+        {loadError ? (
+          <section style={{ ...card, marginBottom: 24, border: '1px solid rgba(248,113,113,0.28)' }}>
+            <p style={text}>{loadError}</p>
+          </section>
+        ) : null}
 
         <div style={statsGrid}>
           <div style={statCard}>
