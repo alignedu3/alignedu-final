@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '../../lib/supabase/client';
+import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -54,16 +55,24 @@ export default function LoginPage() {
 
       if (payload?.session?.access_token && payload?.session?.refresh_token) {
         const supabase = createClient();
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: payload.session.access_token,
-          refresh_token: payload.session.refresh_token,
-        });
-
-        if (sessionError) {
-          setError('Login succeeded, but the browser session could not be initialized. Please try again.');
-          setLoading(false);
-          return;
+        try {
+          await supabase.auth.setSession({
+            access_token: payload.session.access_token,
+            refresh_token: payload.session.refresh_token,
+          });
+        } catch (sessionError) {
+          console.warn('Browser session sync failed after successful server login:', sessionError);
         }
+      }
+
+      try {
+        await fetchJsonWithTimeout('/api/auth/me', {
+          credentials: 'include',
+          cache: 'no-store',
+          timeoutMs: 4000,
+        });
+      } catch (sessionCheckError) {
+        console.warn('Post-login session verification timed out:', sessionCheckError);
       }
 
       window.location.replace(payload?.destination || '/dashboard');
