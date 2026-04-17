@@ -46,6 +46,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!data.session?.access_token || !data.session?.refresh_token) {
+      return NextResponse.json(
+        { error: 'Login succeeded, but the session could not be initialized. Please try again.' },
+        { status: 500 }
+      );
+    }
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('name, role')
@@ -63,6 +70,10 @@ export async function POST(request: NextRequest) {
           email: data.user.email ?? null,
         },
         profile: profile ?? null,
+        session: {
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        },
         destination,
       },
       {

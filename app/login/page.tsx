@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createClient } from '../../lib/supabase/client';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -49,6 +50,20 @@ export default function LoginPage() {
         setError(payload?.error || 'Something went wrong while logging in.');
         setLoading(false);
         return;
+      }
+
+      if (payload?.session?.access_token && payload?.session?.refresh_token) {
+        const supabase = createClient();
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: payload.session.access_token,
+          refresh_token: payload.session.refresh_token,
+        });
+
+        if (sessionError) {
+          setError('Login succeeded, but the browser session could not be initialized. Please try again.');
+          setLoading(false);
+          return;
+        }
       }
 
       window.location.replace(payload?.destination || '/dashboard');
