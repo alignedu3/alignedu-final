@@ -31,17 +31,21 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      const controller = new AbortController();
+      const timeoutId = window.setTimeout(() => controller.abort(), 12000);
+
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
+        signal: controller.signal,
         body: JSON.stringify({
           email,
           password,
         }),
-      });
+      }).finally(() => window.clearTimeout(timeoutId));
 
       const payload = await response.json().catch(() => null);
 
@@ -55,7 +59,11 @@ export default function LoginPage() {
       return;
     } catch (err) {
       console.error(err);
-      setError('Unable to reach the login service. Please try again.');
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setError('Login is taking longer than expected. Please try again.');
+      } else {
+        setError('Unable to reach the login service. Please try again.');
+      }
       setLoading(false);
     }
   };

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { createClient, hasSupabaseBrowserEnv } from '@/lib/supabase/client';
 import { useTheme } from '@/app/context/ThemeContext';
 import type { ProfileRecord } from '@/lib/dashboardData';
@@ -10,6 +11,7 @@ import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 
 type AuthUser = {
   id: string;
+  email?: string | null;
 };
 
 export default function Header() {
@@ -55,15 +57,26 @@ export default function Header() {
         setUser(resolvedUser);
 
         if (!resolvedUser) {
+          Sentry.setUser(null);
+          Sentry.setTag('app_role', 'guest');
           setProfile(null);
           setOpen(false);
           return;
         }
 
-        setProfile(data?.profile ?? null);
+        const resolvedProfile = data?.profile ?? null;
+        setProfile(resolvedProfile);
+        Sentry.setUser({
+          id: resolvedUser.id,
+          email: resolvedUser.email ?? undefined,
+          username: resolvedProfile?.name ?? undefined,
+        });
+        Sentry.setTag('app_role', resolvedProfile?.role ?? 'authenticated');
       } catch (error) {
         if (!isMounted) return;
         console.error('Header auth sync failed:', error);
+        Sentry.setUser(null);
+        Sentry.setTag('app_role', 'guest');
         setUser(null);
         setProfile(null);
         setOpen(false);
@@ -121,6 +134,8 @@ export default function Header() {
     setMobileOpen(false);
     setUser(null);
     setProfile(null);
+    Sentry.setUser(null);
+    Sentry.setTag('app_role', 'guest');
 
     try {
       document.cookie

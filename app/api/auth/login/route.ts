@@ -1,5 +1,33 @@
+import * as Sentry from '@sentry/nextjs';
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
+
+const LOGIN_TIMEOUT_MS = 8000;
+const PROFILE_TIMEOUT_MS = 3000;
+
+class RouteTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RouteTimeoutError';
+  }
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new RouteTimeoutError(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
 
 export async function POST(request: NextRequest) {
   const response = NextResponse.json({ success: false }, { status: 500 });
@@ -30,10 +58,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password are required.' }, { status: 400 });
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await withTimeout(
+      supabase.auth.signInWithPassword({
+        email,
+        password,
+      }),
+      LOGIN_TIMEOUT_MS,
+      'Login route timeout (Supabase call delay)'
+    );
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 401 });
@@ -53,11 +85,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('name, role')
-      .eq('id', data.user.id)
-      .maybeSingle();
+    let profile: { name?: string | null; role?: string | null } | null = null;
+
+    try {
+      const { data: profileData } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('name, role')
+          .eq('id', data.user.id)
+          .maybeSingle(),
+        PROFILE_TIMEOUT_MS,
+        'Login profile lookup timeout'
+      );
+
+      profile = profileData ?? null;
+    } catch (profileError) {
+      console.error('Login profile lookup delayed, using default destination:', profileError);
+      Sentry.captureException(profileError, {
+        level: 'warning',
+        tags: {
+          route: 'api/auth/login',
+          stage: 'profile_lookup',
+        },
+        user: {
+          id: data.user.id,
+          email,
+        },
+      });
+    }
 
     const role = profile?.role ?? null;
     const destination = ['admin', 'super_admin'].includes(role) ? '/admin' : '/dashboard';
@@ -82,7 +137,27 @@ export async function POST(request: NextRequest) {
       }
     );
   } catch (error) {
+    if (error instanceof RouteTimeoutError) {
+      console.error(error.message);
+      Sentry.captureException(error, {
+        tags: {
+          route: 'api/auth/login',
+          stage: 'sign_in',
+        },
+      });
+
+      return NextResponse.json(
+        { error: 'Login is taking longer than expected. Please try again.' },
+        { status: 504 }
+      );
+    }
+
     console.error('Login route error:', error);
+    Sentry.captureException(error, {
+      tags: {
+        route: 'api/auth/login',
+      },
+    });
     return NextResponse.json({ error: 'Something went wrong while logging in.' }, { status: 500 });
   }
 }
