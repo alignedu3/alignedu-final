@@ -180,6 +180,10 @@ export default function AdminDashboard() {
   }, [router, selectedAdminId]);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [selectedAdminId]);
+
+  useEffect(() => {
     const checkScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
     checkScreen();
     setChartReady(true);

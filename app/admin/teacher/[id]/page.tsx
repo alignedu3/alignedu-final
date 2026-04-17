@@ -365,7 +365,7 @@ export default function AdminTeacherPage() {
 const page: React.CSSProperties = {
   minHeight: '100vh',
   background: 'var(--surface-page)',
-  paddingTop: 12,
+  paddingTop: 18,
 };
 
 const container: React.CSSProperties = {
