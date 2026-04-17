@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const role = profile?.role ?? null;
+    const role = profile?.role ?? '';
     const destination = ['admin', 'super_admin'].includes(role) ? '/admin' : '/dashboard';
 
     return NextResponse.json(
