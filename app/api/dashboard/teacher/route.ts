@@ -39,10 +39,6 @@ export async function GET() {
       return NextResponse.json({ success: false, error: callerProfileError.message }, { status: 500 });
     }
 
-    if (['admin', 'super_admin'].includes(callerProfile?.role || '')) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
-    }
-
     const serviceSupabase = getServiceSupabase();
     const { data: analyses, error: analysesError } = await serviceSupabase
       .from('analyses')

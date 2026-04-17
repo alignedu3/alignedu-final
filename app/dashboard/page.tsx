@@ -49,11 +49,6 @@ export default function TeacherDashboard() {
         return;
       }
 
-      if (response.status === 403) {
-        window.location.replace('/admin');
-        return;
-      }
-
       if (!response.ok || !data?.success) {
         throw new Error(data?.error || 'Unable to load your dashboard.');
       }
