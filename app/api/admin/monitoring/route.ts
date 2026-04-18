@@ -32,6 +32,50 @@ type MonitoringActivityRow = {
   latestSubmittedAt: string | null;
 };
 
+type ConnectionState = {
+  key: string;
+  label: string;
+  connected: boolean;
+  detail: string;
+  envKeys?: string[];
+};
+
+type CostSummaryCard = {
+  key: string;
+  label: string;
+  value: number | null;
+  displayValue: string;
+  status: 'live' | 'connect_required';
+  detail: string;
+};
+
+type TrafficSummaryCard = {
+  key: string;
+  label: string;
+  value: number | null;
+  displayValue: string;
+  status: 'live' | 'connect_required';
+  detail: string;
+};
+
+type CostSeriesPoint = {
+  date: string;
+  label: string;
+  openai: number | null;
+  supabase: number | null;
+  vercel: number | null;
+  cloudflare: number | null;
+};
+
+type TrafficSeriesPoint = {
+  date: string;
+  label: string;
+  requests: number | null;
+  cached: number | null;
+  uncached: number | null;
+  bandwidthMb: number | null;
+};
+
 function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -115,6 +159,197 @@ function buildReadiness(): MonitoringReadiness[] {
       detail: serviceSupabaseConfigured ? 'Protected dashboard routes can query secure app data.' : 'SUPABASE_SERVICE_ROLE_KEY is missing.',
     },
   ];
+}
+
+function buildConnections() {
+  const hasOpenAiUsageKey = Boolean(process.env.OPENAI_USAGE_ADMIN_KEY);
+  const hasSupabaseManagement = Boolean(process.env.SUPABASE_MANAGEMENT_TOKEN && process.env.SUPABASE_PROJECT_REF);
+  const hasVercelUsage = Boolean(process.env.VERCEL_ACCESS_TOKEN && process.env.VERCEL_TEAM_ID);
+  const hasCloudflareUsage = Boolean(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ZONE_ID);
+  const hasResendUsage = Boolean(process.env.RESEND_API_KEY);
+  const hasRegistrarTracking = Boolean(process.env.DOMAIN_REGISTRAR_NAME || process.env.DOMAIN_RENEWAL_USD);
+
+  const connections: ConnectionState[] = [
+    {
+      key: 'openai-billing',
+      label: 'OpenAI Costs',
+      connected: hasOpenAiUsageKey,
+      detail: hasOpenAiUsageKey
+        ? 'Usage and cost endpoints are ready to connect.'
+        : 'Add OPENAI_USAGE_ADMIN_KEY to unlock billed and estimated OpenAI cost views.',
+      envKeys: ['OPENAI_USAGE_ADMIN_KEY'],
+    },
+    {
+      key: 'supabase-billing',
+      label: 'Supabase Costs',
+      connected: hasSupabaseManagement,
+      detail: hasSupabaseManagement
+        ? 'Supabase management metrics are ready to connect.'
+        : 'Add SUPABASE_MANAGEMENT_TOKEN and SUPABASE_PROJECT_REF to unlock cost and usage tracking.',
+      envKeys: ['SUPABASE_MANAGEMENT_TOKEN', 'SUPABASE_PROJECT_REF'],
+    },
+    {
+      key: 'vercel-billing',
+      label: 'Vercel Costs',
+      connected: hasVercelUsage,
+      detail: hasVercelUsage
+        ? 'Vercel usage data is ready to connect.'
+        : 'Add VERCEL_ACCESS_TOKEN and VERCEL_TEAM_ID to unlock hosting usage and billed cost.',
+      envKeys: ['VERCEL_ACCESS_TOKEN', 'VERCEL_TEAM_ID'],
+    },
+    {
+      key: 'cloudflare-traffic',
+      label: 'Cloudflare Traffic',
+      connected: hasCloudflareUsage,
+      detail: hasCloudflareUsage
+        ? 'Cloudflare analytics are ready to connect.'
+        : 'Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID to unlock requests, threats, cache, and bandwidth.',
+      envKeys: ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ZONE_ID'],
+    },
+    {
+      key: 'resend-usage',
+      label: 'Resend Email Usage',
+      connected: hasResendUsage,
+      detail: hasResendUsage
+        ? 'Email runtime is configured; billing usage can be layered in next.'
+        : 'Add RESEND_API_KEY to track invite and reset email usage.',
+      envKeys: ['RESEND_API_KEY'],
+    },
+    {
+      key: 'registrar',
+      label: 'Domain Renewal',
+      connected: hasRegistrarTracking,
+      detail: hasRegistrarTracking
+        ? 'Registrar metadata is ready to display.'
+        : 'Add DOMAIN_REGISTRAR_NAME and optionally DOMAIN_RENEWAL_USD to track domain renewal cost.',
+      envKeys: ['DOMAIN_REGISTRAR_NAME', 'DOMAIN_RENEWAL_USD'],
+    },
+  ];
+
+  return {
+    connections,
+    connectedCount: connections.filter((item) => item.connected).length,
+  };
+}
+
+function buildCostCards(): CostSummaryCard[] {
+  return [
+    {
+      key: 'openai-product',
+      label: 'OpenAI Product',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on OpenAI usage/cost access.',
+    },
+    {
+      key: 'openai-billed',
+      label: 'OpenAI Billed',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on OpenAI billing connection.',
+    },
+    {
+      key: 'supabase-costs',
+      label: 'Supabase Costs',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Supabase management/billing connection.',
+    },
+    {
+      key: 'vercel-costs',
+      label: 'Vercel Costs',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Vercel usage access.',
+    },
+    {
+      key: 'cloudflare-costs',
+      label: 'Cloudflare Costs',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Cloudflare billing/analytics access.',
+    },
+    {
+      key: 'total-costs',
+      label: 'Total Costs',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Total monthly spend will appear once provider billing sources are connected.',
+    },
+  ];
+}
+
+function buildTrafficCards(): TrafficSummaryCard[] {
+  return [
+    {
+      key: 'total-requests',
+      label: 'Total Requests',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Cloudflare traffic analytics.',
+    },
+    {
+      key: 'page-views',
+      label: 'Page Views',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Cloudflare or web analytics connection.',
+    },
+    {
+      key: 'unique-visitors',
+      label: 'Unique Visitors',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Cloudflare or web analytics connection.',
+    },
+    {
+      key: 'cache-hit-ratio',
+      label: 'Cache Hit Ratio',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Cloudflare cache analytics.',
+    },
+    {
+      key: 'threats-blocked',
+      label: 'Threats Blocked',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Cloudflare security analytics.',
+    },
+  ];
+}
+
+function buildEmptyCostSeries(windowKeys: string[]): CostSeriesPoint[] {
+  return windowKeys.map((key) => ({
+    date: key,
+    label: formatCompactDate(key),
+    openai: null,
+    supabase: null,
+    vercel: null,
+    cloudflare: null,
+  }));
+}
+
+function buildEmptyTrafficSeries(windowKeys: string[]): TrafficSeriesPoint[] {
+  return windowKeys.map((key) => ({
+    date: key,
+    label: formatCompactDate(key),
+    requests: null,
+    cached: null,
+    uncached: null,
+    bandwidthMb: null,
+  }));
 }
 
 export async function GET(request: NextRequest) {
@@ -267,6 +502,7 @@ export async function GET(request: NextRequest) {
       .slice(0, 8);
 
     const readiness = buildReadiness();
+    const connectionState = buildConnections();
     const strongTeachers = recentActivity.filter((row) => row.role === 'teacher' && row.averageScore >= 85).length;
     const atRiskTeachers = recentActivity.filter((row) => row.role === 'teacher' && row.averageScore > 0 && row.averageScore < 75).length;
 
@@ -292,6 +528,25 @@ export async function GET(request: NextRequest) {
       series,
       recentActivity,
       readiness,
+      connections: connectionState.connections,
+      sync: {
+        generatedAt: new Date().toISOString(),
+        connectedProviders: connectionState.connectedCount,
+        totalProviders: connectionState.connections.length,
+      },
+      infrastructureCosts: {
+        summaryCards: buildCostCards(),
+        dailySeries: buildEmptyCostSeries(windowKeys),
+        cumulativeSeries: buildEmptyCostSeries(windowKeys).map((point) => ({
+          ...point,
+          total: null,
+        })),
+      },
+      httpTraffic: {
+        summaryCards: buildTrafficCards(),
+        requestSeries: buildEmptyTrafficSeries(windowKeys),
+        bandwidthSeries: buildEmptyTrafficSeries(windowKeys),
+      },
     });
   } catch (error: any) {
     console.error('Admin monitoring route error:', error);

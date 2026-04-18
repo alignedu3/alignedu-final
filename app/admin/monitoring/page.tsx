@@ -42,6 +42,54 @@ type MonitoringActivityRow = {
   latestSubmittedAt: string | null;
 };
 
+type ConnectionState = {
+  key: string;
+  label: string;
+  connected: boolean;
+  detail: string;
+  envKeys?: string[];
+};
+
+type CostSummaryCard = {
+  key: string;
+  label: string;
+  value: number | null;
+  displayValue: string;
+  status: 'live' | 'connect_required';
+  detail: string;
+};
+
+type TrafficSummaryCard = {
+  key: string;
+  label: string;
+  value: number | null;
+  displayValue: string;
+  status: 'live' | 'connect_required';
+  detail: string;
+};
+
+type CostSeriesPoint = {
+  date: string;
+  label: string;
+  openai: number | null;
+  supabase: number | null;
+  vercel: number | null;
+  cloudflare: number | null;
+};
+
+type CostCumulativePoint = CostSeriesPoint & {
+  total: number | null;
+};
+
+type TrafficSeriesPoint = {
+  date: string;
+  label: string;
+  requests: number | null;
+  cached: number | null;
+  uncached: number | null;
+  bandwidthMb: number | null;
+};
+
 type MonitoringPayload = {
   success: boolean;
   error?: string;
@@ -61,6 +109,22 @@ type MonitoringPayload = {
   series?: MonitoringSeriesPoint[];
   readiness?: MonitoringReadiness[];
   recentActivity?: MonitoringActivityRow[];
+  connections?: ConnectionState[];
+  sync?: {
+    generatedAt?: string;
+    connectedProviders?: number;
+    totalProviders?: number;
+  };
+  infrastructureCosts?: {
+    summaryCards?: CostSummaryCard[];
+    dailySeries?: CostSeriesPoint[];
+    cumulativeSeries?: CostCumulativePoint[];
+  };
+  httpTraffic?: {
+    summaryCards?: TrafficSummaryCard[];
+    requestSeries?: TrafficSeriesPoint[];
+    bandwidthSeries?: TrafficSeriesPoint[];
+  };
 };
 
 const WINDOW_OPTIONS = [7, 14, 30] as const;
@@ -121,7 +185,15 @@ export default function MonitoringDashboard() {
   const series = payload?.series || [];
   const readiness = payload?.readiness || [];
   const recentActivity = payload?.recentActivity || [];
+  const connections = payload?.connections || [];
+  const costCards = payload?.infrastructureCosts?.summaryCards || [];
+  const dailyCostSeries = payload?.infrastructureCosts?.dailySeries || [];
+  const cumulativeCostSeries = payload?.infrastructureCosts?.cumulativeSeries || [];
+  const trafficCards = payload?.httpTraffic?.summaryCards || [];
+  const requestSeries = payload?.httpTraffic?.requestSeries || [];
+  const bandwidthSeries = payload?.httpTraffic?.bandwidthSeries || [];
   const callerName = payload?.caller?.name || 'Platform Monitoring';
+  const syncGeneratedAt = payload?.sync?.generatedAt || null;
 
   const healthHeadline = useMemo(() => {
     if (!readiness.length) return 'Monitoring status is loading.';
@@ -130,6 +202,14 @@ export default function MonitoringDashboard() {
     if (healthyCount >= readiness.length - 1) return 'Most core services are configured, with one area to review.';
     return 'Multiple monitoring or runtime services still need attention.';
   }, [readiness]);
+
+  const connectionHeadline = useMemo(() => {
+    const connected = payload?.sync?.connectedProviders ?? 0;
+    const total = payload?.sync?.totalProviders ?? 0;
+    if (!total) return 'Provider connections will appear here once the dashboard is initialized.';
+    if (connected === total) return 'All provider feeds are connected.';
+    return `${connected} of ${total} provider feeds are connected. The rest are ready to wire in when you add access tokens.`;
+  }, [payload?.sync?.connectedProviders, payload?.sync?.totalProviders]);
 
   if (!ready) {
     return (
@@ -189,6 +269,9 @@ export default function MonitoringDashboard() {
             <button type="button" onClick={() => router.push('/admin')} style={backBtn}>
               Back to Admin
             </button>
+            <div style={updatedText}>
+              {syncGeneratedAt ? `Updated ${formatTime(syncGeneratedAt)}` : 'Waiting for sync'}
+            </div>
           </div>
         </div>
 
@@ -246,6 +329,202 @@ export default function MonitoringDashboard() {
             <div style={statSub}>Teachers currently below the recent support threshold</div>
           </div>
         </div>
+
+        <section style={sectionCard}>
+          <div style={sectionHeader}>
+            <div>
+              <div style={sectionEyebrow}>Provider Connections</div>
+              <h2 style={sectionTitle}>Infrastructure Feeds</h2>
+            </div>
+          </div>
+          <p style={{ ...bodyText, marginTop: 0 }}>{connectionHeadline}</p>
+          <div style={readinessGrid}>
+            {connections.map((item) => (
+              <div key={item.key} style={readinessCard}>
+                <div style={readinessTopRow}>
+                  <div style={readinessLabel}>{item.label}</div>
+                  <div
+                    style={{
+                      ...readinessPill,
+                      background: item.connected ? 'rgba(22,163,74,0.16)' : 'rgba(59,130,246,0.12)',
+                      color: item.connected ? '#16a34a' : '#3b82f6',
+                    }}
+                  >
+                    {item.connected ? 'Connected' : 'Ready to Connect'}
+                  </div>
+                </div>
+                <p style={readinessText}>{item.detail}</p>
+                {item.envKeys && item.envKeys.length > 0 ? (
+                  <div style={envKeyRow}>
+                    {item.envKeys.map((envKey) => (
+                      <span key={envKey} style={envKeyChip}>{envKey}</span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section style={sectionCard}>
+          <div style={sectionHeader}>
+            <div>
+              <div style={sectionEyebrow}>Infrastructure Costs</div>
+              <h2 style={sectionTitle}>Monthly Spend and Service Cost Tracking</h2>
+            </div>
+          </div>
+          <div style={statsGrid}>
+            {costCards.map((card) => (
+              <div key={card.key} style={statCard}>
+                <div style={statLabel}>{card.label}</div>
+                <div style={statValue}>{card.displayValue}</div>
+                <div
+                  style={{
+                    ...miniStatusPill,
+                    background: card.status === 'live' ? 'rgba(22,163,74,0.16)' : 'rgba(59,130,246,0.12)',
+                    color: card.status === 'live' ? '#16a34a' : '#3b82f6',
+                  }}
+                >
+                  {card.status === 'live' ? 'Live' : 'Connect account'}
+                </div>
+                <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
+              </div>
+            ))}
+          </div>
+          <div style={twoColumn} className="monitoring-two-column">
+            <section style={sectionCard}>
+              <div style={sectionHeader}>
+                <div>
+                  <div style={sectionEyebrow}>Daily Costs</div>
+                  <h3 style={subChartTitle}>Daily Costs by Service</h3>
+                </div>
+              </div>
+              <div style={chartShell}>
+                {chartReady ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={dailyCostSeries}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                      <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                      <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }} />
+                      <Bar dataKey="openai" name="OpenAI" stackId="cost" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="supabase" name="Supabase" stackId="cost" fill="#10b981" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="vercel" name="Vercel" stackId="cost" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="cloudflare" name="Cloudflare" stackId="cost" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ height: 300 }} />
+                )}
+              </div>
+              <p style={emptyChartNote}>Connect provider billing access to populate daily cost breakdowns.</p>
+            </section>
+
+            <section style={sectionCard}>
+              <div style={sectionHeader}>
+                <div>
+                  <div style={sectionEyebrow}>Cumulative Spend</div>
+                  <h3 style={subChartTitle}>Cumulative Monthly Spend</h3>
+                </div>
+              </div>
+              <div style={chartShell}>
+                {chartReady ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={cumulativeCostSeries}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                      <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                      <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }} />
+                      <Line type="monotone" dataKey="total" name="Total Spend" stroke="#f59e0b" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ height: 300 }} />
+                )}
+              </div>
+              <p style={emptyChartNote}>Cumulative monthly spend will appear once at least one billing provider is connected.</p>
+            </section>
+          </div>
+        </section>
+
+        <section style={sectionCard}>
+          <div style={sectionHeader}>
+            <div>
+              <div style={sectionEyebrow}>HTTP Traffic</div>
+              <h2 style={sectionTitle}>Requests, Caching, Visitors, and Bandwidth</h2>
+            </div>
+          </div>
+          <div style={statsGrid}>
+            {trafficCards.map((card) => (
+              <div key={card.key} style={statCard}>
+                <div style={statLabel}>{card.label}</div>
+                <div style={statValue}>{card.displayValue}</div>
+                <div
+                  style={{
+                    ...miniStatusPill,
+                    background: card.status === 'live' ? 'rgba(22,163,74,0.16)' : 'rgba(59,130,246,0.12)',
+                    color: card.status === 'live' ? '#16a34a' : '#3b82f6',
+                  }}
+                >
+                  {card.status === 'live' ? 'Live' : 'Connect account'}
+                </div>
+                <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
+              </div>
+            ))}
+          </div>
+          <div style={twoColumn} className="monitoring-two-column">
+            <section style={sectionCard}>
+              <div style={sectionHeader}>
+                <div>
+                  <div style={sectionEyebrow}>Request Load</div>
+                  <h3 style={subChartTitle}>Requests Over Time</h3>
+                </div>
+              </div>
+              <div style={chartShell}>
+                {chartReady ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={requestSeries}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                      <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                      <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }} />
+                      <Bar dataKey="cached" name="Cached" fill="#10b981" radius={[6, 6, 0, 0]} />
+                      <Bar dataKey="uncached" name="Uncached" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ height: 300 }} />
+                )}
+              </div>
+              <p style={emptyChartNote}>Add Cloudflare traffic analytics to unlock request, visitor, and cache metrics.</p>
+            </section>
+
+            <section style={sectionCard}>
+              <div style={sectionHeader}>
+                <div>
+                  <div style={sectionEyebrow}>Bandwidth</div>
+                  <h3 style={subChartTitle}>Bandwidth Over Time</h3>
+                </div>
+              </div>
+              <div style={chartShell}>
+                {chartReady ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={bandwidthSeries}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                      <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                      <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }} />
+                      <Line type="monotone" dataKey="bandwidthMb" name="Bandwidth (MB)" stroke="#3b82f6" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div style={{ height: 300 }} />
+                )}
+              </div>
+              <p style={emptyChartNote}>Bandwidth, cache hit ratio, and threat blocking will populate from Cloudflare once connected.</p>
+            </section>
+          </div>
+        </section>
 
         <div style={twoColumn} className="monitoring-two-column">
           <section style={sectionCard}>
@@ -399,6 +678,15 @@ function formatDateTime(value: string | null) {
   });
 }
 
+function formatTime(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 const tooltipStyle = {
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
@@ -484,6 +772,12 @@ const backBtn: React.CSSProperties = {
   fontWeight: 700,
   cursor: 'pointer',
   minHeight: 42,
+};
+
+const updatedText: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  fontWeight: 600,
 };
 
 const heroSection: React.CSSProperties = {
@@ -590,6 +884,15 @@ const statSub: React.CSSProperties = {
   lineHeight: 1.5,
 };
 
+const miniStatusPill: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  borderRadius: 999,
+  padding: '6px 10px',
+  fontSize: 12,
+  fontWeight: 800,
+};
+
 const twoColumn: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -683,6 +986,36 @@ const readinessText: React.CSSProperties = {
 const bodyText: React.CSSProperties = {
   color: 'var(--text-secondary)',
   lineHeight: 1.65,
+};
+
+const envKeyRow: React.CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  flexWrap: 'wrap',
+  marginTop: 12,
+};
+
+const envKeyChip: React.CSSProperties = {
+  borderRadius: 999,
+  padding: '6px 10px',
+  background: 'rgba(15,23,42,0.06)',
+  border: '1px solid var(--border)',
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+const subChartTitle: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  margin: 0,
+  fontSize: 18,
+};
+
+const emptyChartNote: React.CSSProperties = {
+  margin: '12px 0 0 0',
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  lineHeight: 1.55,
 };
 
 const tableWrap: React.CSSProperties = {
