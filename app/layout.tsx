@@ -1,6 +1,8 @@
 import './globals.css';
 import { ThemeProvider } from './context/ThemeContext';
 import Header from '@/components/Header';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata = {
   metadataBase: new URL('https://www.alignedu.net'),
@@ -29,6 +31,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <Header />
           {children}
+          <Analytics />
+          <SpeedInsights />
         </ThemeProvider>
       </body>
     </html>
