@@ -176,7 +176,7 @@ export async function GET(request: NextRequest) {
       visibility.visibleUserIds.length
         ? serviceSupabase
             .from('analyses')
-            .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result, score')
+            .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result')
             .in('user_id', visibility.visibleUserIds)
             .order('created_at', { ascending: false })
         : Promise.resolve({ data: [], error: null }),
