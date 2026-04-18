@@ -76,6 +76,35 @@ type TrafficSeriesPoint = {
   bandwidthMb: number | null;
 };
 
+type CloudflareDailyPoint = {
+  date: string;
+  requests: number;
+  pageViews: number;
+  uniques: number;
+  bytes: number;
+  cachedBytes: number;
+  cachedRequests: number;
+  threats: number;
+};
+
+type CloudflareTotals = {
+  requests: number;
+  pageViews: number;
+  uniques: number;
+  bytes: number;
+  cachedBytes: number;
+  cachedRequests: number;
+  threats: number;
+};
+
+type CloudflareTrafficResult = {
+  connected: boolean;
+  detail: string;
+  summaryCards: TrafficSummaryCard[];
+  requestSeries: TrafficSeriesPoint[];
+  bandwidthSeries: TrafficSeriesPoint[];
+};
+
 function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -121,6 +150,15 @@ function formatCompactDate(dateKey: string) {
   return Number.isNaN(parsed.getTime())
     ? dateKey
     : parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value);
+}
+
+function roundTo(value: number, decimals = 1) {
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
 }
 
 function buildReadiness(): MonitoringReadiness[] {
@@ -330,6 +368,222 @@ function buildTrafficCards(): TrafficSummaryCard[] {
   ];
 }
 
+function getCloudflareEnv() {
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+  const zoneId = process.env.CLOUDFLARE_ZONE_ID;
+
+  if (!apiToken || !zoneId) {
+    return null;
+  }
+
+  return { apiToken, zoneId };
+}
+
+async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareTrafficResult> {
+  const env = getCloudflareEnv();
+  const emptyRequestSeries = buildEmptyTrafficSeries(windowKeys);
+  const emptyBandwidthSeries = buildEmptyTrafficSeries(windowKeys);
+
+  if (!env) {
+    return {
+      connected: false,
+      detail: 'Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID to unlock requests, threats, cache, and bandwidth.',
+      summaryCards: buildTrafficCards(),
+      requestSeries: emptyRequestSeries,
+      bandwidthSeries: emptyBandwidthSeries,
+    };
+  }
+
+  const startDate = windowKeys[0];
+  const endDate = new Date(`${windowKeys[windowKeys.length - 1]}T12:00:00Z`);
+  endDate.setUTCDate(endDate.getUTCDate() + 1);
+  const endDateKey = endDate.toISOString().slice(0, 10);
+
+  const query = `
+    query MonitoringTraffic($zoneTag: string!, $startDate: Date!, $endDate: Date!) {
+      viewer {
+        zones(filter: { zoneTag: $zoneTag }) {
+          totals: httpRequests1dGroups(
+            limit: 1
+            filter: { date_geq: $startDate, date_lt: $endDate }
+          ) {
+            uniq {
+              uniques
+            }
+            sum {
+              requests
+              pageViews
+              bytes
+              cachedBytes
+              cachedRequests
+              threats
+            }
+          }
+          series: httpRequests1dGroups(
+            limit: 100
+            orderBy: [date_ASC]
+            filter: { date_geq: $startDate, date_lt: $endDate }
+          ) {
+            dimensions {
+              date
+            }
+            uniq {
+              uniques
+            }
+            sum {
+              requests
+              pageViews
+              bytes
+              cachedBytes
+              cachedRequests
+              threats
+            }
+          }
+        }
+      }
+    }
+  `;
+
+  const response = await fetch('https://api.cloudflare.com/client/v4/graphql', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${env.apiToken}`,
+    },
+    body: JSON.stringify({
+      query,
+      variables: {
+        zoneTag: env.zoneId,
+        startDate,
+        endDate: endDateKey,
+      },
+    }),
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Cloudflare analytics request failed (${response.status}).`);
+  }
+
+  const payload = await response.json();
+  if (payload.errors?.length) {
+    const message = payload.errors[0]?.message || 'Cloudflare analytics request failed.';
+    throw new Error(message);
+  }
+
+  const zone = payload?.data?.viewer?.zones?.[0];
+  if (!zone) {
+    throw new Error('Cloudflare zone analytics not found for the configured zone.');
+  }
+
+  const totalBucket = zone.totals?.[0];
+  const totals: CloudflareTotals = {
+    requests: Number(totalBucket?.sum?.requests || 0),
+    pageViews: Number(totalBucket?.sum?.pageViews || 0),
+    uniques: Number(totalBucket?.uniq?.uniques || 0),
+    bytes: Number(totalBucket?.sum?.bytes || 0),
+    cachedBytes: Number(totalBucket?.sum?.cachedBytes || 0),
+    cachedRequests: Number(totalBucket?.sum?.cachedRequests || 0),
+    threats: Number(totalBucket?.sum?.threats || 0),
+  };
+
+  const dailyByDate = new Map<string, CloudflareDailyPoint>();
+  for (const key of windowKeys) {
+    dailyByDate.set(key, {
+      date: key,
+      requests: 0,
+      pageViews: 0,
+      uniques: 0,
+      bytes: 0,
+      cachedBytes: 0,
+      cachedRequests: 0,
+      threats: 0,
+    });
+  }
+
+  for (const point of zone.series || []) {
+    const key = point?.dimensions?.date;
+    if (!key || !dailyByDate.has(key)) continue;
+    dailyByDate.set(key, {
+      date: key,
+      requests: Number(point?.sum?.requests || 0),
+      pageViews: Number(point?.sum?.pageViews || 0),
+      uniques: Number(point?.uniq?.uniques || 0),
+      bytes: Number(point?.sum?.bytes || 0),
+      cachedBytes: Number(point?.sum?.cachedBytes || 0),
+      cachedRequests: Number(point?.sum?.cachedRequests || 0),
+      threats: Number(point?.sum?.threats || 0),
+    });
+  }
+
+  const cacheHitRatio = totals.requests > 0 ? roundTo((totals.cachedRequests / totals.requests) * 100, 1) : 0;
+  const requestSeries = windowKeys.map((key) => {
+    const point = dailyByDate.get(key)!;
+    const uncachedRequests = Math.max(point.requests - point.cachedRequests, 0);
+    return {
+      date: key,
+      label: formatCompactDate(key),
+      requests: point.requests,
+      cached: point.cachedRequests,
+      uncached: uncachedRequests,
+      bandwidthMb: roundTo(point.bytes / (1024 * 1024), 1),
+    };
+  });
+
+  const bandwidthSeries = requestSeries.map((point) => ({
+    ...point,
+  }));
+
+  return {
+    connected: true,
+    detail: 'Cloudflare traffic analytics are connected and reporting live zone metrics.',
+    summaryCards: [
+      {
+        key: 'total-requests',
+        label: 'Total Requests',
+        value: totals.requests,
+        displayValue: formatNumber(totals.requests),
+        status: 'live',
+        detail: 'Cloudflare zone requests for the selected window.',
+      },
+      {
+        key: 'page-views',
+        label: 'Page Views',
+        value: totals.pageViews,
+        displayValue: formatNumber(totals.pageViews),
+        status: 'live',
+        detail: 'Successful HTML page views reported by Cloudflare.',
+      },
+      {
+        key: 'unique-visitors',
+        label: 'Unique Visitors',
+        value: totals.uniques,
+        displayValue: formatNumber(totals.uniques),
+        status: 'live',
+        detail: 'Unique visitors reported by Cloudflare for the selected window.',
+      },
+      {
+        key: 'cache-hit-ratio',
+        label: 'Cache Hit Ratio',
+        value: cacheHitRatio,
+        displayValue: `${formatNumber(cacheHitRatio)}%`,
+        status: 'live',
+        detail: 'Share of requests served from Cloudflare cache.',
+      },
+      {
+        key: 'threats-blocked',
+        label: 'Threats Blocked',
+        value: totals.threats,
+        displayValue: formatNumber(totals.threats),
+        status: 'live',
+        detail: 'Threat requests reported by Cloudflare for the selected window.',
+      },
+    ],
+    requestSeries,
+    bandwidthSeries,
+  };
+}
+
 function buildEmptyCostSeries(windowKeys: string[]): CostSeriesPoint[] {
   return windowKeys.map((key) => ({
     date: key,
@@ -503,6 +757,41 @@ export async function GET(request: NextRequest) {
 
     const readiness = buildReadiness();
     const connectionState = buildConnections();
+    let cloudflareTraffic = {
+      connected: false,
+      detail: 'Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID to unlock requests, threats, cache, and bandwidth.',
+      summaryCards: buildTrafficCards(),
+      requestSeries: buildEmptyTrafficSeries(windowKeys),
+      bandwidthSeries: buildEmptyTrafficSeries(windowKeys),
+    } as CloudflareTrafficResult;
+
+    try {
+      cloudflareTraffic = await fetchCloudflareTraffic(windowKeys);
+    } catch (cloudflareError: any) {
+      console.error('Cloudflare monitoring fetch error:', cloudflareError);
+      cloudflareTraffic = {
+        connected: false,
+        detail: cloudflareError?.message || 'Cloudflare analytics could not be loaded.',
+        summaryCards: buildTrafficCards().map((card) =>
+          card.key === 'total-requests'
+            ? { ...card, detail: cloudflareError?.message || card.detail }
+            : card
+        ),
+        requestSeries: buildEmptyTrafficSeries(windowKeys),
+        bandwidthSeries: buildEmptyTrafficSeries(windowKeys),
+      };
+    }
+
+    const hydratedConnections = connectionState.connections.map((item) => {
+      if (item.key !== 'cloudflare-traffic') return item;
+      return {
+        ...item,
+        connected: cloudflareTraffic.connected,
+        detail: cloudflareTraffic.detail,
+      };
+    });
+
+    const connectedProviders = hydratedConnections.filter((item) => item.connected).length;
     const strongTeachers = recentActivity.filter((row) => row.role === 'teacher' && row.averageScore >= 85).length;
     const atRiskTeachers = recentActivity.filter((row) => row.role === 'teacher' && row.averageScore > 0 && row.averageScore < 75).length;
 
@@ -528,11 +817,11 @@ export async function GET(request: NextRequest) {
       series,
       recentActivity,
       readiness,
-      connections: connectionState.connections,
+      connections: hydratedConnections,
       sync: {
         generatedAt: new Date().toISOString(),
-        connectedProviders: connectionState.connectedCount,
-        totalProviders: connectionState.connections.length,
+        connectedProviders,
+        totalProviders: hydratedConnections.length,
       },
       infrastructureCosts: {
         summaryCards: buildCostCards(),
@@ -543,9 +832,9 @@ export async function GET(request: NextRequest) {
         })),
       },
       httpTraffic: {
-        summaryCards: buildTrafficCards(),
-        requestSeries: buildEmptyTrafficSeries(windowKeys),
-        bandwidthSeries: buildEmptyTrafficSeries(windowKeys),
+        summaryCards: cloudflareTraffic.summaryCards,
+        requestSeries: cloudflareTraffic.requestSeries,
+        bandwidthSeries: cloudflareTraffic.bandwidthSeries,
       },
     });
   } catch (error: any) {

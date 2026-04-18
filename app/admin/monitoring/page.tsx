@@ -194,6 +194,7 @@ export default function MonitoringDashboard() {
   const bandwidthSeries = payload?.httpTraffic?.bandwidthSeries || [];
   const callerName = payload?.caller?.name || 'Platform Monitoring';
   const syncGeneratedAt = payload?.sync?.generatedAt || null;
+  const hasLiveTraffic = trafficCards.some((card) => card.status === 'live');
 
   const healthHeadline = useMemo(() => {
     if (!readiness.length) return 'Monitoring status is loading.';
@@ -496,7 +497,11 @@ export default function MonitoringDashboard() {
                   <div style={{ height: 300 }} />
                 )}
               </div>
-              <p style={emptyChartNote}>Add Cloudflare traffic analytics to unlock request, visitor, and cache metrics.</p>
+              <p style={emptyChartNote}>
+                {hasLiveTraffic
+                  ? 'Cloudflare request and cache analytics are now being pulled into the monitoring view.'
+                  : 'Add Cloudflare traffic analytics to unlock request, visitor, and cache metrics.'}
+              </p>
             </section>
 
             <section style={sectionCard}>
@@ -521,7 +526,11 @@ export default function MonitoringDashboard() {
                   <div style={{ height: 300 }} />
                 )}
               </div>
-              <p style={emptyChartNote}>Bandwidth, cache hit ratio, and threat blocking will populate from Cloudflare once connected.</p>
+              <p style={emptyChartNote}>
+                {hasLiveTraffic
+                  ? 'Bandwidth and edge-delivery visibility are now coming from Cloudflare for the selected window.'
+                  : 'Bandwidth, cache hit ratio, and threat blocking will populate from Cloudflare once connected.'}
+              </p>
             </section>
           </div>
         </section>
