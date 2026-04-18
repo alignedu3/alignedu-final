@@ -1647,6 +1647,10 @@ h1, h2, h3 {
     max-width: 100%;
   }
 
+  .monitoring-two-column {
+    grid-template-columns: 1fr !important;
+  }
+
   .lesson-report-summary-banner {
     grid-template-columns: 1fr !important;
   }

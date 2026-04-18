@@ -22,7 +22,6 @@ export default function RoleNav({ role }: { role: string }) {
           <Link href="/admin" style={linkStyle}>
             Admin Dashboard
           </Link>
-
           <Link href="/admin/invite" style={linkStyle}>
             Invite Users
           </Link>

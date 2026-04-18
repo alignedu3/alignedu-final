@@ -132,6 +132,7 @@ export async function GET(request: NextRequest) {
       caller: {
         id: callerProfile?.id || user.id,
         name: callerProfile?.name || null,
+        email: user.email ?? null,
         role: callerProfile?.role || null,
       },
       targetAdminId,

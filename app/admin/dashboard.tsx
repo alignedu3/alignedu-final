@@ -69,6 +69,7 @@ export default function AdminDashboard() {
   const [loadError, setLoadError] = useState('');
   const [modalType, setModalType] = useState<null | 'quality' | 'lessons' | 'strong' | 'atrisk'>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [openActionsForId, setOpenActionsForId] = useState<string | null>(null);
@@ -100,6 +101,10 @@ export default function AdminDashboard() {
     router.push('/admin/district');
   };
 
+  const handleOpenMonitoringDashboard = () => {
+    router.push('/admin/monitoring');
+  };
+
   const navigateToUserDashboard = (userId: string, role?: string | null, fromTeam = false) => {
     if (userId.startsWith('sample-')) return;
     const params = fromTeam ? '?fromTeam=1' : '';
@@ -117,7 +122,7 @@ export default function AdminDashboard() {
         const { response, data } = await fetchJsonWithTimeout<{
           success: boolean;
           error?: string;
-          caller?: { id?: string; role?: string | null };
+          caller?: { id?: string; email?: string | null; role?: string | null };
           visibility?: { adminIds?: string[] };
           profiles?: ProfileRecord[];
           managedTeachers?: Array<{ admin_id: string; teacher_id: string }>;
@@ -143,6 +148,7 @@ export default function AdminDashboard() {
         }
 
         setCurrentUserId(data.caller?.id ?? null);
+        setCurrentUserEmail(data.caller?.email ?? null);
         setCurrentUserRole(data.caller?.role ?? null);
         setVisibleAdminIds((data.visibility?.adminIds || []) as string[]);
         setProfiles((data.profiles || []) as ProfileRecord[]);
@@ -192,6 +198,7 @@ export default function AdminDashboard() {
   }, []);
 
   const reports = dbReports;
+  const canAccessMonitoring = currentUserRole === 'super_admin' && currentUserEmail === 'ryan@alignedu.net';
   const profileById = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
   const activeAdminId = selectedAdminId || currentUserId;
   const activeAdminProfile = activeAdminId ? profileById.get(activeAdminId) : undefined;
@@ -586,6 +593,11 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div style={actions}>
+            {canAccessMonitoring && (
+              <button onClick={handleOpenMonitoringDashboard} style={btnAlt}>
+                Monitoring
+              </button>
+            )}
             {currentUserRole === 'super_admin' && (
               <button onClick={handleOpenDistrictDashboard} style={btnAlt}>
                 District Dashboard
