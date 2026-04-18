@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
-import { getAdminVisibility, type AdminRole } from '@/lib/adminVisibility';
 import { calculateLessonScore, getLatestLessonTrend, type AnalysisReport, type ProfileRecord } from '@/lib/dashboardData';
 import { captureRouteException } from '@/lib/sentryRoute';
 
@@ -163,23 +162,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
-    const visibility = await getAdminVisibility(user.id, callerProfile!.role as AdminRole);
     const serviceSupabase = getServiceSupabase();
 
     const [{ data: profiles, error: profilesError }, analysesResult] = await Promise.all([
-      visibility.visibleUserIds.length
-        ? serviceSupabase
-            .from('profiles')
-            .select('id, name, email, role')
-            .in('id', visibility.visibleUserIds)
-        : Promise.resolve({ data: [], error: null }),
-      visibility.visibleUserIds.length
-        ? serviceSupabase
-            .from('analyses')
-            .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result')
-            .in('user_id', visibility.visibleUserIds)
-            .order('created_at', { ascending: false })
-        : Promise.resolve({ data: [], error: null }),
+      serviceSupabase
+        .from('profiles')
+        .select('id, name, email, role'),
+      serviceSupabase
+        .from('analyses')
+        .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result')
+        .order('created_at', { ascending: false }),
     ]);
 
     const { data: analyses, error: analysesError } = analysesResult;
