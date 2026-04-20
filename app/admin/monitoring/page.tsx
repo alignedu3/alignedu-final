@@ -50,15 +50,6 @@ type ConnectionState = {
   envKeys?: string[];
 };
 
-type CostSummaryCard = {
-  key: string;
-  label: string;
-  value: number | null;
-  displayValue: string;
-  status: 'live' | 'connect_required';
-  detail: string;
-};
-
 type TrafficSummaryCard = {
   key: string;
   label: string;
@@ -68,19 +59,6 @@ type TrafficSummaryCard = {
   detail: string;
 };
 
-type CostSeriesPoint = {
-  date: string;
-  label: string;
-  openai: number | null;
-  supabase: number | null;
-  vercel: number | null;
-  cloudflare: number | null;
-};
-
-type CostCumulativePoint = CostSeriesPoint & {
-  total: number | null;
-};
-
 type TrafficSeriesPoint = {
   date: string;
   label: string;
@@ -88,14 +66,6 @@ type TrafficSeriesPoint = {
   cached: number | null;
   uncached: number | null;
   bandwidthMb: number | null;
-};
-
-type OpenAiCostDiagnostics = {
-  credentialSource?: 'OPENAI_USAGE_ADMIN_KEY' | 'OPENAI_ADMIN_KEY' | 'OPENAI_API_KEY' | null;
-  configured?: boolean;
-  status?: 'live' | 'missing_config' | 'error';
-  errorMessage?: string | null;
-  hint?: string | null;
 };
 
 type CloudflareDiagnostics = {
@@ -190,12 +160,6 @@ type MonitoringPayload = {
     connectedProviders?: number;
     totalProviders?: number;
   };
-  infrastructureCosts?: {
-    summaryCards?: CostSummaryCard[];
-    dailySeries?: CostSeriesPoint[];
-    cumulativeSeries?: CostCumulativePoint[];
-    diagnostics?: OpenAiCostDiagnostics;
-  };
   httpTraffic?: {
     summaryCards?: TrafficSummaryCard[];
     requestSeries?: TrafficSeriesPoint[];
@@ -279,21 +243,15 @@ export default function MonitoringDashboard() {
   const sentryIssues = payload?.sentry?.recentIssues || [];
   const sentryDiagnostics = payload?.sentry?.diagnostics;
   const connections = payload?.connections || [];
-  const costCards = payload?.infrastructureCosts?.summaryCards || [];
-  const dailyCostSeries = payload?.infrastructureCosts?.dailySeries || [];
-  const cumulativeCostSeries = payload?.infrastructureCosts?.cumulativeSeries || [];
   const trafficCards = payload?.httpTraffic?.summaryCards || [];
   const requestSeries = payload?.httpTraffic?.requestSeries || [];
   const bandwidthSeries = payload?.httpTraffic?.bandwidthSeries || [];
-  const costDiagnostics = payload?.infrastructureCosts?.diagnostics;
   const trafficDiagnostics = payload?.httpTraffic?.diagnostics;
   const callerName = payload?.caller?.name || 'Platform Monitoring';
   const syncGeneratedAt = payload?.sync?.generatedAt || null;
   const hasLiveTraffic = trafficCards.some((card) => card.status === 'live');
-  const hasLiveCosts = costCards.some((card) => card.status === 'live');
   const hasLiveSentry = sentryCards.some((card) => card.status !== 'connect_required');
   const cloudflareConnection = connections.find((item) => item.key === 'cloudflare-traffic');
-  const openAiConnection = connections.find((item) => item.key === 'openai-billing');
   const sentryConnection = connections.find((item) => item.key === 'sentry-api');
 
   const healthHeadline = useMemo(() => {
@@ -676,103 +634,6 @@ export default function MonitoringDashboard() {
                 ) : null}
               </div>
             ))}
-          </div>
-        </section>
-
-        <section style={sectionCard}>
-          <div style={sectionHeader}>
-            <div>
-              <div style={sectionEyebrow}>Infrastructure Costs</div>
-              <h2 style={sectionTitle}>Monthly Spend and Service Cost Tracking</h2>
-            </div>
-          </div>
-          {!hasLiveCosts ? (
-            <div style={warningBanner}>
-              <div style={warningTitle}>OpenAI cost tracking is not live yet.</div>
-              <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
-                {openAiConnection?.detail || 'OpenAI billing data is not connected for this environment.'}
-              </p>
-              {costDiagnostics?.credentialSource ? (
-                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
-                  Using credential source: <strong>{costDiagnostics.credentialSource}</strong>
-                </p>
-              ) : null}
-              {costDiagnostics?.hint ? (
-                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{costDiagnostics.hint}</p>
-              ) : null}
-            </div>
-          ) : null}
-          <div style={statsGrid}>
-            {costCards.map((card) => (
-              <div key={card.key} style={statCard}>
-                <div style={statLabel}>{card.label}</div>
-                <div style={statValue}>{card.displayValue}</div>
-                <div
-                  style={{
-                    ...miniStatusPill,
-                    background: card.status === 'live' ? 'rgba(22,163,74,0.16)' : 'rgba(59,130,246,0.12)',
-                    color: card.status === 'live' ? '#16a34a' : '#3b82f6',
-                  }}
-                >
-                  {card.status === 'live' ? 'Live' : 'Connect account'}
-                </div>
-                <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
-              </div>
-            ))}
-          </div>
-          <div style={twoColumn} className="monitoring-two-column">
-            <section style={sectionCard}>
-              <div style={sectionHeader}>
-                <div>
-                  <div style={sectionEyebrow}>Daily Costs</div>
-                  <h3 style={subChartTitle}>Daily Costs by Service</h3>
-                </div>
-              </div>
-              <div style={chartShell}>
-                {chartReady ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={dailyCostSeries}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                      <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                      <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                      <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }} />
-                      <Bar dataKey="openai" name="OpenAI" stackId="cost" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
-                      <Bar dataKey="supabase" name="Supabase" stackId="cost" fill="#10b981" radius={[6, 6, 0, 0]} />
-                      <Bar dataKey="vercel" name="Vercel" stackId="cost" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                      <Bar dataKey="cloudflare" name="Cloudflare" stackId="cost" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div style={{ height: 300 }} />
-                )}
-              </div>
-              <p style={emptyChartNote}>Connect provider billing access to populate daily cost breakdowns.</p>
-            </section>
-
-            <section style={sectionCard}>
-              <div style={sectionHeader}>
-                <div>
-                  <div style={sectionEyebrow}>Cumulative Spend</div>
-                  <h3 style={subChartTitle}>Cumulative Monthly Spend</h3>
-                </div>
-              </div>
-              <div style={chartShell}>
-                {chartReady ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={cumulativeCostSeries}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                      <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                      <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                      <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }} />
-                      <Line type="monotone" dataKey="total" name="Total Spend" stroke="#f59e0b" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div style={{ height: 300 }} />
-                )}
-              </div>
-              <p style={emptyChartNote}>Cumulative monthly spend will appear once at least one billing provider is connected.</p>
-            </section>
           </div>
         </section>
 

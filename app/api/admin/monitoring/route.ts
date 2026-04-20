@@ -287,26 +287,11 @@ function buildReadiness(): MonitoringReadiness[] {
 }
 
 function buildConnections() {
-  const hasOpenAiUsageKey = Boolean(
-    process.env.OPENAI_USAGE_ADMIN_KEY || process.env.OPENAI_ADMIN_KEY || process.env.OPENAI_API_KEY
-  );
   const hasSentryApi = Boolean(process.env.SENTRY_AUTH_TOKEN && (process.env.SENTRY_ORG || process.env.SENTRY_ORG_SLUG));
-  const hasSupabaseManagement = Boolean(process.env.SUPABASE_MANAGEMENT_TOKEN && process.env.SUPABASE_PROJECT_REF);
-  const hasVercelUsage = Boolean(process.env.VERCEL_ACCESS_TOKEN && process.env.VERCEL_TEAM_ID);
   const hasCloudflareUsage = Boolean(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ZONE_ID);
   const hasResendUsage = Boolean(process.env.RESEND_API_KEY);
-  const hasRegistrarTracking = Boolean(process.env.DOMAIN_REGISTRAR_NAME || process.env.DOMAIN_RENEWAL_USD);
 
   const connections: ConnectionState[] = [
-    {
-      key: 'openai-billing',
-      label: 'OpenAI Costs',
-      connected: hasOpenAiUsageKey,
-      detail: hasOpenAiUsageKey
-        ? 'OpenAI billing credentials are present and ready to validate against the organization costs endpoint.'
-        : 'Add OPENAI_USAGE_ADMIN_KEY, OPENAI_ADMIN_KEY, or another compatible OpenAI billing key to unlock cost views.',
-      envKeys: ['OPENAI_USAGE_ADMIN_KEY', 'OPENAI_ADMIN_KEY', 'OPENAI_API_KEY'],
-    },
     {
       key: 'sentry-api',
       label: 'Sentry Error Health',
@@ -315,24 +300,6 @@ function buildConnections() {
         ? 'Sentry API credentials are present for live issue and error metrics.'
         : 'Add SENTRY_AUTH_TOKEN and SENTRY_ORG to unlock live issue counts and error trends.',
       envKeys: ['SENTRY_AUTH_TOKEN', 'SENTRY_ORG', 'SENTRY_PROJECT'],
-    },
-    {
-      key: 'supabase-billing',
-      label: 'Supabase Costs',
-      connected: hasSupabaseManagement,
-      detail: hasSupabaseManagement
-        ? 'Supabase management metrics are ready to connect.'
-        : 'Add SUPABASE_MANAGEMENT_TOKEN and SUPABASE_PROJECT_REF to unlock cost and usage tracking.',
-      envKeys: ['SUPABASE_MANAGEMENT_TOKEN', 'SUPABASE_PROJECT_REF'],
-    },
-    {
-      key: 'vercel-billing',
-      label: 'Vercel Costs',
-      connected: hasVercelUsage,
-      detail: hasVercelUsage
-        ? 'Vercel usage data is ready to connect.'
-        : 'Add VERCEL_ACCESS_TOKEN and VERCEL_TEAM_ID to unlock hosting usage and billed cost.',
-      envKeys: ['VERCEL_ACCESS_TOKEN', 'VERCEL_TEAM_ID'],
     },
     {
       key: 'cloudflare-traffic',
@@ -351,15 +318,6 @@ function buildConnections() {
         ? 'Email runtime is configured; billing usage can be layered in next.'
         : 'Add RESEND_API_KEY to track invite and reset email usage.',
       envKeys: ['RESEND_API_KEY'],
-    },
-    {
-      key: 'registrar',
-      label: 'Domain Renewal',
-      connected: hasRegistrarTracking,
-      detail: hasRegistrarTracking
-        ? 'Registrar metadata is ready to display.'
-        : 'Add DOMAIN_REGISTRAR_NAME and optionally DOMAIN_RENEWAL_USD to track domain renewal cost.',
-      envKeys: ['DOMAIN_REGISTRAR_NAME', 'DOMAIN_RENEWAL_USD'],
     },
   ];
 
@@ -902,7 +860,6 @@ async function fetchSentryHealth(): Promise<SentryResult> {
 
 function buildMonitoringAlerts(args: {
   cloudflareTraffic: CloudflareTrafficResult;
-  openAiCosts: OpenAiCostResult;
   sentryHealth: SentryResult;
   uptime: UptimeResult;
 }) {
@@ -1005,25 +962,6 @@ function buildMonitoringAlerts(args: {
         detail: `${droppedCard?.displayValue || '0'} events were dropped in the last 24 hours.`,
         source: 'Sentry',
       });
-    }
-  }
-
-  if (args.openAiCosts.connected) {
-    const costs = args.openAiCosts.dailySeries.map((point) => point.openai || 0);
-    if (costs.length >= 3) {
-      const latest = costs[costs.length - 1];
-      const prior = costs.slice(0, -1);
-      const priorAverage = prior.length ? prior.reduce((sum, value) => sum + value, 0) / prior.length : 0;
-
-      if (latest >= 1 && priorAverage > 0 && latest > priorAverage * 2.5) {
-        alerts.push({
-          key: 'openai-spend-spike',
-          severity: 'warning',
-          title: 'OpenAI spend spiked versus recent days',
-          detail: `Latest daily OpenAI cost is materially above the recent average.`,
-          source: 'OpenAI',
-        });
-      }
     }
   }
 
@@ -1716,24 +1654,6 @@ export async function GET(request: NextRequest) {
     const connectionState = buildConnections();
     const uptime = await fetchUptimeSummary(request);
 
-    let openAiCosts = {
-      connected: false,
-      detail: buildOpenAiMissingConfigDetail(),
-      summaryCards: buildCostCards(),
-      dailySeries: buildEmptyCostSeries(windowKeys),
-      cumulativeSeries: buildEmptyCostSeries(windowKeys).map((point) => ({
-        ...point,
-        total: null,
-      })),
-      diagnostics: {
-        credentialSource: null,
-        configured: false,
-        status: 'missing_config',
-        errorMessage: null,
-        hint: 'Add the OpenAI billing credential to the running deployment, then redeploy.',
-      },
-    } as OpenAiCostResult;
-
     let cloudflareTraffic = {
       connected: false,
       detail: buildCloudflareMissingConfigDetail(),
@@ -1767,36 +1687,6 @@ export async function GET(request: NextRequest) {
     } as SentryResult;
 
     await Promise.all([
-      (async () => {
-        try {
-          openAiCosts = await fetchOpenAiCosts(windowKeys);
-        } catch (openAiError: any) {
-          console.error('OpenAI monitoring fetch error:', openAiError);
-          const errorMessage = openAiError?.message || 'OpenAI costs could not be loaded.';
-          const config = getOpenAiBillingConfig();
-          openAiCosts = {
-            connected: false,
-            detail: errorMessage,
-            summaryCards: buildCostCards().map((card) =>
-              card.key === 'openai-billed' || card.key === 'openai-product'
-                ? { ...card, detail: errorMessage }
-                : card
-            ),
-            dailySeries: buildEmptyCostSeries(windowKeys),
-            cumulativeSeries: buildEmptyCostSeries(windowKeys).map((point) => ({
-              ...point,
-              total: null,
-            })),
-            diagnostics: {
-              credentialSource: config.credentialSource,
-              configured: Boolean(config.apiKey),
-              status: 'error',
-              errorMessage,
-              hint: buildOpenAiErrorHint(errorMessage, config.credentialSource),
-            },
-          };
-        }
-      })(),
       (async () => {
         try {
           cloudflareTraffic = await fetchCloudflareTraffic(windowKeys);
@@ -1854,19 +1744,11 @@ export async function GET(request: NextRequest) {
 
     const alerts = buildMonitoringAlerts({
       cloudflareTraffic,
-      openAiCosts,
       sentryHealth,
       uptime,
     });
 
     const hydratedConnections = connectionState.connections.map((item) => {
-      if (item.key === 'openai-billing') {
-        return {
-          ...item,
-          connected: openAiCosts.connected,
-          detail: openAiCosts.detail,
-        };
-      }
       if (item.key === 'sentry-api') {
         return {
           ...item,
@@ -1920,12 +1802,6 @@ export async function GET(request: NextRequest) {
         generatedAt: new Date().toISOString(),
         connectedProviders,
         totalProviders: hydratedConnections.length,
-      },
-      infrastructureCosts: {
-        summaryCards: openAiCosts.summaryCards,
-        dailySeries: openAiCosts.dailySeries,
-        cumulativeSeries: openAiCosts.cumulativeSeries,
-        diagnostics: openAiCosts.diagnostics,
       },
       httpTraffic: {
         summaryCards: cloudflareTraffic.summaryCards,
