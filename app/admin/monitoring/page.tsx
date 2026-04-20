@@ -350,11 +350,12 @@ export default function MonitoringDashboard() {
           </div>
         </div>
 
-        {loadError ? (
-          <section style={{ ...sectionCard, marginBottom: 18, border: '1px solid rgba(248,113,113,0.28)' }}>
-            <p style={{ ...bodyText, margin: 0 }}>{loadError}</p>
-          </section>
-        ) : null}
+        <div style={contentStack}>
+          {loadError ? (
+            <section style={{ ...sectionCard, border: '1px solid rgba(248,113,113,0.28)' }}>
+              <p style={{ ...bodyText, margin: 0 }}>{loadError}</p>
+            </section>
+          ) : null}
 
         <section style={sectionCard}>
           <div style={sectionHeader}>
@@ -744,7 +745,7 @@ export default function MonitoringDashboard() {
             ))}
           </div>
         </section>
-
+        </div>
       </div>
     </main>
   );
@@ -1004,7 +1005,7 @@ const statCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
   borderRadius: 18,
-  padding: 20,
+  padding: 18,
   boxShadow: 'var(--shadow-soft)',
   minWidth: 0,
 };
@@ -1045,20 +1046,19 @@ const twoColumn: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
   gap: 18,
-  marginBottom: 22,
 };
 
 const sectionCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
   borderRadius: 20,
-  padding: 22,
+  padding: 20,
   boxShadow: 'var(--shadow-soft)',
   minWidth: 0,
 };
 
 const warningBanner: React.CSSProperties = {
-  marginBottom: 18,
+  marginBottom: 14,
   padding: 16,
   borderRadius: 16,
   border: '1px solid rgba(245, 158, 11, 0.28)',
@@ -1076,8 +1076,13 @@ const sectionHeader: React.CSSProperties = {
   justifyContent: 'space-between',
   alignItems: 'center',
   gap: 12,
-  marginBottom: 16,
+  marginBottom: 14,
   flexWrap: 'wrap',
+};
+
+const contentStack: React.CSSProperties = {
+  display: 'grid',
+  gap: 18,
 };
 
 const sectionEyebrow: React.CSSProperties = {
