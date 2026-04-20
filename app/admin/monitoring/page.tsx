@@ -90,6 +90,71 @@ type TrafficSeriesPoint = {
   bandwidthMb: number | null;
 };
 
+type OpenAiCostDiagnostics = {
+  credentialSource?: 'OPENAI_USAGE_ADMIN_KEY' | 'OPENAI_ADMIN_KEY' | 'OPENAI_API_KEY' | null;
+  configured?: boolean;
+  status?: 'live' | 'missing_config' | 'error';
+  errorMessage?: string | null;
+  hint?: string | null;
+};
+
+type CloudflareDiagnostics = {
+  apiTokenConfigured?: boolean;
+  zoneIdConfigured?: boolean;
+  status?: 'live' | 'missing_config' | 'error';
+  errorMessage?: string | null;
+  hint?: string | null;
+};
+
+type MonitoringAlert = {
+  key: string;
+  severity: 'critical' | 'warning' | 'info';
+  title: string;
+  detail: string;
+  source: string;
+};
+
+type OpsSummaryCard = {
+  key: string;
+  label: string;
+  value: number | null;
+  displayValue: string;
+  status: 'healthy' | 'warning' | 'critical' | 'connect_required';
+  detail: string;
+};
+
+type UptimeCheck = {
+  key: string;
+  label: string;
+  url: string;
+  ok: boolean;
+  statusCode: number | null;
+  responseTimeMs: number | null;
+  detail: string;
+  checkedAt: string;
+};
+
+type SentryIssueRow = {
+  id: string;
+  title: string;
+  culprit: string | null;
+  level: string | null;
+  count: number;
+  userCount: number;
+  status: string | null;
+  lastSeen: string | null;
+  permalink: string | null;
+};
+
+type SentryDiagnostics = {
+  tokenConfigured?: boolean;
+  orgConfigured?: boolean;
+  projectConfigured?: boolean;
+  status?: 'live' | 'missing_config' | 'error';
+  errorMessage?: string | null;
+  hint?: string | null;
+};
+
 type MonitoringPayload = {
   success: boolean;
   error?: string;
@@ -108,7 +173,17 @@ type MonitoringPayload = {
   };
   series?: MonitoringSeriesPoint[];
   readiness?: MonitoringReadiness[];
+  alerts?: MonitoringAlert[];
   recentActivity?: MonitoringActivityRow[];
+  uptime?: {
+    summaryCards?: OpsSummaryCard[];
+    checks?: UptimeCheck[];
+  };
+  sentry?: {
+    summaryCards?: OpsSummaryCard[];
+    recentIssues?: SentryIssueRow[];
+    diagnostics?: SentryDiagnostics;
+  };
   connections?: ConnectionState[];
   sync?: {
     generatedAt?: string;
@@ -119,11 +194,13 @@ type MonitoringPayload = {
     summaryCards?: CostSummaryCard[];
     dailySeries?: CostSeriesPoint[];
     cumulativeSeries?: CostCumulativePoint[];
+    diagnostics?: OpenAiCostDiagnostics;
   };
   httpTraffic?: {
     summaryCards?: TrafficSummaryCard[];
     requestSeries?: TrafficSeriesPoint[];
     bandwidthSeries?: TrafficSeriesPoint[];
+    diagnostics?: CloudflareDiagnostics;
   };
 };
 
@@ -135,56 +212,72 @@ export default function MonitoringDashboard() {
   const [loadError, setLoadError] = useState('');
   const [chartReady, setChartReady] = useState(false);
   const [payload, setPayload] = useState<MonitoringPayload | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     setChartReady(true);
   }, []);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        if (!ready) {
-          setReady(false);
-        }
-        setLoadError('');
+  const loadMonitoring = async (selectedDays: (typeof WINDOW_OPTIONS)[number], silent = false) => {
+    try {
+      if (!silent) {
+        setIsRefreshing(true);
+      }
+      setLoadError('');
 
-        const { response, data } = await fetchJsonWithTimeout<MonitoringPayload>(`/api/admin/monitoring?days=${days}`, {
-          credentials: 'include',
-          cache: 'no-store',
-          timeoutMs: 12000,
-        });
+      const { response, data } = await fetchJsonWithTimeout<MonitoringPayload>(`/api/admin/monitoring?days=${selectedDays}`, {
+        credentials: 'include',
+        cache: 'no-store',
+        timeoutMs: 12000,
+      });
 
-        if (response.status === 401) {
-          window.location.replace('/login');
-          return;
-        }
+      if (response.status === 401) {
+        window.location.replace('/login');
+        return;
+      }
 
-        if (response.status === 403) {
-          window.location.replace('/admin');
-          return;
-        }
+      if (response.status === 403) {
+        window.location.replace('/admin');
+        return;
+      }
 
-        if (!response.ok || !data?.success) {
-          throw new Error(data?.error || 'Unable to load monitoring dashboard.');
-        }
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || 'Unable to load monitoring dashboard.');
+      }
 
-        setPayload(data);
-      } catch (error) {
-        console.error('Monitoring dashboard load error:', error);
-        setLoadError(error instanceof Error ? error.message : 'Unable to load monitoring dashboard.');
-      } finally {
-        setReady(true);
+      setPayload(data);
+    } catch (error) {
+      console.error('Monitoring dashboard load error:', error);
+      setLoadError(error instanceof Error ? error.message : 'Unable to load monitoring dashboard.');
+    } finally {
+      setReady(true);
+      if (!silent) {
+        setIsRefreshing(false);
       }
     }
+  };
 
-    load();
+  useEffect(() => {
+    loadMonitoring(days);
+
+    const refreshId = window.setInterval(() => {
+      loadMonitoring(days, true);
+    }, 60000);
+
+    return () => window.clearInterval(refreshId);
   }, [days]);
 
   const summary = payload?.summary;
   const series = payload?.series || [];
   const readiness = payload?.readiness || [];
   const recentActivity = payload?.recentActivity || [];
+  const alerts = payload?.alerts || [];
+  const uptimeCards = payload?.uptime?.summaryCards || [];
+  const uptimeChecks = payload?.uptime?.checks || [];
+  const sentryCards = payload?.sentry?.summaryCards || [];
+  const sentryIssues = payload?.sentry?.recentIssues || [];
+  const sentryDiagnostics = payload?.sentry?.diagnostics;
   const connections = payload?.connections || [];
   const costCards = payload?.infrastructureCosts?.summaryCards || [];
   const dailyCostSeries = payload?.infrastructureCosts?.dailySeries || [];
@@ -192,9 +285,16 @@ export default function MonitoringDashboard() {
   const trafficCards = payload?.httpTraffic?.summaryCards || [];
   const requestSeries = payload?.httpTraffic?.requestSeries || [];
   const bandwidthSeries = payload?.httpTraffic?.bandwidthSeries || [];
+  const costDiagnostics = payload?.infrastructureCosts?.diagnostics;
+  const trafficDiagnostics = payload?.httpTraffic?.diagnostics;
   const callerName = payload?.caller?.name || 'Platform Monitoring';
   const syncGeneratedAt = payload?.sync?.generatedAt || null;
   const hasLiveTraffic = trafficCards.some((card) => card.status === 'live');
+  const hasLiveCosts = costCards.some((card) => card.status === 'live');
+  const hasLiveSentry = sentryCards.some((card) => card.status !== 'connect_required');
+  const cloudflareConnection = connections.find((item) => item.key === 'cloudflare-traffic');
+  const openAiConnection = connections.find((item) => item.key === 'openai-billing');
+  const sentryConnection = connections.find((item) => item.key === 'sentry-api');
 
   const healthHeadline = useMemo(() => {
     if (!readiness.length) return 'Monitoring status is loading.';
@@ -267,11 +367,26 @@ export default function MonitoringDashboard() {
                 );
               })}
             </div>
+            <button
+              type="button"
+              onClick={() => loadMonitoring(days)}
+              style={{
+                ...backBtn,
+                minWidth: 122,
+                opacity: isRefreshing ? 0.7 : 1,
+              }}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
             <button type="button" onClick={() => router.push('/admin')} style={backBtn}>
               Back to Admin
             </button>
-            <div style={updatedText}>
-              {syncGeneratedAt ? `Updated ${formatTime(syncGeneratedAt)}` : 'Waiting for sync'}
+            <div>
+              <div style={updatedText}>
+                {syncGeneratedAt ? `Updated ${formatTime(syncGeneratedAt)}` : 'Waiting for sync'}
+              </div>
+              <div style={refreshText}>Auto-refresh every 60 seconds</div>
             </div>
           </div>
         </div>
@@ -291,6 +406,62 @@ export default function MonitoringDashboard() {
           <div style={heroBadge}>
             <div style={heroBadgeValue}>{summary?.lessonsInWindow ?? 0}</div>
             <div style={heroBadgeLabel}>Lessons in {days} days</div>
+          </div>
+        </section>
+
+        <section style={sectionCard}>
+          <div style={sectionHeader}>
+            <div>
+              <div style={sectionEyebrow}>Watchlist</div>
+              <h2 style={sectionTitle}>What Needs Attention</h2>
+            </div>
+          </div>
+          <div style={alertGrid}>
+            {alerts.map((alert) => (
+              <div
+                key={alert.key}
+                style={{
+                  ...alertCard,
+                  borderColor:
+                    alert.severity === 'critical'
+                      ? 'rgba(220,38,38,0.22)'
+                      : alert.severity === 'warning'
+                        ? 'rgba(245,158,11,0.22)'
+                        : 'rgba(59,130,246,0.18)',
+                  background:
+                    alert.severity === 'critical'
+                      ? 'rgba(220,38,38,0.06)'
+                      : alert.severity === 'warning'
+                        ? 'rgba(245,158,11,0.08)'
+                        : 'rgba(59,130,246,0.06)',
+                }}
+              >
+                <div style={alertTopRow}>
+                  <div style={alertTitle}>{alert.title}</div>
+                  <div
+                    style={{
+                      ...miniStatusPill,
+                      background:
+                        alert.severity === 'critical'
+                          ? 'rgba(220,38,38,0.14)'
+                          : alert.severity === 'warning'
+                            ? 'rgba(245,158,11,0.16)'
+                            : 'rgba(59,130,246,0.12)',
+                      color:
+                        alert.severity === 'critical'
+                          ? '#dc2626'
+                          : alert.severity === 'warning'
+                            ? '#b45309'
+                            : '#2563eb',
+                    }}
+                  >
+                    {alert.severity === 'critical' ? 'Critical' : alert.severity === 'warning' ? 'Watch' : 'Info'}
+                  </div>
+                </div>
+                <p style={{ ...bodyText, margin: '8px 0 10px 0' }}>{alert.detail}</p>
+                <div style={alertSource}>{alert.source}</div>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -329,6 +500,142 @@ export default function MonitoringDashboard() {
             </div>
             <div style={statSub}>Teachers currently below the recent support threshold</div>
           </div>
+        </div>
+
+        <div style={twoColumn} className="monitoring-two-column">
+          <section style={sectionCard}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={sectionEyebrow}>Availability</div>
+                <h2 style={sectionTitle}>Uptime and Response Time</h2>
+              </div>
+            </div>
+            <div style={statsGrid}>
+              {uptimeCards.map((card) => (
+                <div key={card.key} style={statCard}>
+                  <div style={statLabel}>{card.label}</div>
+                  <div style={statValue}>{card.displayValue}</div>
+                  <div
+                    style={{
+                      ...miniStatusPill,
+                      background:
+                        card.status === 'healthy'
+                          ? 'rgba(22,163,74,0.16)'
+                          : card.status === 'warning'
+                            ? 'rgba(245,158,11,0.16)'
+                            : 'rgba(220,38,38,0.14)',
+                      color:
+                        card.status === 'healthy'
+                          ? '#16a34a'
+                          : card.status === 'warning'
+                            ? '#b45309'
+                            : '#dc2626',
+                    }}
+                  >
+                    {card.status === 'healthy' ? 'Healthy' : card.status === 'warning' ? 'Slow' : 'Down'}
+                  </div>
+                  <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
+                </div>
+              ))}
+            </div>
+            <div style={statusList}>
+              {uptimeChecks.map((check) => (
+                <div key={check.key} style={statusRow}>
+                  <div>
+                    <div style={statusTitle}>{check.label}</div>
+                    <div style={statusMeta}>
+                      {check.statusCode ? `HTTP ${check.statusCode}` : 'No response'} | {check.responseTimeMs != null ? `${check.responseTimeMs} ms` : 'No timing'}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      ...miniStatusPill,
+                      background: check.ok ? 'rgba(22,163,74,0.16)' : 'rgba(220,38,38,0.14)',
+                      color: check.ok ? '#16a34a' : '#dc2626',
+                    }}
+                  >
+                    {check.ok ? 'Reachable' : 'Failing'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section style={sectionCard}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={sectionEyebrow}>Error Health</div>
+                <h2 style={sectionTitle}>Sentry Issues and Errors</h2>
+              </div>
+            </div>
+            {!hasLiveSentry ? (
+              <div style={warningBanner}>
+                <div style={warningTitle}>Sentry issue monitoring is not live yet.</div>
+                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                  {sentryConnection?.detail || 'Add Sentry API credentials to pull live issue and error metrics.'}
+                </p>
+                {sentryDiagnostics?.hint ? (
+                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{sentryDiagnostics.hint}</p>
+                ) : null}
+              </div>
+            ) : null}
+            <div style={statsGrid}>
+              {sentryCards.map((card) => (
+                <div key={card.key} style={statCard}>
+                  <div style={statLabel}>{card.label}</div>
+                  <div style={statValue}>{card.displayValue}</div>
+                  <div
+                    style={{
+                      ...miniStatusPill,
+                      background:
+                        card.status === 'healthy'
+                          ? 'rgba(22,163,74,0.16)'
+                          : card.status === 'warning'
+                            ? 'rgba(245,158,11,0.16)'
+                            : card.status === 'critical'
+                              ? 'rgba(220,38,38,0.14)'
+                              : 'rgba(59,130,246,0.12)',
+                      color:
+                        card.status === 'healthy'
+                          ? '#16a34a'
+                          : card.status === 'warning'
+                            ? '#b45309'
+                            : card.status === 'critical'
+                              ? '#dc2626'
+                              : '#2563eb',
+                    }}
+                  >
+                    {card.status === 'healthy'
+                      ? 'Healthy'
+                      : card.status === 'warning'
+                        ? 'Watch'
+                        : card.status === 'critical'
+                          ? 'Urgent'
+                          : 'Connect'}
+                  </div>
+                  <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
+                </div>
+              ))}
+            </div>
+            {sentryIssues.length ? (
+              <div style={statusList}>
+                {sentryIssues.map((issue) => (
+                  <div key={issue.id} style={issueRow}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={issueTitle}>{issue.title}</div>
+                      <div style={issueMeta}>
+                        {issue.count} events | {issue.userCount} users | {issue.level || 'error'}
+                      </div>
+                      {issue.culprit ? <div style={issueCulprit}>{issue.culprit}</div> : null}
+                    </div>
+                    <div style={issueTime}>{formatDateTime(issue.lastSeen)}</div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={bodyText}>No recent unresolved Sentry issues are being shown yet.</p>
+            )}
+          </section>
         </div>
 
         <section style={sectionCard}>
@@ -374,6 +681,22 @@ export default function MonitoringDashboard() {
               <h2 style={sectionTitle}>Monthly Spend and Service Cost Tracking</h2>
             </div>
           </div>
+          {!hasLiveCosts ? (
+            <div style={warningBanner}>
+              <div style={warningTitle}>OpenAI cost tracking is not live yet.</div>
+              <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                {openAiConnection?.detail || 'OpenAI billing data is not connected for this environment.'}
+              </p>
+              {costDiagnostics?.credentialSource ? (
+                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                  Using credential source: <strong>{costDiagnostics.credentialSource}</strong>
+                </p>
+              ) : null}
+              {costDiagnostics?.hint ? (
+                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{costDiagnostics.hint}</p>
+              ) : null}
+            </div>
+          ) : null}
           <div style={statsGrid}>
             {costCards.map((card) => (
               <div key={card.key} style={statCard}>
@@ -455,6 +778,22 @@ export default function MonitoringDashboard() {
               <h2 style={sectionTitle}>Requests, Caching, Visitors, and Bandwidth</h2>
             </div>
           </div>
+          {!hasLiveTraffic ? (
+            <div style={warningBanner}>
+              <div style={warningTitle}>Cloudflare traffic is not connected for this environment.</div>
+              <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                {cloudflareConnection?.detail || 'Add Cloudflare credentials so the monitoring API can pull live traffic analytics.'}
+              </p>
+              {trafficDiagnostics ? (
+                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                  Token: {trafficDiagnostics.apiTokenConfigured ? 'configured' : 'missing'} | Zone ID: {trafficDiagnostics.zoneIdConfigured ? 'configured' : 'missing'}
+                </p>
+              ) : null}
+              {trafficDiagnostics?.hint ? (
+                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{trafficDiagnostics.hint}</p>
+              ) : null}
+            </div>
+          ) : null}
           <div style={statsGrid}>
             {trafficCards.map((card) => (
               <div key={card.key} style={statCard}>
@@ -693,6 +1032,7 @@ function formatTime(value: string) {
   return parsed.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
+    second: '2-digit',
   });
 }
 
@@ -789,6 +1129,12 @@ const updatedText: React.CSSProperties = {
   fontWeight: 600,
 };
 
+const refreshText: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  marginTop: 4,
+};
+
 const heroSection: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
@@ -861,6 +1207,40 @@ const statsGrid: React.CSSProperties = {
   marginBottom: 22,
 };
 
+const alertGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+  gap: 14,
+};
+
+const alertCard: React.CSSProperties = {
+  border: '1px solid var(--border)',
+  borderRadius: 18,
+  padding: 18,
+  minWidth: 0,
+};
+
+const alertTopRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  gap: 12,
+};
+
+const alertTitle: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontWeight: 800,
+  fontSize: 15,
+};
+
+const alertSource: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+};
+
 const statCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
@@ -918,6 +1298,20 @@ const sectionCard: React.CSSProperties = {
   minWidth: 0,
 };
 
+const warningBanner: React.CSSProperties = {
+  marginBottom: 18,
+  padding: 16,
+  borderRadius: 16,
+  border: '1px solid rgba(245, 158, 11, 0.28)',
+  background: 'rgba(245, 158, 11, 0.08)',
+};
+
+const warningTitle: React.CSSProperties = {
+  color: '#b45309',
+  fontSize: 14,
+  fontWeight: 800,
+};
+
 const sectionHeader: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
@@ -948,6 +1342,70 @@ const chartShell: React.CSSProperties = {
   padding: '14px 10px 6px',
   background: 'linear-gradient(180deg, rgba(15,23,42,0.04), rgba(15,23,42,0.02))',
   minWidth: 0,
+};
+
+const statusList: React.CSSProperties = {
+  display: 'grid',
+  gap: 12,
+};
+
+const statusRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 12,
+  padding: '14px 16px',
+  borderRadius: 16,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-chip)',
+};
+
+const statusTitle: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontWeight: 700,
+  fontSize: 14,
+};
+
+const statusMeta: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  marginTop: 4,
+};
+
+const issueRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  gap: 16,
+  padding: '14px 16px',
+  borderRadius: 16,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-chip)',
+};
+
+const issueTitle: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontWeight: 700,
+  fontSize: 14,
+};
+
+const issueMeta: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  marginTop: 4,
+};
+
+const issueCulprit: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  marginTop: 6,
+  overflowWrap: 'anywhere',
+};
+
+const issueTime: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  whiteSpace: 'nowrap',
 };
 
 const readinessGrid: React.CSSProperties = {

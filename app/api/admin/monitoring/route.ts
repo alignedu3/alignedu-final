@@ -103,6 +103,93 @@ type CloudflareTrafficResult = {
   summaryCards: TrafficSummaryCard[];
   requestSeries: TrafficSeriesPoint[];
   bandwidthSeries: TrafficSeriesPoint[];
+  diagnostics: {
+    apiTokenConfigured: boolean;
+    zoneIdConfigured: boolean;
+    status: 'live' | 'missing_config' | 'error';
+    errorMessage: string | null;
+  hint: string | null;
+  };
+};
+
+type OpenAiCostResult = {
+  connected: boolean;
+  detail: string;
+  summaryCards: CostSummaryCard[];
+  dailySeries: CostSeriesPoint[];
+  cumulativeSeries: Array<CostSeriesPoint & { total: number | null }>;
+  diagnostics: {
+    credentialSource: 'OPENAI_USAGE_ADMIN_KEY' | 'OPENAI_ADMIN_KEY' | 'OPENAI_API_KEY' | null;
+    configured: boolean;
+    status: 'live' | 'missing_config' | 'error';
+    errorMessage: string | null;
+    hint: string | null;
+  };
+};
+
+type UptimeCheck = {
+  key: string;
+  label: string;
+  url: string;
+  ok: boolean;
+  statusCode: number | null;
+  responseTimeMs: number | null;
+  detail: string;
+  checkedAt: string;
+};
+
+type UptimeResult = {
+  summaryCards: Array<{
+    key: string;
+    label: string;
+    value: number | null;
+    displayValue: string;
+    status: 'healthy' | 'warning' | 'critical';
+    detail: string;
+  }>;
+  checks: UptimeCheck[];
+};
+
+type SentryIssueRow = {
+  id: string;
+  title: string;
+  culprit: string | null;
+  level: string | null;
+  count: number;
+  userCount: number;
+  status: string | null;
+  lastSeen: string | null;
+  permalink: string | null;
+};
+
+type SentryResult = {
+  connected: boolean;
+  detail: string;
+  summaryCards: Array<{
+    key: string;
+    label: string;
+    value: number | null;
+    displayValue: string;
+    status: 'healthy' | 'warning' | 'critical' | 'connect_required';
+    detail: string;
+  }>;
+  recentIssues: SentryIssueRow[];
+  diagnostics: {
+    tokenConfigured: boolean;
+    orgConfigured: boolean;
+    projectConfigured: boolean;
+    status: 'live' | 'missing_config' | 'error';
+    errorMessage: string | null;
+    hint: string | null;
+  };
+};
+
+type MonitoringAlert = {
+  key: string;
+  severity: 'critical' | 'warning' | 'info';
+  title: string;
+  detail: string;
+  source: string;
 };
 
 function getServiceSupabase() {
@@ -200,7 +287,10 @@ function buildReadiness(): MonitoringReadiness[] {
 }
 
 function buildConnections() {
-  const hasOpenAiUsageKey = Boolean(process.env.OPENAI_USAGE_ADMIN_KEY);
+  const hasOpenAiUsageKey = Boolean(
+    process.env.OPENAI_USAGE_ADMIN_KEY || process.env.OPENAI_ADMIN_KEY || process.env.OPENAI_API_KEY
+  );
+  const hasSentryApi = Boolean(process.env.SENTRY_AUTH_TOKEN && (process.env.SENTRY_ORG || process.env.SENTRY_ORG_SLUG));
   const hasSupabaseManagement = Boolean(process.env.SUPABASE_MANAGEMENT_TOKEN && process.env.SUPABASE_PROJECT_REF);
   const hasVercelUsage = Boolean(process.env.VERCEL_ACCESS_TOKEN && process.env.VERCEL_TEAM_ID);
   const hasCloudflareUsage = Boolean(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ZONE_ID);
@@ -213,9 +303,18 @@ function buildConnections() {
       label: 'OpenAI Costs',
       connected: hasOpenAiUsageKey,
       detail: hasOpenAiUsageKey
-        ? 'Usage and cost endpoints are ready to connect.'
-        : 'Add OPENAI_USAGE_ADMIN_KEY to unlock billed and estimated OpenAI cost views.',
-      envKeys: ['OPENAI_USAGE_ADMIN_KEY'],
+        ? 'OpenAI billing credentials are present and ready to validate against the organization costs endpoint.'
+        : 'Add OPENAI_USAGE_ADMIN_KEY, OPENAI_ADMIN_KEY, or another compatible OpenAI billing key to unlock cost views.',
+      envKeys: ['OPENAI_USAGE_ADMIN_KEY', 'OPENAI_ADMIN_KEY', 'OPENAI_API_KEY'],
+    },
+    {
+      key: 'sentry-api',
+      label: 'Sentry Error Health',
+      connected: hasSentryApi,
+      detail: hasSentryApi
+        ? 'Sentry API credentials are present for live issue and error metrics.'
+        : 'Add SENTRY_AUTH_TOKEN and SENTRY_ORG to unlock live issue counts and error trends.',
+      envKeys: ['SENTRY_AUTH_TOKEN', 'SENTRY_ORG', 'SENTRY_PROJECT'],
     },
     {
       key: 'supabase-billing',
@@ -323,6 +422,624 @@ function buildCostCards(): CostSummaryCard[] {
   ];
 }
 
+function getOpenAiBillingConfig() {
+  if (process.env.OPENAI_USAGE_ADMIN_KEY) {
+    return {
+      apiKey: process.env.OPENAI_USAGE_ADMIN_KEY,
+      credentialSource: 'OPENAI_USAGE_ADMIN_KEY' as const,
+    };
+  }
+  if (process.env.OPENAI_ADMIN_KEY) {
+    return {
+      apiKey: process.env.OPENAI_ADMIN_KEY,
+      credentialSource: 'OPENAI_ADMIN_KEY' as const,
+    };
+  }
+  if (process.env.OPENAI_API_KEY) {
+    return {
+      apiKey: process.env.OPENAI_API_KEY,
+      credentialSource: 'OPENAI_API_KEY' as const,
+    };
+  }
+
+  return {
+    apiKey: null,
+    credentialSource: null,
+  };
+}
+
+function buildOpenAiMissingConfigDetail() {
+  return 'Add OPENAI_USAGE_ADMIN_KEY, OPENAI_ADMIN_KEY, or a compatible organization billing key to unlock OpenAI costs.';
+}
+
+function buildOpenAiErrorHint(message: string, credentialSource: OpenAiCostResult['diagnostics']['credentialSource']) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('(401)') || normalized.includes('unauthorized')) {
+    return 'The configured OpenAI billing credential may be invalid or attached to the wrong organization.';
+  }
+  if (normalized.includes('(403)') || normalized.includes('forbidden') || normalized.includes('admin')) {
+    return credentialSource === 'OPENAI_API_KEY'
+      ? 'The organization costs endpoint may require an admin or organization billing key rather than a standard project API key.'
+      : 'The billing credential is present but may not have access to organization cost data.';
+  }
+  return 'Check that the OpenAI key belongs to the correct organization and can access the organization costs endpoint.';
+}
+
+async function fetchOpenAiCosts(windowKeys: string[]): Promise<OpenAiCostResult> {
+  const config = getOpenAiBillingConfig();
+  const emptyDailySeries = buildEmptyCostSeries(windowKeys);
+  const emptyCumulativeSeries = emptyDailySeries.map((point) => ({ ...point, total: null }));
+
+  if (!config.apiKey || !config.credentialSource) {
+    return {
+      connected: false,
+      detail: buildOpenAiMissingConfigDetail(),
+      summaryCards: buildCostCards(),
+      dailySeries: emptyDailySeries,
+      cumulativeSeries: emptyCumulativeSeries,
+      diagnostics: {
+        credentialSource: null,
+        configured: false,
+        status: 'missing_config',
+        errorMessage: null,
+        hint: 'Add the OpenAI billing credential to the running Vercel environment, then redeploy.',
+      },
+    };
+  }
+
+  const fetchCosts = async (startDateKey: string, endDateKeyExclusive: string) => {
+    const startTime = Math.floor(new Date(`${startDateKey}T00:00:00Z`).getTime() / 1000);
+    const endTime = Math.floor(new Date(`${endDateKeyExclusive}T00:00:00Z`).getTime() / 1000);
+    const params = new URLSearchParams({
+      start_time: String(startTime),
+      end_time: String(endTime),
+      bucket_width: '1d',
+      limit: '180',
+    });
+
+    const response = await fetch(`https://api.openai.com/v1/organization/costs?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI billing request failed (${response.status}).`);
+    }
+
+    return response.json();
+  };
+
+  const selectedStartKey = windowKeys[0];
+  const selectedEndExclusive = new Date(`${windowKeys[windowKeys.length - 1]}T12:00:00Z`);
+  selectedEndExclusive.setUTCDate(selectedEndExclusive.getUTCDate() + 1);
+  const selectedEndExclusiveKey = selectedEndExclusive.toISOString().slice(0, 10);
+
+  const monthStart = new Date();
+  monthStart.setUTCDate(1);
+  monthStart.setUTCHours(0, 0, 0, 0);
+  const monthStartKey = monthStart.toISOString().slice(0, 10);
+  const todayExclusive = new Date();
+  todayExclusive.setUTCHours(0, 0, 0, 0);
+  todayExclusive.setUTCDate(todayExclusive.getUTCDate() + 1);
+  const todayExclusiveKey = todayExclusive.toISOString().slice(0, 10);
+
+  const [selectedPayload, monthPayload] = await Promise.all([
+    fetchCosts(selectedStartKey, selectedEndExclusiveKey),
+    fetchCosts(monthStartKey, todayExclusiveKey),
+  ]);
+
+  const selectedByDate = new Map<string, number>();
+  for (const key of windowKeys) {
+    selectedByDate.set(key, 0);
+  }
+
+  for (const bucket of selectedPayload?.data || []) {
+    const key = new Date(Number(bucket?.start_time) * 1000).toISOString().slice(0, 10);
+    if (!selectedByDate.has(key)) continue;
+    const amount = (bucket?.results || []).reduce(
+      (sum: number, result: any) => sum + Number(result?.amount?.value || 0),
+      0
+    );
+    selectedByDate.set(key, roundTo(amount, 4));
+  }
+
+  const dailySeries = windowKeys.map((key) => ({
+    date: key,
+    label: formatCompactDate(key),
+    openai: selectedByDate.get(key) ?? 0,
+    supabase: null,
+    vercel: null,
+    cloudflare: null,
+  }));
+
+  let runningTotal = 0;
+  const cumulativeSeries = dailySeries.map((point) => {
+    runningTotal += point.openai || 0;
+    return {
+      ...point,
+      total: roundTo(runningTotal, 4),
+    };
+  });
+
+  const selectedWindowCost = roundTo(
+    dailySeries.reduce((sum, point) => sum + (point.openai || 0), 0),
+    4
+  );
+  const monthToDateCost = roundTo(
+    (monthPayload?.data || []).reduce(
+      (sum: number, bucket: any) =>
+        sum +
+        (bucket?.results || []).reduce(
+          (bucketSum: number, result: any) => bucketSum + Number(result?.amount?.value || 0),
+          0
+        ),
+      0
+    ),
+    4
+  );
+
+  return {
+    connected: true,
+    detail: `OpenAI costs are connected using ${config.credentialSource}.`,
+    summaryCards: [
+      {
+        key: 'openai-product',
+        label: 'OpenAI Product',
+        value: selectedWindowCost,
+        displayValue: `$${formatNumber(selectedWindowCost)}`,
+        status: 'live',
+        detail: `Selected ${windowKeys.length}-day OpenAI spend from the organization costs endpoint.`,
+      },
+      {
+        key: 'openai-billed',
+        label: 'OpenAI Billed',
+        value: monthToDateCost,
+        displayValue: `$${formatNumber(monthToDateCost)}`,
+        status: 'live',
+        detail: 'Month-to-date billed OpenAI cost from the organization costs endpoint.',
+      },
+      {
+        key: 'supabase-costs',
+        label: 'Supabase Costs',
+        value: null,
+        displayValue: '—',
+        status: 'connect_required',
+        detail: 'Waiting on Supabase management/billing connection.',
+      },
+      {
+        key: 'vercel-costs',
+        label: 'Vercel Costs',
+        value: null,
+        displayValue: '—',
+        status: 'connect_required',
+        detail: 'Waiting on Vercel usage access.',
+      },
+      {
+        key: 'cloudflare-costs',
+        label: 'Cloudflare Costs',
+        value: null,
+        displayValue: '—',
+        status: 'connect_required',
+        detail: 'Waiting on Cloudflare billing access.',
+      },
+      {
+        key: 'total-costs',
+        label: 'Total Costs',
+        value: monthToDateCost,
+        displayValue: `$${formatNumber(monthToDateCost)}`,
+        status: 'live',
+        detail: 'Current total across connected billing providers.',
+      },
+    ],
+    dailySeries,
+    cumulativeSeries,
+    diagnostics: {
+      credentialSource: config.credentialSource,
+      configured: true,
+      status: 'live',
+      errorMessage: null,
+      hint: null,
+    },
+  };
+}
+
+async function runUptimeCheck(label: string, key: string, url: string): Promise<UptimeCheck> {
+  const startedAt = Date.now();
+
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      cache: 'no-store',
+      headers: {
+        Accept: 'text/html,application/json;q=0.9,*/*;q=0.8',
+      },
+    });
+
+    const responseTimeMs = Date.now() - startedAt;
+    return {
+      key,
+      label,
+      url,
+      ok: response.ok,
+      statusCode: response.status,
+      responseTimeMs,
+      detail: response.ok
+        ? `${label} responded normally.`
+        : `${label} responded with HTTP ${response.status}.`,
+      checkedAt: new Date().toISOString(),
+    };
+  } catch (error: any) {
+    return {
+      key,
+      label,
+      url,
+      ok: false,
+      statusCode: null,
+      responseTimeMs: null,
+      detail: error?.message || `${label} could not be reached.`,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+}
+
+async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
+  const baseUrl = resolveBaseUrl(request);
+  const normalizedBase = baseUrl.replace(/\/$/, '');
+
+  const checks = await Promise.all([
+    runUptimeCheck('Public Site', 'public-site', normalizedBase || request.nextUrl.origin),
+    runUptimeCheck('Auth API', 'auth-api', `${normalizedBase || request.nextUrl.origin}/api/auth/me`),
+  ]);
+
+  return {
+    summaryCards: checks.map((check) => ({
+      key: check.key,
+      label: check.label,
+      value: check.responseTimeMs,
+      displayValue: check.ok ? formatDurationMs(check.responseTimeMs) : 'Down',
+      status: check.ok ? (check.responseTimeMs != null && check.responseTimeMs > 1500 ? 'warning' : 'healthy') : 'critical',
+      detail: check.ok
+        ? `${check.label} returned HTTP ${check.statusCode} in ${formatDurationMs(check.responseTimeMs)}.`
+        : check.detail,
+    })),
+    checks,
+  };
+}
+
+async function fetchSentryHealth(): Promise<SentryResult> {
+  const config = getSentryConfig();
+
+  if (!config.tokenConfigured || !config.orgConfigured || !config.authToken || !config.orgSlug) {
+    return {
+      connected: false,
+      detail: buildSentryMissingConfigDetail(),
+      summaryCards: buildEmptySentryCards(),
+      recentIssues: [],
+      diagnostics: {
+        tokenConfigured: config.tokenConfigured,
+        orgConfigured: config.orgConfigured,
+        projectConfigured: config.projectConfigured,
+        status: 'missing_config',
+        errorMessage: null,
+        hint: 'Add SENTRY_AUTH_TOKEN and SENTRY_ORG to the deployment. Add SENTRY_PROJECT to scope to a single project if you want.',
+      },
+    };
+  }
+
+  const sentryFetch = async (path: string, searchParams?: URLSearchParams) => {
+    const url = new URL(`https://sentry.io/api/0${path}`);
+    if (searchParams) {
+      url.search = searchParams.toString();
+    }
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${config.authToken}`,
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      throw new Error(`Sentry request failed (${response.status}).`);
+    }
+
+    return response.json();
+  };
+
+  const projects = (await sentryFetch(`/organizations/${config.orgSlug}/projects/`)) as Array<any>;
+  const selectedProjects = config.projectSlug
+    ? projects.filter((project) => project.slug === config.projectSlug || project.name === config.projectSlug)
+    : projects;
+
+  if (!selectedProjects.length) {
+    throw new Error('Sentry project not found for the configured organization.');
+  }
+
+  const projectIds = selectedProjects.map((project) => Number(project.id)).filter((value) => Number.isFinite(value));
+  const issueParams = new URLSearchParams();
+  issueParams.set('statsPeriod', '14d');
+  issueParams.set('limit', '5');
+  issueParams.set('sort', 'freq');
+  for (const projectId of projectIds) {
+    issueParams.append('project', String(projectId));
+  }
+
+  const unresolvedParams = new URLSearchParams(issueParams);
+  unresolvedParams.set('query', 'is:unresolved');
+  const regressedParams = new URLSearchParams(issueParams);
+  regressedParams.set('query', 'is:regressed');
+
+  const errors24hParams = new URLSearchParams({
+    field: 'sum(quantity)',
+    statsPeriod: '24h',
+    interval: '1h',
+    category: 'error',
+    groupBy: 'outcome',
+  });
+  const errors14dParams = new URLSearchParams({
+    field: 'sum(quantity)',
+    statsPeriod: '14d',
+    interval: '1d',
+    category: 'error',
+    groupBy: 'outcome',
+  });
+
+  const [unresolvedIssues, regressedIssues, errors24h, errors14d] = await Promise.all([
+    sentryFetch(`/organizations/${config.orgSlug}/issues/`, unresolvedParams),
+    sentryFetch(`/organizations/${config.orgSlug}/issues/`, regressedParams),
+    sentryFetch(`/organizations/${config.orgSlug}/stats_v2/`, errors24hParams),
+    sentryFetch(`/organizations/${config.orgSlug}/stats_v2/`, errors14dParams),
+  ]);
+
+  const sumSentryOutcome = (payload: any, outcome: string) =>
+    roundTo(
+      Number(
+        (payload?.groups || [])
+          .filter((group: any) => group?.by?.outcome === outcome)
+          .reduce((sum: number, group: any) => sum + Number(group?.totals?.['sum(quantity)'] || 0), 0)
+      ),
+      0
+    );
+
+  const accepted24h = sumSentryOutcome(errors24h, 'accepted');
+  const dropped24h =
+    sumSentryOutcome(errors24h, 'filtered') +
+    sumSentryOutcome(errors24h, 'rate_limited') +
+    sumSentryOutcome(errors24h, 'invalid') +
+    sumSentryOutcome(errors24h, 'abuse') +
+    sumSentryOutcome(errors24h, 'client_discard') +
+    sumSentryOutcome(errors24h, 'cardinality_limited');
+  const accepted14d = sumSentryOutcome(errors14d, 'accepted');
+
+  const recentIssues: SentryIssueRow[] = (unresolvedIssues || []).map((issue: any) => ({
+    id: String(issue?.id || ''),
+    title: issue?.title || issue?.metadata?.title || 'Issue',
+    culprit: issue?.culprit || issue?.metadata?.value || null,
+    level: issue?.level || null,
+    count: Number(issue?.count || 0),
+    userCount: Number(issue?.userCount || 0),
+    status: issue?.status || null,
+    lastSeen: issue?.lastSeen || null,
+    permalink: issue?.permalink || null,
+  }));
+
+  const unresolvedCount = Array.isArray(unresolvedIssues) ? unresolvedIssues.length : 0;
+  const regressedCount = Array.isArray(regressedIssues) ? regressedIssues.length : 0;
+
+  return {
+    connected: true,
+    detail: config.projectSlug
+      ? `Sentry issue health is connected for ${config.projectSlug}.`
+      : 'Sentry issue health is connected for the configured organization.',
+    summaryCards: [
+      {
+        key: 'errors-24h',
+        label: 'Errors (24h)',
+        value: accepted24h,
+        displayValue: formatNumber(accepted24h),
+        status: accepted24h > 25 ? 'warning' : 'healthy',
+        detail: 'Accepted Sentry error events in the last 24 hours.',
+      },
+      {
+        key: 'errors-14d',
+        label: 'Errors (14d)',
+        value: accepted14d,
+        displayValue: formatNumber(accepted14d),
+        status: accepted14d > 100 ? 'warning' : 'healthy',
+        detail: 'Accepted Sentry error events in the last 14 days.',
+      },
+      {
+        key: 'unresolved-issues',
+        label: 'Unresolved Issues',
+        value: unresolvedCount,
+        displayValue: formatNumber(unresolvedCount),
+        status: unresolvedCount > 0 ? 'warning' : 'healthy',
+        detail: 'Open unresolved Sentry issues in scope.',
+      },
+      {
+        key: 'regressed-issues',
+        label: 'Regressed Issues',
+        value: regressedCount,
+        displayValue: formatNumber(regressedCount),
+        status: regressedCount > 0 ? 'critical' : 'healthy',
+        detail: 'Issues that have regressed in Sentry.',
+      },
+      {
+        key: 'dropped-events-24h',
+        label: 'Dropped Events',
+        value: dropped24h,
+        displayValue: formatNumber(dropped24h),
+        status: dropped24h > 0 ? 'warning' : 'healthy',
+        detail: 'Filtered, rate-limited, or invalid events in the last 24 hours.',
+      },
+      {
+        key: 'projects-monitored',
+        label: 'Projects Monitored',
+        value: selectedProjects.length,
+        displayValue: formatNumber(selectedProjects.length),
+        status: 'healthy',
+        detail: 'Sentry projects included in this health view.',
+      },
+    ],
+    recentIssues,
+    diagnostics: {
+      tokenConfigured: true,
+      orgConfigured: true,
+      projectConfigured: config.projectConfigured,
+      status: 'live',
+      errorMessage: null,
+      hint: null,
+    },
+  };
+}
+
+function buildMonitoringAlerts(args: {
+  cloudflareTraffic: CloudflareTrafficResult;
+  openAiCosts: OpenAiCostResult;
+  sentryHealth: SentryResult;
+  uptime: UptimeResult;
+}) {
+  const alerts: MonitoringAlert[] = [];
+
+  const uptimeFailures = args.uptime.checks.filter((check) => !check.ok);
+  for (const check of uptimeFailures) {
+    alerts.push({
+      key: `uptime-${check.key}`,
+      severity: 'critical',
+      title: `${check.label} is down`,
+      detail: check.detail,
+      source: 'Uptime',
+    });
+  }
+
+  const uptimeSlow = args.uptime.checks.filter((check) => check.ok && (check.responseTimeMs || 0) > 1500);
+  for (const check of uptimeSlow) {
+    alerts.push({
+      key: `latency-${check.key}`,
+      severity: 'warning',
+      title: `${check.label} is slow`,
+      detail: `${check.label} responded in ${formatDurationMs(check.responseTimeMs)}.`,
+      source: 'Uptime',
+    });
+  }
+
+  if (args.cloudflareTraffic.connected) {
+    const cacheRatioCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'cache-hit-ratio');
+    const threatsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'threats-blocked');
+    const requests = args.cloudflareTraffic.requestSeries.map((point) => point.requests || 0);
+
+    if ((cacheRatioCard?.value || 0) < 60) {
+      alerts.push({
+        key: 'cache-ratio',
+        severity: 'warning',
+        title: 'Cache efficiency is low',
+        detail: `Cloudflare cache hit ratio is ${cacheRatioCard?.displayValue || 'low'} for the selected window.`,
+        source: 'Cloudflare',
+      });
+    }
+
+    if ((threatsCard?.value || 0) > 0) {
+      alerts.push({
+        key: 'threats-blocked',
+        severity: (threatsCard?.value || 0) > 25 ? 'critical' : 'warning',
+        title: 'Threat traffic detected',
+        detail: `${threatsCard?.displayValue || '0'} threats were blocked in the selected window.`,
+        source: 'Cloudflare',
+      });
+    }
+
+    if (requests.length >= 3) {
+      const latest = requests[requests.length - 1];
+      const prior = requests.slice(0, -1);
+      const priorAverage = prior.length ? prior.reduce((sum, value) => sum + value, 0) / prior.length : 0;
+
+      if (priorAverage >= 50 && latest < priorAverage * 0.4) {
+        alerts.push({
+          key: 'traffic-drop',
+          severity: 'warning',
+          title: 'Traffic dropped below recent baseline',
+          detail: `Latest request volume is materially below the recent average for this window.`,
+          source: 'Cloudflare',
+        });
+      }
+    }
+  }
+
+  if (args.sentryHealth.connected) {
+    const regressedCard = args.sentryHealth.summaryCards.find((card) => card.key === 'regressed-issues');
+    const unresolvedCard = args.sentryHealth.summaryCards.find((card) => card.key === 'unresolved-issues');
+    const droppedCard = args.sentryHealth.summaryCards.find((card) => card.key === 'dropped-events-24h');
+
+    if ((regressedCard?.value || 0) > 0) {
+      alerts.push({
+        key: 'sentry-regressions',
+        severity: 'critical',
+        title: 'Sentry regressions need attention',
+        detail: `${regressedCard?.displayValue || '0'} regressed issue(s) are currently open.`,
+        source: 'Sentry',
+      });
+    }
+
+    if ((unresolvedCard?.value || 0) > 5) {
+      alerts.push({
+        key: 'sentry-unresolved',
+        severity: 'warning',
+        title: 'Open error backlog is growing',
+        detail: `${unresolvedCard?.displayValue || '0'} unresolved Sentry issues are in scope.`,
+        source: 'Sentry',
+      });
+    }
+
+    if ((droppedCard?.value || 0) > 0) {
+      alerts.push({
+        key: 'sentry-dropped',
+        severity: 'warning',
+        title: 'Some Sentry events are being dropped',
+        detail: `${droppedCard?.displayValue || '0'} events were dropped in the last 24 hours.`,
+        source: 'Sentry',
+      });
+    }
+  }
+
+  if (args.openAiCosts.connected) {
+    const costs = args.openAiCosts.dailySeries.map((point) => point.openai || 0);
+    if (costs.length >= 3) {
+      const latest = costs[costs.length - 1];
+      const prior = costs.slice(0, -1);
+      const priorAverage = prior.length ? prior.reduce((sum, value) => sum + value, 0) / prior.length : 0;
+
+      if (latest >= 1 && priorAverage > 0 && latest > priorAverage * 2.5) {
+        alerts.push({
+          key: 'openai-spend-spike',
+          severity: 'warning',
+          title: 'OpenAI spend spiked versus recent days',
+          detail: `Latest daily OpenAI cost is materially above the recent average.`,
+          source: 'OpenAI',
+        });
+      }
+    }
+  }
+
+  if (!alerts.length) {
+    alerts.push({
+      key: 'all-clear',
+      severity: 'info',
+      title: 'No urgent issues in the current monitoring window',
+      detail: 'Traffic, uptime, billing, and error signals are not showing a high-priority problem right now.',
+      source: 'Platform',
+    });
+  }
+
+  return alerts.slice(0, 6);
+}
+
 function buildTrafficCards(): TrafficSummaryCard[] {
   return [
     {
@@ -365,14 +1082,187 @@ function buildTrafficCards(): TrafficSummaryCard[] {
       status: 'connect_required',
       detail: 'Waiting on Cloudflare security analytics.',
     },
+    {
+      key: 'bandwidth',
+      label: 'Bandwidth',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Cloudflare bandwidth analytics.',
+    },
+    {
+      key: 'cached-bandwidth-ratio',
+      label: 'Cached Bandwidth',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Cloudflare cached bandwidth analytics.',
+    },
   ];
 }
 
+function buildEmptySentryCards(): SentryResult['summaryCards'] {
+  return [
+    {
+      key: 'errors-24h',
+      label: 'Errors (24h)',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Sentry event metrics.',
+    },
+    {
+      key: 'errors-14d',
+      label: 'Errors (14d)',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Sentry event metrics.',
+    },
+    {
+      key: 'unresolved-issues',
+      label: 'Unresolved Issues',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Sentry issue metrics.',
+    },
+    {
+      key: 'regressed-issues',
+      label: 'Regressed Issues',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Sentry issue metrics.',
+    },
+    {
+      key: 'dropped-events-24h',
+      label: 'Dropped Events',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Sentry outcome metrics.',
+    },
+    {
+      key: 'projects-monitored',
+      label: 'Projects Monitored',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Sentry project data.',
+    },
+  ];
+}
+
+function getSentryConfig() {
+  const authToken = process.env.SENTRY_AUTH_TOKEN || process.env.SENTRY_API_TOKEN || null;
+  const orgSlug = process.env.SENTRY_ORG || process.env.SENTRY_ORG_SLUG || null;
+  const projectSlug = process.env.SENTRY_PROJECT || process.env.SENTRY_PROJECT_SLUG || process.env.NEXT_PUBLIC_SENTRY_PROJECT || null;
+
+  return {
+    authToken,
+    orgSlug,
+    projectSlug,
+    tokenConfigured: Boolean(authToken),
+    orgConfigured: Boolean(orgSlug),
+    projectConfigured: Boolean(projectSlug),
+  };
+}
+
+function buildSentryMissingConfigDetail() {
+  const config = getSentryConfig();
+  const missing = [
+    ...(!config.tokenConfigured ? ['SENTRY_AUTH_TOKEN'] : []),
+    ...(!config.orgConfigured ? ['SENTRY_ORG'] : []),
+  ];
+
+  if (!missing.length) {
+    return 'Sentry API credentials are configured.';
+  }
+  if (missing.length === 1) {
+    return `Missing ${missing[0]} in the running app environment.`;
+  }
+  return `Missing ${missing.join(' and ')} in the running app environment.`;
+}
+
+function buildSentryErrorHint(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('(401)') || normalized.includes('unauthorized')) {
+    return 'The Sentry auth token may be invalid or attached to a different organization.';
+  }
+  if (normalized.includes('(403)') || normalized.includes('forbidden')) {
+    return 'The Sentry auth token may be missing org:read or event:read scopes.';
+  }
+  if (normalized.includes('(404)') || normalized.includes('not found')) {
+    return 'The SENTRY_ORG or SENTRY_PROJECT value may not match your Sentry workspace.';
+  }
+  return 'Check the Sentry token scopes, organization slug, and project slug for this deployment.';
+}
+
+function formatDurationMs(value: number | null) {
+  if (value == null || !Number.isFinite(value)) return '—';
+  if (value < 1000) return `${Math.round(value)} ms`;
+  return `${roundTo(value / 1000, 2)} s`;
+}
+
+function resolveBaseUrl(request: NextRequest) {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.SITE_URL ||
+    process.env.APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+    request.nextUrl.origin
+  );
+}
+
+function getCloudflareConfigStatus() {
+  const apiTokenConfigured = Boolean(process.env.CLOUDFLARE_API_TOKEN);
+  const zoneIdConfigured = Boolean(process.env.CLOUDFLARE_ZONE_ID);
+
+  return {
+    apiTokenConfigured,
+    zoneIdConfigured,
+    missingKeys: [
+      ...(!apiTokenConfigured ? ['CLOUDFLARE_API_TOKEN'] : []),
+      ...(!zoneIdConfigured ? ['CLOUDFLARE_ZONE_ID'] : []),
+    ],
+  };
+}
+
+function buildCloudflareMissingConfigDetail() {
+  const config = getCloudflareConfigStatus();
+  if (!config.missingKeys.length) {
+    return 'Cloudflare credentials are configured.';
+  }
+  if (config.missingKeys.length === 1) {
+    return `Missing ${config.missingKeys[0]} in the running app environment.`;
+  }
+  return `Missing ${config.missingKeys.join(' and ')} in the running app environment.`;
+}
+
+function buildCloudflareErrorHint(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('(403)') || normalized.includes('permission') || normalized.includes('forbidden')) {
+    return 'The Cloudflare token is present but likely missing zone analytics permissions for this zone.';
+  }
+  if (normalized.includes('not found') || normalized.includes('zone')) {
+    return 'The configured CLOUDFLARE_ZONE_ID may not match the Cloudflare zone for this site.';
+  }
+  if (normalized.includes('(401)') || normalized.includes('unauthorized')) {
+    return 'The Cloudflare token may be invalid, expired, or added to the wrong Vercel environment.';
+  }
+  return 'Check the Cloudflare token permissions, the zone ID, and whether Vercel has been redeployed after the env vars were added.';
+}
+
 function getCloudflareEnv() {
+  const config = getCloudflareConfigStatus();
   const apiToken = process.env.CLOUDFLARE_API_TOKEN;
   const zoneId = process.env.CLOUDFLARE_ZONE_ID;
 
-  if (!apiToken || !zoneId) {
+  if (!config.apiTokenConfigured || !config.zoneIdConfigured || !apiToken || !zoneId) {
     return null;
   }
 
@@ -385,12 +1275,20 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   const emptyBandwidthSeries = buildEmptyTrafficSeries(windowKeys);
 
   if (!env) {
+    const config = getCloudflareConfigStatus();
     return {
       connected: false,
-      detail: 'Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID to unlock requests, threats, cache, and bandwidth.',
+      detail: buildCloudflareMissingConfigDetail(),
       summaryCards: buildTrafficCards(),
       requestSeries: emptyRequestSeries,
       bandwidthSeries: emptyBandwidthSeries,
+      diagnostics: {
+        apiTokenConfigured: config.apiTokenConfigured,
+        zoneIdConfigured: config.zoneIdConfigured,
+        status: 'missing_config',
+        errorMessage: null,
+        hint: 'Add the missing Cloudflare env vars to the Vercel environment used by this deployment, then redeploy.',
+      },
     };
   }
 
@@ -477,7 +1375,7 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   }
 
   const totalBucket = zone.totals?.[0];
-  const totals: CloudflareTotals = {
+  const totalsFromBucket: CloudflareTotals = {
     requests: Number(totalBucket?.sum?.requests || 0),
     pageViews: Number(totalBucket?.sum?.pageViews || 0),
     uniques: Number(totalBucket?.uniq?.uniques || 0),
@@ -516,7 +1414,43 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
     });
   }
 
+  const dailyPoints = windowKeys.map((key) => dailyByDate.get(key)!);
+  const totalsFromSeries = dailyPoints.reduce<CloudflareTotals>(
+    (accumulator, point) => ({
+      requests: accumulator.requests + point.requests,
+      pageViews: accumulator.pageViews + point.pageViews,
+      uniques: accumulator.uniques + point.uniques,
+      bytes: accumulator.bytes + point.bytes,
+      cachedBytes: accumulator.cachedBytes + point.cachedBytes,
+      cachedRequests: accumulator.cachedRequests + point.cachedRequests,
+      threats: accumulator.threats + point.threats,
+    }),
+    {
+      requests: 0,
+      pageViews: 0,
+      uniques: 0,
+      bytes: 0,
+      cachedBytes: 0,
+      cachedRequests: 0,
+      threats: 0,
+    }
+  );
+
+  // Cloudflare's limited totals bucket can come back as a single day for some responses,
+  // so prefer the larger window-wide value derived from the daily series.
+  const totals: CloudflareTotals = {
+    requests: Math.max(totalsFromBucket.requests, totalsFromSeries.requests),
+    pageViews: Math.max(totalsFromBucket.pageViews, totalsFromSeries.pageViews),
+    uniques: Math.max(totalsFromBucket.uniques, ...dailyPoints.map((point) => point.uniques)),
+    bytes: Math.max(totalsFromBucket.bytes, totalsFromSeries.bytes),
+    cachedBytes: Math.max(totalsFromBucket.cachedBytes, totalsFromSeries.cachedBytes),
+    cachedRequests: Math.max(totalsFromBucket.cachedRequests, totalsFromSeries.cachedRequests),
+    threats: Math.max(totalsFromBucket.threats, totalsFromSeries.threats),
+  };
+
   const cacheHitRatio = totals.requests > 0 ? roundTo((totals.cachedRequests / totals.requests) * 100, 1) : 0;
+  const totalBandwidthMb = roundTo(totals.bytes / (1024 * 1024), 1);
+  const cachedBandwidthRatio = totals.bytes > 0 ? roundTo((totals.cachedBytes / totals.bytes) * 100, 1) : 0;
   const requestSeries = windowKeys.map((key) => {
     const point = dailyByDate.get(key)!;
     const uncachedRequests = Math.max(point.requests - point.cachedRequests, 0);
@@ -578,9 +1512,32 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
         status: 'live',
         detail: 'Threat requests reported by Cloudflare for the selected window.',
       },
+      {
+        key: 'bandwidth',
+        label: 'Bandwidth',
+        value: totalBandwidthMb,
+        displayValue: `${formatNumber(totalBandwidthMb)} MB`,
+        status: 'live',
+        detail: 'Total response bandwidth served for the selected window.',
+      },
+      {
+        key: 'cached-bandwidth-ratio',
+        label: 'Cached Bandwidth',
+        value: cachedBandwidthRatio,
+        displayValue: `${formatNumber(cachedBandwidthRatio)}%`,
+        status: 'live',
+        detail: 'Share of response bandwidth served from Cloudflare cache.',
+      },
     ],
     requestSeries,
     bandwidthSeries,
+    diagnostics: {
+      apiTokenConfigured: true,
+      zoneIdConfigured: true,
+      status: 'live',
+      errorMessage: null,
+      hint: null,
+    },
   };
 }
 
@@ -757,32 +1714,166 @@ export async function GET(request: NextRequest) {
 
     const readiness = buildReadiness();
     const connectionState = buildConnections();
+    const uptime = await fetchUptimeSummary(request);
+
+    let openAiCosts = {
+      connected: false,
+      detail: buildOpenAiMissingConfigDetail(),
+      summaryCards: buildCostCards(),
+      dailySeries: buildEmptyCostSeries(windowKeys),
+      cumulativeSeries: buildEmptyCostSeries(windowKeys).map((point) => ({
+        ...point,
+        total: null,
+      })),
+      diagnostics: {
+        credentialSource: null,
+        configured: false,
+        status: 'missing_config',
+        errorMessage: null,
+        hint: 'Add the OpenAI billing credential to the running deployment, then redeploy.',
+      },
+    } as OpenAiCostResult;
+
     let cloudflareTraffic = {
       connected: false,
-      detail: 'Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ZONE_ID to unlock requests, threats, cache, and bandwidth.',
+      detail: buildCloudflareMissingConfigDetail(),
       summaryCards: buildTrafficCards(),
       requestSeries: buildEmptyTrafficSeries(windowKeys),
       bandwidthSeries: buildEmptyTrafficSeries(windowKeys),
+      diagnostics: {
+        apiTokenConfigured: Boolean(process.env.CLOUDFLARE_API_TOKEN),
+        zoneIdConfigured: Boolean(process.env.CLOUDFLARE_ZONE_ID),
+        status: 'missing_config',
+        errorMessage: null,
+        hint: 'Add the missing Cloudflare env vars to the running deployment, then redeploy.',
+      },
     } as CloudflareTrafficResult;
 
-    try {
-      cloudflareTraffic = await fetchCloudflareTraffic(windowKeys);
-    } catch (cloudflareError: any) {
-      console.error('Cloudflare monitoring fetch error:', cloudflareError);
-      cloudflareTraffic = {
-        connected: false,
-        detail: cloudflareError?.message || 'Cloudflare analytics could not be loaded.',
-        summaryCards: buildTrafficCards().map((card) =>
-          card.key === 'total-requests'
-            ? { ...card, detail: cloudflareError?.message || card.detail }
-            : card
+    let sentryHealth = {
+      connected: false,
+      detail: buildSentryMissingConfigDetail(),
+      summaryCards: buildEmptySentryCards(),
+      recentIssues: [],
+      diagnostics: {
+        tokenConfigured: Boolean(process.env.SENTRY_AUTH_TOKEN || process.env.SENTRY_API_TOKEN),
+        orgConfigured: Boolean(process.env.SENTRY_ORG || process.env.SENTRY_ORG_SLUG),
+        projectConfigured: Boolean(
+          process.env.SENTRY_PROJECT || process.env.SENTRY_PROJECT_SLUG || process.env.NEXT_PUBLIC_SENTRY_PROJECT
         ),
-        requestSeries: buildEmptyTrafficSeries(windowKeys),
-        bandwidthSeries: buildEmptyTrafficSeries(windowKeys),
-      };
-    }
+        status: 'missing_config',
+        errorMessage: null,
+        hint: 'Add SENTRY_AUTH_TOKEN and SENTRY_ORG to unlock live Sentry monitoring metrics.',
+      },
+    } as SentryResult;
+
+    await Promise.all([
+      (async () => {
+        try {
+          openAiCosts = await fetchOpenAiCosts(windowKeys);
+        } catch (openAiError: any) {
+          console.error('OpenAI monitoring fetch error:', openAiError);
+          const errorMessage = openAiError?.message || 'OpenAI costs could not be loaded.';
+          const config = getOpenAiBillingConfig();
+          openAiCosts = {
+            connected: false,
+            detail: errorMessage,
+            summaryCards: buildCostCards().map((card) =>
+              card.key === 'openai-billed' || card.key === 'openai-product'
+                ? { ...card, detail: errorMessage }
+                : card
+            ),
+            dailySeries: buildEmptyCostSeries(windowKeys),
+            cumulativeSeries: buildEmptyCostSeries(windowKeys).map((point) => ({
+              ...point,
+              total: null,
+            })),
+            diagnostics: {
+              credentialSource: config.credentialSource,
+              configured: Boolean(config.apiKey),
+              status: 'error',
+              errorMessage,
+              hint: buildOpenAiErrorHint(errorMessage, config.credentialSource),
+            },
+          };
+        }
+      })(),
+      (async () => {
+        try {
+          cloudflareTraffic = await fetchCloudflareTraffic(windowKeys);
+        } catch (cloudflareError: any) {
+          console.error('Cloudflare monitoring fetch error:', cloudflareError);
+          const errorMessage = cloudflareError?.message || 'Cloudflare analytics could not be loaded.';
+          cloudflareTraffic = {
+            connected: false,
+            detail: errorMessage,
+            summaryCards: buildTrafficCards().map((card) =>
+              card.key === 'total-requests'
+                ? { ...card, detail: errorMessage }
+                : card
+            ),
+            requestSeries: buildEmptyTrafficSeries(windowKeys),
+            bandwidthSeries: buildEmptyTrafficSeries(windowKeys),
+            diagnostics: {
+              apiTokenConfigured: Boolean(process.env.CLOUDFLARE_API_TOKEN),
+              zoneIdConfigured: Boolean(process.env.CLOUDFLARE_ZONE_ID),
+              status: 'error',
+              errorMessage,
+              hint: buildCloudflareErrorHint(errorMessage),
+            },
+          };
+        }
+      })(),
+      (async () => {
+        try {
+          sentryHealth = await fetchSentryHealth();
+        } catch (sentryError: any) {
+          console.error('Sentry monitoring fetch error:', sentryError);
+          const errorMessage = sentryError?.message || 'Sentry metrics could not be loaded.';
+          const config = getSentryConfig();
+          sentryHealth = {
+            connected: false,
+            detail: errorMessage,
+            summaryCards: buildEmptySentryCards().map((card) =>
+              card.key === 'errors-24h' || card.key === 'unresolved-issues'
+                ? { ...card, detail: errorMessage }
+                : card
+            ),
+            recentIssues: [],
+            diagnostics: {
+              tokenConfigured: config.tokenConfigured,
+              orgConfigured: config.orgConfigured,
+              projectConfigured: config.projectConfigured,
+              status: 'error',
+              errorMessage,
+              hint: buildSentryErrorHint(errorMessage),
+            },
+          };
+        }
+      })(),
+    ]);
+
+    const alerts = buildMonitoringAlerts({
+      cloudflareTraffic,
+      openAiCosts,
+      sentryHealth,
+      uptime,
+    });
 
     const hydratedConnections = connectionState.connections.map((item) => {
+      if (item.key === 'openai-billing') {
+        return {
+          ...item,
+          connected: openAiCosts.connected,
+          detail: openAiCosts.detail,
+        };
+      }
+      if (item.key === 'sentry-api') {
+        return {
+          ...item,
+          connected: sentryHealth.connected,
+          detail: sentryHealth.detail,
+        };
+      }
       if (item.key !== 'cloudflare-traffic') return item;
       return {
         ...item,
@@ -817,6 +1908,13 @@ export async function GET(request: NextRequest) {
       series,
       recentActivity,
       readiness,
+      alerts,
+      uptime,
+      sentry: {
+        summaryCards: sentryHealth.summaryCards,
+        recentIssues: sentryHealth.recentIssues,
+        diagnostics: sentryHealth.diagnostics,
+      },
       connections: hydratedConnections,
       sync: {
         generatedAt: new Date().toISOString(),
@@ -824,17 +1922,16 @@ export async function GET(request: NextRequest) {
         totalProviders: hydratedConnections.length,
       },
       infrastructureCosts: {
-        summaryCards: buildCostCards(),
-        dailySeries: buildEmptyCostSeries(windowKeys),
-        cumulativeSeries: buildEmptyCostSeries(windowKeys).map((point) => ({
-          ...point,
-          total: null,
-        })),
+        summaryCards: openAiCosts.summaryCards,
+        dailySeries: openAiCosts.dailySeries,
+        cumulativeSeries: openAiCosts.cumulativeSeries,
+        diagnostics: openAiCosts.diagnostics,
       },
       httpTraffic: {
         summaryCards: cloudflareTraffic.summaryCards,
         requestSeries: cloudflareTraffic.requestSeries,
         bandwidthSeries: cloudflareTraffic.bandwidthSeries,
+        diagnostics: cloudflareTraffic.diagnostics,
       },
     });
   } catch (error: any) {
