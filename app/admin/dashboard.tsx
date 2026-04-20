@@ -66,15 +66,6 @@ function formatRoleLabel(role?: string | null) {
     .join(' ');
 }
 
-function getInitials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
-    .join('') || 'A';
-}
-
 export default function AdminDashboard() {
   const [dbReports, setDbReports] = useState<AnalysisReport[]>([]);
   const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
@@ -556,18 +547,6 @@ export default function AdminDashboard() {
     return primary;
   }, [adminSupportPlans]);
 
-  const hierarchySummary = useMemo(() => {
-    return hierarchyRows.reduce(
-      (acc, row) => {
-        acc.admins += 1;
-        acc.childAdmins += row.childAdmins.length;
-        acc.teachers += row.teachers.length;
-        return acc;
-      },
-      { admins: 0, childAdmins: 0, teachers: 0 }
-    );
-  }, [hierarchyRows]);
-
   const handleRemoveUser = async (userId: string) => {
     setDeletingUserId(userId);
     try {
@@ -960,38 +939,7 @@ export default function AdminDashboard() {
         </div>
 
         <div id="team" style={card}>
-          <div style={teamSectionHeader}>
-            <div>
-              <h2 style={{ ...title, marginBottom: 6 }}>Team Structure</h2>
-              <p style={{ ...text, margin: 0, maxWidth: 720 }}>
-                Keep one polished view of who owns each team, how admin coverage rolls up, and where teacher assignments are concentrated across your scope.
-              </p>
-            </div>
-          </div>
-          {hierarchyRows.length > 0 && (
-            <div
-              style={{
-                ...teamSummaryGrid,
-                gridTemplateColumns: isNarrowScreen ? 'repeat(2, minmax(0, 1fr))' : teamSummaryGrid.gridTemplateColumns,
-              }}
-            >
-              <div style={teamSummaryCard}>
-                <div style={teamSummaryValue}>{hierarchySummary.admins}</div>
-                <div style={teamSummaryLabel}>Admin Leaders</div>
-                <div style={teamSummaryCopy}>Admin accounts currently visible in this scope.</div>
-              </div>
-              <div style={teamSummaryCard}>
-                <div style={teamSummaryValue}>{hierarchySummary.childAdmins}</div>
-                <div style={teamSummaryLabel}>Nested Admins</div>
-                <div style={teamSummaryCopy}>Secondary admin relationships managed under this view.</div>
-              </div>
-              <div style={teamSummaryCard}>
-                <div style={teamSummaryValue}>{hierarchySummary.teachers}</div>
-                <div style={teamSummaryLabel}>Teachers Managed</div>
-                <div style={teamSummaryCopy}>Teacher accounts directly assigned to visible teams.</div>
-              </div>
-            </div>
-          )}
+          <h2 style={title}>Team Structure</h2>
           {hierarchyRows.length === 0 ? (
             <p style={text}>No admins found in your current visibility scope.</p>
           ) : (
@@ -1005,7 +953,6 @@ export default function AdminDashboard() {
               >
                 <div style={hierarchyHeader}>
                   <div style={hierarchyIdentity}>
-                    <div style={hierarchyAvatar}>{getInitials(row.name)}</div>
                     <div style={{ minWidth: 0 }}>
                       <button
                         onClick={() => navigateToUserDashboard(row.id, row.role, true)}
@@ -1357,17 +1304,10 @@ const td: React.CSSProperties = { color: 'var(--text-primary)', padding: '5px 6p
 const actionButton: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 8, padding: '5px 9px', fontSize: 12, cursor: 'pointer' };
 const listItem: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 6 };
 const loading: React.CSSProperties = { color: 'var(--text-primary)', padding: 40 };
-const teamSectionHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 16 };
-const teamSummaryGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, marginBottom: 18 };
-const teamSummaryCard: React.CSSProperties = { border: '1px solid rgba(148,163,184,0.18)', background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, var(--surface-chip) 100%)', borderRadius: 14, padding: '14px 16px', boxShadow: '0 10px 28px rgba(15,23,42,0.05)' };
-const teamSummaryValue: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 28, fontWeight: 800, lineHeight: 1 };
-const teamSummaryLabel: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 13, fontWeight: 700, marginTop: 8 };
-const teamSummaryCopy: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.45, marginTop: 4 };
 const hierarchyCard: React.CSSProperties = { border: '1px solid rgba(148,163,184,0.18)', borderRadius: 16, padding: 18, marginBottom: 14, background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, var(--surface-chip) 100%)', boxShadow: '0 18px 36px rgba(15,23,42,0.06)' };
 const hierarchyCardActive: React.CSSProperties = { border: '1px solid rgba(249,115,22,0.28)', boxShadow: '0 18px 40px rgba(249,115,22,0.12)' };
 const hierarchyHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 16 };
 const hierarchyIdentity: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 };
-const hierarchyAvatar: React.CSSProperties = { width: 44, height: 44, borderRadius: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, rgba(249,115,22,0.16), rgba(251,191,36,0.18))', color: '#c2410c', fontWeight: 800, fontSize: 14, flexShrink: 0, border: '1px solid rgba(249,115,22,0.16)' };
 const hierarchyMetaRow: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 };
 const hierarchyRoleChip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', padding: '5px 10px', borderRadius: 999, background: 'rgba(15,23,42,0.06)', color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700, letterSpacing: 0.3 };
 const hierarchyOwnerChip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', padding: '5px 10px', borderRadius: 999, background: 'rgba(249,115,22,0.12)', color: '#c2410c', border: '1px solid rgba(249,115,22,0.14)', fontSize: 11, fontWeight: 700 };
