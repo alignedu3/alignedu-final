@@ -694,6 +694,8 @@ function buildMonitoringAlerts(args: {
     const threatsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'threats-blocked');
     const clientErrorsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'client-errors');
     const serverErrorsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'server-errors');
+    const top4xxRoute = args.cloudflareTraffic.topErrorRoutes.find((route) => route.key === 'top-4xx-route');
+    const top5xxRoute = args.cloudflareTraffic.topErrorRoutes.find((route) => route.key === 'top-5xx-route');
     const requests = args.cloudflareTraffic.requestSeries.map((point) => point.requests || 0);
 
     if ((cacheRatioCard?.value || 0) < 20 && (cachedBandwidthCard?.value || 0) < 40) {
@@ -716,7 +718,7 @@ function buildMonitoringAlerts(args: {
       });
     }
 
-    if ((clientErrorsCard?.value || 0) >= 25) {
+    if ((clientErrorsCard?.value || 0) >= 25 && (top4xxRoute?.requests || 0) > 0) {
       alerts.push({
         key: 'client-errors',
         severity: 'warning',
@@ -726,7 +728,7 @@ function buildMonitoringAlerts(args: {
       });
     }
 
-    if ((serverErrorsCard?.value || 0) > 0) {
+    if ((serverErrorsCard?.value || 0) > 0 && (top5xxRoute?.requests || 0) > 0) {
       alerts.push({
         key: 'server-errors',
         severity: (serverErrorsCard?.value || 0) >= 10 ? 'critical' : 'warning',
