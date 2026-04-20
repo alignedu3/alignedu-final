@@ -1351,20 +1351,22 @@ export default function HomePage() {
 
           .hero-cta-row {
             display: grid !important;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 8px !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px !important;
             width: 100%;
             max-width: 100%;
+            align-items: stretch !important;
           }
 
           .hero-cta-unified {
-            height: 42px !important;
+            height: 44px !important;
             min-width: 0 !important;
             width: 100% !important;
-            padding: 0 10px !important;
+            padding: 0 14px !important;
             font-size: 14px !important;
             border-radius: 12px !important;
             justify-content: center !important;
+            text-align: center !important;
           }
 
           .bottom-demo-row {
@@ -1434,13 +1436,13 @@ export default function HomePage() {
           }
 
           .hero-cta-row {
-            gap: 6px !important;
+            gap: 8px !important;
           }
 
           .hero-cta-unified {
-            height: 40px !important;
-            padding: 0 8px !important;
-            font-size: 13px !important;
+            height: 44px !important;
+            padding: 0 12px !important;
+            font-size: 14px !important;
           }
 
           .legal-links-row {
@@ -1460,6 +1462,7 @@ export default function HomePage() {
 
           .hero-cta-unified {
             width: 100% !important;
+            min-width: 0 !important;
           }
 
           .preview-subject-row {
