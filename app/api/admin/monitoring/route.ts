@@ -40,15 +40,6 @@ type ConnectionState = {
   envKeys?: string[];
 };
 
-type CostSummaryCard = {
-  key: string;
-  label: string;
-  value: number | null;
-  displayValue: string;
-  status: 'live' | 'connect_required';
-  detail: string;
-};
-
 type TrafficSummaryCard = {
   key: string;
   label: string;
@@ -56,15 +47,6 @@ type TrafficSummaryCard = {
   displayValue: string;
   status: 'live' | 'connect_required';
   detail: string;
-};
-
-type CostSeriesPoint = {
-  date: string;
-  label: string;
-  openai: number | null;
-  supabase: number | null;
-  vercel: number | null;
-  cloudflare: number | null;
 };
 
 type TrafficSeriesPoint = {
@@ -109,21 +91,6 @@ type CloudflareTrafficResult = {
     status: 'live' | 'missing_config' | 'error';
     errorMessage: string | null;
   hint: string | null;
-  };
-};
-
-type OpenAiCostResult = {
-  connected: boolean;
-  detail: string;
-  summaryCards: CostSummaryCard[];
-  dailySeries: CostSeriesPoint[];
-  cumulativeSeries: Array<CostSeriesPoint & { total: number | null }>;
-  diagnostics: {
-    credentialSource: 'OPENAI_USAGE_ADMIN_KEY' | 'OPENAI_ADMIN_KEY' | 'OPENAI_API_KEY' | null;
-    configured: boolean;
-    status: 'live' | 'missing_config' | 'error';
-    errorMessage: string | null;
-    hint: string | null;
   };
 };
 
@@ -315,7 +282,7 @@ function buildConnections() {
       label: 'Resend Email Usage',
       connected: hasResendUsage,
       detail: hasResendUsage
-        ? 'Email runtime is configured; billing usage can be layered in next.'
+        ? 'Email runtime is configured and ready for delivery monitoring.'
         : 'Add RESEND_API_KEY to track invite and reset email usage.',
       envKeys: ['RESEND_API_KEY'],
     },
@@ -324,285 +291,6 @@ function buildConnections() {
   return {
     connections,
     connectedCount: connections.filter((item) => item.connected).length,
-  };
-}
-
-function buildCostCards(): CostSummaryCard[] {
-  return [
-    {
-      key: 'openai-product',
-      label: 'OpenAI Product',
-      value: null,
-      displayValue: '—',
-      status: 'connect_required',
-      detail: 'Waiting on OpenAI usage/cost access.',
-    },
-    {
-      key: 'openai-billed',
-      label: 'OpenAI Billed',
-      value: null,
-      displayValue: '—',
-      status: 'connect_required',
-      detail: 'Waiting on OpenAI billing connection.',
-    },
-    {
-      key: 'supabase-costs',
-      label: 'Supabase Costs',
-      value: null,
-      displayValue: '—',
-      status: 'connect_required',
-      detail: 'Waiting on Supabase management/billing connection.',
-    },
-    {
-      key: 'vercel-costs',
-      label: 'Vercel Costs',
-      value: null,
-      displayValue: '—',
-      status: 'connect_required',
-      detail: 'Waiting on Vercel usage access.',
-    },
-    {
-      key: 'cloudflare-costs',
-      label: 'Cloudflare Costs',
-      value: null,
-      displayValue: '—',
-      status: 'connect_required',
-      detail: 'Waiting on Cloudflare billing/analytics access.',
-    },
-    {
-      key: 'total-costs',
-      label: 'Total Costs',
-      value: null,
-      displayValue: '—',
-      status: 'connect_required',
-      detail: 'Total monthly spend will appear once provider billing sources are connected.',
-    },
-  ];
-}
-
-function getOpenAiBillingConfig() {
-  if (process.env.OPENAI_USAGE_ADMIN_KEY) {
-    return {
-      apiKey: process.env.OPENAI_USAGE_ADMIN_KEY,
-      credentialSource: 'OPENAI_USAGE_ADMIN_KEY' as const,
-    };
-  }
-  if (process.env.OPENAI_ADMIN_KEY) {
-    return {
-      apiKey: process.env.OPENAI_ADMIN_KEY,
-      credentialSource: 'OPENAI_ADMIN_KEY' as const,
-    };
-  }
-  if (process.env.OPENAI_API_KEY) {
-    return {
-      apiKey: process.env.OPENAI_API_KEY,
-      credentialSource: 'OPENAI_API_KEY' as const,
-    };
-  }
-
-  return {
-    apiKey: null,
-    credentialSource: null,
-  };
-}
-
-function buildOpenAiMissingConfigDetail() {
-  return 'Add OPENAI_USAGE_ADMIN_KEY, OPENAI_ADMIN_KEY, or a compatible organization billing key to unlock OpenAI costs.';
-}
-
-function buildOpenAiErrorHint(message: string, credentialSource: OpenAiCostResult['diagnostics']['credentialSource']) {
-  const normalized = message.toLowerCase();
-
-  if (normalized.includes('(401)') || normalized.includes('unauthorized')) {
-    return 'The configured OpenAI billing credential may be invalid or attached to the wrong organization.';
-  }
-  if (normalized.includes('(403)') || normalized.includes('forbidden') || normalized.includes('admin')) {
-    return credentialSource === 'OPENAI_API_KEY'
-      ? 'The organization costs endpoint may require an admin or organization billing key rather than a standard project API key.'
-      : 'The billing credential is present but may not have access to organization cost data.';
-  }
-  return 'Check that the OpenAI key belongs to the correct organization and can access the organization costs endpoint.';
-}
-
-async function fetchOpenAiCosts(windowKeys: string[]): Promise<OpenAiCostResult> {
-  const config = getOpenAiBillingConfig();
-  const emptyDailySeries = buildEmptyCostSeries(windowKeys);
-  const emptyCumulativeSeries = emptyDailySeries.map((point) => ({ ...point, total: null }));
-
-  if (!config.apiKey || !config.credentialSource) {
-    return {
-      connected: false,
-      detail: buildOpenAiMissingConfigDetail(),
-      summaryCards: buildCostCards(),
-      dailySeries: emptyDailySeries,
-      cumulativeSeries: emptyCumulativeSeries,
-      diagnostics: {
-        credentialSource: null,
-        configured: false,
-        status: 'missing_config',
-        errorMessage: null,
-        hint: 'Add the OpenAI billing credential to the running Vercel environment, then redeploy.',
-      },
-    };
-  }
-
-  const fetchCosts = async (startDateKey: string, endDateKeyExclusive: string) => {
-    const startTime = Math.floor(new Date(`${startDateKey}T00:00:00Z`).getTime() / 1000);
-    const endTime = Math.floor(new Date(`${endDateKeyExclusive}T00:00:00Z`).getTime() / 1000);
-    const params = new URLSearchParams({
-      start_time: String(startTime),
-      end_time: String(endTime),
-      bucket_width: '1d',
-      limit: '180',
-    });
-
-    const response = await fetch(`https://api.openai.com/v1/organization/costs?${params.toString()}`, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${config.apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store',
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI billing request failed (${response.status}).`);
-    }
-
-    return response.json();
-  };
-
-  const selectedStartKey = windowKeys[0];
-  const selectedEndExclusive = new Date(`${windowKeys[windowKeys.length - 1]}T12:00:00Z`);
-  selectedEndExclusive.setUTCDate(selectedEndExclusive.getUTCDate() + 1);
-  const selectedEndExclusiveKey = selectedEndExclusive.toISOString().slice(0, 10);
-
-  const monthStart = new Date();
-  monthStart.setUTCDate(1);
-  monthStart.setUTCHours(0, 0, 0, 0);
-  const monthStartKey = monthStart.toISOString().slice(0, 10);
-  const todayExclusive = new Date();
-  todayExclusive.setUTCHours(0, 0, 0, 0);
-  todayExclusive.setUTCDate(todayExclusive.getUTCDate() + 1);
-  const todayExclusiveKey = todayExclusive.toISOString().slice(0, 10);
-
-  const [selectedPayload, monthPayload] = await Promise.all([
-    fetchCosts(selectedStartKey, selectedEndExclusiveKey),
-    fetchCosts(monthStartKey, todayExclusiveKey),
-  ]);
-
-  const selectedByDate = new Map<string, number>();
-  for (const key of windowKeys) {
-    selectedByDate.set(key, 0);
-  }
-
-  for (const bucket of selectedPayload?.data || []) {
-    const key = new Date(Number(bucket?.start_time) * 1000).toISOString().slice(0, 10);
-    if (!selectedByDate.has(key)) continue;
-    const amount = (bucket?.results || []).reduce(
-      (sum: number, result: any) => sum + Number(result?.amount?.value || 0),
-      0
-    );
-    selectedByDate.set(key, roundTo(amount, 4));
-  }
-
-  const dailySeries = windowKeys.map((key) => ({
-    date: key,
-    label: formatCompactDate(key),
-    openai: selectedByDate.get(key) ?? 0,
-    supabase: null,
-    vercel: null,
-    cloudflare: null,
-  }));
-
-  let runningTotal = 0;
-  const cumulativeSeries = dailySeries.map((point) => {
-    runningTotal += point.openai || 0;
-    return {
-      ...point,
-      total: roundTo(runningTotal, 4),
-    };
-  });
-
-  const selectedWindowCost = roundTo(
-    dailySeries.reduce((sum, point) => sum + (point.openai || 0), 0),
-    4
-  );
-  const monthToDateCost = roundTo(
-    (monthPayload?.data || []).reduce(
-      (sum: number, bucket: any) =>
-        sum +
-        (bucket?.results || []).reduce(
-          (bucketSum: number, result: any) => bucketSum + Number(result?.amount?.value || 0),
-          0
-        ),
-      0
-    ),
-    4
-  );
-
-  return {
-    connected: true,
-    detail: `OpenAI costs are connected using ${config.credentialSource}.`,
-    summaryCards: [
-      {
-        key: 'openai-product',
-        label: 'OpenAI Product',
-        value: selectedWindowCost,
-        displayValue: `$${formatNumber(selectedWindowCost)}`,
-        status: 'live',
-        detail: `Selected ${windowKeys.length}-day OpenAI spend from the organization costs endpoint.`,
-      },
-      {
-        key: 'openai-billed',
-        label: 'OpenAI Billed',
-        value: monthToDateCost,
-        displayValue: `$${formatNumber(monthToDateCost)}`,
-        status: 'live',
-        detail: 'Month-to-date billed OpenAI cost from the organization costs endpoint.',
-      },
-      {
-        key: 'supabase-costs',
-        label: 'Supabase Costs',
-        value: null,
-        displayValue: '—',
-        status: 'connect_required',
-        detail: 'Waiting on Supabase management/billing connection.',
-      },
-      {
-        key: 'vercel-costs',
-        label: 'Vercel Costs',
-        value: null,
-        displayValue: '—',
-        status: 'connect_required',
-        detail: 'Waiting on Vercel usage access.',
-      },
-      {
-        key: 'cloudflare-costs',
-        label: 'Cloudflare Costs',
-        value: null,
-        displayValue: '—',
-        status: 'connect_required',
-        detail: 'Waiting on Cloudflare billing access.',
-      },
-      {
-        key: 'total-costs',
-        label: 'Total Costs',
-        value: monthToDateCost,
-        displayValue: `$${formatNumber(monthToDateCost)}`,
-        status: 'live',
-        detail: 'Current total across connected billing providers.',
-      },
-    ],
-    dailySeries,
-    cumulativeSeries,
-    diagnostics: {
-      credentialSource: config.credentialSource,
-      configured: true,
-      status: 'live',
-      errorMessage: null,
-      hint: null,
-    },
   };
 }
 
@@ -749,12 +437,19 @@ async function fetchSentryHealth(): Promise<SentryResult> {
     groupBy: 'outcome',
   });
 
-  const [unresolvedIssues, regressedIssues, errors24h, errors14d] = await Promise.all([
+  const [unresolvedIssuesRaw, regressedIssuesRaw, errors24h, errors14d] = await Promise.all([
     sentryFetch(`/organizations/${config.orgSlug}/issues/`, unresolvedParams),
     sentryFetch(`/organizations/${config.orgSlug}/issues/`, regressedParams),
     sentryFetch(`/organizations/${config.orgSlug}/stats_v2/`, errors24hParams),
     sentryFetch(`/organizations/${config.orgSlug}/stats_v2/`, errors14dParams),
   ]);
+
+  const unresolvedIssues = Array.isArray(unresolvedIssuesRaw)
+    ? unresolvedIssuesRaw.filter((issue) => !isNoiseSentryIssue(issue))
+    : [];
+  const regressedIssues = Array.isArray(regressedIssuesRaw)
+    ? regressedIssuesRaw.filter((issue) => !isNoiseSentryIssue(issue))
+    : [];
 
   const sumSentryOutcome = (payload: any, outcome: string) =>
     roundTo(
@@ -776,7 +471,7 @@ async function fetchSentryHealth(): Promise<SentryResult> {
     sumSentryOutcome(errors24h, 'cardinality_limited');
   const accepted14d = sumSentryOutcome(errors14d, 'accepted');
 
-  const recentIssues: SentryIssueRow[] = (unresolvedIssues || []).map((issue: any) => ({
+  const recentIssues: SentryIssueRow[] = unresolvedIssues.map((issue: any) => ({
     id: String(issue?.id || ''),
     title: issue?.title || issue?.metadata?.title || 'Issue',
     culprit: issue?.culprit || issue?.metadata?.value || null,
@@ -788,8 +483,8 @@ async function fetchSentryHealth(): Promise<SentryResult> {
     permalink: issue?.permalink || null,
   }));
 
-  const unresolvedCount = Array.isArray(unresolvedIssues) ? unresolvedIssues.length : 0;
-  const regressedCount = Array.isArray(regressedIssues) ? regressedIssues.length : 0;
+  const unresolvedCount = unresolvedIssues.length;
+  const regressedCount = regressedIssues.length;
 
   return {
     connected: true,
@@ -902,10 +597,10 @@ function buildMonitoringAlerts(args: {
       });
     }
 
-    if ((threatsCard?.value || 0) > 0) {
+    if ((threatsCard?.value || 0) >= 10) {
       alerts.push({
         key: 'threats-blocked',
-        severity: (threatsCard?.value || 0) > 25 ? 'critical' : 'warning',
+        severity: (threatsCard?.value || 0) > 50 ? 'critical' : 'warning',
         title: 'Threat traffic detected',
         detail: `${threatsCard?.displayValue || '0'} threats were blocked in the selected window.`,
         source: 'Cloudflare',
@@ -917,7 +612,7 @@ function buildMonitoringAlerts(args: {
       const prior = requests.slice(0, -1);
       const priorAverage = prior.length ? prior.reduce((sum, value) => sum + value, 0) / prior.length : 0;
 
-      if (priorAverage >= 50 && latest < priorAverage * 0.4) {
+      if (priorAverage >= 100 && latest < priorAverage * 0.4) {
         alerts.push({
           key: 'traffic-drop',
           severity: 'warning',
@@ -970,7 +665,7 @@ function buildMonitoringAlerts(args: {
       key: 'all-clear',
       severity: 'info',
       title: 'No urgent issues in the current monitoring window',
-      detail: 'Traffic, uptime, billing, and error signals are not showing a high-priority problem right now.',
+      detail: 'Traffic, uptime, and error signals are not showing a high-priority problem right now.',
       source: 'Platform',
     });
   }
@@ -1136,6 +831,18 @@ function buildSentryErrorHint(message: string) {
     return 'The SENTRY_ORG or SENTRY_PROJECT value may not match your Sentry workspace.';
   }
   return 'Check the Sentry token scopes, organization slug, and project slug for this deployment.';
+}
+
+function isNoiseSentryIssue(issue: any) {
+  const title = String(issue?.title || issue?.metadata?.title || '').toLowerCase();
+  const culprit = String(issue?.culprit || issue?.metadata?.value || '').toLowerCase();
+
+  return (
+    title.includes('sentryexample') ||
+    title.includes('exampleapierror') ||
+    culprit.includes('/api/sentry-example') ||
+    culprit.includes('/sentry-example-page')
+  );
 }
 
 function formatDurationMs(value: number | null) {
@@ -1477,17 +1184,6 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
       hint: null,
     },
   };
-}
-
-function buildEmptyCostSeries(windowKeys: string[]): CostSeriesPoint[] {
-  return windowKeys.map((key) => ({
-    date: key,
-    label: formatCompactDate(key),
-    openai: null,
-    supabase: null,
-    vercel: null,
-    cloudflare: null,
-  }));
 }
 
 function buildEmptyTrafficSeries(windowKeys: string[]): TrafficSeriesPoint[] {
