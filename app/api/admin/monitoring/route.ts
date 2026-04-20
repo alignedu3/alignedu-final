@@ -45,7 +45,8 @@ type TrafficSummaryCard = {
   label: string;
   value: number | null;
   displayValue: string;
-  status: 'live' | 'connect_required';
+  status: 'healthy' | 'warning' | 'critical' | 'connect_required';
+  statusLabel: string;
   detail: string;
 };
 
@@ -333,26 +334,90 @@ async function runUptimeCheck(label: string, key: string, url: string): Promise<
   }
 }
 
+function getUptimeLatencyStatus(responseTimeMs: number | null): 'healthy' | 'warning' | 'critical' {
+  if (responseTimeMs == null || !Number.isFinite(responseTimeMs)) return 'critical';
+  if (responseTimeMs > 2500) return 'critical';
+  if (responseTimeMs > 1200) return 'warning';
+  return 'healthy';
+}
+
 async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
   const baseUrl = resolveBaseUrl(request);
   const normalizedBase = baseUrl.replace(/\/$/, '');
 
   const checks = await Promise.all([
     runUptimeCheck('Public Site', 'public-site', normalizedBase || request.nextUrl.origin),
+    runUptimeCheck('Login Page', 'login-page', `${normalizedBase || request.nextUrl.origin}/login`),
     runUptimeCheck('Auth API', 'auth-api', `${normalizedBase || request.nextUrl.origin}/api/auth/me`),
   ]);
 
+  const passingChecks = checks.filter((check) => check.ok);
+  const averageResponseMs = passingChecks.length
+    ? roundTo(passingChecks.reduce((sum, check) => sum + (check.responseTimeMs || 0), 0) / passingChecks.length, 0)
+    : null;
+  const slowestCheck = passingChecks.reduce<UptimeCheck | null>((slowest, check) => {
+    if (check.responseTimeMs == null) return slowest;
+    if (!slowest) return check;
+    return (check.responseTimeMs || 0) > (slowest.responseTimeMs || 0) ? check : slowest;
+  }, null);
+  const latestCheckedAt = checks.reduce<string | null>((latest, check) => {
+    if (!latest) return check.checkedAt;
+    return new Date(check.checkedAt).getTime() > new Date(latest).getTime() ? check.checkedAt : latest;
+  }, null);
+  const failingChecks = checks.length - passingChecks.length;
+  const allHealthy = failingChecks === 0;
+  const availabilityStatus: 'healthy' | 'warning' | 'critical' =
+    failingChecks === 0 ? 'healthy' : passingChecks.length > 0 ? 'warning' : 'critical';
+
   return {
-    summaryCards: checks.map((check) => ({
-      key: check.key,
-      label: check.label,
-      value: check.responseTimeMs,
-      displayValue: check.ok ? formatDurationMs(check.responseTimeMs) : 'Down',
-      status: check.ok ? (check.responseTimeMs != null && check.responseTimeMs > 1500 ? 'warning' : 'healthy') : 'critical',
-      detail: check.ok
-        ? `${check.label} returned HTTP ${check.statusCode} in ${formatDurationMs(check.responseTimeMs)}.`
-        : check.detail,
-    })),
+    summaryCards: [
+      {
+        key: 'uptime-availability',
+        label: 'Checks Passing',
+        value: passingChecks.length,
+        displayValue: `${passingChecks.length}/${checks.length}`,
+        status: availabilityStatus,
+        detail: allHealthy
+          ? 'All uptime probes are returning healthy responses right now.'
+          : `${failingChecks} uptime ${failingChecks === 1 ? 'check is' : 'checks are'} failing in the latest pass.`,
+      },
+      {
+        key: 'uptime-average-response',
+        label: 'Average Response',
+        value: averageResponseMs,
+        displayValue: formatDurationMs(averageResponseMs),
+        status: getUptimeLatencyStatus(averageResponseMs),
+        detail:
+          averageResponseMs != null
+            ? `Average response time across successful uptime checks in the latest pass.`
+            : 'No successful uptime checks were available to average.',
+      },
+      {
+        key: 'uptime-slowest-check',
+        label: 'Slowest Check',
+        value: slowestCheck?.responseTimeMs ?? null,
+        displayValue: slowestCheck?.label || '—',
+        status: slowestCheck?.ok ? getUptimeLatencyStatus(slowestCheck.responseTimeMs) : 'critical',
+        detail: slowestCheck
+          ? `${slowestCheck.label} responded in ${formatDurationMs(slowestCheck.responseTimeMs)}.`
+          : 'No successful check completed in the latest pass.',
+      },
+      {
+        key: 'uptime-last-check',
+        label: 'Last Check',
+        value: latestCheckedAt ? new Date(latestCheckedAt).getTime() : null,
+        displayValue: latestCheckedAt
+          ? new Date(latestCheckedAt).toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+            })
+          : '—',
+        status: availabilityStatus,
+        detail: latestCheckedAt
+          ? 'Latest uptime probe completion time for this monitoring refresh.'
+          : 'No uptime checks have completed yet.',
+      },
+    ],
     checks,
   };
 }
@@ -682,6 +747,7 @@ function buildTrafficCards(): TrafficSummaryCard[] {
       value: null,
       displayValue: '—',
       status: 'connect_required',
+      statusLabel: 'Connect account',
       detail: 'Waiting on Cloudflare traffic analytics.',
     },
     {
@@ -690,6 +756,7 @@ function buildTrafficCards(): TrafficSummaryCard[] {
       value: null,
       displayValue: '—',
       status: 'connect_required',
+      statusLabel: 'Connect account',
       detail: 'Waiting on Cloudflare or web analytics connection.',
     },
     {
@@ -698,6 +765,7 @@ function buildTrafficCards(): TrafficSummaryCard[] {
       value: null,
       displayValue: '—',
       status: 'connect_required',
+      statusLabel: 'Connect account',
       detail: 'Waiting on Cloudflare or web analytics connection.',
     },
     {
@@ -706,6 +774,7 @@ function buildTrafficCards(): TrafficSummaryCard[] {
       value: null,
       displayValue: '—',
       status: 'connect_required',
+      statusLabel: 'Connect account',
       detail: 'Waiting on Cloudflare cache analytics.',
     },
     {
@@ -714,6 +783,7 @@ function buildTrafficCards(): TrafficSummaryCard[] {
       value: null,
       displayValue: '—',
       status: 'connect_required',
+      statusLabel: 'Connect account',
       detail: 'Waiting on Cloudflare security analytics.',
     },
     {
@@ -722,6 +792,7 @@ function buildTrafficCards(): TrafficSummaryCard[] {
       value: null,
       displayValue: '—',
       status: 'connect_required',
+      statusLabel: 'Connect account',
       detail: 'Waiting on Cloudflare bandwidth analytics.',
     },
     {
@@ -730,9 +801,24 @@ function buildTrafficCards(): TrafficSummaryCard[] {
       value: null,
       displayValue: '—',
       status: 'connect_required',
+      statusLabel: 'Connect account',
       detail: 'Waiting on Cloudflare cached bandwidth analytics.',
     },
   ];
+}
+
+function getTrendDirection(values: number[]) {
+  if (values.length < 3) return 'limited' as const;
+  const latest = values[values.length - 1] || 0;
+  const prior = values.slice(0, -1);
+  const priorAverage = prior.length ? prior.reduce((sum, value) => sum + value, 0) / prior.length : 0;
+
+  if (priorAverage < 10) {
+    return latest > 0 ? ('active' as const) : ('quiet' as const);
+  }
+  if (latest >= priorAverage * 1.3) return 'up' as const;
+  if (latest <= priorAverage * 0.7) return 'down' as const;
+  return 'steady' as const;
 }
 
 function buildEmptySentryCards(): SentryResult['summaryCards'] {
@@ -1122,6 +1208,65 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
     ...point,
   }));
 
+  const requestTrend = getTrendDirection(dailyPoints.map((point) => point.requests));
+  const pageViewTrend = getTrendDirection(dailyPoints.map((point) => point.pageViews));
+  const uniqueTrend = getTrendDirection(dailyPoints.map((point) => point.uniques));
+  const bandwidthTrend = getTrendDirection(dailyPoints.map((point) => point.bytes / (1024 * 1024)));
+  const requestsStatus =
+    totals.requests === 0
+      ? { status: 'warning' as const, statusLabel: 'No Traffic', detail: 'No Cloudflare requests were recorded in the selected window.' }
+      : requestTrend === 'down' && totals.requests >= 100
+        ? { status: 'warning' as const, statusLabel: 'Below Baseline', detail: 'Request volume is lower than the recent daily baseline for this window.' }
+        : requestTrend === 'up'
+          ? { status: 'healthy' as const, statusLabel: 'Above Baseline', detail: 'Request volume is running above the recent daily baseline for this window.' }
+          : requestTrend === 'quiet'
+            ? { status: 'healthy' as const, statusLabel: 'Light Traffic', detail: 'This is a light-traffic window, so request trend signals are limited.' }
+            : { status: 'healthy' as const, statusLabel: 'On Track', detail: 'Request volume is in line with the recent daily baseline for this window.' };
+  const pageViewsStatus =
+    totals.pageViews === 0
+      ? { status: 'warning' as const, statusLabel: 'No Page Views', detail: 'No successful HTML page views were reported in the selected window.' }
+      : pageViewTrend === 'up'
+        ? { status: 'healthy' as const, statusLabel: 'More Viewing', detail: 'HTML page views are up versus the recent daily baseline.' }
+        : pageViewTrend === 'down' && totals.pageViews >= 20
+          ? { status: 'warning' as const, statusLabel: 'Views Down', detail: 'HTML page views are below the recent daily baseline for this window.' }
+          : { status: 'healthy' as const, statusLabel: 'Steady', detail: 'Successful HTML page views are stable for the selected window.' };
+  const uniquesStatus =
+    totals.uniques === 0
+      ? { status: 'warning' as const, statusLabel: 'No Visitors', detail: 'No unique visitors were reported in the selected window.' }
+      : uniqueTrend === 'up'
+        ? { status: 'healthy' as const, statusLabel: 'More Visitors', detail: 'Unique visitors are running above the recent daily baseline.' }
+        : uniqueTrend === 'down' && totals.uniques >= 20
+          ? { status: 'warning' as const, statusLabel: 'Visitors Down', detail: 'Unique visitors are below the recent daily baseline for this window.' }
+          : { status: 'healthy' as const, statusLabel: 'Steady', detail: 'Unique visitor volume is steady for the selected window.' };
+  const cacheStatus =
+    cacheHitRatio >= 40
+      ? { status: 'healthy' as const, statusLabel: 'Cache Healthy', detail: 'A solid share of requests is being served from Cloudflare cache.' }
+      : cacheHitRatio >= 20
+        ? { status: 'warning' as const, statusLabel: 'Needs Work', detail: 'Some requests are being cached, but there is room to improve edge hit rate.' }
+        : { status: 'warning' as const, statusLabel: 'Low Cache', detail: 'Only a small share of requests is being served from Cloudflare cache.' };
+  const threatsStatus =
+    totals.threats >= 50
+      ? { status: 'critical' as const, statusLabel: 'Elevated Threats', detail: 'Cloudflare is blocking a high level of threat traffic in this window.' }
+      : totals.threats >= 10
+        ? { status: 'warning' as const, statusLabel: 'Threats Rising', detail: 'Cloudflare is blocking repeated threat traffic in this window.' }
+        : totals.threats > 0
+          ? { status: 'healthy' as const, statusLabel: 'Blocked at Edge', detail: 'Cloudflare blocked a small number of threat requests in this window.' }
+          : { status: 'healthy' as const, statusLabel: 'No Threats', detail: 'No blocked threats were reported in the selected window.' };
+  const bandwidthStatus =
+    totalBandwidthMb === 0
+      ? { status: 'healthy' as const, statusLabel: 'Quiet Window', detail: 'No meaningful response bandwidth was recorded in the selected window.' }
+      : bandwidthTrend === 'up'
+        ? { status: 'healthy' as const, statusLabel: 'Higher Load', detail: 'Served bandwidth is running above the recent daily baseline.' }
+        : bandwidthTrend === 'down' && totalBandwidthMb >= 5
+          ? { status: 'warning' as const, statusLabel: 'Load Down', detail: 'Served bandwidth is below the recent daily baseline for this window.' }
+          : { status: 'healthy' as const, statusLabel: 'Stable Load', detail: 'Served bandwidth is steady for the selected window.' };
+  const cachedBandwidthStatus =
+    cachedBandwidthRatio >= 50
+      ? { status: 'healthy' as const, statusLabel: 'Edge Efficient', detail: 'A strong share of response bytes is being delivered from Cloudflare cache.' }
+      : cachedBandwidthRatio >= 30
+        ? { status: 'healthy' as const, statusLabel: 'Moderate Cache', detail: 'A meaningful share of response bytes is being delivered from the edge cache.' }
+        : { status: 'warning' as const, statusLabel: 'Low Edge Cache', detail: 'Only a limited share of response bytes is being served from Cloudflare cache.' };
+
   return {
     connected: true,
     detail: 'Cloudflare traffic analytics are connected and reporting live zone metrics.',
@@ -1131,56 +1276,63 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
         label: 'Total Requests',
         value: totals.requests,
         displayValue: formatNumber(totals.requests),
-        status: 'live',
-        detail: 'Cloudflare zone requests for the selected window.',
+        status: requestsStatus.status,
+        statusLabel: requestsStatus.statusLabel,
+        detail: requestsStatus.detail,
       },
       {
         key: 'page-views',
         label: 'Page Views',
         value: totals.pageViews,
         displayValue: formatNumber(totals.pageViews),
-        status: 'live',
-        detail: 'Successful HTML page views reported by Cloudflare.',
+        status: pageViewsStatus.status,
+        statusLabel: pageViewsStatus.statusLabel,
+        detail: pageViewsStatus.detail,
       },
       {
         key: 'unique-visitors',
         label: 'Unique Visitors',
         value: totals.uniques,
         displayValue: formatNumber(totals.uniques),
-        status: 'live',
-        detail: 'Unique visitors reported by Cloudflare for the selected window.',
+        status: uniquesStatus.status,
+        statusLabel: uniquesStatus.statusLabel,
+        detail: uniquesStatus.detail,
       },
       {
         key: 'cache-hit-ratio',
         label: 'Cache Hit Ratio',
         value: cacheHitRatio,
         displayValue: `${formatNumber(cacheHitRatio)}%`,
-        status: 'live',
-        detail: 'Share of requests served from Cloudflare cache.',
+        status: cacheStatus.status,
+        statusLabel: cacheStatus.statusLabel,
+        detail: cacheStatus.detail,
       },
       {
         key: 'threats-blocked',
         label: 'Threats Blocked',
         value: totals.threats,
         displayValue: formatNumber(totals.threats),
-        status: 'live',
-        detail: 'Threat requests reported by Cloudflare for the selected window.',
+        status: threatsStatus.status,
+        statusLabel: threatsStatus.statusLabel,
+        detail: threatsStatus.detail,
       },
       {
         key: 'bandwidth',
         label: 'Bandwidth',
         value: totalBandwidthMb,
         displayValue: `${formatNumber(totalBandwidthMb)} MB`,
-        status: 'live',
-        detail: 'Total response bandwidth served for the selected window.',
+        status: bandwidthStatus.status,
+        statusLabel: bandwidthStatus.statusLabel,
+        detail: bandwidthStatus.detail,
       },
       {
         key: 'cached-bandwidth-ratio',
         label: 'Cached Bandwidth',
         value: cachedBandwidthRatio,
         displayValue: `${formatNumber(cachedBandwidthRatio)}%`,
-        status: 'live',
-        detail: 'Share of response bandwidth served from Cloudflare cache.',
+        status: cachedBandwidthStatus.status,
+        statusLabel: cachedBandwidthStatus.statusLabel,
+        detail: cachedBandwidthStatus.detail,
       },
     ],
     requestSeries,

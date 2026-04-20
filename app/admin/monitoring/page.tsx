@@ -55,7 +55,8 @@ type TrafficSummaryCard = {
   label: string;
   value: number | null;
   displayValue: string;
-  status: 'live' | 'connect_required';
+  status: 'healthy' | 'warning' | 'critical' | 'connect_required';
+  statusLabel: string;
   detail: string;
 };
 
@@ -249,7 +250,7 @@ export default function MonitoringDashboard() {
   const trafficDiagnostics = payload?.httpTraffic?.diagnostics;
   const callerName = payload?.caller?.name || 'Platform Monitoring';
   const syncGeneratedAt = payload?.sync?.generatedAt || null;
-  const hasLiveTraffic = trafficCards.some((card) => card.status === 'live');
+  const hasLiveTraffic = trafficCards.some((card) => card.status !== 'connect_required');
   const hasLiveSentry = sentryCards.some((card) => card.status !== 'connect_required');
   const cloudflareConnection = connections.find((item) => item.key === 'cloudflare-traffic');
   const sentryConnection = connections.find((item) => item.key === 'sentry-api');
@@ -504,15 +505,23 @@ export default function MonitoringDashboard() {
                     <div style={statusMeta}>
                       {check.statusCode ? `HTTP ${check.statusCode}` : 'No response'} | {check.responseTimeMs != null ? `${check.responseTimeMs} ms` : 'No timing'}
                     </div>
+                    <div style={{ ...statSub, marginTop: 6 }}>
+                      {formatCheckTarget(check.url)} | Checked {formatTime(check.checkedAt)}
+                    </div>
+                    <div style={{ ...statSub, marginTop: 4 }}>{check.detail}</div>
                   </div>
                   <div
                     style={{
                       ...miniStatusPill,
-                      background: check.ok ? 'rgba(22,163,74,0.16)' : 'rgba(220,38,38,0.14)',
-                      color: check.ok ? '#16a34a' : '#dc2626',
+                      background: !check.ok
+                        ? 'rgba(220,38,38,0.14)'
+                        : (check.responseTimeMs || 0) > 1200
+                          ? 'rgba(245,158,11,0.16)'
+                          : 'rgba(22,163,74,0.16)',
+                      color: !check.ok ? '#dc2626' : (check.responseTimeMs || 0) > 1200 ? '#b45309' : '#16a34a',
                     }}
                   >
-                    {check.ok ? 'Reachable' : 'Failing'}
+                    {!check.ok ? 'Failing' : (check.responseTimeMs || 0) > 1200 ? 'Slow' : 'Healthy'}
                   </div>
                 </div>
               ))}
@@ -668,11 +677,25 @@ export default function MonitoringDashboard() {
                 <div
                   style={{
                     ...miniStatusPill,
-                    background: card.status === 'live' ? 'rgba(22,163,74,0.16)' : 'rgba(59,130,246,0.12)',
-                    color: card.status === 'live' ? '#16a34a' : '#3b82f6',
+                    background:
+                      card.status === 'healthy'
+                        ? 'rgba(22,163,74,0.16)'
+                        : card.status === 'warning'
+                          ? 'rgba(245,158,11,0.16)'
+                          : card.status === 'critical'
+                            ? 'rgba(220,38,38,0.14)'
+                            : 'rgba(59,130,246,0.12)',
+                    color:
+                      card.status === 'healthy'
+                        ? '#16a34a'
+                        : card.status === 'warning'
+                          ? '#b45309'
+                          : card.status === 'critical'
+                            ? '#dc2626'
+                            : '#3b82f6',
                   }}
                 >
-                  {card.status === 'live' ? 'Live' : 'Connect account'}
+                  {card.statusLabel}
                 </div>
                 <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
               </div>
@@ -900,6 +923,15 @@ function formatTime(value: string) {
     minute: '2-digit',
     second: '2-digit',
   });
+}
+
+function formatCheckTarget(value: string) {
+  try {
+    const parsed = new URL(value);
+    return parsed.pathname === '/' ? parsed.origin : `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    return value;
+  }
 }
 
 const tooltipStyle = {
