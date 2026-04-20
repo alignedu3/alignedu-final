@@ -594,16 +594,16 @@ export default function AdminDashboard() {
           </div>
           <div style={actions}>
             {canAccessMonitoring && (
-              <button onClick={handleOpenMonitoringDashboard} style={btnAlt}>
-                Monitoring
+              <button onClick={handleOpenMonitoringDashboard} style={headerActionBtnAlt}>
+                Website Monitoring
               </button>
             )}
             {currentUserRole === 'super_admin' && (
-              <button onClick={handleOpenDistrictDashboard} style={btnAlt}>
+              <button onClick={handleOpenDistrictDashboard} style={headerActionBtnAlt}>
                 District Dashboard
               </button>
             )}
-            <button onClick={handleObserveLesson} style={btn}>
+            <button onClick={handleObserveLesson} style={headerActionBtn}>
               Observe Lesson
             </button>
           </div>
@@ -1246,6 +1246,8 @@ const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin
 const actions: React.CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' };
 const btn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '9px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, minHeight: 40 };
 const btnAlt: React.CSSProperties = { background: 'var(--surface-chip)', color: 'var(--text-primary)', padding: '9px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, minHeight: 40 };
+const headerActionBtn: React.CSSProperties = { ...btn, minWidth: 168, justifyContent: 'center', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
+const headerActionBtnAlt: React.CSSProperties = { ...btnAlt, minWidth: 168, justifyContent: 'center', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
 const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 24, minWidth: 0 };
 const cardSmall: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 16, borderRadius: 12, minWidth: 0 };
 const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 28 };
