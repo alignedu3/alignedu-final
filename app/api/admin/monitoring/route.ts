@@ -381,15 +381,6 @@ async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
   const averageResponseMs = passingChecks.length
     ? roundTo(passingChecks.reduce((sum, check) => sum + (check.responseTimeMs || 0), 0) / passingChecks.length, 0)
     : null;
-  const slowestCheck = passingChecks.reduce<UptimeCheck | null>((slowest, check) => {
-    if (check.responseTimeMs == null) return slowest;
-    if (!slowest) return check;
-    return (check.responseTimeMs || 0) > (slowest.responseTimeMs || 0) ? check : slowest;
-  }, null);
-  const latestCheckedAt = checks.reduce<string | null>((latest, check) => {
-    if (!latest) return check.checkedAt;
-    return new Date(check.checkedAt).getTime() > new Date(latest).getTime() ? check.checkedAt : latest;
-  }, null);
   const failingChecks = checks.length - passingChecks.length;
   const allHealthy = failingChecks === 0;
   const availabilityStatus: 'healthy' | 'warning' | 'critical' =
@@ -417,31 +408,6 @@ async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
           averageResponseMs != null
             ? `Average response time across successful uptime checks in the latest pass.`
             : 'No successful uptime checks were available to average.',
-      },
-      {
-        key: 'uptime-slowest-check',
-        label: 'Slowest Check',
-        value: slowestCheck?.responseTimeMs ?? null,
-        displayValue: slowestCheck?.label || '—',
-        status: slowestCheck?.ok ? getUptimeLatencyStatus(slowestCheck.responseTimeMs) : 'critical',
-        detail: slowestCheck
-          ? `${slowestCheck.label} responded in ${formatDurationMs(slowestCheck.responseTimeMs)}.`
-          : 'No successful check completed in the latest pass.',
-      },
-      {
-        key: 'uptime-last-check',
-        label: 'Last Check',
-        value: latestCheckedAt ? new Date(latestCheckedAt).getTime() : null,
-        displayValue: latestCheckedAt
-          ? new Date(latestCheckedAt).toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-            })
-          : '—',
-        status: availabilityStatus,
-        detail: latestCheckedAt
-          ? 'Latest uptime probe completion time for this monitoring refresh.'
-          : 'No uptime checks have completed yet.',
       },
     ],
     checks,

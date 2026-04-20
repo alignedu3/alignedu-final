@@ -505,10 +505,10 @@ export default function MonitoringDashboard() {
                     <div style={statusMeta}>
                       {check.statusCode ? `HTTP ${check.statusCode}` : 'No response'} | {check.responseTimeMs != null ? `${check.responseTimeMs} ms` : 'No timing'}
                     </div>
-                    <div style={{ ...statSub, marginTop: 6 }}>
+                    <div style={{ ...statSub, fontSize: 12, marginTop: 5 }}>
                       {formatCheckTarget(check.url)} | Checked {formatTime(check.checkedAt)}
                     </div>
-                    <div style={{ ...statSub, marginTop: 4 }}>{check.detail}</div>
+                    <div style={{ ...statSub, fontSize: 12, marginTop: 3 }}>{check.detail}</div>
                   </div>
                   <div
                     style={{
@@ -1263,17 +1263,17 @@ const statusList: React.CSSProperties = {
 
 const uptimeCheckGrid: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-  gap: 12,
+  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+  gap: 10,
 };
 
 const uptimeCheckCard: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'flex-start',
-  gap: 12,
-  padding: '14px 16px',
-  borderRadius: 16,
+  gap: 10,
+  padding: '12px 14px',
+  borderRadius: 14,
   border: '1px solid var(--border)',
   background: 'var(--surface-chip)',
   minWidth: 0,
@@ -1293,12 +1293,12 @@ const statusRow: React.CSSProperties = {
 const statusTitle: React.CSSProperties = {
   color: 'var(--text-primary)',
   fontWeight: 700,
-  fontSize: 14,
+  fontSize: 13,
 };
 
 const statusMeta: React.CSSProperties = {
   color: 'var(--text-secondary)',
-  fontSize: 13,
+  fontSize: 12,
   marginTop: 4,
 };
 
