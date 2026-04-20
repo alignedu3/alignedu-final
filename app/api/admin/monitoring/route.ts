@@ -68,6 +68,8 @@ type CloudflareDailyPoint = {
   cachedBytes: number;
   cachedRequests: number;
   threats: number;
+  clientErrors: number;
+  serverErrors: number;
 };
 
 type CloudflareTotals = {
@@ -78,6 +80,8 @@ type CloudflareTotals = {
   cachedBytes: number;
   cachedRequests: number;
   threats: number;
+  clientErrors: number;
+  serverErrors: number;
 };
 
 type CloudflareTrafficResult = {
@@ -150,6 +154,7 @@ type SentryResult = {
     detail: string;
   }>;
   recentIssues: SentryIssueRow[];
+  crashFreeSessionsPercent: number | null;
   diagnostics: {
     tokenConfigured: boolean;
     orgConfigured: boolean;
@@ -217,6 +222,15 @@ function formatCompactDate(dateKey: string) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value);
+}
+
+function getTotalFromStatsGroups(payload: any, field: string) {
+  return roundTo(
+    Number(
+      (payload?.groups || []).reduce((sum: number, group: any) => sum + Number(group?.totals?.[field] || 0), 0)
+    ),
+    0
+  );
 }
 
 function roundTo(value: number, decimals = 1) {
@@ -423,6 +437,7 @@ async function fetchSentryHealth(): Promise<SentryResult> {
       detail: buildSentryMissingConfigDetail(),
       summaryCards: buildEmptySentryCards(),
       recentIssues: [],
+      crashFreeSessionsPercent: null,
       diagnostics: {
         tokenConfigured: config.tokenConfigured,
         orgConfigured: config.orgConfigured,
@@ -493,12 +508,23 @@ async function fetchSentryHealth(): Promise<SentryResult> {
     category: 'error',
     groupBy: 'outcome',
   });
+  const sessions24hParams = new URLSearchParams({
+    statsPeriod: '24h',
+    interval: '24h',
+    groupBy: 'project',
+  });
+  sessions24hParams.append('field', 'sum(session)');
+  sessions24hParams.append('field', 'sum(session.crashed)');
+  for (const projectId of projectIds) {
+    sessions24hParams.append('project', String(projectId));
+  }
 
-  const [unresolvedIssuesRaw, regressedIssuesRaw, errors24h, errors14d] = await Promise.all([
+  const [unresolvedIssuesRaw, regressedIssuesRaw, errors24h, errors14d, sessions24h] = await Promise.all([
     sentryFetch(`/organizations/${config.orgSlug}/issues/`, unresolvedParams),
     sentryFetch(`/organizations/${config.orgSlug}/issues/`, regressedParams),
     sentryFetch(`/organizations/${config.orgSlug}/stats_v2/`, errors24hParams),
     sentryFetch(`/organizations/${config.orgSlug}/stats_v2/`, errors14dParams),
+    sentryFetch(`/organizations/${config.orgSlug}/stats_v2/`, sessions24hParams).catch(() => null),
   ]);
 
   const unresolvedIssues = Array.isArray(unresolvedIssuesRaw)
@@ -527,6 +553,10 @@ async function fetchSentryHealth(): Promise<SentryResult> {
     sumSentryOutcome(errors24h, 'client_discard') +
     sumSentryOutcome(errors24h, 'cardinality_limited');
   const accepted14d = sumSentryOutcome(errors14d, 'accepted');
+  const totalSessions24h = sessions24h ? getTotalFromStatsGroups(sessions24h, 'sum(session)') : 0;
+  const crashedSessions24h = sessions24h ? getTotalFromStatsGroups(sessions24h, 'sum(session.crashed)') : 0;
+  const crashFreeSessionsPercent =
+    totalSessions24h > 0 ? roundTo(((totalSessions24h - crashedSessions24h) / totalSessions24h) * 100, 1) : null;
 
   const recentIssues: SentryIssueRow[] = unresolvedIssues.map((issue: any) => ({
     id: String(issue?.id || ''),
@@ -590,15 +620,26 @@ async function fetchSentryHealth(): Promise<SentryResult> {
         detail: 'Filtered, rate-limited, or invalid events in the last 24 hours.',
       },
       {
-        key: 'projects-monitored',
-        label: 'Projects Monitored',
-        value: selectedProjects.length,
-        displayValue: formatNumber(selectedProjects.length),
-        status: 'healthy',
-        detail: 'Sentry projects included in this health view.',
+        key: 'crash-free-sessions',
+        label: 'Crash-Free Sessions',
+        value: crashFreeSessionsPercent,
+        displayValue: crashFreeSessionsPercent != null ? `${formatNumber(crashFreeSessionsPercent)}%` : 'Scoped',
+        status:
+          crashFreeSessionsPercent == null
+            ? 'healthy'
+            : crashFreeSessionsPercent >= 99
+              ? 'healthy'
+              : crashFreeSessionsPercent >= 97
+                ? 'warning'
+                : 'critical',
+        detail:
+          crashFreeSessionsPercent != null
+            ? 'Tracked sessions without crashes in the last 24 hours.'
+            : `Session health is unavailable from Sentry, so this view is scoped to ${formatNumber(selectedProjects.length)} monitored project(s).`,
       },
     ],
     recentIssues,
+    crashFreeSessionsPercent,
     diagnostics: {
       tokenConfigured: true,
       orgConfigured: true,
@@ -643,6 +684,8 @@ function buildMonitoringAlerts(args: {
     const cacheRatioCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'cache-hit-ratio');
     const cachedBandwidthCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'cached-bandwidth-ratio');
     const threatsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'threats-blocked');
+    const clientErrorsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'client-errors');
+    const serverErrorsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'server-errors');
     const requests = args.cloudflareTraffic.requestSeries.map((point) => point.requests || 0);
 
     if ((cacheRatioCard?.value || 0) < 20 && (cachedBandwidthCard?.value || 0) < 40) {
@@ -661,6 +704,26 @@ function buildMonitoringAlerts(args: {
         severity: (threatsCard?.value || 0) > 50 ? 'critical' : 'warning',
         title: 'Threat traffic detected',
         detail: `${threatsCard?.displayValue || '0'} threats were blocked in the selected window.`,
+        source: 'Cloudflare',
+      });
+    }
+
+    if ((clientErrorsCard?.value || 0) >= 25) {
+      alerts.push({
+        key: 'client-errors',
+        severity: 'warning',
+        title: 'Client-side 4xx responses are elevated',
+        detail: `${clientErrorsCard?.displayValue || '0'} 4xx responses were reported in the selected window.`,
+        source: 'Cloudflare',
+      });
+    }
+
+    if ((serverErrorsCard?.value || 0) > 0) {
+      alerts.push({
+        key: 'server-errors',
+        severity: (serverErrorsCard?.value || 0) >= 10 ? 'critical' : 'warning',
+        title: 'Server-side 5xx responses were detected',
+        detail: `${serverErrorsCard?.displayValue || '0'} 5xx responses were reported in the selected window.`,
         source: 'Cloudflare',
       });
     }
@@ -686,6 +749,7 @@ function buildMonitoringAlerts(args: {
     const regressedCard = args.sentryHealth.summaryCards.find((card) => card.key === 'regressed-issues');
     const unresolvedCard = args.sentryHealth.summaryCards.find((card) => card.key === 'unresolved-issues');
     const droppedCard = args.sentryHealth.summaryCards.find((card) => card.key === 'dropped-events-24h');
+    const crashFreeCard = args.sentryHealth.summaryCards.find((card) => card.key === 'crash-free-sessions');
 
     if ((regressedCard?.value || 0) > 0) {
       alerts.push({
@@ -713,6 +777,16 @@ function buildMonitoringAlerts(args: {
         severity: 'warning',
         title: 'Some Sentry events are being dropped',
         detail: `${droppedCard?.displayValue || '0'} events were dropped in the last 24 hours.`,
+        source: 'Sentry',
+      });
+    }
+
+    if ((crashFreeCard?.value || 100) < 99) {
+      alerts.push({
+        key: 'sentry-crash-free',
+        severity: (crashFreeCard?.value || 100) < 97 ? 'critical' : 'warning',
+        title: 'Crash-free session health slipped',
+        detail: `${crashFreeCard?.displayValue || '—'} of tracked sessions were crash-free in the last 24 hours.`,
         source: 'Sentry',
       });
     }
@@ -777,6 +851,24 @@ function buildTrafficCards(): TrafficSummaryCard[] {
       status: 'connect_required',
       statusLabel: 'Connect account',
       detail: 'Waiting on Cloudflare security analytics.',
+    },
+    {
+      key: 'client-errors',
+      label: '4xx Responses',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      statusLabel: 'Connect account',
+      detail: 'Waiting on Cloudflare client error analytics.',
+    },
+    {
+      key: 'server-errors',
+      label: '5xx Responses',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      statusLabel: 'Connect account',
+      detail: 'Waiting on Cloudflare origin error analytics.',
     },
     {
       key: 'bandwidth',
@@ -856,12 +948,12 @@ function buildEmptySentryCards(): SentryResult['summaryCards'] {
       detail: 'Waiting on Sentry outcome metrics.',
     },
     {
-      key: 'projects-monitored',
-      label: 'Projects Monitored',
+      key: 'crash-free-sessions',
+      label: 'Crash-Free Sessions',
       value: null,
       displayValue: '—',
       status: 'connect_required',
-      detail: 'Waiting on Sentry project data.',
+      detail: 'Waiting on Sentry session health metrics.',
     },
   ];
 }
@@ -1059,6 +1151,10 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
               cachedBytes
               cachedRequests
               threats
+              responseStatusMap {
+                edgeResponseStatus
+                requests
+              }
             }
           }
           series: httpRequests1dGroups(
@@ -1079,6 +1175,10 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
               cachedBytes
               cachedRequests
               threats
+              responseStatusMap {
+                edgeResponseStatus
+                requests
+              }
             }
           }
         }
@@ -1119,6 +1219,14 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   }
 
   const totalBucket = zone.totals?.[0];
+  const sumResponseStatusMap = (statusMap: any, minStatus: number, maxStatus: number) =>
+    Number(
+      (statusMap || []).reduce((sum: number, entry: any) => {
+        const statusCode = Number(entry?.edgeResponseStatus || 0);
+        if (statusCode < minStatus || statusCode > maxStatus) return sum;
+        return sum + Number(entry?.requests || 0);
+      }, 0)
+    );
   const totalsFromBucket: CloudflareTotals = {
     requests: Number(totalBucket?.sum?.requests || 0),
     pageViews: Number(totalBucket?.sum?.pageViews || 0),
@@ -1127,6 +1235,8 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
     cachedBytes: Number(totalBucket?.sum?.cachedBytes || 0),
     cachedRequests: Number(totalBucket?.sum?.cachedRequests || 0),
     threats: Number(totalBucket?.sum?.threats || 0),
+    clientErrors: sumResponseStatusMap(totalBucket?.sum?.responseStatusMap, 400, 499),
+    serverErrors: sumResponseStatusMap(totalBucket?.sum?.responseStatusMap, 500, 599),
   };
 
   const dailyByDate = new Map<string, CloudflareDailyPoint>();
@@ -1140,6 +1250,8 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
       cachedBytes: 0,
       cachedRequests: 0,
       threats: 0,
+      clientErrors: 0,
+      serverErrors: 0,
     });
   }
 
@@ -1155,6 +1267,8 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
       cachedBytes: Number(point?.sum?.cachedBytes || 0),
       cachedRequests: Number(point?.sum?.cachedRequests || 0),
       threats: Number(point?.sum?.threats || 0),
+      clientErrors: sumResponseStatusMap(point?.sum?.responseStatusMap, 400, 499),
+      serverErrors: sumResponseStatusMap(point?.sum?.responseStatusMap, 500, 599),
     });
   }
 
@@ -1168,6 +1282,8 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
       cachedBytes: accumulator.cachedBytes + point.cachedBytes,
       cachedRequests: accumulator.cachedRequests + point.cachedRequests,
       threats: accumulator.threats + point.threats,
+      clientErrors: accumulator.clientErrors + point.clientErrors,
+      serverErrors: accumulator.serverErrors + point.serverErrors,
     }),
     {
       requests: 0,
@@ -1177,6 +1293,8 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
       cachedBytes: 0,
       cachedRequests: 0,
       threats: 0,
+      clientErrors: 0,
+      serverErrors: 0,
     }
   );
 
@@ -1190,11 +1308,15 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
     cachedBytes: Math.max(totalsFromBucket.cachedBytes, totalsFromSeries.cachedBytes),
     cachedRequests: Math.max(totalsFromBucket.cachedRequests, totalsFromSeries.cachedRequests),
     threats: Math.max(totalsFromBucket.threats, totalsFromSeries.threats),
+    clientErrors: Math.max(totalsFromBucket.clientErrors, totalsFromSeries.clientErrors),
+    serverErrors: Math.max(totalsFromBucket.serverErrors, totalsFromSeries.serverErrors),
   };
 
   const cacheHitRatio = totals.requests > 0 ? roundTo((totals.cachedRequests / totals.requests) * 100, 1) : 0;
   const totalBandwidthMb = roundTo(totals.bytes / (1024 * 1024), 1);
   const cachedBandwidthRatio = totals.bytes > 0 ? roundTo((totals.cachedBytes / totals.bytes) * 100, 1) : 0;
+  const clientErrorRate = totals.requests > 0 ? roundTo((totals.clientErrors / totals.requests) * 100, 1) : 0;
+  const serverErrorRate = totals.requests > 0 ? roundTo((totals.serverErrors / totals.requests) * 100, 1) : 0;
   const requestSeries = windowKeys.map((key) => {
     const point = dailyByDate.get(key)!;
     const uncachedRequests = Math.max(point.requests - point.cachedRequests, 0);
@@ -1256,6 +1378,18 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
         : totals.threats > 0
           ? { status: 'healthy' as const, statusLabel: 'Blocked at Edge', detail: 'Cloudflare blocked a small number of threat requests in this window.' }
           : { status: 'healthy' as const, statusLabel: 'No Threats', detail: 'No blocked threats were reported in the selected window.' };
+  const clientErrorsStatus =
+    totals.clientErrors === 0
+      ? { status: 'healthy' as const, statusLabel: 'Clean', detail: 'No client-side 4xx responses were reported in the selected window.' }
+      : clientErrorRate >= 5
+        ? { status: 'warning' as const, statusLabel: 'High 4xx', detail: `Client-side 4xx responses are ${formatNumber(clientErrorRate)}% of requests in this window.` }
+        : { status: 'healthy' as const, statusLabel: 'Some 4xx', detail: `A small number of client-side 4xx responses were reported (${formatNumber(clientErrorRate)}% of requests).` };
+  const serverErrorsStatus =
+    totals.serverErrors === 0
+      ? { status: 'healthy' as const, statusLabel: 'No 5xx', detail: 'No server-side 5xx responses were reported in the selected window.' }
+      : serverErrorRate >= 1 || totals.serverErrors >= 10
+        ? { status: 'critical' as const, statusLabel: 'Origin Errors', detail: `Server-side 5xx responses are ${formatNumber(serverErrorRate)}% of requests in this window.` }
+        : { status: 'warning' as const, statusLabel: 'Some 5xx', detail: `A small number of server-side 5xx responses were reported (${formatNumber(serverErrorRate)}% of requests).` };
   const bandwidthStatus =
     totalBandwidthMb === 0
       ? { status: 'healthy' as const, statusLabel: 'Quiet Window', detail: 'No meaningful response bandwidth was recorded in the selected window.' }
@@ -1319,6 +1453,24 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
         status: threatsStatus.status,
         statusLabel: threatsStatus.statusLabel,
         detail: threatsStatus.detail,
+      },
+      {
+        key: 'client-errors',
+        label: '4xx Responses',
+        value: totals.clientErrors,
+        displayValue: formatNumber(totals.clientErrors),
+        status: clientErrorsStatus.status,
+        statusLabel: clientErrorsStatus.statusLabel,
+        detail: clientErrorsStatus.detail,
+      },
+      {
+        key: 'server-errors',
+        label: '5xx Responses',
+        value: totals.serverErrors,
+        displayValue: formatNumber(totals.serverErrors),
+        status: serverErrorsStatus.status,
+        statusLabel: serverErrorsStatus.statusLabel,
+        detail: serverErrorsStatus.detail,
       },
       {
         key: 'bandwidth',
@@ -1535,6 +1687,7 @@ export async function GET(request: NextRequest) {
       detail: buildSentryMissingConfigDetail(),
       summaryCards: buildEmptySentryCards(),
       recentIssues: [],
+      crashFreeSessionsPercent: null,
       diagnostics: {
         tokenConfigured: Boolean(process.env.SENTRY_AUTH_TOKEN || process.env.SENTRY_API_TOKEN),
         orgConfigured: Boolean(process.env.SENTRY_ORG || process.env.SENTRY_ORG_SLUG),
@@ -1590,6 +1743,7 @@ export async function GET(request: NextRequest) {
                 : card
             ),
             recentIssues: [],
+            crashFreeSessionsPercent: null,
             diagnostics: {
               tokenConfigured: config.tokenConfigured,
               orgConfigured: config.orgConfigured,
