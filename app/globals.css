@@ -1669,6 +1669,10 @@ h1, h2, h3 {
   grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
 }
 
+.monitoring-uptime-check-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
 @media (max-width: 1180px) {
   .monitoring-traffic-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
@@ -1678,6 +1682,10 @@ h1, h2, h3 {
 @media (max-width: 768px) {
   .monitoring-traffic-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .monitoring-uptime-check-grid {
+    grid-template-columns: 1fr !important;
   }
 
   .monitoring-uptime-grid {

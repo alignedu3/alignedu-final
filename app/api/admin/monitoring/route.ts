@@ -362,9 +362,7 @@ function getUptimeLatencyStatus(responseTimeMs: number | null): 'healthy' | 'war
 }
 
 async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
-  const baseUrl = resolveBaseUrl(request);
-  const normalizedBase = baseUrl.replace(/\/$/, '');
-  const checkBase = normalizedBase || request.nextUrl.origin;
+  const checkBase = normalizeMonitoringBaseUrl(resolveBaseUrl(request) || request.nextUrl.origin);
   const targets: UptimeCheckTarget[] = [
     { key: 'public-site', label: 'Public Site', path: '/' },
     { key: 'login-page', label: 'Login Page', path: '/login' },
@@ -983,6 +981,18 @@ function resolveBaseUrl(request: NextRequest) {
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
     request.nextUrl.origin
   );
+}
+
+function normalizeMonitoringBaseUrl(baseUrl: string) {
+  try {
+    const parsed = new URL(baseUrl);
+    if (parsed.hostname === 'alignedu.net') {
+      parsed.hostname = 'www.alignedu.net';
+    }
+    return parsed.toString().replace(/\/$/, '');
+  } catch {
+    return baseUrl.replace(/\/$/, '');
+  }
 }
 
 function getCloudflareConfigStatus() {

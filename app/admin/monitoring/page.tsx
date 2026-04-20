@@ -497,9 +497,9 @@ export default function MonitoringDashboard() {
                 </div>
               ))}
             </div>
-            <div style={statusList} className="monitoring-status-list">
+            <div style={uptimeCheckGrid} className="monitoring-uptime-check-grid">
               {uptimeChecks.map((check) => (
-                <div key={check.key} style={statusRow} className="monitoring-status-row">
+                <div key={check.key} style={uptimeCheckCard}>
                   <div>
                     <div style={statusTitle}>{check.label}</div>
                     <div style={statusMeta}>
@@ -1259,6 +1259,24 @@ const chartShell: React.CSSProperties = {
 const statusList: React.CSSProperties = {
   display: 'grid',
   gap: 12,
+};
+
+const uptimeCheckGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 12,
+};
+
+const uptimeCheckCard: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  gap: 12,
+  padding: '14px 16px',
+  borderRadius: 16,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-chip)',
+  minWidth: 0,
 };
 
 const statusRow: React.CSSProperties = {
