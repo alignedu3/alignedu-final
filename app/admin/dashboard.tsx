@@ -57,6 +57,24 @@ function formatTrendAxisLabel(value: string | number) {
   return parsed.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+function formatRoleLabel(role?: string | null) {
+  if (!role) return 'Admin';
+  if (role === 'super_admin') return 'Super Admin';
+  return role
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function getInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part.charAt(0).toUpperCase())
+    .join('') || 'A';
+}
+
 export default function AdminDashboard() {
   const [dbReports, setDbReports] = useState<AnalysisReport[]>([]);
   const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
@@ -538,6 +556,18 @@ export default function AdminDashboard() {
     return primary;
   }, [adminSupportPlans]);
 
+  const hierarchySummary = useMemo(() => {
+    return hierarchyRows.reduce(
+      (acc, row) => {
+        acc.admins += 1;
+        acc.childAdmins += row.childAdmins.length;
+        acc.teachers += row.teachers.length;
+        return acc;
+      },
+      { admins: 0, childAdmins: 0, teachers: 0 }
+    );
+  }, [hierarchyRows]);
+
   const handleRemoveUser = async (userId: string) => {
     setDeletingUserId(userId);
     try {
@@ -930,131 +960,196 @@ export default function AdminDashboard() {
         </div>
 
         <div id="team" style={card}>
-          <h2 style={title}>Team Structure</h2>
+          <div style={teamSectionHeader}>
+            <div>
+              <h2 style={{ ...title, marginBottom: 6 }}>Team Structure</h2>
+              <p style={{ ...text, margin: 0, maxWidth: 720 }}>
+                Keep one polished view of who owns each team, how admin coverage rolls up, and where teacher assignments are concentrated across your scope.
+              </p>
+            </div>
+          </div>
+          {hierarchyRows.length > 0 && (
+            <div
+              style={{
+                ...teamSummaryGrid,
+                gridTemplateColumns: isNarrowScreen ? 'repeat(2, minmax(0, 1fr))' : teamSummaryGrid.gridTemplateColumns,
+              }}
+            >
+              <div style={teamSummaryCard}>
+                <div style={teamSummaryValue}>{hierarchySummary.admins}</div>
+                <div style={teamSummaryLabel}>Admin Leaders</div>
+                <div style={teamSummaryCopy}>Admin accounts currently visible in this scope.</div>
+              </div>
+              <div style={teamSummaryCard}>
+                <div style={teamSummaryValue}>{hierarchySummary.childAdmins}</div>
+                <div style={teamSummaryLabel}>Nested Admins</div>
+                <div style={teamSummaryCopy}>Secondary admin relationships managed under this view.</div>
+              </div>
+              <div style={teamSummaryCard}>
+                <div style={teamSummaryValue}>{hierarchySummary.teachers}</div>
+                <div style={teamSummaryLabel}>Teachers Managed</div>
+                <div style={teamSummaryCopy}>Teacher accounts directly assigned to visible teams.</div>
+              </div>
+            </div>
+          )}
           {hierarchyRows.length === 0 ? (
             <p style={text}>No admins found in your current visibility scope.</p>
           ) : (
             hierarchyRows.map((row) => (
-              <div key={row.id} style={hierarchyCard}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                  {/* Only add fromTeam param for Team Structure section navigation */}
-                  <button
-                    onClick={() => navigateToUserDashboard(row.id, row.role, true)}
-                    style={entityLinkBtn}
-                  >
-                    {row.name} <span style={mutedInline}>({row.role})</span>
-                  </button>
-                  {currentUserRole === 'super_admin' && row.id !== currentUserId && !isSampleEntityId(row.id) && (
-                    <div style={actionsMenuWrap}>
+              <div
+                key={row.id}
+                style={{
+                  ...hierarchyCard,
+                  ...(currentUserId && row.id === currentUserId ? hierarchyCardActive : {}),
+                }}
+              >
+                <div style={hierarchyHeader}>
+                  <div style={hierarchyIdentity}>
+                    <div style={hierarchyAvatar}>{getInitials(row.name)}</div>
+                    <div style={{ minWidth: 0 }}>
                       <button
-                        onClick={() => setOpenActionsForId((prev) => (prev === `admin:${row.id}` ? null : `admin:${row.id}`))}
-                        aria-label={`Actions for ${row.name}`}
-                        style={actionsMenuTrigger}
+                        onClick={() => navigateToUserDashboard(row.id, row.role, true)}
+                        style={entityLinkBtn}
                       >
-                        •••
+                        {row.name}
                       </button>
-                      {openActionsForId === `admin:${row.id}` && (
-                        <div style={actionsMenuPanel}>
-                          <button
-                            onClick={() => {
-                              setOpenActionsForId(null);
-                              navigateToUserDashboard(row.id, row.role);
-                            }}
-                            style={menuItemBtn}
-                          >
-                            View Profile
-                          </button>
-                          <button
-                            onClick={() => {
-                              setOpenActionsForId(null);
-                              setPendingDelete({ id: row.id, name: row.name });
-                            }}
-                            disabled={deletingUserId === row.id}
-                            style={{ ...menuItemBtn, ...menuItemDanger, opacity: deletingUserId === row.id ? 0.6 : 1 }}
-                          >
-                            {deletingUserId === row.id ? 'Removing…' : 'Remove User'}
-                          </button>
-                        </div>
-                      )}
+                      <div style={hierarchyMetaRow}>
+                        <span style={hierarchyRoleChip}>{formatRoleLabel(row.role)}</span>
+                        {currentUserId && row.id === currentUserId && (
+                          <span style={hierarchyOwnerChip}>Your View</span>
+                        )}
+                      </div>
                     </div>
-                  )}
+                  </div>
+                  <div style={hierarchyHeaderActions}>
+                    <div style={hierarchyMetrics}>
+                      <span style={hierarchyMetricChip}>
+                        {row.childAdmins.length} {row.childAdmins.length === 1 ? 'admin' : 'admins'}
+                      </span>
+                      <span style={hierarchyMetricChip}>
+                        {row.teachers.length} {row.teachers.length === 1 ? 'teacher' : 'teachers'}
+                      </span>
+                    </div>
+                    {currentUserRole === 'super_admin' && row.id !== currentUserId && !isSampleEntityId(row.id) && (
+                      <div style={actionsMenuWrap}>
+                        <button
+                          onClick={() => setOpenActionsForId((prev) => (prev === `admin:${row.id}` ? null : `admin:${row.id}`))}
+                          aria-label={`Actions for ${row.name}`}
+                          style={actionsMenuTrigger}
+                        >
+                          •••
+                        </button>
+                        {openActionsForId === `admin:${row.id}` && (
+                          <div style={actionsMenuPanel}>
+                            <button
+                              onClick={() => {
+                                setOpenActionsForId(null);
+                                navigateToUserDashboard(row.id, row.role);
+                              }}
+                              style={menuItemBtn}
+                            >
+                              View Profile
+                            </button>
+                            <button
+                              onClick={() => {
+                                setOpenActionsForId(null);
+                                setPendingDelete({ id: row.id, name: row.name });
+                              }}
+                              disabled={deletingUserId === row.id}
+                              style={{ ...menuItemBtn, ...menuItemDanger, opacity: deletingUserId === row.id ? 0.6 : 1 }}
+                            >
+                              {deletingUserId === row.id ? 'Removing…' : 'Remove User'}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                <div style={hierarchyGroup}>
-                  <div style={hierarchyLabel}>Admins Under This Admin</div>
-                  {row.childAdmins.length ? (
-                    <div style={pillWrap}>
-                      {row.childAdmins.map((child) => (
-                        <div key={child.id} style={{ ...pillBtn, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <button
-                            onClick={() => navigateToUserDashboard(child.id, child.role)}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(child.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(child.id) ? 0.72 : 1 }}
-                          >
-                            {child.name}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={mutedInline}>None</div>
-                  )}
-                </div>
+                <div
+                  style={{
+                    ...hierarchyGroupsGrid,
+                    gridTemplateColumns: isNarrowScreen ? '1fr' : hierarchyGroupsGrid.gridTemplateColumns,
+                  }}
+                >
+                  <div style={hierarchyGroupCard}>
+                    <div style={hierarchyLabel}>Admins Under This Admin</div>
+                    {row.childAdmins.length ? (
+                      <div style={pillWrap}>
+                        {row.childAdmins.map((child) => (
+                          <div key={child.id} style={pillBtn}>
+                            <button
+                              onClick={() => navigateToUserDashboard(child.id, child.role)}
+                              style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(child.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(child.id) ? 0.72 : 1 }}
+                            >
+                              {child.name}
+                            </button>
+                            <span style={pillRoleLabel}>{formatRoleLabel(child.role)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={hierarchyEmptyState}>No nested admins assigned in this scope.</div>
+                    )}
+                  </div>
 
-                <div style={hierarchyGroup}>
-                  <div style={hierarchyLabel}>Teachers Under This Admin</div>
-                  {row.teachers.length ? (
-                    <div style={pillWrap}>
-                      {row.teachers.map((teacher) => (
-                        <div key={teacher.id} style={{ ...pillBtn, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          <button
-                            onClick={() => {
-                              if (isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id)) return;
-                              router.push(`/admin/teacher/${teacher.id}`);
-                            }}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id) ? 0.72 : 1, textDecoration: canOpenSampleTeacher(teacher.id) ? 'underline' : 'none', textUnderlineOffset: 2 }}
-                          >
-                            {teacher.name}
-                          </button>
-                          {['admin', 'super_admin'].includes(currentUserRole || '') && teacher.id !== currentUserId && !isSampleEntityId(teacher.id) && (
-                            <div style={actionsMenuWrap}>
-                              <button
-                                onClick={() => setOpenActionsForId((prev) => (prev === `teacher:${teacher.id}` ? null : `teacher:${teacher.id}`))}
-                                aria-label={`Actions for ${teacher.name}`}
-                                style={pillActionsMenuTrigger}
-                              >
-                                •••
-                              </button>
-                              {openActionsForId === `teacher:${teacher.id}` && (
-                                <div style={actionsMenuPanel}>
-                                  <button
-                                    onClick={() => {
-                                      setOpenActionsForId(null);
-                                      router.push(`/admin/teacher/${teacher.id}`);
-                                    }}
-                                    style={menuItemBtn}
-                                  >
-                                    View Profile
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setOpenActionsForId(null);
-                                      setPendingDelete({ id: teacher.id, name: teacher.name });
-                                    }}
-                                    disabled={deletingUserId === teacher.id}
-                                    style={{ ...menuItemBtn, ...menuItemDanger, opacity: deletingUserId === teacher.id ? 0.6 : 1 }}
-                                  >
-                                    {deletingUserId === teacher.id ? 'Removing…' : 'Remove Teacher'}
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={mutedInline}>None</div>
-                  )}
+                  <div style={hierarchyGroupCard}>
+                    <div style={hierarchyLabel}>Teachers Under This Admin</div>
+                    {row.teachers.length ? (
+                      <div style={pillWrap}>
+                        {row.teachers.map((teacher) => (
+                          <div key={teacher.id} style={pillBtn}>
+                            <button
+                              onClick={() => {
+                                if (isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id)) return;
+                                router.push(`/admin/teacher/${teacher.id}`);
+                              }}
+                              style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id) ? 0.72 : 1, textDecoration: canOpenSampleTeacher(teacher.id) ? 'underline' : 'none', textUnderlineOffset: 2 }}
+                            >
+                              {teacher.name}
+                            </button>
+                            {['admin', 'super_admin'].includes(currentUserRole || '') && teacher.id !== currentUserId && !isSampleEntityId(teacher.id) && (
+                              <div style={actionsMenuWrap}>
+                                <button
+                                  onClick={() => setOpenActionsForId((prev) => (prev === `teacher:${teacher.id}` ? null : `teacher:${teacher.id}`))}
+                                  aria-label={`Actions for ${teacher.name}`}
+                                  style={pillActionsMenuTrigger}
+                                >
+                                  •••
+                                </button>
+                                {openActionsForId === `teacher:${teacher.id}` && (
+                                  <div style={actionsMenuPanel}>
+                                    <button
+                                      onClick={() => {
+                                        setOpenActionsForId(null);
+                                        router.push(`/admin/teacher/${teacher.id}`);
+                                      }}
+                                      style={menuItemBtn}
+                                    >
+                                      View Profile
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setOpenActionsForId(null);
+                                        setPendingDelete({ id: teacher.id, name: teacher.name });
+                                      }}
+                                      disabled={deletingUserId === teacher.id}
+                                      style={{ ...menuItemBtn, ...menuItemDanger, opacity: deletingUserId === teacher.id ? 0.6 : 1 }}
+                                    >
+                                      {deletingUserId === teacher.id ? 'Removing…' : 'Remove Teacher'}
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={hierarchyEmptyState}>No teachers are directly assigned here yet.</div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))
@@ -1262,11 +1357,30 @@ const td: React.CSSProperties = { color: 'var(--text-primary)', padding: '5px 6p
 const actionButton: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 8, padding: '5px 9px', fontSize: 12, cursor: 'pointer' };
 const listItem: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 6 };
 const loading: React.CSSProperties = { color: 'var(--text-primary)', padding: 40 };
-const hierarchyCard: React.CSSProperties = { border: '1px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 12, background: 'var(--surface-card-solid)' };
-const hierarchyGroup: React.CSSProperties = { marginTop: 8 };
-const hierarchyLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12, marginBottom: 6, fontWeight: 700 };
+const teamSectionHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 16 };
+const teamSummaryGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, marginBottom: 18 };
+const teamSummaryCard: React.CSSProperties = { border: '1px solid rgba(148,163,184,0.18)', background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, var(--surface-chip) 100%)', borderRadius: 14, padding: '14px 16px', boxShadow: '0 10px 28px rgba(15,23,42,0.05)' };
+const teamSummaryValue: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 28, fontWeight: 800, lineHeight: 1 };
+const teamSummaryLabel: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 13, fontWeight: 700, marginTop: 8 };
+const teamSummaryCopy: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.45, marginTop: 4 };
+const hierarchyCard: React.CSSProperties = { border: '1px solid rgba(148,163,184,0.18)', borderRadius: 16, padding: 18, marginBottom: 14, background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, var(--surface-chip) 100%)', boxShadow: '0 18px 36px rgba(15,23,42,0.06)' };
+const hierarchyCardActive: React.CSSProperties = { border: '1px solid rgba(249,115,22,0.28)', boxShadow: '0 18px 40px rgba(249,115,22,0.12)' };
+const hierarchyHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 16 };
+const hierarchyIdentity: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 };
+const hierarchyAvatar: React.CSSProperties = { width: 44, height: 44, borderRadius: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, rgba(249,115,22,0.16), rgba(251,191,36,0.18))', color: '#c2410c', fontWeight: 800, fontSize: 14, flexShrink: 0, border: '1px solid rgba(249,115,22,0.16)' };
+const hierarchyMetaRow: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 };
+const hierarchyRoleChip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', padding: '5px 10px', borderRadius: 999, background: 'rgba(15,23,42,0.06)', color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700, letterSpacing: 0.3 };
+const hierarchyOwnerChip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', padding: '5px 10px', borderRadius: 999, background: 'rgba(249,115,22,0.12)', color: '#c2410c', border: '1px solid rgba(249,115,22,0.14)', fontSize: 11, fontWeight: 700 };
+const hierarchyHeaderActions: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'flex-end' };
+const hierarchyMetrics: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' };
+const hierarchyMetricChip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', padding: '7px 11px', borderRadius: 999, background: 'var(--surface-card-solid)', border: '1px solid rgba(148,163,184,0.18)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 700 };
+const hierarchyGroupsGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 };
+const hierarchyGroupCard: React.CSSProperties = { border: '1px solid rgba(148,163,184,0.16)', borderRadius: 14, padding: 14, background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.06) 100%)' };
+const hierarchyLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 11, marginBottom: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.6 };
+const hierarchyEmptyState: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.45 };
 const pillWrap: React.CSSProperties = { display: 'flex', flexWrap: 'wrap', gap: 8 };
-const pillBtn: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 999, padding: '6px 10px', fontSize: 12, cursor: 'pointer' };
+const pillBtn: React.CSSProperties = { border: '1px solid rgba(148,163,184,0.16)', background: 'var(--surface-card-solid)', color: 'var(--text-primary)', borderRadius: 999, padding: '7px 12px', fontSize: 12, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: '0 6px 18px rgba(15,23,42,0.04)' };
+const pillRoleLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700 };
 const entityLinkBtn: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 15, fontWeight: 800, padding: 0, cursor: 'pointer' };
 const actionsMenuWrap: React.CSSProperties = { position: 'relative' };
 const actionsMenuTrigger: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-secondary)', borderRadius: 8, cursor: 'pointer', fontSize: 12, lineHeight: 1, height: 28, minWidth: 34, padding: '0 8px' };
