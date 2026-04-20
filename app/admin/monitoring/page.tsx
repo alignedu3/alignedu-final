@@ -356,18 +356,6 @@ export default function MonitoringDashboard() {
           </section>
         ) : null}
 
-        <section style={heroSection}>
-          <div style={heroTextBlock}>
-            <div style={heroKicker}>Monitoring Readiness</div>
-            <h2 style={heroTitle}>Keep one clean eye on usage, operations, and reliability.</h2>
-            <p style={heroText}>{healthHeadline}</p>
-          </div>
-          <div style={heroBadge}>
-            <div style={heroBadgeValue}>{summary?.lessonsInWindow ?? 0}</div>
-            <div style={heroBadgeLabel}>Lessons in {days} days</div>
-          </div>
-        </section>
-
         <section style={sectionCard}>
           <div style={sectionHeader}>
             <div>
@@ -424,43 +412,6 @@ export default function MonitoringDashboard() {
           </div>
         </section>
 
-        <div style={statsGrid}>
-          <div style={statCard}>
-            <div style={statLabel}>Lessons Analyzed</div>
-            <div style={statValue}>{summary?.lessonsInWindow ?? 0}</div>
-            <div style={statSub}>{summary?.totalLessons ?? 0} total saved analyses</div>
-          </div>
-          <div style={statCard}>
-            <div style={statLabel}>Average Score</div>
-            <div style={{ ...statValue, color: (summary?.averageScore ?? 0) >= 80 ? '#16a34a' : '#ea580c' }}>
-              {summary?.averageScore ?? 0}/100
-            </div>
-            <div style={statSub}>Recent instructional quality across submitted lessons</div>
-          </div>
-          <div style={statCard}>
-            <div style={statLabel}>Active Teachers</div>
-            <div style={statValue}>{summary?.activeTeachers ?? 0}</div>
-            <div style={statSub}>{summary?.totalTeachers ?? 0} teachers in visible scope</div>
-          </div>
-          <div style={statCard}>
-            <div style={statLabel}>Admin Observations</div>
-            <div style={statValue}>{summary?.observationCount ?? 0}</div>
-            <div style={statSub}>Observed lessons submitted through the admin flow</div>
-          </div>
-          <div style={statCard}>
-            <div style={statLabel}>Strong Teachers</div>
-            <div style={{ ...statValue, color: '#16a34a' }}>{summary?.strongTeachers ?? 0}</div>
-            <div style={statSub}>Teachers averaging 85+ in the current window</div>
-          </div>
-          <div style={statCard}>
-            <div style={statLabel}>At-Risk Teachers</div>
-            <div style={{ ...statValue, color: (summary?.atRiskTeachers ?? 0) > 0 ? '#dc2626' : 'var(--text-primary)' }}>
-              {summary?.atRiskTeachers ?? 0}
-            </div>
-            <div style={statSub}>Teachers currently below the recent support threshold</div>
-          </div>
-        </div>
-
         <div style={twoColumn} className="monitoring-two-column">
           <section style={sectionCard}>
             <div style={sectionHeader}>
@@ -500,8 +451,24 @@ export default function MonitoringDashboard() {
             <div style={uptimeCheckGrid} className="monitoring-uptime-check-grid">
               {uptimeChecks.map((check) => (
                 <div key={check.key} style={uptimeCheckCard}>
-                  <div>
+                  <div style={uptimeCheckTopRow}>
                     <div style={statusTitle}>{check.label}</div>
+                    <div
+                      style={{
+                        ...miniStatusPill,
+                        flexShrink: 0,
+                        background: !check.ok
+                          ? 'rgba(220,38,38,0.14)'
+                          : (check.responseTimeMs || 0) > 1200
+                            ? 'rgba(245,158,11,0.16)'
+                            : 'rgba(22,163,74,0.16)',
+                        color: !check.ok ? '#dc2626' : (check.responseTimeMs || 0) > 1200 ? '#b45309' : '#16a34a',
+                      }}
+                    >
+                      {!check.ok ? 'Failing' : (check.responseTimeMs || 0) > 1200 ? 'Slow' : 'Healthy'}
+                    </div>
+                  </div>
+                  <div>
                     <div style={statusMeta}>
                       {check.statusCode ? `HTTP ${check.statusCode}` : 'No response'} | {check.responseTimeMs != null ? `${check.responseTimeMs} ms` : 'No timing'}
                     </div>
@@ -509,19 +476,6 @@ export default function MonitoringDashboard() {
                       {formatCheckTarget(check.url)} | Checked {formatTime(check.checkedAt)}
                     </div>
                     <div style={{ ...statSub, fontSize: 12, marginTop: 3 }}>{check.detail}</div>
-                  </div>
-                  <div
-                    style={{
-                      ...miniStatusPill,
-                      background: !check.ok
-                        ? 'rgba(220,38,38,0.14)'
-                        : (check.responseTimeMs || 0) > 1200
-                          ? 'rgba(245,158,11,0.16)'
-                          : 'rgba(22,163,74,0.16)',
-                      color: !check.ok ? '#dc2626' : (check.responseTimeMs || 0) > 1200 ? '#b45309' : '#16a34a',
-                    }}
-                  >
-                    {!check.ok ? 'Failing' : (check.responseTimeMs || 0) > 1200 ? 'Slow' : 'Healthy'}
                   </div>
                 </div>
               ))}
@@ -763,63 +717,6 @@ export default function MonitoringDashboard() {
           </div>
         </section>
 
-        <div style={twoColumn} className="monitoring-two-column">
-          <section style={sectionCard}>
-            <div style={sectionHeader}>
-              <div>
-                <div style={sectionEyebrow}>Operational Activity</div>
-                <h2 style={sectionTitle}>Lessons and Observations Over Time</h2>
-              </div>
-            </div>
-            <div style={chartShell}>
-              {chartReady ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={series}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={tooltipStyle}
-                      labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }}
-                    />
-                    <Bar dataKey="lessons" name="Lessons" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="observations" name="Admin Observations" fill="#10b981" radius={[6, 6, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ height: 300 }} />
-              )}
-            </div>
-          </section>
-
-          <section style={sectionCard}>
-            <div style={sectionHeader}>
-              <div>
-                <div style={sectionEyebrow}>Quality Trend</div>
-                <h2 style={sectionTitle}>Average Score Over Time</h2>
-              </div>
-            </div>
-            <div style={chartShell}>
-              {chartReady ? (
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={series}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <YAxis domain={[0, 100]} stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={tooltipStyle}
-                      labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }}
-                    />
-                    <Line type="monotone" dataKey="averageScore" name="Average Score" stroke="#3b82f6" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ height: 300 }} />
-              )}
-            </div>
-          </section>
-        </div>
-
         <section style={sectionCard}>
           <div style={sectionHeader}>
             <div>
@@ -848,59 +745,9 @@ export default function MonitoringDashboard() {
           </div>
         </section>
 
-        <section style={sectionCard}>
-          <div style={sectionHeader}>
-            <div>
-              <div style={sectionEyebrow}>Recent Activity</div>
-              <h2 style={sectionTitle}>Most Active Users in Scope</h2>
-            </div>
-          </div>
-
-          {recentActivity.length === 0 ? (
-            <p style={bodyText}>No submitted lesson activity was found in the selected window yet.</p>
-          ) : (
-            <div className="table-scroll-wrap" style={tableWrap}>
-              <table style={table}>
-                <thead>
-                  <tr>
-                    <th style={th}>User</th>
-                    <th style={th}>Role</th>
-                    <th style={th}>Lessons</th>
-                    <th style={th}>Observations</th>
-                    <th style={th}>Average</th>
-                    <th style={th}>Trend</th>
-                    <th style={th}>Latest Activity</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentActivity.map((row) => (
-                    <tr key={row.id}>
-                      <td style={tdStrong}>{row.name}</td>
-                      <td style={td}>{formatRole(row.role)}</td>
-                      <td style={td}>{row.lessons}</td>
-                      <td style={td}>{row.adminObservations}</td>
-                      <td style={td}>{row.averageScore ? `${row.averageScore}/100` : '—'}</td>
-                      <td style={td}>
-                        {row.trend > 0 ? `+${row.trend}` : row.trend < 0 ? `${row.trend}` : '0'}
-                      </td>
-                      <td style={td}>{formatDateTime(row.latestSubmittedAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
       </div>
     </main>
   );
-}
-
-function formatRole(role: string) {
-  if (!role) return 'User';
-  if (role === 'super_admin') return 'Super Admin';
-  if (role === 'admin') return 'Admin';
-  return 'Teacher';
 }
 
 function formatDateTime(value: string | null) {
@@ -1269,14 +1116,20 @@ const uptimeCheckGrid: React.CSSProperties = {
 
 const uptimeCheckCard: React.CSSProperties = {
   display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'flex-start',
-  gap: 10,
+  flexDirection: 'column',
+  gap: 8,
   padding: '12px 14px',
   borderRadius: 14,
   border: '1px solid var(--border)',
   background: 'var(--surface-chip)',
   minWidth: 0,
+};
+
+const uptimeCheckTopRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  gap: 10,
 };
 
 const statusRow: React.CSSProperties = {
