@@ -595,7 +595,7 @@ export default function AdminDashboard() {
           <div style={actions}>
             {canAccessMonitoring && (
               <button onClick={handleOpenMonitoringDashboard} style={headerActionBtnAlt}>
-                Website Monitoring
+                Monitoring Dashboard
               </button>
             )}
             {currentUserRole === 'super_admin' && (

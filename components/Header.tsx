@@ -27,6 +27,7 @@ export default function Header() {
   const menuRef = useRef<HTMLDivElement | null>(null);
   const role = (profile?.role || '').toLowerCase();
   const isAdminUser = role === 'admin' || role === 'super_admin';
+  const isSuperAdmin = role === 'super_admin';
 
   useEffect(() => {
     let isMounted = true;
@@ -306,6 +307,26 @@ export default function Header() {
                       >
                         Add User
                       </Link>
+
+                      {isSuperAdmin && (
+                        <>
+                          <Link
+                            href="/admin/district"
+                            style={dropdownItem}
+                            onClick={() => setOpen(false)}
+                          >
+                            District Dashboard
+                          </Link>
+
+                          <Link
+                            href="/admin/monitoring"
+                            style={dropdownItem}
+                            onClick={() => setOpen(false)}
+                          >
+                            Monitoring Dashboard
+                          </Link>
+                        </>
+                      )}
                     </>
                   )}
 
@@ -393,6 +414,17 @@ export default function Header() {
                     <Link href="/admin/invite" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                       Add User
                     </Link>
+
+                    {isSuperAdmin && (
+                      <>
+                        <Link href="/admin/district" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                          District Dashboard
+                        </Link>
+                        <Link href="/admin/monitoring" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                          Monitoring Dashboard
+                        </Link>
+                      </>
+                    )}
                   </>
                 )}
                 <Link href="/reset-password" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
