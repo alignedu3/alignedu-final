@@ -255,26 +255,7 @@ export default function MonitoringDashboard() {
   const sentryDiagnostics = payload?.sentry?.diagnostics;
   const connections = payload?.connections || [];
   const trafficCards = payload?.httpTraffic?.summaryCards || [];
-  const trafficErrorRoutes = payload?.httpTraffic?.topErrorRoutes?.length
-    ? payload.httpTraffic.topErrorRoutes
-    : [
-        {
-          key: 'top-4xx-route',
-          label: 'Top 4xx Route',
-          path: null,
-          requests: 0,
-          status: 'healthy' as const,
-          detail: 'No notable 4xx route was reported in the latest day.',
-        },
-        {
-          key: 'top-5xx-route',
-          label: 'Top 5xx Route',
-          path: null,
-          requests: 0,
-          status: 'healthy' as const,
-          detail: 'No notable 5xx route was reported in the latest day.',
-        },
-      ];
+  const trafficErrorRoutes = (payload?.httpTraffic?.topErrorRoutes || []).filter((route) => route.requests > 0);
   const requestSeries = payload?.httpTraffic?.requestSeries || [];
   const bandwidthSeries = payload?.httpTraffic?.bandwidthSeries || [];
   const trafficDiagnostics = payload?.httpTraffic?.diagnostics;
@@ -451,65 +432,67 @@ export default function MonitoringDashboard() {
                 <h2 style={sectionTitle}>Uptime and Response Time</h2>
               </div>
             </div>
-            <div style={uptimeStatsGrid} className="monitoring-uptime-grid">
-              {uptimeCards.map((card) => (
-                <div key={card.key} style={statCard}>
-                  <div style={statLabel}>{card.label}</div>
-                  <div style={statValue}>{card.displayValue}</div>
-                  <div
-                    style={{
-                      ...miniStatusPill,
-                      background:
-                        card.status === 'healthy'
-                          ? 'rgba(22,163,74,0.16)'
-                          : card.status === 'warning'
-                            ? 'rgba(245,158,11,0.16)'
-                            : 'rgba(220,38,38,0.14)',
-                      color:
-                        card.status === 'healthy'
-                          ? '#16a34a'
-                          : card.status === 'warning'
-                            ? '#b45309'
-                            : '#dc2626',
-                    }}
-                  >
-                    {card.status === 'healthy' ? 'Healthy' : card.status === 'warning' ? 'Slow' : 'Down'}
-                  </div>
-                  <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
-                </div>
-              ))}
-            </div>
-            <div style={uptimeCheckGrid} className="monitoring-uptime-check-grid">
-              {uptimeChecks.map((check) => (
-                <div key={check.key} style={uptimeCheckCard}>
-                  <div style={uptimeCheckTopRow}>
-                    <div style={statusTitle}>{check.label}</div>
+            <div style={sectionContentStack}>
+              <div style={uptimeStatsGrid} className="monitoring-uptime-grid">
+                {uptimeCards.map((card) => (
+                  <div key={card.key} style={statCard}>
+                    <div style={statLabel}>{card.label}</div>
+                    <div style={statValue}>{card.displayValue}</div>
                     <div
                       style={{
                         ...miniStatusPill,
-                        flexShrink: 0,
-                        background: !check.ok
-                          ? 'rgba(220,38,38,0.14)'
-                          : (check.responseTimeMs || 0) > 1200
-                            ? 'rgba(245,158,11,0.16)'
-                            : 'rgba(22,163,74,0.16)',
-                        color: !check.ok ? '#dc2626' : (check.responseTimeMs || 0) > 1200 ? '#b45309' : '#16a34a',
+                        background:
+                          card.status === 'healthy'
+                            ? 'rgba(22,163,74,0.16)'
+                            : card.status === 'warning'
+                              ? 'rgba(245,158,11,0.16)'
+                              : 'rgba(220,38,38,0.14)',
+                        color:
+                          card.status === 'healthy'
+                            ? '#16a34a'
+                            : card.status === 'warning'
+                              ? '#b45309'
+                              : '#dc2626',
                       }}
                     >
-                      {!check.ok ? 'Failing' : (check.responseTimeMs || 0) > 1200 ? 'Slow' : 'Healthy'}
+                      {card.status === 'healthy' ? 'Healthy' : card.status === 'warning' ? 'Slow' : 'Down'}
+                    </div>
+                    <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={uptimeCheckGrid} className="monitoring-uptime-check-grid">
+                {uptimeChecks.map((check) => (
+                  <div key={check.key} style={uptimeCheckCard}>
+                    <div style={uptimeCheckTopRow}>
+                      <div style={statusTitle}>{check.label}</div>
+                      <div
+                        style={{
+                          ...miniStatusPill,
+                          flexShrink: 0,
+                          background: !check.ok
+                            ? 'rgba(220,38,38,0.14)'
+                            : (check.responseTimeMs || 0) > 1200
+                              ? 'rgba(245,158,11,0.16)'
+                              : 'rgba(22,163,74,0.16)',
+                          color: !check.ok ? '#dc2626' : (check.responseTimeMs || 0) > 1200 ? '#b45309' : '#16a34a',
+                        }}
+                      >
+                        {!check.ok ? 'Failing' : (check.responseTimeMs || 0) > 1200 ? 'Slow' : 'Healthy'}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={statusMeta}>
+                        {check.statusCode ? `HTTP ${check.statusCode}` : 'No response'} | {check.responseTimeMs != null ? `${check.responseTimeMs} ms` : 'No timing'}
+                      </div>
+                      <div style={{ ...statSub, fontSize: 12, marginTop: 5 }}>
+                        {formatCheckTarget(check.url)} | Checked {formatTime(check.checkedAt)}
+                      </div>
+                      <div style={{ ...statSub, fontSize: 12, marginTop: 3 }}>{check.detail}</div>
                     </div>
                   </div>
-                  <div>
-                    <div style={statusMeta}>
-                      {check.statusCode ? `HTTP ${check.statusCode}` : 'No response'} | {check.responseTimeMs != null ? `${check.responseTimeMs} ms` : 'No timing'}
-                    </div>
-                    <div style={{ ...statSub, fontSize: 12, marginTop: 5 }}>
-                      {formatCheckTarget(check.url)} | Checked {formatTime(check.checkedAt)}
-                    </div>
-                    <div style={{ ...statSub, fontSize: 12, marginTop: 3 }}>{check.detail}</div>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
 
@@ -520,78 +503,80 @@ export default function MonitoringDashboard() {
                 <h2 style={sectionTitle}>Sentry Issues and Errors</h2>
               </div>
             </div>
-            {!hasLiveSentry ? (
-              <div style={warningBanner}>
-                <div style={warningTitle}>Sentry issue monitoring is not live yet.</div>
-                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
-                  {sentryConnection?.detail || 'Add Sentry API credentials to pull live issue and error metrics.'}
-                </p>
-                {sentryDiagnostics?.errorMessage ? (
+            <div style={sectionContentStack}>
+              {!hasLiveSentry ? (
+                <div style={warningBanner}>
+                  <div style={warningTitle}>Sentry issue monitoring is not live yet.</div>
                   <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
-                    Last Sentry API error: <strong>{sentryDiagnostics.errorMessage}</strong>
+                    {sentryConnection?.detail || 'Add Sentry API credentials to pull live issue and error metrics.'}
                   </p>
-                ) : null}
-                {sentryDiagnostics?.hint ? (
-                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{sentryDiagnostics.hint}</p>
-                ) : null}
-              </div>
-            ) : null}
-            <div style={statsGrid}>
-              {sentryCards.map((card) => (
-                <div key={card.key} style={statCard}>
-                  <div style={statLabel}>{card.label}</div>
-                  <div style={statValue}>{card.displayValue}</div>
-                  <div
-                    style={{
-                      ...miniStatusPill,
-                      background:
-                        card.status === 'healthy'
-                          ? 'rgba(22,163,74,0.16)'
-                          : card.status === 'warning'
-                            ? 'rgba(245,158,11,0.16)'
-                            : card.status === 'critical'
-                              ? 'rgba(220,38,38,0.14)'
-                              : 'rgba(59,130,246,0.12)',
-                      color:
-                        card.status === 'healthy'
-                          ? '#16a34a'
-                          : card.status === 'warning'
-                            ? '#b45309'
-                            : card.status === 'critical'
-                              ? '#dc2626'
-                              : '#2563eb',
-                    }}
-                  >
-                    {card.status === 'healthy'
-                      ? 'Healthy'
-                      : card.status === 'warning'
-                        ? 'Watch'
-                        : card.status === 'critical'
-                          ? 'Urgent'
-                          : 'Connect'}
-                  </div>
-                  <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
+                  {sentryDiagnostics?.errorMessage ? (
+                    <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                      Last Sentry API error: <strong>{sentryDiagnostics.errorMessage}</strong>
+                    </p>
+                  ) : null}
+                  {sentryDiagnostics?.hint ? (
+                    <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{sentryDiagnostics.hint}</p>
+                  ) : null}
                 </div>
-              ))}
-            </div>
-            {sentryIssues.length ? (
-            <div style={statusList} className="monitoring-status-list">
-                {sentryIssues.map((issue) => (
-                  <div key={issue.id} style={issueRow} className="monitoring-issue-row">
-                    <div style={{ minWidth: 0 }}>
-                      <div style={issueTitle}>{issue.title}</div>
-                      <div style={issueMeta}>
-                        {issue.count} events | {issue.userCount} users | {issue.level || 'error'}
-                      </div>
-                      {issue.culprit ? <div style={issueCulprit}>{issue.culprit}</div> : null}
+              ) : null}
+              <div style={statsGrid}>
+                {sentryCards.map((card) => (
+                  <div key={card.key} style={statCard}>
+                    <div style={statLabel}>{card.label}</div>
+                    <div style={statValue}>{card.displayValue}</div>
+                    <div
+                      style={{
+                        ...miniStatusPill,
+                        background:
+                          card.status === 'healthy'
+                            ? 'rgba(22,163,74,0.16)'
+                            : card.status === 'warning'
+                              ? 'rgba(245,158,11,0.16)'
+                              : card.status === 'critical'
+                                ? 'rgba(220,38,38,0.14)'
+                                : 'rgba(59,130,246,0.12)',
+                        color:
+                          card.status === 'healthy'
+                            ? '#16a34a'
+                            : card.status === 'warning'
+                              ? '#b45309'
+                              : card.status === 'critical'
+                                ? '#dc2626'
+                                : '#2563eb',
+                      }}
+                    >
+                      {card.status === 'healthy'
+                        ? 'Healthy'
+                        : card.status === 'warning'
+                          ? 'Watch'
+                          : card.status === 'critical'
+                            ? 'Urgent'
+                            : 'Connect'}
                     </div>
-                    <div style={issueTime}>{formatDateTime(issue.lastSeen)}</div>
+                    <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
                   </div>
                 ))}
               </div>
-            ) : (
-              <p style={bodyText}>No recent unresolved Sentry issues are being shown yet.</p>
-            )}
+              {sentryIssues.length ? (
+              <div style={statusList} className="monitoring-status-list">
+                  {sentryIssues.map((issue) => (
+                    <div key={issue.id} style={issueRow} className="monitoring-issue-row">
+                      <div style={{ minWidth: 0 }}>
+                        <div style={issueTitle}>{issue.title}</div>
+                        <div style={issueMeta}>
+                          {issue.count} events | {issue.userCount} users | {issue.level || 'error'}
+                        </div>
+                        {issue.culprit ? <div style={issueCulprit}>{issue.culprit}</div> : null}
+                      </div>
+                      <div style={issueTime}>{formatDateTime(issue.lastSeen)}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={bodyText}>No recent unresolved Sentry issues are being shown yet.</p>
+              )}
+            </div>
           </section>
         </div>
 
@@ -638,146 +623,150 @@ export default function MonitoringDashboard() {
               <h2 style={sectionTitle}>Requests, Caching, Visitors, and Bandwidth</h2>
             </div>
           </div>
-          {!hasLiveTraffic ? (
-            <div style={warningBanner}>
-              <div style={warningTitle}>Cloudflare traffic is not connected for this environment.</div>
-              <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
-                {cloudflareConnection?.detail || 'Add Cloudflare credentials so the monitoring API can pull live traffic analytics.'}
-              </p>
-              {trafficDiagnostics ? (
+          <div style={sectionContentStack}>
+            {!hasLiveTraffic ? (
+              <div style={warningBanner}>
+                <div style={warningTitle}>Cloudflare traffic is not connected for this environment.</div>
                 <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
-                  Token: {trafficDiagnostics.apiTokenConfigured ? 'configured' : 'missing'} | Zone ID: {trafficDiagnostics.zoneIdConfigured ? 'configured' : 'missing'}
+                  {cloudflareConnection?.detail || 'Add Cloudflare credentials so the monitoring API can pull live traffic analytics.'}
                 </p>
-              ) : null}
-              {trafficDiagnostics?.hint ? (
-                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{trafficDiagnostics.hint}</p>
-              ) : null}
-            </div>
-          ) : null}
-          <div style={trafficStatsGrid} className="monitoring-traffic-grid">
-            {trafficCards.map((card) => (
-              <div key={card.key} style={statCard}>
-                <div style={statLabel}>{card.label}</div>
-                <div style={statValue}>{card.displayValue}</div>
-                <div
-                  style={{
-                    ...miniStatusPill,
-                    background:
-                      card.status === 'healthy'
-                        ? 'rgba(22,163,74,0.16)'
-                        : card.status === 'warning'
-                          ? 'rgba(245,158,11,0.16)'
-                          : card.status === 'critical'
-                            ? 'rgba(220,38,38,0.14)'
-                            : 'rgba(59,130,246,0.12)',
-                    color:
-                      card.status === 'healthy'
-                        ? '#16a34a'
-                        : card.status === 'warning'
-                          ? '#b45309'
-                          : card.status === 'critical'
-                            ? '#dc2626'
-                            : '#3b82f6',
-                  }}
-                >
-                  {card.statusLabel}
-                </div>
-                <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
+                {trafficDiagnostics ? (
+                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                    Token: {trafficDiagnostics.apiTokenConfigured ? 'configured' : 'missing'} | Zone ID: {trafficDiagnostics.zoneIdConfigured ? 'configured' : 'missing'}
+                  </p>
+                ) : null}
+                {trafficDiagnostics?.hint ? (
+                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{trafficDiagnostics.hint}</p>
+                ) : null}
               </div>
-            ))}
-          </div>
-          <div style={trafficRouteGrid} className="monitoring-traffic-route-grid">
-            {trafficErrorRoutes.map((route) => (
-              <div key={route.key} style={trafficRouteCard}>
-                <div style={uptimeCheckTopRow}>
-                  <div style={statusTitle}>{route.label}</div>
+            ) : null}
+            <div style={trafficStatsGrid} className="monitoring-traffic-grid">
+              {trafficCards.map((card) => (
+                <div key={card.key} style={statCard}>
+                  <div style={statLabel}>{card.label}</div>
+                  <div style={statValue}>{card.displayValue}</div>
                   <div
                     style={{
                       ...miniStatusPill,
-                      flexShrink: 0,
                       background:
-                        route.status === 'healthy'
+                        card.status === 'healthy'
                           ? 'rgba(22,163,74,0.16)'
-                          : route.status === 'warning'
+                          : card.status === 'warning'
                             ? 'rgba(245,158,11,0.16)'
-                            : 'rgba(220,38,38,0.14)',
+                            : card.status === 'critical'
+                              ? 'rgba(220,38,38,0.14)'
+                              : 'rgba(59,130,246,0.12)',
                       color:
-                        route.status === 'healthy'
+                        card.status === 'healthy'
                           ? '#16a34a'
-                          : route.status === 'warning'
+                          : card.status === 'warning'
                             ? '#b45309'
-                            : '#dc2626',
+                            : card.status === 'critical'
+                              ? '#dc2626'
+                              : '#3b82f6',
                     }}
                   >
-                    {route.status === 'healthy' ? 'Clear' : route.status === 'warning' ? 'Watch' : 'Urgent'}
+                    {card.statusLabel}
+                  </div>
+                  <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
+                </div>
+              ))}
+            </div>
+            {trafficErrorRoutes.length ? (
+              <div style={trafficRouteGrid} className="monitoring-traffic-route-grid">
+                {trafficErrorRoutes.map((route) => (
+                  <div key={route.key} style={trafficRouteCard}>
+                    <div style={uptimeCheckTopRow}>
+                      <div style={statusTitle}>{route.label}</div>
+                      <div
+                        style={{
+                          ...miniStatusPill,
+                          flexShrink: 0,
+                          background:
+                            route.status === 'healthy'
+                              ? 'rgba(22,163,74,0.16)'
+                              : route.status === 'warning'
+                                ? 'rgba(245,158,11,0.16)'
+                                : 'rgba(220,38,38,0.14)',
+                          color:
+                            route.status === 'healthy'
+                              ? '#16a34a'
+                              : route.status === 'warning'
+                                ? '#b45309'
+                                : '#dc2626',
+                        }}
+                      >
+                        {route.status === 'healthy' ? 'Clear' : route.status === 'warning' ? 'Watch' : 'Urgent'}
+                      </div>
+                    </div>
+                    <div style={{ ...statSub, fontSize: 12, marginTop: 2 }}>
+                      {route.path || 'No dominant route'} | {route.requests} responses
+                    </div>
+                    <div style={{ ...statSub, fontSize: 12, marginTop: 4 }}>{route.detail}</div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <div style={twoColumn} className="monitoring-two-column">
+              <section style={sectionCard}>
+                <div style={sectionHeader}>
+                  <div>
+                    <div style={sectionEyebrow}>Request Load</div>
+                    <h3 style={subChartTitle}>Requests Over Time</h3>
                   </div>
                 </div>
-                <div style={{ ...statSub, fontSize: 12, marginTop: 2 }}>
-                  {route.path || 'No dominant route'} {route.requests > 0 ? `| ${route.requests} responses` : ''}
+                <div style={chartShell}>
+                  {chartReady ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={requestSeries}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                        <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                        <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }} />
+                        <Bar dataKey="cached" name="Cached" fill="#10b981" radius={[6, 6, 0, 0]} />
+                        <Bar dataKey="uncached" name="Uncached" fill="#f59e0b" radius={[6, 6, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div style={{ height: 300 }} />
+                  )}
                 </div>
-                <div style={{ ...statSub, fontSize: 12, marginTop: 4 }}>{route.detail}</div>
-              </div>
-            ))}
-          </div>
-          <div style={twoColumn} className="monitoring-two-column">
-            <section style={sectionCard}>
-              <div style={sectionHeader}>
-                <div>
-                  <div style={sectionEyebrow}>Request Load</div>
-                  <h3 style={subChartTitle}>Requests Over Time</h3>
-                </div>
-              </div>
-              <div style={chartShell}>
-                {chartReady ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={requestSeries}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                      <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                      <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                      <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }} />
-                      <Bar dataKey="cached" name="Cached" fill="#10b981" radius={[6, 6, 0, 0]} />
-                      <Bar dataKey="uncached" name="Uncached" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div style={{ height: 300 }} />
-                )}
-              </div>
-              <p style={emptyChartNote}>
-                {hasLiveTraffic
-                  ? 'Cloudflare request and cache analytics are now being pulled into the monitoring view.'
-                  : 'Add Cloudflare traffic analytics to unlock request, visitor, and cache metrics.'}
-              </p>
-            </section>
+                <p style={emptyChartNote}>
+                  {hasLiveTraffic
+                    ? 'Cloudflare request and cache analytics are now being pulled into the monitoring view.'
+                    : 'Add Cloudflare traffic analytics to unlock request, visitor, and cache metrics.'}
+                </p>
+              </section>
 
-            <section style={sectionCard}>
-              <div style={sectionHeader}>
-                <div>
-                  <div style={sectionEyebrow}>Bandwidth</div>
-                  <h3 style={subChartTitle}>Bandwidth Over Time</h3>
+              <section style={sectionCard}>
+                <div style={sectionHeader}>
+                  <div>
+                    <div style={sectionEyebrow}>Bandwidth</div>
+                    <h3 style={subChartTitle}>Bandwidth Over Time</h3>
+                  </div>
                 </div>
-              </div>
-              <div style={chartShell}>
-                {chartReady ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={bandwidthSeries}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                      <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                      <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
-                      <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }} />
-                      <Line type="monotone" dataKey="bandwidthMb" name="Bandwidth (MB)" stroke="#3b82f6" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div style={{ height: 300 }} />
-                )}
-              </div>
-              <p style={emptyChartNote}>
-                {hasLiveTraffic
-                  ? 'Bandwidth and edge-delivery visibility are now coming from Cloudflare for the selected window.'
-                  : 'Bandwidth, cache hit ratio, and threat blocking will populate from Cloudflare once connected.'}
-              </p>
-            </section>
+                <div style={chartShell}>
+                  {chartReady ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={bandwidthSeries}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                        <XAxis dataKey="label" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                        <YAxis stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
+                        <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-primary)', fontWeight: 700 }} />
+                        <Line type="monotone" dataKey="bandwidthMb" name="Bandwidth (MB)" stroke="#3b82f6" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div style={{ height: 300 }} />
+                  )}
+                </div>
+                <p style={emptyChartNote}>
+                  {hasLiveTraffic
+                    ? 'Bandwidth and edge-delivery visibility are now coming from Cloudflare for the selected window.'
+                    : 'Bandwidth, cache hit ratio, and threat blocking will populate from Cloudflare once connected.'}
+                </p>
+              </section>
+            </div>
           </div>
         </section>
 
@@ -1146,6 +1135,11 @@ const sectionHeader: React.CSSProperties = {
 const contentStack: React.CSSProperties = {
   display: 'grid',
   gap: 18,
+};
+
+const sectionContentStack: React.CSSProperties = {
+  display: 'grid',
+  gap: 14,
 };
 
 const sectionEyebrow: React.CSSProperties = {
