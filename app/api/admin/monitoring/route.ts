@@ -118,6 +118,14 @@ type UptimeResult = {
   checks: UptimeCheck[];
 };
 
+type UptimeCheckTarget = {
+  key: string;
+  label: string;
+  path: string;
+  acceptedStatuses?: number[];
+  expectedRedirectTo?: string;
+};
+
 type SentryIssueRow = {
   id: string;
   title: string;
@@ -295,40 +303,52 @@ function buildConnections() {
   };
 }
 
-async function runUptimeCheck(label: string, key: string, url: string): Promise<UptimeCheck> {
+async function runUptimeCheck(target: UptimeCheckTarget, baseUrl: string): Promise<UptimeCheck> {
+  const url = `${baseUrl}${target.path}`;
   const startedAt = Date.now();
 
   try {
     const response = await fetch(url, {
       method: 'GET',
       cache: 'no-store',
+      redirect: 'manual',
       headers: {
         Accept: 'text/html,application/json;q=0.9,*/*;q=0.8',
       },
     });
 
     const responseTimeMs = Date.now() - startedAt;
+    const redirectLocation = response.headers.get('location');
+    const isExpectedRedirect =
+      Boolean(target.expectedRedirectTo) &&
+      [301, 302, 303, 307, 308].includes(response.status) &&
+      Boolean(redirectLocation?.includes(target.expectedRedirectTo!));
+    const isAcceptedStatus = response.ok || Boolean(target.acceptedStatuses?.includes(response.status));
+    const ok = isAcceptedStatus || isExpectedRedirect;
+
     return {
-      key,
-      label,
+      key: target.key,
+      label: target.label,
       url,
-      ok: response.ok,
+      ok,
       statusCode: response.status,
       responseTimeMs,
-      detail: response.ok
-        ? `${label} responded normally.`
-        : `${label} responded with HTTP ${response.status}.`,
+      detail: isExpectedRedirect
+        ? `${target.label} redirected to ${target.expectedRedirectTo} as expected for a protected route.`
+        : ok
+          ? `${target.label} responded normally.`
+          : `${target.label} responded with HTTP ${response.status}.`,
       checkedAt: new Date().toISOString(),
     };
   } catch (error: any) {
     return {
-      key,
-      label,
+      key: target.key,
+      label: target.label,
       url,
       ok: false,
       statusCode: null,
       responseTimeMs: null,
-      detail: error?.message || `${label} could not be reached.`,
+      detail: error?.message || `${target.label} could not be reached.`,
       checkedAt: new Date().toISOString(),
     };
   }
@@ -344,12 +364,20 @@ function getUptimeLatencyStatus(responseTimeMs: number | null): 'healthy' | 'war
 async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
   const baseUrl = resolveBaseUrl(request);
   const normalizedBase = baseUrl.replace(/\/$/, '');
+  const checkBase = normalizedBase || request.nextUrl.origin;
+  const targets: UptimeCheckTarget[] = [
+    { key: 'public-site', label: 'Public Site', path: '/' },
+    { key: 'login-page', label: 'Login Page', path: '/login' },
+    { key: 'analyze-page', label: 'Analyze Page', path: '/analyze' },
+    { key: 'forgot-password', label: 'Forgot Password', path: '/forgot-password' },
+    { key: 'reset-access', label: 'Reset Access', path: '/reset-access' },
+    { key: 'accept-invite', label: 'Accept Invite', path: '/accept-invite' },
+    { key: 'dashboard-gate', label: 'Dashboard Gate', path: '/dashboard', expectedRedirectTo: '/login' },
+    { key: 'admin-gate', label: 'Admin Gate', path: '/admin', expectedRedirectTo: '/login' },
+    { key: 'auth-api', label: 'Auth API', path: '/api/auth/me' },
+  ];
 
-  const checks = await Promise.all([
-    runUptimeCheck('Public Site', 'public-site', normalizedBase || request.nextUrl.origin),
-    runUptimeCheck('Login Page', 'login-page', `${normalizedBase || request.nextUrl.origin}/login`),
-    runUptimeCheck('Auth API', 'auth-api', `${normalizedBase || request.nextUrl.origin}/api/auth/me`),
-  ]);
+  const checks = await Promise.all(targets.map((target) => runUptimeCheck(target, checkBase)));
 
   const passingChecks = checks.filter((check) => check.ok);
   const averageResponseMs = passingChecks.length
