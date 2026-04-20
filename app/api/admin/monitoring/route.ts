@@ -1089,6 +1089,9 @@ function buildCloudflareMissingConfigDetail() {
 function buildCloudflareErrorHint(message: string) {
   const normalized = message.toLowerCase();
 
+  if (normalized.includes('cannot request a time range wider than 1d')) {
+    return 'This Cloudflare dataset only supports a 1-day range for route-level lookups, so the monitoring query needs to stay scoped to the latest day.';
+  }
   if (normalized.includes('(403)') || normalized.includes('permission') || normalized.includes('forbidden')) {
     return 'The Cloudflare token is present but likely missing zone analytics permissions for this zone.';
   }
@@ -1138,6 +1141,7 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   }
 
   const startDate = windowKeys[0];
+  const latestDayKey = windowKeys[windowKeys.length - 1];
   const endDate = new Date(`${windowKeys[windowKeys.length - 1]}T12:00:00Z`);
   endDate.setUTCDate(endDate.getUTCDate() + 1);
   const endDateKey = endDate.toISOString().slice(0, 10);
@@ -1193,7 +1197,7 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
           top4xxPaths: httpRequestsAdaptiveGroups(
             limit: 3
             orderBy: [count_DESC]
-            filter: { datetime_geq: "${startDate}T00:00:00Z", datetime_lt: "${endDateKey}T00:00:00Z", requestSource: "eyeball", edgeResponseStatus_geq: 400, edgeResponseStatus_lt: 500 }
+            filter: { datetime_geq: "${latestDayKey}T00:00:00Z", datetime_lt: "${endDateKey}T00:00:00Z", requestSource: "eyeball", edgeResponseStatus_geq: 400, edgeResponseStatus_lt: 500 }
           ) {
             count
             dimensions {
@@ -1204,7 +1208,7 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
           top5xxPaths: httpRequestsAdaptiveGroups(
             limit: 3
             orderBy: [count_DESC]
-            filter: { datetime_geq: "${startDate}T00:00:00Z", datetime_lt: "${endDateKey}T00:00:00Z", requestSource: "eyeball", edgeResponseStatus_geq: 500, edgeResponseStatus_lt: 600 }
+            filter: { datetime_geq: "${latestDayKey}T00:00:00Z", datetime_lt: "${endDateKey}T00:00:00Z", requestSource: "eyeball", edgeResponseStatus_geq: 500, edgeResponseStatus_lt: 600 }
           ) {
             count
             dimensions {
@@ -1453,8 +1457,8 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
       status: Number(top4xxRoute?.count || 0) > 0 ? ('warning' as const) : ('healthy' as const),
       detail:
         Number(top4xxRoute?.count || 0) > 0
-          ? `${formatNumber(Number(top4xxRoute?.count || 0))} 4xx responses were reported on this route in the selected window.`
-          : 'No notable 4xx route was reported in the selected window.',
+          ? `${formatNumber(Number(top4xxRoute?.count || 0))} 4xx responses were reported on this route in the latest day.`
+          : 'No notable 4xx route was reported in the latest day.',
     },
     {
       key: 'top-5xx-route',
@@ -1469,8 +1473,8 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
             : ('healthy' as const),
       detail:
         Number(top5xxRoute?.count || 0) > 0
-          ? `${formatNumber(Number(top5xxRoute?.count || 0))} 5xx responses were reported on this route in the selected window.`
-          : 'No notable 5xx route was reported in the selected window.',
+          ? `${formatNumber(Number(top5xxRoute?.count || 0))} 5xx responses were reported on this route in the latest day.`
+          : 'No notable 5xx route was reported in the latest day.',
     },
   ];
 
