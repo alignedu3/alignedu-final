@@ -77,6 +77,15 @@ type CloudflareDiagnostics = {
   hint?: string | null;
 };
 
+type CloudflareErrorRoute = {
+  key: string;
+  label: string;
+  path: string | null;
+  requests: number;
+  status: 'healthy' | 'warning' | 'critical';
+  detail: string;
+};
+
 type MonitoringAlert = {
   key: string;
   severity: 'critical' | 'warning' | 'info';
@@ -163,6 +172,7 @@ type MonitoringPayload = {
   };
   httpTraffic?: {
     summaryCards?: TrafficSummaryCard[];
+    topErrorRoutes?: CloudflareErrorRoute[];
     requestSeries?: TrafficSeriesPoint[];
     bandwidthSeries?: TrafficSeriesPoint[];
     diagnostics?: CloudflareDiagnostics;
@@ -245,6 +255,7 @@ export default function MonitoringDashboard() {
   const sentryDiagnostics = payload?.sentry?.diagnostics;
   const connections = payload?.connections || [];
   const trafficCards = payload?.httpTraffic?.summaryCards || [];
+  const trafficErrorRoutes = payload?.httpTraffic?.topErrorRoutes || [];
   const requestSeries = payload?.httpTraffic?.requestSeries || [];
   const bandwidthSeries = payload?.httpTraffic?.bandwidthSeries || [];
   const trafficDiagnostics = payload?.httpTraffic?.diagnostics;
@@ -656,6 +667,41 @@ export default function MonitoringDashboard() {
               </div>
             ))}
           </div>
+          {trafficErrorRoutes.length ? (
+            <div style={trafficRouteGrid} className="monitoring-traffic-route-grid">
+              {trafficErrorRoutes.map((route) => (
+                <div key={route.key} style={trafficRouteCard}>
+                  <div style={uptimeCheckTopRow}>
+                    <div style={statusTitle}>{route.label}</div>
+                    <div
+                      style={{
+                        ...miniStatusPill,
+                        flexShrink: 0,
+                        background:
+                          route.status === 'healthy'
+                            ? 'rgba(22,163,74,0.16)'
+                            : route.status === 'warning'
+                              ? 'rgba(245,158,11,0.16)'
+                              : 'rgba(220,38,38,0.14)',
+                        color:
+                          route.status === 'healthy'
+                            ? '#16a34a'
+                            : route.status === 'warning'
+                              ? '#b45309'
+                              : '#dc2626',
+                      }}
+                    >
+                      {route.status === 'healthy' ? 'Clear' : route.status === 'warning' ? 'Watch' : 'Urgent'}
+                    </div>
+                  </div>
+                  <div style={{ ...statSub, fontSize: 12, marginTop: 2 }}>
+                    {route.path || 'No dominant route'} {route.requests > 0 ? `| ${route.requests} responses` : ''}
+                  </div>
+                  <div style={{ ...statSub, fontSize: 12, marginTop: 4 }}>{route.detail}</div>
+                </div>
+              ))}
+            </div>
+          ) : null}
           <div style={twoColumn} className="monitoring-two-column">
             <section style={sectionCard}>
               <div style={sectionHeader}>
@@ -1117,6 +1163,24 @@ const uptimeCheckGrid: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
   gap: 10,
+};
+
+const trafficRouteGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 10,
+  marginTop: 10,
+};
+
+const trafficRouteCard: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 6,
+  padding: '12px 14px',
+  borderRadius: 14,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-chip)',
+  minWidth: 0,
 };
 
 const uptimeCheckCard: React.CSSProperties = {

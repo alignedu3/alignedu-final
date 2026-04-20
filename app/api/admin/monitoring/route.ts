@@ -88,6 +88,14 @@ type CloudflareTrafficResult = {
   connected: boolean;
   detail: string;
   summaryCards: TrafficSummaryCard[];
+  topErrorRoutes: Array<{
+    key: string;
+    label: string;
+    path: string | null;
+    requests: number;
+    status: 'healthy' | 'warning' | 'critical';
+    detail: string;
+  }>;
   requestSeries: TrafficSeriesPoint[];
   bandwidthSeries: TrafficSeriesPoint[];
   diagnostics: {
@@ -1116,6 +1124,7 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
       connected: false,
       detail: buildCloudflareMissingConfigDetail(),
       summaryCards: buildTrafficCards(),
+      topErrorRoutes: [],
       requestSeries: emptyRequestSeries,
       bandwidthSeries: emptyBandwidthSeries,
       diagnostics: {
@@ -1181,6 +1190,28 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
               }
             }
           }
+          top4xxPaths: httpRequestsAdaptiveGroups(
+            limit: 3
+            orderBy: [count_DESC]
+            filter: { datetime_geq: "${startDate}T00:00:00Z", datetime_lt: "${endDateKey}T00:00:00Z", requestSource: "eyeball", edgeResponseStatus_geq: 400, edgeResponseStatus_lt: 500 }
+          ) {
+            count
+            dimensions {
+              clientRequestPath
+              clientRequestHTTPHost
+            }
+          }
+          top5xxPaths: httpRequestsAdaptiveGroups(
+            limit: 3
+            orderBy: [count_DESC]
+            filter: { datetime_geq: "${startDate}T00:00:00Z", datetime_lt: "${endDateKey}T00:00:00Z", requestSource: "eyeball", edgeResponseStatus_geq: 500, edgeResponseStatus_lt: 600 }
+          ) {
+            count
+            dimensions {
+              clientRequestPath
+              clientRequestHTTPHost
+            }
+          }
         }
       }
     }
@@ -1217,6 +1248,13 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   if (!zone) {
     throw new Error('Cloudflare zone analytics not found for the configured zone.');
   }
+
+  const formatRoutePath = (entry: any) => {
+    const host = entry?.dimensions?.clientRequestHTTPHost || null;
+    const path = entry?.dimensions?.clientRequestPath || null;
+    if (!path) return host || null;
+    return host ? `https://${host}${path}` : path;
+  };
 
   const totalBucket = zone.totals?.[0];
   const sumResponseStatusMap = (statusMap: any, minStatus: number, maxStatus: number) =>
@@ -1404,6 +1442,37 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
       : cachedBandwidthRatio >= 30
         ? { status: 'healthy' as const, statusLabel: 'Moderate Cache', detail: 'A meaningful share of response bytes is being delivered from the edge cache.' }
         : { status: 'warning' as const, statusLabel: 'Low Edge Cache', detail: 'Only a limited share of response bytes is being served from Cloudflare cache.' };
+  const top4xxRoute = Array.isArray(zone.top4xxPaths) ? zone.top4xxPaths[0] : null;
+  const top5xxRoute = Array.isArray(zone.top5xxPaths) ? zone.top5xxPaths[0] : null;
+  const topErrorRoutes = [
+    {
+      key: 'top-4xx-route',
+      label: 'Top 4xx Route',
+      path: formatRoutePath(top4xxRoute),
+      requests: Number(top4xxRoute?.count || 0),
+      status: Number(top4xxRoute?.count || 0) > 0 ? ('warning' as const) : ('healthy' as const),
+      detail:
+        Number(top4xxRoute?.count || 0) > 0
+          ? `${formatNumber(Number(top4xxRoute?.count || 0))} 4xx responses were reported on this route in the selected window.`
+          : 'No notable 4xx route was reported in the selected window.',
+    },
+    {
+      key: 'top-5xx-route',
+      label: 'Top 5xx Route',
+      path: formatRoutePath(top5xxRoute),
+      requests: Number(top5xxRoute?.count || 0),
+      status:
+        Number(top5xxRoute?.count || 0) >= 10
+          ? ('critical' as const)
+          : Number(top5xxRoute?.count || 0) > 0
+            ? ('warning' as const)
+            : ('healthy' as const),
+      detail:
+        Number(top5xxRoute?.count || 0) > 0
+          ? `${formatNumber(Number(top5xxRoute?.count || 0))} 5xx responses were reported on this route in the selected window.`
+          : 'No notable 5xx route was reported in the selected window.',
+    },
+  ];
 
   return {
     connected: true,
@@ -1491,6 +1560,7 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
         detail: cachedBandwidthStatus.detail,
       },
     ],
+    topErrorRoutes,
     requestSeries,
     bandwidthSeries,
     diagnostics: {
@@ -1715,6 +1785,7 @@ export async function GET(request: NextRequest) {
                 ? { ...card, detail: errorMessage }
                 : card
             ),
+            topErrorRoutes: [],
             requestSeries: buildEmptyTrafficSeries(windowKeys),
             bandwidthSeries: buildEmptyTrafficSeries(windowKeys),
             diagnostics: {
