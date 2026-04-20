@@ -255,7 +255,26 @@ export default function MonitoringDashboard() {
   const sentryDiagnostics = payload?.sentry?.diagnostics;
   const connections = payload?.connections || [];
   const trafficCards = payload?.httpTraffic?.summaryCards || [];
-  const trafficErrorRoutes = payload?.httpTraffic?.topErrorRoutes || [];
+  const trafficErrorRoutes = payload?.httpTraffic?.topErrorRoutes?.length
+    ? payload.httpTraffic.topErrorRoutes
+    : [
+        {
+          key: 'top-4xx-route',
+          label: 'Top 4xx Route',
+          path: null,
+          requests: 0,
+          status: 'healthy' as const,
+          detail: 'No notable 4xx route was reported in the latest day.',
+        },
+        {
+          key: 'top-5xx-route',
+          label: 'Top 5xx Route',
+          path: null,
+          requests: 0,
+          status: 'healthy' as const,
+          detail: 'No notable 5xx route was reported in the latest day.',
+        },
+      ];
   const requestSeries = payload?.httpTraffic?.requestSeries || [];
   const bandwidthSeries = payload?.httpTraffic?.bandwidthSeries || [];
   const trafficDiagnostics = payload?.httpTraffic?.diagnostics;
@@ -667,41 +686,39 @@ export default function MonitoringDashboard() {
               </div>
             ))}
           </div>
-          {trafficErrorRoutes.length ? (
-            <div style={trafficRouteGrid} className="monitoring-traffic-route-grid">
-              {trafficErrorRoutes.map((route) => (
-                <div key={route.key} style={trafficRouteCard}>
-                  <div style={uptimeCheckTopRow}>
-                    <div style={statusTitle}>{route.label}</div>
-                    <div
-                      style={{
-                        ...miniStatusPill,
-                        flexShrink: 0,
-                        background:
-                          route.status === 'healthy'
-                            ? 'rgba(22,163,74,0.16)'
-                            : route.status === 'warning'
-                              ? 'rgba(245,158,11,0.16)'
-                              : 'rgba(220,38,38,0.14)',
-                        color:
-                          route.status === 'healthy'
-                            ? '#16a34a'
-                            : route.status === 'warning'
-                              ? '#b45309'
-                              : '#dc2626',
-                      }}
-                    >
-                      {route.status === 'healthy' ? 'Clear' : route.status === 'warning' ? 'Watch' : 'Urgent'}
-                    </div>
+          <div style={trafficRouteGrid} className="monitoring-traffic-route-grid">
+            {trafficErrorRoutes.map((route) => (
+              <div key={route.key} style={trafficRouteCard}>
+                <div style={uptimeCheckTopRow}>
+                  <div style={statusTitle}>{route.label}</div>
+                  <div
+                    style={{
+                      ...miniStatusPill,
+                      flexShrink: 0,
+                      background:
+                        route.status === 'healthy'
+                          ? 'rgba(22,163,74,0.16)'
+                          : route.status === 'warning'
+                            ? 'rgba(245,158,11,0.16)'
+                            : 'rgba(220,38,38,0.14)',
+                      color:
+                        route.status === 'healthy'
+                          ? '#16a34a'
+                          : route.status === 'warning'
+                            ? '#b45309'
+                            : '#dc2626',
+                    }}
+                  >
+                    {route.status === 'healthy' ? 'Clear' : route.status === 'warning' ? 'Watch' : 'Urgent'}
                   </div>
-                  <div style={{ ...statSub, fontSize: 12, marginTop: 2 }}>
-                    {route.path || 'No dominant route'} {route.requests > 0 ? `| ${route.requests} responses` : ''}
-                  </div>
-                  <div style={{ ...statSub, fontSize: 12, marginTop: 4 }}>{route.detail}</div>
                 </div>
-              ))}
-            </div>
-          ) : null}
+                <div style={{ ...statSub, fontSize: 12, marginTop: 2 }}>
+                  {route.path || 'No dominant route'} {route.requests > 0 ? `| ${route.requests} responses` : ''}
+                </div>
+                <div style={{ ...statSub, fontSize: 12, marginTop: 4 }}>{route.detail}</div>
+              </div>
+            ))}
+          </div>
           <div style={twoColumn} className="monitoring-two-column">
             <section style={sectionCard}>
               <div style={sectionHeader}>
