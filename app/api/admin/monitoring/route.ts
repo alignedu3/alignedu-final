@@ -747,7 +747,7 @@ async function fetchSentryHealth(): Promise<SentryResult> {
     });
 
     if (!response.ok) {
-      throw new Error(`Sentry request failed (${response.status}).`);
+      throw new Error(`Sentry request failed (${response.status}) for ${path}.`);
     }
 
     return response.json();

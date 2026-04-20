@@ -574,6 +574,11 @@ export default function MonitoringDashboard() {
                 <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
                   {sentryConnection?.detail || 'Add Sentry API credentials to pull live issue and error metrics.'}
                 </p>
+                {sentryDiagnostics?.errorMessage ? (
+                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                    Last Sentry API error: <strong>{sentryDiagnostics.errorMessage}</strong>
+                  </p>
+                ) : null}
                 {sentryDiagnostics?.hint ? (
                   <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{sentryDiagnostics.hint}</p>
                 ) : null}
