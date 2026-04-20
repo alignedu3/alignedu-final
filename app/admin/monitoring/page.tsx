@@ -468,7 +468,7 @@ export default function MonitoringDashboard() {
                 <h2 style={sectionTitle}>Uptime and Response Time</h2>
               </div>
             </div>
-            <div style={statsGrid}>
+            <div style={uptimeStatsGrid} className="monitoring-uptime-grid">
               {uptimeCards.map((card) => (
                 <div key={card.key} style={statCard}>
                   <div style={statLabel}>{card.label}</div>
@@ -496,9 +496,9 @@ export default function MonitoringDashboard() {
                 </div>
               ))}
             </div>
-            <div style={statusList}>
+            <div style={statusList} className="monitoring-status-list">
               {uptimeChecks.map((check) => (
-                <div key={check.key} style={statusRow}>
+                <div key={check.key} style={statusRow} className="monitoring-status-row">
                   <div>
                     <div style={statusTitle}>{check.label}</div>
                     <div style={statusMeta}>
@@ -581,9 +581,9 @@ export default function MonitoringDashboard() {
               ))}
             </div>
             {sentryIssues.length ? (
-              <div style={statusList}>
+            <div style={statusList} className="monitoring-status-list">
                 {sentryIssues.map((issue) => (
-                  <div key={issue.id} style={issueRow}>
+                  <div key={issue.id} style={issueRow} className="monitoring-issue-row">
                     <div style={{ minWidth: 0 }}>
                       <div style={issueTitle}>{issue.title}</div>
                       <div style={issueMeta}>
@@ -660,7 +660,7 @@ export default function MonitoringDashboard() {
               ) : null}
             </div>
           ) : null}
-          <div style={statsGrid}>
+          <div style={trafficStatsGrid} className="monitoring-traffic-grid">
             {trafficCards.map((card) => (
               <div key={card.key} style={statCard}>
                 <div style={statLabel}>{card.label}</div>
@@ -1070,6 +1070,20 @@ const statsGrid: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
   gap: 16,
+  marginBottom: 22,
+};
+
+const uptimeStatsGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+  gap: 16,
+  marginBottom: 14,
+};
+
+const trafficStatsGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+  gap: 14,
   marginBottom: 22,
 };
 

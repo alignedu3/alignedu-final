@@ -1665,6 +1665,38 @@ h1, h2, h3 {
   }
 }
 
+.monitoring-traffic-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+}
+
+@media (max-width: 1180px) {
+  .monitoring-traffic-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .monitoring-traffic-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .monitoring-uptime-grid {
+    margin-bottom: 10px !important;
+  }
+
+  .monitoring-status-row,
+  .monitoring-issue-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .monitoring-traffic-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ---- TABLE SCROLL ---- */
 
 .table-scroll-wrap {
