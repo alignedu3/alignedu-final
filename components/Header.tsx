@@ -271,6 +271,14 @@ export default function Header() {
                     Teacher Dashboard
                   </Link>
 
+                  <Link
+                    href="/analyze"
+                    style={dropdownItem}
+                    onClick={() => setOpen(false)}
+                  >
+                    Analyze Lesson
+                  </Link>
+
                   {isAdminUser && (
                     <>
                       <Link
@@ -366,6 +374,9 @@ export default function Header() {
                 <div className="mobile-nav-user">{profile?.name || 'User'}</div>
                 <Link href="/dashboard" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                   Teacher Dashboard
+                </Link>
+                <Link href="/analyze" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                  Analyze Lesson
                 </Link>
                 {isAdminUser && (
                   <>
