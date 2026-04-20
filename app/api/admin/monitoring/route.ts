@@ -445,10 +445,10 @@ async function fetchSentryHealth(): Promise<SentryResult> {
   ]);
 
   const unresolvedIssues = Array.isArray(unresolvedIssuesRaw)
-    ? unresolvedIssuesRaw.filter((issue) => !isNoiseSentryIssue(issue))
+    ? unresolvedIssuesRaw.filter((issue) => !isNoiseSentryIssue(issue) && isRecentlySeenSentryIssue(issue))
     : [];
   const regressedIssues = Array.isArray(regressedIssuesRaw)
-    ? regressedIssuesRaw.filter((issue) => !isNoiseSentryIssue(issue))
+    ? regressedIssuesRaw.filter((issue) => !isNoiseSentryIssue(issue) && isRecentlySeenSentryIssue(issue))
     : [];
 
   const sumSentryOutcome = (payload: any, outcome: string) =>
@@ -514,7 +514,7 @@ async function fetchSentryHealth(): Promise<SentryResult> {
         value: unresolvedCount,
         displayValue: formatNumber(unresolvedCount),
         status: unresolvedCount > 0 ? 'warning' : 'healthy',
-        detail: 'Open unresolved Sentry issues in scope.',
+        detail: 'Open unresolved Sentry issues seen in the last 24 hours.',
       },
       {
         key: 'regressed-issues',
@@ -522,14 +522,14 @@ async function fetchSentryHealth(): Promise<SentryResult> {
         value: regressedCount,
         displayValue: formatNumber(regressedCount),
         status: regressedCount > 0 ? 'critical' : 'healthy',
-        detail: 'Issues that have regressed in Sentry.',
+        detail: 'Regressed Sentry issues seen in the last 24 hours.',
       },
       {
         key: 'dropped-events-24h',
         label: 'Dropped Events',
         value: dropped24h,
         displayValue: formatNumber(dropped24h),
-        status: dropped24h > 0 ? 'warning' : 'healthy',
+        status: dropped24h > 25 ? 'warning' : 'healthy',
         detail: 'Filtered, rate-limited, or invalid events in the last 24 hours.',
       },
       {
@@ -584,10 +584,11 @@ function buildMonitoringAlerts(args: {
 
   if (args.cloudflareTraffic.connected) {
     const cacheRatioCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'cache-hit-ratio');
+    const cachedBandwidthCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'cached-bandwidth-ratio');
     const threatsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'threats-blocked');
     const requests = args.cloudflareTraffic.requestSeries.map((point) => point.requests || 0);
 
-    if ((cacheRatioCard?.value || 0) < 60) {
+    if ((cacheRatioCard?.value || 0) < 20 && (cachedBandwidthCard?.value || 0) < 40) {
       alerts.push({
         key: 'cache-ratio',
         severity: 'warning',
@@ -649,7 +650,7 @@ function buildMonitoringAlerts(args: {
       });
     }
 
-    if ((droppedCard?.value || 0) > 0) {
+    if ((droppedCard?.value || 0) > 25) {
       alerts.push({
         key: 'sentry-dropped',
         severity: 'warning',
@@ -843,6 +844,14 @@ function isNoiseSentryIssue(issue: any) {
     culprit.includes('/api/sentry-example') ||
     culprit.includes('/sentry-example-page')
   );
+}
+
+function isRecentlySeenSentryIssue(issue: any, maxAgeHours = 24) {
+  const lastSeen = issue?.lastSeen;
+  if (!lastSeen) return false;
+  const timestamp = new Date(lastSeen).getTime();
+  if (!Number.isFinite(timestamp)) return false;
+  return Date.now() - timestamp <= maxAgeHours * 60 * 60 * 1000;
 }
 
 function formatDurationMs(value: number | null) {
