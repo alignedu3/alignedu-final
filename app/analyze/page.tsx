@@ -22,6 +22,7 @@ export default function AnalysisPage() {
     const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
     const [recorderStatus, setRecorderStatus] = useState("");
     const audioPlayerRef = useRef<HTMLAudioElement>(null);
+    const uploadInputRef = useRef<HTMLInputElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordingStreamRef = useRef<MediaStream | null>(null);
     const recordedChunksRef = useRef<Blob[]>([]);
@@ -777,6 +778,10 @@ export default function AnalysisPage() {
     });
   };
 
+  const openAudioPicker = () => {
+    uploadInputRef.current?.click();
+  };
+
   useEffect(() => {
     if (!isAdminObservationMode) {
       setObserverReady(true);
@@ -1101,8 +1106,20 @@ export default function AnalysisPage() {
                     <audio ref={audioPlayerRef} controls style={{ width: '100%', borderRadius: 8, marginTop: 8, display: recordedChunks.length > 0 ? 'block' : 'none' }} />
                   </div>
                 )}
-                <label className="upload-zone">
+                <div
+                  className="upload-zone"
+                  role="button"
+                  tabIndex={0}
+                  onClick={openAudioPicker}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      openAudioPicker();
+                    }
+                  }}
+                >
                   <input
+                    ref={uploadInputRef}
                     className="upload-input"
                     type="file"
                     accept="audio/*"
@@ -1115,7 +1132,7 @@ export default function AnalysisPage() {
                       Max 90 minutes. Longer files are split automatically.
                     </p>
                   </div>
-                </label>
+                </div>
                 {audioFile && (
                   <div style={filePreviewCardStyle}>
                     <div style={filePreviewHeaderStyle}>Selected audio file</div>

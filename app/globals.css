@@ -591,6 +591,11 @@ textarea {
   cursor: pointer;
 }
 
+.upload-zone:focus-visible {
+  outline: 2px solid rgba(56, 189, 248, 0.75);
+  outline-offset: 3px;
+}
+
 .upload-zone:hover {
   transform: translateY(-2px);
   border-color: rgba(56, 189, 248, 0.6);
@@ -601,10 +606,12 @@ textarea {
   inset: 0;
   opacity: 0;
   cursor: pointer;
+  z-index: 2;
 }
 
 .upload-zone-content {
   text-align: center;
+  pointer-events: none;
 }
 
 .upload-icon {
