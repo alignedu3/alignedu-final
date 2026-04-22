@@ -683,16 +683,18 @@ export default function AnalysisPage() {
   const standardsMasterySection = standardsAlignmentSections.find(
     (section) => section.title === "Standards Mastery Notes"
   );
-  const higherEdAlignmentSections = (feedbackSections.higherEdAlignment ?? []).filter(
+  const allHigherEdAlignmentSections = feedbackSections.higherEdAlignment ?? [];
+  const higherEdAlignmentSections = allHigherEdAlignmentSections.filter(
     (section) => !["Textbook Alignment", "Summary"].includes(section.title)
   );
+  const hasHigherEdAlignment = allHigherEdAlignmentSections.length > 0;
   const readinessSummarySection = feedbackSections.staar.find(
     (section) => section.title === "Readiness Summary"
   );
   const standardsSummary =
     standardsMasterySection?.content ||
     readinessSummarySection?.content ||
-    higherEdAlignmentSections.find((section) =>
+    allHigherEdAlignmentSections.find((section) =>
       ["Textbook Alignment", "Summary"].includes(section.title)
     )?.content ||
     "";
@@ -705,6 +707,8 @@ export default function AnalysisPage() {
   const notCoveredStandardsSections = standardsAlignmentSections.filter((section) =>
     ["Standards Not Observed", "Not Covered in the Lesson"].includes(section.title)
   );
+  const standardsSectionHeading = "Standards Alignment";
+  const standardsSummaryTitle = hasHigherEdAlignment ? "Textbook Alignment" : "Standards Summary";
   const findCoachingSection = (...titles: string[]) =>
     feedbackSections.coaching.find((section) => titles.includes(section.title));
   const suggestedNextStepsSection = findCoachingSection("Suggested Next Steps");
@@ -1403,12 +1407,12 @@ export default function AnalysisPage() {
                     notCoveredStandardsSections.length > 0 ||
                     higherEdAlignmentSections.length > 0) && (
                     <>
-                      <div style={reportSectionHeadingStyle}>Standards Alignment</div>
+                      <div style={reportSectionHeadingStyle}>{standardsSectionHeading}</div>
                       <div style={reportSectionPanelStyle}>
                         <div style={reportStackStyle}>
                           {standardsSummary && (
                             <div style={reportSectionRowStyle}>
-                              <div style={reportPanelTitleStyle}>Standards Summary</div>
+                              <div style={reportPanelTitleStyle}>{standardsSummaryTitle}</div>
                               <div style={reportPanelTextStyle}>{standardsSummary}</div>
                             </div>
                           )}

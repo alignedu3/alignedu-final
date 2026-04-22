@@ -227,11 +227,16 @@ export default function TeacherDashboard() {
         readinessSummary: '',
         masteryNotes: '',
         recommendations: '',
+        hasHigherEdAlignment: false,
+        sectionHeading: 'Standards Alignment',
+        summaryTitle: 'Standards Summary',
         higherEdAlignment: [],
       };
     }
 
     const allSections = [...selectedLessonSections.staar, ...selectedLessonSections.teks];
+    const allHigherEdAlignmentSections = selectedLessonSections.higherEdAlignment;
+    const hasHigherEdAlignment = allHigherEdAlignmentSections.length > 0;
 
     return {
       reinforced: extractStandardEntries(allSections, ['Standards Reinforced', 'Standards Addressed', 'Covered in the Lesson']),
@@ -240,9 +245,12 @@ export default function TeacherDashboard() {
       summary:
         extractSectionText(selectedLessonSections.teks, ['Standards Mastery Notes']) ||
         extractSectionText(selectedLessonSections.staar, ['Readiness Summary']) ||
-        extractSectionText(selectedLessonSections.higherEdAlignment, ['Textbook Alignment', 'Summary']),
+        extractSectionText(allHigherEdAlignmentSections, ['Textbook Alignment', 'Summary']),
       recommendations: extractSectionText(allSections, ['Recommended Standards Follow-Up', 'Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
-      higherEdAlignment: selectedLessonSections.higherEdAlignment.filter(
+      hasHigherEdAlignment,
+      sectionHeading: 'Standards Alignment',
+      summaryTitle: hasHigherEdAlignment ? 'Textbook Alignment' : 'Standards Summary',
+      higherEdAlignment: allHigherEdAlignmentSections.filter(
         (section) => !['Textbook Alignment', 'Summary'].includes(section.title)
       ),
     };
@@ -632,10 +640,10 @@ export default function TeacherDashboard() {
                   (selectedLessonStandards.higherEdAlignment?.length ?? 0) > 0 ||
                   selectedLessonTEKS) && (
                   <div style={{ ...reportSectionCard, ...teksSectionCard }}>
-                    <div style={reportSectionTitle}>Standards Alignment</div>
+                    <div style={reportSectionTitle}>{selectedLessonStandards.sectionHeading}</div>
                     <div style={teksSectionStack}>
                       <div style={teksSectionRow}>
-                        <div style={reportSubsectionTitle}>Standards Summary</div>
+                        <div style={reportSubsectionTitle}>{selectedLessonStandards.summaryTitle}</div>
                         <p style={reportBodyText}>
                           {selectedLessonStandards.summary || selectedLessonTEKS?.readinessSummary || selectedLessonTEKS?.overview || 'Review the standards groups below to see which TEKS were reinforced, which need to be revisited, and which were not yet clearly observed in the lesson evidence.'}
                         </p>
