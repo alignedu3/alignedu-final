@@ -111,8 +111,26 @@ function hasFlatInstructionalMetrics(result: string) {
   return new Set(instructionalMetrics).size === 1;
 }
 
+function hasSuspiciousDefaultMetrics(metrics: {
+  score: number | null;
+  coverage_score: number | null;
+  clarity_rating: number | null;
+  engagement_level: number | null;
+  assessment_quality: number | null;
+  gaps_detected: number | null;
+}) {
+  return (
+    metrics.score === 75 &&
+    metrics.coverage_score === 75 &&
+    metrics.clarity_rating === 75 &&
+    metrics.engagement_level === 75 &&
+    metrics.assessment_quality === 75
+  );
+}
+
 function shouldRepairMetricsBlock(result: string) {
-  return !hasCompleteMetricsBlock(result) || hasFlatInstructionalMetrics(result);
+  const metrics = parseOptionalMetricsFromResult(result);
+  return !hasCompleteMetricsBlock(result) || hasFlatInstructionalMetrics(result) || hasSuspiciousDefaultMetrics(metrics);
 }
 
 function escapeRegExp(value: string) {
@@ -589,7 +607,7 @@ For the three standards lists above, use only actual TEKS codes with their match
     result = normalizeStructuredReportText(result);
 
     if (shouldRepairMetricsBlock(result)) {
-      const metricsRepairPrompt = `Based on the lesson transcript and the saved report draft below, return only this exact format with integer values:
+      const buildMetricsRepairPrompt = (strictCalibration = false) => `Based on the lesson transcript and the saved report draft below, return only this exact format with integer values:
 
 Metrics:
 Instructional Score (0-100): [number]
@@ -600,6 +618,7 @@ Assessment Quality (0-100): [number]
 Gaps Flagged: [number]
 
 Calibrate each metric independently. Do not give all five instructional metrics the same number unless the evidence clearly supports that. Use the report draft and transcript together to infer the most defensible scores.
+${strictCalibration ? 'Avoid a flat 75/75/75/75/75 block unless the transcript overwhelmingly supports identical middle-of-the-road performance across every category. When evidence differs by category, the numbers must differ.' : ''}
 
 Grade: ${grade}
 Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
@@ -610,9 +629,27 @@ ${result}
 Transcript:
 ${transcript}`;
 
-      const metricsRepair = await callOpenAIMetricsRepair(openai, metricsRepairPrompt);
-      const repairedMetricsText = metricsRepair.choices[0]?.message?.content || '';
-      const repairedMetrics = parseOptionalMetricsFromResult(repairedMetricsText);
+      const attemptMetricsRepair = async (strictCalibration = false) => {
+        const metricsRepair = await callOpenAIMetricsRepair(openai, buildMetricsRepairPrompt(strictCalibration));
+        const repairedMetricsText = metricsRepair.choices[0]?.message?.content || '';
+        return parseOptionalMetricsFromResult(repairedMetricsText);
+      };
+
+      let repairedMetrics = await attemptMetricsRepair(false);
+
+      if (
+        Object.values(repairedMetrics).every((value) => value !== null) &&
+        (hasSuspiciousDefaultMetrics(repairedMetrics) ||
+          new Set([
+            repairedMetrics.score,
+            repairedMetrics.coverage_score,
+            repairedMetrics.clarity_rating,
+            repairedMetrics.engagement_level,
+            repairedMetrics.assessment_quality,
+          ]).size === 1)
+      ) {
+        repairedMetrics = await attemptMetricsRepair(true);
+      }
 
       if (Object.values(repairedMetrics).every((value) => value !== null)) {
         result = `${buildMetricsBlock({

@@ -579,7 +579,13 @@ export default function TeacherDashboard() {
               <div>
                 <h2 style={cardTitle}>Selected Lesson</h2>
                 <p style={subheading}>
-                  {selectedReport.title || `${selectedReport.grade} ${selectedReport.subject || 'Lesson'}`}
+                  {[
+                    selectedReport.grade || null,
+                    selectedReport.subject || 'Lesson',
+                    selectedReport.title || null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                   {selectedReport.created_at
                     ? ` · ${new Date(selectedReport.created_at).toLocaleDateString()}`
                     : ''}
