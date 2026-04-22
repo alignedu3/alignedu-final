@@ -380,6 +380,12 @@ const statCard: React.CSSProperties = {
   background: 'var(--surface-card)',
   border: '1px solid var(--border)',
   boxShadow: 'var(--shadow-md)',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  textAlign: 'center',
+  gap: 6,
 };
 
 const statLabel: React.CSSProperties = {
@@ -388,7 +394,7 @@ const statLabel: React.CSSProperties = {
   textTransform: 'uppercase',
   letterSpacing: 0.8,
   fontWeight: 800,
-  marginBottom: 10,
+  marginBottom: 2,
 };
 
 const statValue: React.CSSProperties = {
@@ -396,13 +402,14 @@ const statValue: React.CSSProperties = {
   fontSize: 34,
   fontWeight: 800,
   lineHeight: 1,
-  marginBottom: 10,
+  marginBottom: 2,
 };
 
 const statSub: React.CSSProperties = {
   color: 'var(--text-secondary)',
   fontSize: 14,
   lineHeight: 1.5,
+  maxWidth: 200,
 };
 
 const twoColumn: React.CSSProperties = {

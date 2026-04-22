@@ -708,7 +708,7 @@ export default function AdminDashboard() {
           <div style={cardSmall}>
             <div style={statLabel}>Instructional Quality Score</div>
             <button
-              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, color: adminQualityScore >= 75 ? '#22c55e' : '#ef4444', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
+              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, color: adminQualityScore >= 75 ? '#22c55e' : '#ef4444', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'center' }}
               onClick={() => setModalType('quality')}
             >
               {adminQualityScore}/100
@@ -721,7 +721,7 @@ export default function AdminDashboard() {
           <div style={cardSmall}>
             <div style={statLabel}>Lessons Analyzed</div>
             <button
-              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
+              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'center' }}
               onClick={() => setModalType('lessons')}
             >
               {dashboardReports.length}
@@ -732,7 +732,7 @@ export default function AdminDashboard() {
           <div style={cardSmall}>
             <div style={statLabel}>Strong Teachers</div>
             <button
-              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
+              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'center' }}
               onClick={() => setModalType('strong')}
             >
               {strongCount}
@@ -742,7 +742,7 @@ export default function AdminDashboard() {
           <div style={cardSmall}>
             <div style={statLabel}>At-Risk Teachers</div>
             <button
-              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'left' }}
+              style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'center' }}
               onClick={() => setModalType('atrisk')}
             >
               {supportCount}
@@ -1330,13 +1330,25 @@ const btnAlt: React.CSSProperties = { background: 'var(--surface-chip)', color: 
 const headerActionBtn: React.CSSProperties = { ...btn, minWidth: 168, justifyContent: 'center', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
 const headerActionBtnAlt: React.CSSProperties = { ...btnAlt, minWidth: 168, justifyContent: 'center', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
 const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 24, minWidth: 0 };
-const cardSmall: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 16, borderRadius: 12, minWidth: 0 };
+const cardSmall: React.CSSProperties = {
+  background: 'var(--surface-card-solid)',
+  border: '1px solid var(--border)',
+  padding: 16,
+  borderRadius: 12,
+  minWidth: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  textAlign: 'center',
+  gap: 6,
+};
 const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 28 };
 const title: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 10 };
 const text: React.CSSProperties = { color: 'var(--text-secondary)' };
-const big: React.CSSProperties = { fontSize: 24, color: 'var(--text-primary)' };
-const statLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 13, marginBottom: 4 };
-const statSub: React.CSSProperties = { fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 };
+const big: React.CSSProperties = { fontSize: 24, color: 'var(--text-primary)', width: '100%', fontWeight: 700 };
+const statLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 13, marginBottom: 2, fontWeight: 600 };
+const statSub: React.CSSProperties = { fontSize: 12, color: 'var(--text-secondary)', marginTop: 2, lineHeight: 1.4, maxWidth: 170 };
 const table: React.CSSProperties = { width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' };
 const th: React.CSSProperties = { textAlign: 'left', color: 'var(--text-secondary)', padding: '5px 6px', fontSize: 13 };
 const td: React.CSSProperties = { color: 'var(--text-primary)', padding: '5px 6px', fontSize: 14, verticalAlign: 'middle' };
