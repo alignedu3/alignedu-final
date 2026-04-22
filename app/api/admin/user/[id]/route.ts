@@ -91,6 +91,50 @@ export async function DELETE(
     .select('parent_admin_id, child_admin_id')
     .or(`child_admin_id.eq.${targetId},parent_admin_id.eq.${targetId}`);
 
+  const isDeletedAdmin = targetProfile.role === 'admin';
+  const parentAdminId =
+    callerRole === 'super_admin' && isDeletedAdmin
+      ? adminLinks?.find((link) => link.child_admin_id === targetId)?.parent_admin_id || callerUser.id
+      : null;
+
+  if (parentAdminId && parentAdminId !== targetId) {
+    const reassignedTeacherLinks = (teacherLinks || [])
+      .filter((link) => link.admin_id === targetId && link.teacher_id && link.teacher_id !== parentAdminId)
+      .map((link) => ({
+        admin_id: parentAdminId,
+        teacher_id: link.teacher_id,
+      }));
+
+    const reassignedAdminLinks = (adminLinks || [])
+      .filter((link) => link.parent_admin_id === targetId && link.child_admin_id && link.child_admin_id !== parentAdminId)
+      .map((link) => ({
+        parent_admin_id: parentAdminId,
+        child_admin_id: link.child_admin_id,
+      }));
+
+    if (reassignedTeacherLinks.length > 0) {
+      const { error: reassignTeachersError } = await supabase
+        .from('managed_teachers')
+        .upsert(reassignedTeacherLinks, { onConflict: 'admin_id,teacher_id', ignoreDuplicates: true });
+
+      if (reassignTeachersError) {
+        console.error('Teacher reassignment error:', reassignTeachersError);
+        return NextResponse.json({ error: 'Failed to reassign the deleted admin’s teachers.' }, { status: 500 });
+      }
+    }
+
+    if (reassignedAdminLinks.length > 0) {
+      const { error: reassignAdminsError } = await supabase
+        .from('managed_admins')
+        .upsert(reassignedAdminLinks, { onConflict: 'parent_admin_id,child_admin_id', ignoreDuplicates: true });
+
+      if (reassignAdminsError) {
+        console.error('Admin reassignment error:', reassignAdminsError);
+        return NextResponse.json({ error: 'Failed to reassign the deleted admin’s child admins.' }, { status: 500 });
+      }
+    }
+  }
+
   // Remove relationship rows first to avoid FK constraint issues.
   const { error: deleteManagedTeacherByTeacherError } = await supabase.from('managed_teachers').delete().eq('teacher_id', targetId);
   const { error: deleteManagedTeacherByAdminError } = await supabase.from('managed_teachers').delete().eq('admin_id', targetId);
@@ -135,5 +179,8 @@ export async function DELETE(
     return NextResponse.json({ error: deleteError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({
+    success: true,
+    reassignedToAdminId: parentAdminId,
+  });
 }

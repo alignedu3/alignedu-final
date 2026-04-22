@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   buildAdminSupportPlanForTeacher,
@@ -124,75 +124,75 @@ export default function AdminDashboard() {
     router.push(`/admin/teacher/${userId}${params}`);
   };
 
-  useEffect(() => {
-    async function safeLoad() {
-      try {
-        setLoadError('');
-        const { response, data } = await fetchJsonWithTimeout<{
-          success: boolean;
-          error?: string;
-          caller?: { id?: string; email?: string | null; role?: string | null };
-          visibility?: { adminIds?: string[] };
-          profiles?: ProfileRecord[];
-          managedTeachers?: Array<{ admin_id: string; teacher_id: string }>;
-          managedAdmins?: Array<{ parent_admin_id: string; child_admin_id: string }>;
-          analyses?: AnalysisReport[];
-        }>(`/api/admin/dashboard${selectedAdminId ? `?adminId=${encodeURIComponent(selectedAdminId)}` : ''}`, {
-          credentials: 'include',
-          cache: 'no-store',
-        });
+  const loadDashboard = useCallback(async () => {
+    try {
+      setLoadError('');
+      const { response, data } = await fetchJsonWithTimeout<{
+        success: boolean;
+        error?: string;
+        caller?: { id?: string; email?: string | null; role?: string | null };
+        visibility?: { adminIds?: string[] };
+        profiles?: ProfileRecord[];
+        managedTeachers?: Array<{ admin_id: string; teacher_id: string }>;
+        managedAdmins?: Array<{ parent_admin_id: string; child_admin_id: string }>;
+        analyses?: AnalysisReport[];
+      }>(`/api/admin/dashboard${selectedAdminId ? `?adminId=${encodeURIComponent(selectedAdminId)}` : ''}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
 
-        if (response.status === 401) {
-          window.location.replace('/login');
-          return;
-        }
-
-        if (response.status === 403) {
-          window.location.replace('/dashboard');
-          return;
-        }
-
-        if (!response.ok || !data?.success) {
-          throw new Error(data?.error || 'Unable to load admin dashboard.');
-        }
-
-        setCurrentUserId(data.caller?.id ?? null);
-        setCurrentUserEmail(data.caller?.email ?? null);
-        setCurrentUserRole(data.caller?.role ?? null);
-        setVisibleAdminIds((data.visibility?.adminIds || []) as string[]);
-        setProfiles((data.profiles || []) as ProfileRecord[]);
-        setManagedTeachers((data.managedTeachers || []) as Array<{ admin_id: string; teacher_id: string }>);
-        setManagedAdmins((data.managedAdmins || []) as Array<{ parent_admin_id: string; child_admin_id: string }>);
-
-        const toNumber = (value: unknown, fallback = 0) => {
-          if (typeof value === 'number' && Number.isFinite(value)) return value;
-          if (typeof value === 'string') {
-            const parsed = Number(value);
-            if (Number.isFinite(parsed)) return parsed;
-          }
-          return fallback;
-        };
-
-        const normalizedReports = (data.analyses ?? []).map((r: AnalysisReport) => ({
-          ...r,
-          date: r.created_at?.slice(0, 10),
-          coverage: toNumber(r.coverage_score, 75),
-          clarity: toNumber(r.clarity_rating, 75),
-          engagement: toNumber(r.engagement_level, 75),
-          gaps: toNumber(r.gaps_detected, 0),
-        }));
-
-        setDbReports(normalizedReports);
-      } catch (err) {
-        console.error('Admin dashboard load error:', err);
-        setLoadError(err instanceof Error ? err.message : 'Unable to load admin dashboard.');
-      } finally {
-        setReady(true);
+      if (response.status === 401) {
+        window.location.replace('/login');
+        return;
       }
-    }
 
-    safeLoad();
-  }, [router, selectedAdminId]);
+      if (response.status === 403) {
+        window.location.replace('/dashboard');
+        return;
+      }
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || 'Unable to load admin dashboard.');
+      }
+
+      setCurrentUserId(data.caller?.id ?? null);
+      setCurrentUserEmail(data.caller?.email ?? null);
+      setCurrentUserRole(data.caller?.role ?? null);
+      setVisibleAdminIds((data.visibility?.adminIds || []) as string[]);
+      setProfiles((data.profiles || []) as ProfileRecord[]);
+      setManagedTeachers((data.managedTeachers || []) as Array<{ admin_id: string; teacher_id: string }>);
+      setManagedAdmins((data.managedAdmins || []) as Array<{ parent_admin_id: string; child_admin_id: string }>);
+
+      const toNumber = (value: unknown, fallback = 0) => {
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
+        if (typeof value === 'string') {
+          const parsed = Number(value);
+          if (Number.isFinite(parsed)) return parsed;
+        }
+        return fallback;
+      };
+
+      const normalizedReports = (data.analyses ?? []).map((r: AnalysisReport) => ({
+        ...r,
+        date: r.created_at?.slice(0, 10),
+        coverage: toNumber(r.coverage_score, 75),
+        clarity: toNumber(r.clarity_rating, 75),
+        engagement: toNumber(r.engagement_level, 75),
+        gaps: toNumber(r.gaps_detected, 0),
+      }));
+
+      setDbReports(normalizedReports);
+    } catch (err) {
+      console.error('Admin dashboard load error:', err);
+      setLoadError(err instanceof Error ? err.message : 'Unable to load admin dashboard.');
+    } finally {
+      setReady(true);
+    }
+  }, [selectedAdminId]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -601,10 +601,7 @@ export default function AdminDashboard() {
         pushToast(data.error || 'Failed to remove user.', 'error');
         return;
       }
-      setProfiles(prev => prev.filter(p => p.id !== userId));
-      setManagedTeachers(prev => prev.filter(l => l.teacher_id !== userId && l.admin_id !== userId));
-      setManagedAdmins(prev => prev.filter(l => l.child_admin_id !== userId && l.parent_admin_id !== userId));
-      setVisibleAdminIds(prev => prev.filter(id => id !== userId));
+      await loadDashboard();
       pushToast('User removed successfully.', 'success');
     } catch {
       pushToast('Network error removing user.', 'error');
