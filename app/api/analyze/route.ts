@@ -229,6 +229,26 @@ function needsRecommendedNextStepRepair(result: string) {
   return genericPatterns.some((pattern) => normalized.includes(pattern));
 }
 
+function needsContentGapsRepair(result: string) {
+  const feedbackSections = parseFeedbackSections(result);
+  const gapItems = feedbackSections.contentGaps.flatMap((section) => {
+    if (section.bullets.length > 0) return section.bullets;
+    return section.content
+      ? section.content
+          .split(/\n+/)
+          .map((line) => line.replace(/^[0-9]+\.\s*/, '').trim())
+          .filter(Boolean)
+      : [];
+  });
+
+  return gapItems.length === 0;
+}
+
+function needsHigherEdAlignmentRepair(result: string) {
+  const feedbackSections = parseFeedbackSections(result);
+  return (feedbackSections.higherEdAlignment?.length ?? 0) === 0;
+}
+
 function buildMetricsBlock(metrics: {
   score: number;
   coverage_score: number;
@@ -713,6 +733,40 @@ ${transcript}`;
       }
     }
 
+    if (needsContentGapsRepair(result)) {
+      const contentGapsRepairPrompt = `Return only the numbered list for the "CONTENT GAPS TO REINFORCE" section of this lesson report.
+
+Requirements:
+- Provide exactly ${isHigherEdBiology || isHigherEdCustomText ? '3' : '2 to 3'} specific content gaps if meaningful gaps are present.
+- Each item must name a concrete missing concept, misconception, weak conceptual link, or underdeveloped idea from this lesson.
+- Ground the list in the actual lesson content.
+- If there are no meaningful content gaps, return exactly: 1. No major content gaps identified.
+- Do not include a heading.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+      const contentGapsRepair = await callOpenAISectionRepair(openai, contentGapsRepairPrompt);
+      const repairedContentGapsText = String(contentGapsRepair.choices[0]?.message?.content || "")
+        .replace(/\r/g, "")
+        .trim();
+
+      if (repairedContentGapsText) {
+        result = upsertStructuredSection(
+          result,
+          "CONTENT GAPS TO REINFORCE",
+          repairedContentGapsText,
+          "RECOMMENDED NEXT STEP"
+        );
+      }
+    }
+
     if (needsRecommendedNextStepRepair(result)) {
       const nextStepRepairPrompt = `Return only the paragraph for the "RECOMMENDED NEXT STEP" section of this lesson report.
 
@@ -743,6 +797,46 @@ ${transcript}`;
           result,
           "RECOMMENDED NEXT STEP",
           repairedNextStepText
+        );
+      }
+    }
+
+    if ((isHigherEdBiology || (isHigherEdCustomText && book)) && needsHigherEdAlignmentRepair(result)) {
+      const alignmentHeading = isHigherEdBiology
+        ? "HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT"
+        : "HIGHER ED TEXTBOOK ALIGNMENT";
+      const alignmentRepairPrompt = `Return only the labeled bullets for the "${alignmentHeading}" section of this lesson report.
+
+Requirements:
+- Use these exact labels:
+  - Textbook Alignment:
+  - Missing Conceptual Depth:
+  - Terminology Precision:
+  - College-Level Recommendation:
+- Keep each field concise and specific to this lesson.
+- Ground the response in the selected ${isHigherEdBiology ? 'Campbell Biology chapter' : 'textbook and chapter'}.
+- Do not include a heading outside of the labeled bullets.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+      const alignmentRepair = await callOpenAISectionRepair(openai, alignmentRepairPrompt);
+      const repairedAlignmentText = String(alignmentRepair.choices[0]?.message?.content || "")
+        .replace(/\r/g, "")
+        .trim();
+
+      if (repairedAlignmentText) {
+        result = upsertStructuredSection(
+          result,
+          alignmentHeading,
+          repairedAlignmentText,
+          "SUBMISSION CONTEXT"
         );
       }
     }

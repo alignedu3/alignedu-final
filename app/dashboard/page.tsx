@@ -227,6 +227,7 @@ export default function TeacherDashboard() {
         readinessSummary: '',
         masteryNotes: '',
         recommendations: '',
+        higherEdAlignment: [],
       };
     }
 
@@ -238,8 +239,10 @@ export default function TeacherDashboard() {
       notObserved: extractStandardEntries(allSections, ['Standards Not Observed', 'Not Covered in the Lesson']),
       summary:
         extractSectionText(selectedLessonSections.teks, ['Standards Mastery Notes']) ||
-        extractSectionText(selectedLessonSections.staar, ['Readiness Summary']),
+        extractSectionText(selectedLessonSections.staar, ['Readiness Summary']) ||
+        extractSectionText(selectedLessonSections.higherEdAlignment, ['Textbook Alignment', 'Summary']),
       recommendations: extractSectionText(allSections, ['Recommended Standards Follow-Up', 'Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
+      higherEdAlignment: selectedLessonSections.higherEdAlignment,
     };
   }, [selectedLessonSections]);
   const hasStructuredSelectedLesson = useMemo(() => {
@@ -622,36 +625,28 @@ export default function TeacherDashboard() {
                   </div>
                 </div>
 
+                {selectedLessonSections.contentGaps.length > 0 && (
+                  <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
+                    <div style={reportSectionTitle}>Content Gaps To Reinforce</div>
+                    <ul style={reportList}>
+                      {selectedLessonSections.contentGaps.map((item, index) => (
+                        <li key={`content-gap-${index}`} style={reportListItem}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div style={{ ...reportSectionCard, ...nextStepSectionCard }}>
                   <div style={reportSectionTitle}>Recommended Next Step</div>
                   <p style={reportBodyText}>{selectedLessonSections.recommendedNextStep}</p>
                 </div>
 
-                {selectedLessonSections.coaching.length > 0 && (
-                  <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
-                    <div style={reportSectionTitle}>Coaching Notes</div>
-                    <div style={reportSectionStack}>
-                      {selectedLessonSections.coaching.map((section, index) => (
-                        <div key={`coaching-section-${index}`}>
-                          <div style={reportSubsectionTitle}>{section.title}</div>
-                          {section.bullets.length > 0 ? (
-                            <ul style={reportList}>
-                              {section.bullets.map((item, itemIndex) => (
-                                <li key={`coaching-item-${itemIndex}`} style={reportListItem}>{item}</li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p style={reportBodyText}>{section.content}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {(selectedLessonSections.staar.length > 0 || selectedLessonSections.teks.length > 0 || selectedLessonTEKS) && (
+                {(selectedLessonSections.staar.length > 0 ||
+                  selectedLessonSections.teks.length > 0 ||
+                  (selectedLessonStandards.higherEdAlignment?.length ?? 0) > 0 ||
+                  selectedLessonTEKS) && (
                   <div style={{ ...reportSectionCard, ...teksSectionCard }}>
-                    <div style={reportSectionTitle}>TEKS Coverage</div>
+                    <div style={reportSectionTitle}>Standards Alignment</div>
                     <div style={teksSectionStack}>
                       <div style={teksSectionRow}>
                         <div style={reportSubsectionTitle}>Standards Summary</div>
@@ -723,6 +718,24 @@ export default function TeacherDashboard() {
                       <div style={{ ...teksSectionRow, marginTop: 8 }}>
                         <div style={reportSubsectionTitle}>Recommended Standards Follow-Up</div>
                         <p style={reportBodyText}>{selectedLessonStandards.recommendations}</p>
+                      </div>
+                    )}
+                    {selectedLessonStandards.higherEdAlignment.length > 0 && (
+                      <div style={teksSectionStack}>
+                        {selectedLessonStandards.higherEdAlignment.map((section, index) => (
+                          <div key={`higher-ed-alignment-${index}`} style={teksSectionRow}>
+                            <div style={reportSubsectionTitle}>{section.title}</div>
+                            {section.bullets.length > 0 ? (
+                              <ul style={reportList}>
+                                {section.bullets.map((item, itemIndex) => (
+                                  <li key={`higher-ed-alignment-item-${itemIndex}`} style={reportListItem}>{item}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p style={reportBodyText}>{section.content}</p>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     )}
                     {selectedLessonSections.teks.length === 0 && (selectedLessonTEKS?.strengths?.length ?? 0) > 0 && (

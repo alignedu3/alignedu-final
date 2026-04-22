@@ -639,6 +639,7 @@ export function getLessonReportSections(report: AnalysisReport): {
   coaching: ReportSection[];
   teks: ReportSection[];
   staar: ReportSection[];
+  higherEdAlignment: ReportSection[];
   submissionContext: ReportSection[];
 } {
   const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
@@ -664,6 +665,7 @@ export function getLessonReportSections(report: AnalysisReport): {
     coaching: parsed.coaching,
     teks: parsed.teks,
     staar: parsed.staar,
+    higherEdAlignment: parsed.higherEdAlignment ?? [],
     submissionContext: parsed.submissionContext,
   };
 }
