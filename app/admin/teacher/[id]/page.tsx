@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import {
   LineChart,
   Line,
@@ -18,7 +18,11 @@ import ProtectedPageState from '@/components/ProtectedPageState';
 
 export default function AdminTeacherPage() {
   const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const id = params?.id;
+  const returnSection = searchParams?.get('from');
+  const returnAdminId = searchParams?.get('adminId');
+  const backHref = `/admin${returnAdminId ? `?adminId=${encodeURIComponent(returnAdminId)}` : ''}${returnSection === 'team' ? '#team' : returnSection === 'performance' ? '#performance' : ''}`;
 
   const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [name, setName] = useState('');
@@ -136,7 +140,7 @@ export default function AdminTeacherPage() {
         mode="error"
         title="Unable to load teacher details"
         message={loadError}
-        actionHref="/admin"
+        actionHref={backHref}
         actionLabel="Back to Admin Dashboard"
       />
     );
@@ -148,6 +152,9 @@ export default function AdminTeacherPage() {
 
         <div style={header}>
           <div>
+            <Link href={backHref} style={backLink}>
+              Back to Dashboard
+            </Link>
             <h1 style={heading}>{name}</h1>
             <p style={subheading}>{reports.length} lessons analyzed</p>
           </div>
@@ -414,6 +421,17 @@ const heading: React.CSSProperties = {
 
 const subheading: React.CSSProperties = {
   color: 'var(--text-secondary)'
+};
+
+const backLink: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  marginBottom: 10,
+  color: '#f97316',
+  textDecoration: 'none',
+  fontSize: 13,
+  fontWeight: 700,
 };
 
 const grid: React.CSSProperties = {

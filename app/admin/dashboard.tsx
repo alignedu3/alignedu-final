@@ -114,11 +114,15 @@ export default function AdminDashboard() {
     router.push('/admin/monitoring');
   };
 
-  const navigateToUserDashboard = (userId: string, role?: string | null, fromTeam = false) => {
+  const navigateToUserDashboard = (userId: string, role?: string | null, returnSection?: 'team' | 'performance') => {
     if (userId.startsWith('sample-')) return;
-    const params = fromTeam ? '?fromTeam=1' : '';
+    const queryParts = [
+      ...(returnSection ? [`from=${returnSection}`] : []),
+      ...(selectedAdminId ? [`adminId=${selectedAdminId}`] : []),
+    ];
+    const params = queryParts.length ? `?${queryParts.join('&')}` : '';
     if (role === 'admin' || role === 'super_admin') {
-      router.push(`/admin?adminId=${userId}${params ? `&${params.slice(1)}` : ''}`);
+      router.push(`/admin?adminId=${userId}`);
       return;
     }
     router.push(`/admin/teacher/${userId}${params}`);
@@ -683,7 +687,7 @@ export default function AdminDashboard() {
         )}
 
         {/* AT RISK */}
-        <div style={card}>
+        <div id="performance" style={card}>
           <h2 style={title}>At-Risk Teachers</h2>
           {atRiskTeachers.length === 0 ? (
             <p style={text}>No teachers currently need intervention.</p>
@@ -963,7 +967,7 @@ export default function AdminDashboard() {
                         style={{ ...actionButton, padding: isNarrowScreen ? '3px 7px' : actionButton.padding, fontSize: isNarrowScreen ? 11 : undefined }}
                         onClick={() => {
                           if (isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)) return;
-                          router.push(`/admin/teacher/${t.id}`);
+                          navigateToUserDashboard(t.id, 'teacher', 'performance');
                         }}
                         disabled={isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)}
                       >
@@ -994,7 +998,7 @@ export default function AdminDashboard() {
                   <div style={hierarchyIdentity}>
                     <div style={{ minWidth: 0 }}>
                       <button
-                        onClick={() => navigateToUserDashboard(row.id, row.role, true)}
+                        onClick={() => navigateToUserDashboard(row.id, row.role, 'team')}
                         style={entityLinkBtn}
                       >
                         {row.name}
@@ -1030,7 +1034,7 @@ export default function AdminDashboard() {
                             <button
                               onClick={() => {
                                 setOpenActionsForId(null);
-                                navigateToUserDashboard(row.id, row.role);
+                                navigateToUserDashboard(row.id, row.role, 'team');
                               }}
                               style={menuItemBtn}
                             >
@@ -1066,7 +1070,7 @@ export default function AdminDashboard() {
                         {row.childAdmins.map((child) => (
                           <div key={child.id} style={pillBtn}>
                             <button
-                              onClick={() => navigateToUserDashboard(child.id, child.role)}
+                              onClick={() => navigateToUserDashboard(child.id, child.role, 'team')}
                               style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(child.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(child.id) ? 0.72 : 1 }}
                             >
                               {child.name}
@@ -1205,7 +1209,7 @@ export default function AdminDashboard() {
                           onClick={() => {
                             if (isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)) return;
                             setModalType(null);
-                            router.push(`/admin/teacher/${t.id}`);
+                            navigateToUserDashboard(t.id, 'teacher', 'performance');
                           }}
                         >
                           <td style={{ padding: '8px 8px' }}>
@@ -1214,7 +1218,7 @@ export default function AdminDashboard() {
                                 if (isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)) return;
                                 e.stopPropagation();
                                 setModalType(null);
-                                router.push(`/admin/teacher/${t.id}`);
+                                navigateToUserDashboard(t.id, 'teacher', 'performance');
                               }}
                               style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id) ? 'default' : 'pointer', textDecoration: isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id) ? 'none' : 'underline', textUnderlineOffset: 2, opacity: isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id) ? 0.72 : 1 }}
                             >
