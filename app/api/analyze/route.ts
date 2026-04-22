@@ -180,7 +180,8 @@ function needsExecutiveSummaryRepair(result: string) {
     "high performing lesson with clear evidence of strong instructional moves",
   ];
 
-  return summary.length < 120 || genericPatterns.some((pattern) => normalized.includes(pattern));
+  const sentenceCount = summary.split(/(?<=[.!?])\s+/).filter(Boolean).length;
+  return summary.length < 80 || summary.length > 260 || sentenceCount > 2 || genericPatterns.some((pattern) => normalized.includes(pattern));
 }
 
 function needsWhatCanImproveRepair(result: string) {
@@ -219,7 +220,9 @@ function needsRecommendedNextStepRepair(result: string) {
     "continue building on what worked while focusing next on stronger mastery checks tighter closure and clear evidence that students can independently demonstrate understanding by the end of the lesson",
   ];
 
-  if (nextStep.length < 90) {
+  const sentenceCount = nextStep.split(/(?<=[.!?])\s+/).filter(Boolean).length;
+
+  if (nextStep.length < 70 || nextStep.length > 360 || sentenceCount > 3) {
     return true;
   }
 
@@ -504,7 +507,7 @@ Assessment Quality (0-100): [number]
 Gaps Flagged: [number]
 
 === EXECUTIVE SUMMARY ===
-Provide a concise 2-4 sentence summary of overall lesson quality, student experience, and biggest instructional takeaway. Mention at least 2 concrete lesson details.
+Provide a concise 1-2 sentence summary of overall lesson quality, student experience, and biggest instructional takeaway. Mention at least 1 concrete lesson detail. Keep it brief and avoid repeating later bullets.
 
 === WHAT WENT WELL ===
 - [specific strength tied to a concrete lesson moment]
@@ -520,7 +523,7 @@ Provide a concise 2-4 sentence summary of overall lesson quality, student experi
 Provide a numbered list of the exact content misunderstandings, missing ideas, weak prerequisite links, or underdeveloped biological concepts that need reteach. If there are no meaningful content gaps, write "1. No major content gaps identified."
 
 === RECOMMENDED NEXT STEP ===
-Provide 1 concise paragraph with the single highest-leverage next move for the teacher. It must directly address the most important weakness from this lesson and explain why it matters here.
+Provide 1 short paragraph with the single highest-leverage next move for the teacher. Limit it to 2-3 sentences. It must directly address the most important weakness from this lesson and explain why it matters here without repeating the summary.
 
 === INSTRUCTIONAL COACHING FEEDBACK ===
 Provide lesson-specific instructional coaching feedback using labeled bullets:
@@ -643,12 +646,13 @@ ${transcript}`;
       const executiveSummaryRepairPrompt = `Return only the paragraph for the "EXECUTIVE SUMMARY" section of this lesson report.
 
 Requirements:
-- Write 2 to 4 sentences.
+- Write 1 to 2 sentences.
 - Keep it specific to this lesson.
 - Mention the strongest observed strength and the biggest instructional need.
 - Ground the summary in actual lesson content, pacing, questioning, modeling, or student understanding evidence.
 - Do not include a heading.
 - Do not use generic summary wording.
+- Keep it brief and direct.
 
 Grade: ${grade}
 Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
@@ -713,11 +717,12 @@ ${transcript}`;
       const nextStepRepairPrompt = `Return only the paragraph for the "RECOMMENDED NEXT STEP" section of this lesson report.
 
 Requirements:
-- Write one concise paragraph.
+- Write one concise paragraph of 2 to 3 sentences.
 - Name the single highest-leverage next move for this exact lesson.
 - Ground it in the actual lesson content, teacher moves, or missed concept work from the transcript.
 - Do not use generic phrasing like "strengthen closure" or "add a quick mastery check" unless you explain what specifically needs to be checked or revisited in this lesson.
 - Do not include a heading.
+- Keep it brief and to the point.
 
 Grade: ${grade}
 Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}

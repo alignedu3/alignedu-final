@@ -676,12 +676,16 @@ export default function AnalysisPage() {
   const standardsMasterySection = standardsAlignmentSections.find(
     (section) => section.title === "Standards Mastery Notes"
   );
+  const higherEdAlignmentSections = feedbackSections.higherEdAlignment ?? [];
   const readinessSummarySection = feedbackSections.staar.find(
     (section) => section.title === "Readiness Summary"
   );
   const standardsSummary =
     standardsMasterySection?.content ||
     readinessSummarySection?.content ||
+    higherEdAlignmentSections.find((section) =>
+      ["Textbook Alignment", "Summary"].includes(section.title)
+    )?.content ||
     "";
   const coveredStandardsSections = standardsAlignmentSections.filter((section) =>
     ["Standards Reinforced", "Standards Addressed", "Covered in the Lesson"].includes(section.title)
@@ -1400,7 +1404,8 @@ export default function AnalysisPage() {
                   {(standardsSummary ||
                     coveredStandardsSections.length > 0 ||
                     reinforcementStandardsSections.length > 0 ||
-                    notCoveredStandardsSections.length > 0) && (
+                    notCoveredStandardsSections.length > 0 ||
+                    higherEdAlignmentSections.length > 0) && (
                     <>
                       <div style={reportSectionHeadingStyle}>Standards Alignment</div>
                       <div style={reportSectionPanelStyle}>
@@ -1445,6 +1450,21 @@ export default function AnalysisPage() {
                           {notCoveredStandardsSections.map((section, index) => (
                             <div key={`not-covered-${index}`} style={reportSectionRowStyle}>
                               <div style={reportPanelTitleStyle}>Standards Not Observed</div>
+                              {section.bullets.length > 0 ? (
+                                <ul style={reportPanelListStyle}>
+                                  {section.bullets.map((item, li) => (
+                                    <li key={li}>{item}</li>
+                                  ))}
+                                </ul>
+                              ) : (
+                                <div style={reportPanelTextStyle}>{section.content}</div>
+                              )}
+                            </div>
+                          ))}
+
+                          {higherEdAlignmentSections.map((section, index) => (
+                            <div key={`higher-ed-alignment-${index}`} style={reportSectionRowStyle}>
+                              <div style={reportPanelTitleStyle}>{section.title}</div>
                               {section.bullets.length > 0 ? (
                                 <ul style={reportPanelListStyle}>
                                   {section.bullets.map((item, li) => (

@@ -219,6 +219,8 @@ export function parseFeedbackSections(text: string) {
   const coachingMatch = normalized.match(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===([\s\S]*?)(?====|$)/i);
   const teksMatch = normalized.match(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===([\s\S]*?)(?====|$)/i);
   const staarMatch = normalized.match(/===\s*STAAR TEKS COVERAGE\s*===([\s\S]*?)(?====|$)/i);
+  const higherEdBiologyMatch = normalized.match(/===\s*HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT\s*===([\s\S]*?)(?====|$)/i);
+  const higherEdTextMatch = normalized.match(/===\s*HIGHER ED TEXTBOOK ALIGNMENT\s*===([\s\S]*?)(?====|$)/i);
   const contentGapsMatch = normalized.match(/===\s*CONTENT GAPS TO REINFORCE\s*===([\s\S]*?)(?====|$)/i);
   const submissionContextMatch = normalized.match(/===\s*SUBMISSION CONTEXT\s*===([\s\S]*?)(?====|$)/i);
 
@@ -231,6 +233,11 @@ export function parseFeedbackSections(text: string) {
     coaching: coachingMatch ? parseLabeledSection(coachingMatch[1]) : [],
     teks: teksMatch ? parseLabeledSection(teksMatch[1]) : [],
     staar: staarMatch ? parseLabeledSection(staarMatch[1]) : [],
+    higherEdAlignment: higherEdBiologyMatch
+      ? parseLabeledSection(higherEdBiologyMatch[1])
+      : higherEdTextMatch
+        ? parseLabeledSection(higherEdTextMatch[1])
+        : [],
     submissionContext: submissionContextMatch ? parseLabeledSection(submissionContextMatch[1]) : [],
   };
 }
