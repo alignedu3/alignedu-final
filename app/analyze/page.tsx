@@ -695,15 +695,12 @@ export default function AnalysisPage() {
       bullets: engagementSignalsSection?.bullets ?? [],
       content: engagementSignalsSection?.content || "",
     },
-    {
-      title: "Suggested Next Steps",
-      bullets: suggestedNextStepsSection?.bullets ?? [],
-      content:
-        suggestedNextStepsSection?.content ||
-        feedbackSections.recommendedNextStep ||
-        "",
-    },
   ].filter((section) => section.bullets.length > 0 || section.content.trim());
+  const recommendedNextStepText =
+    suggestedNextStepsSection?.content ||
+    (suggestedNextStepsSection?.bullets.length ? suggestedNextStepsSection.bullets.join(' ') : '') ||
+    feedbackSections.recommendedNextStep ||
+    "";
   const submissionContextText = feedbackSections.submissionContext
     .map((section) => {
       if (section.bullets.length > 0) {
@@ -1453,6 +1450,15 @@ export default function AnalysisPage() {
                             )}
                           </div>
                         ))}
+                      </div>
+                    </>
+                  )}
+
+                  {recommendedNextStepText && (
+                    <>
+                      <div style={reportSectionHeadingStyle}>Recommended Next Step</div>
+                      <div style={reportSummaryStyle}>
+                        <div style={reportPanelTextStyle}>{recommendedNextStepText}</div>
                       </div>
                     </>
                   )}

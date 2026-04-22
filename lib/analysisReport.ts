@@ -18,6 +18,20 @@ const REPORT_HEADING_MAP: Record<string, string> = {
   summary: "Executive Summary",
 };
 
+const STRUCTURED_SECTION_HEADINGS = [
+  'EXECUTIVE SUMMARY',
+  'WHAT WENT WELL',
+  'WHAT CAN IMPROVE',
+  'CONTENT GAPS TO REINFORCE',
+  'RECOMMENDED NEXT STEP',
+  'INSTRUCTIONAL COACHING FEEDBACK',
+  'TEXAS TEKS STANDARDS ALIGNMENT',
+  'STAAR TEKS COVERAGE',
+  'HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT',
+  'HIGHER ED TEXTBOOK ALIGNMENT',
+  'SUBMISSION CONTEXT',
+] as const;
+
 export function cleanDisplayText(text: string) {
   return text
     .replace(/\r/g, "")
@@ -28,6 +42,15 @@ export function cleanDisplayText(text: string) {
     .replace(/^\s*[-•*]\s+/gm, "- ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+}
+
+export function normalizeStructuredReportText(text: string) {
+  if (!text) return '';
+
+  return STRUCTURED_SECTION_HEADINGS.reduce((current, heading) => {
+    const pattern = new RegExp(`(^|\\n)\\s*${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(?=\\n)`, 'gi');
+    return current.replace(pattern, `$1=== ${heading} ===`);
+  }, text.replace(/\r/g, ''));
 }
 
 function normalizeTitle(title: string) {
@@ -88,15 +111,18 @@ export function parseLabeledSection(content: string): ReportSection[] {
 export function parseAnalysisResult(text: string): ReportSection[] {
   if (!text) return [];
 
-  const cleaned = cleanDisplayText(text)
+  const cleaned = cleanDisplayText(normalizeStructuredReportText(text))
     .replace(/Metrics:\s*[\s\S]*?(?=\n(?:===|[A-Z][A-Za-z\s]+:)|$)/i, "")
     .replace(/===\s*EXECUTIVE SUMMARY\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*WHAT WENT WELL\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*WHAT CAN IMPROVE\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*CONTENT GAPS TO REINFORCE\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*RECOMMENDED NEXT STEP\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*STAAR TEKS COVERAGE\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*HIGHER ED TEXTBOOK ALIGNMENT\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*SUBMISSION CONTEXT\s*===[\s\S]*?(?====|$)/gi, "")
     .trim();
 
@@ -157,7 +183,8 @@ export function parseAnalysisMetrics(text: string) {
 }
 
 function extractSimpleSection(text: string, sectionName: string) {
-  const match = text.match(new RegExp(`===\\s*${sectionName}\\s*===([\\s\\S]*?)(?====|$)`, "i"));
+  const normalized = normalizeStructuredReportText(text);
+  const match = normalized.match(new RegExp(`===\\s*${sectionName}\\s*===([\\s\\S]*?)(?====|$)`, "i"));
   return cleanDisplayText(match?.[1] || "");
 }
 
@@ -169,18 +196,19 @@ function extractBulletSection(text: string, sectionName: string) {
 }
 
 export function parseFeedbackSections(text: string) {
-  const coachingMatch = text.match(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===([\s\S]*?)(?====|$)/i);
-  const teksMatch = text.match(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===([\s\S]*?)(?====|$)/i);
-  const staarMatch = text.match(/===\s*STAAR TEKS COVERAGE\s*===([\s\S]*?)(?====|$)/i);
-  const contentGapsMatch = text.match(/===\s*CONTENT GAPS TO REINFORCE\s*===([\s\S]*?)(?====|$)/i);
-  const submissionContextMatch = text.match(/===\s*SUBMISSION CONTEXT\s*===([\s\S]*?)(?====|$)/i);
+  const normalized = normalizeStructuredReportText(text);
+  const coachingMatch = normalized.match(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===([\s\S]*?)(?====|$)/i);
+  const teksMatch = normalized.match(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===([\s\S]*?)(?====|$)/i);
+  const staarMatch = normalized.match(/===\s*STAAR TEKS COVERAGE\s*===([\s\S]*?)(?====|$)/i);
+  const contentGapsMatch = normalized.match(/===\s*CONTENT GAPS TO REINFORCE\s*===([\s\S]*?)(?====|$)/i);
+  const submissionContextMatch = normalized.match(/===\s*SUBMISSION CONTEXT\s*===([\s\S]*?)(?====|$)/i);
 
   return {
-    executiveSummary: extractSimpleSection(text, "EXECUTIVE SUMMARY"),
-    whatWentWell: extractBulletSection(text, "WHAT WENT WELL"),
-    whatCanImprove: extractBulletSection(text, "WHAT CAN IMPROVE"),
-    recommendedNextStep: extractSimpleSection(text, "RECOMMENDED NEXT STEP"),
-    contentGaps: contentGapsMatch ? parseLabeledSection(contentGapsMatch[1]) : parseLabeledSection(extractSimpleSection(text, "CONTENT GAPS TO REINFORCE")),
+    executiveSummary: extractSimpleSection(normalized, "EXECUTIVE SUMMARY"),
+    whatWentWell: extractBulletSection(normalized, "WHAT WENT WELL"),
+    whatCanImprove: extractBulletSection(normalized, "WHAT CAN IMPROVE"),
+    recommendedNextStep: extractSimpleSection(normalized, "RECOMMENDED NEXT STEP"),
+    contentGaps: contentGapsMatch ? parseLabeledSection(contentGapsMatch[1]) : parseLabeledSection(extractSimpleSection(normalized, "CONTENT GAPS TO REINFORCE")),
     coaching: coachingMatch ? parseLabeledSection(coachingMatch[1]) : [],
     teks: teksMatch ? parseLabeledSection(teksMatch[1]) : [],
     staar: staarMatch ? parseLabeledSection(staarMatch[1]) : [],

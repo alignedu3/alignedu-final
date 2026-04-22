@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { formatTEKSForPrompt, getRelatedTEKSStandards, getTEKSStandards } from "@/lib/teksStandards";
 import { STAAR_SUBJECTS } from "@/lib/staarSubjects";
 import { getAdminVisibility } from "@/lib/adminVisibility";
+import { normalizeStructuredReportText, parseFeedbackSections } from "@/lib/analysisReport";
 
 function getOpenAIKey() {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -37,6 +38,145 @@ async function callOpenAI(openai: OpenAI, messages: any[]) {
     messages,
     temperature: 0.55,
   });
+}
+
+async function callOpenAIMetricsRepair(openai: OpenAI, prompt: string) {
+  return await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are repairing a lesson report's score block. Return only the metrics block with integers, no commentary.",
+      },
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.2,
+  });
+}
+
+async function callOpenAISectionRepair(openai: OpenAI, prompt: string) {
+  return await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are repairing one missing section in a lesson report. Return only the requested section body, with no heading and no commentary.",
+      },
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.35,
+  });
+}
+
+function parseOptionalMetricsFromResult(result: string) {
+  const parseMetric = (pattern: RegExp) => {
+    const match = result.match(pattern);
+    return match ? Math.min(100, Math.max(0, parseInt(match[1], 10))) : null;
+  };
+
+  return {
+    score: parseMetric(/(?:###\s+)?Instructional Score[:\s]*([0-9]+)/i),
+    coverage_score: parseMetric(/(?:###\s+)?Coverage[:\s]*([0-9]+)/i),
+    clarity_rating: parseMetric(/(?:###\s+)?Clarity[:\s]*([0-9]+)/i),
+    engagement_level: parseMetric(/(?:###\s+)?Engagement[:\s]*([0-9]+)/i),
+    assessment_quality: parseMetric(/(?:###\s+)?Assessment Quality[:\s]*([0-9]+)/i),
+    gaps_detected: (() => {
+      const match = result.match(/(?:###\s+)?Gaps[\s]*(?:Flagged)?[:\s]*([0-9]+)/i);
+      return match ? Math.max(0, parseInt(match[1], 10)) : null;
+    })(),
+  };
+}
+
+function hasCompleteMetricsBlock(result: string) {
+  const metrics = parseOptionalMetricsFromResult(result);
+  return Object.values(metrics).every((value) => value !== null);
+}
+
+function hasFlatInstructionalMetrics(result: string) {
+  const metrics = parseOptionalMetricsFromResult(result);
+  const instructionalMetrics = [
+    metrics.score,
+    metrics.coverage_score,
+    metrics.clarity_rating,
+    metrics.engagement_level,
+    metrics.assessment_quality,
+  ];
+
+  if (instructionalMetrics.some((value) => value === null)) {
+    return false;
+  }
+
+  return new Set(instructionalMetrics).size === 1;
+}
+
+function shouldRepairMetricsBlock(result: string) {
+  return !hasCompleteMetricsBlock(result) || hasFlatInstructionalMetrics(result);
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function upsertStructuredSection(
+  reportText: string,
+  heading: string,
+  body: string,
+  insertBeforeHeading?: string
+) {
+  const normalized = normalizeStructuredReportText(reportText);
+  const trimmedBody = body.trim();
+  if (!trimmedBody) return normalized;
+
+  const sectionBlock = `=== ${heading} ===\n${trimmedBody}`;
+  const sectionPattern = new RegExp(
+    `===\\s*${escapeRegExp(heading)}\\s*===[\\s\\S]*?(?=\\n===|$)`,
+    "i"
+  );
+
+  if (sectionPattern.test(normalized)) {
+    return normalized.replace(sectionPattern, sectionBlock);
+  }
+
+  if (insertBeforeHeading) {
+    const insertPattern = new RegExp(`\\n===\\s*${escapeRegExp(insertBeforeHeading)}\\s*===`, "i");
+    const match = normalized.match(insertPattern);
+    if (match && typeof match.index === "number") {
+      return `${normalized.slice(0, match.index).trimEnd()}\n\n${sectionBlock}\n\n${normalized.slice(match.index + 1)}`;
+    }
+  }
+
+  return `${normalized.trimEnd()}\n\n${sectionBlock}`;
+}
+
+function needsWhatWentWellRepair(result: string) {
+  const feedbackSections = parseFeedbackSections(result);
+  if (feedbackSections.whatWentWell.length >= 2) {
+    return false;
+  }
+
+  const combinedStrengthText = feedbackSections.whatWentWell.join(" ").trim();
+  return combinedStrengthText.length < 80;
+}
+
+function buildMetricsBlock(metrics: {
+  score: number;
+  coverage_score: number;
+  clarity_rating: number;
+  engagement_level: number;
+  assessment_quality: number;
+  gaps_detected: number;
+}) {
+  return [
+    "Metrics:",
+    `Instructional Score (0-100): ${metrics.score}`,
+    `Coverage (0-100): ${metrics.coverage_score}`,
+    `Clarity (0-100): ${metrics.clarity_rating}`,
+    `Engagement (0-100): ${metrics.engagement_level}`,
+    `Assessment Quality (0-100): ${metrics.assessment_quality}`,
+    `Gaps Flagged: ${metrics.gaps_detected}`,
+  ].join("\n");
 }
 
 function extractScoreFromResult(result: string): number {
@@ -255,7 +395,9 @@ export async function POST(req: Request) {
 
 Every report must feel unique to the lesson in front of you, not like a reusable template. Anchor feedback to concrete evidence from this specific lesson: teacher moves, student responses, task structure, checks for understanding, pacing, and standards alignment. Avoid generic praise or generic coaching phrases unless they are tied to an explicit lesson detail.
 
-Use varied wording across sections. Do not repeat the same sentence frame in multiple sections. When possible, reference 3 or more distinct lesson moments across the report. You may quote short phrases from the transcript when it helps ground the feedback, but keep quotes brief.`;
+Use varied wording across sections. Do not repeat the same sentence frame in multiple sections. When possible, reference 3 or more distinct lesson moments across the report. You may quote short phrases from the transcript when it helps ground the feedback, but keep quotes brief.
+
+Score the lesson with professional calibration. The scores do not need to match each other. Let strengths and weaknesses land where the evidence supports them. Only use the same number across multiple categories if the transcript truly supports that level across all of them.`;
 
     if (isHigherEdBiology) {
       systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.`;
@@ -281,6 +423,7 @@ Important writing rules:
 - If evidence is limited, say what was observable instead of inventing detail.
 - Prioritize the most distinctive strengths and weaknesses from this lesson, not the most common teacher coaching advice.
 - Gaps Flagged must match the number of substantive bullets listed in CONTENT GAPS TO REINFORCE. If no meaningful gaps are visible, set Gaps Flagged to 0 and say so plainly.
+- Calibrate each metric separately. Coverage, Clarity, Engagement, Assessment Quality, and the overall score should reflect different aspects of the lesson and should not default to the same number unless the evidence clearly supports that.
 
 Metrics:
 Instructional Score (0-100): [number]
@@ -347,13 +490,90 @@ For the three standards lists above, use only actual TEKS codes with their match
       { role: "user", content: userPrompt },
     ]);
 
-    const result =
+    let result =
       completion.choices[0]?.message?.content || "No result returned";
+
+    result = normalizeStructuredReportText(result);
+
+    if (shouldRepairMetricsBlock(result)) {
+      const metricsRepairPrompt = `Based on the lesson transcript and the saved report draft below, return only this exact format with integer values:
+
+Metrics:
+Instructional Score (0-100): [number]
+Coverage (0-100): [number]
+Clarity (0-100): [number]
+Engagement (0-100): [number]
+Assessment Quality (0-100): [number]
+Gaps Flagged: [number]
+
+Calibrate each metric independently. Do not give all five instructional metrics the same number unless the evidence clearly supports that. Use the report draft and transcript together to infer the most defensible scores.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+      const metricsRepair = await callOpenAIMetricsRepair(openai, metricsRepairPrompt);
+      const repairedMetricsText = metricsRepair.choices[0]?.message?.content || '';
+      const repairedMetrics = parseOptionalMetricsFromResult(repairedMetricsText);
+
+      if (Object.values(repairedMetrics).every((value) => value !== null)) {
+        result = `${buildMetricsBlock({
+          score: repairedMetrics.score as number,
+          coverage_score: repairedMetrics.coverage_score as number,
+          clarity_rating: repairedMetrics.clarity_rating as number,
+          engagement_level: repairedMetrics.engagement_level as number,
+          assessment_quality: repairedMetrics.assessment_quality as number,
+          gaps_detected: repairedMetrics.gaps_detected as number,
+        })}\n\n${result}`;
+      }
+    }
+
+    if (needsWhatWentWellRepair(result)) {
+      const strengthsRepairPrompt = `Return only 3 bullets for the "WHAT WENT WELL" section of this lesson report.
+
+Requirements:
+- Each bullet must name a real strength that can be supported by the lesson transcript or report draft.
+- Each bullet must be specific to this lesson, not generic teacher praise.
+- Focus on instructional moves, student engagement signals, explanation choices, questioning, examples, modeling, or structure that actually helped the lesson.
+- Keep each bullet to 1-2 sentences.
+- Do not include a heading.
+- Do not repeat the same point in multiple bullets.
+- If the evidence is limited, still identify the strongest genuine positives you can support from the transcript.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+      const strengthsRepair = await callOpenAISectionRepair(openai, strengthsRepairPrompt);
+      const repairedStrengthsText = String(strengthsRepair.choices[0]?.message?.content || "")
+        .replace(/\r/g, "")
+        .trim();
+
+      if (repairedStrengthsText) {
+        result = upsertStructuredSection(
+          result,
+          "WHAT WENT WELL",
+          repairedStrengthsText,
+          "WHAT CAN IMPROVE"
+        );
+      }
+    }
+
     const submissionContext =
       observedTeacherId
         ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfile?.name || 'Admin').trim()} (Admin Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
         : "";
-    const finalResult = `${result}${submissionContext}`;
+    const finalResult = normalizeStructuredReportText(`${result}${submissionContext}`);
 
     const score = extractScoreFromResult(finalResult);
     const metrics = extractMetricsFromResult(finalResult);
