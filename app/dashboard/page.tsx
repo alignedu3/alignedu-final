@@ -261,10 +261,11 @@ export default function TeacherDashboard() {
       selectedLessonSections.executiveSummary ||
       selectedLessonSections.strengths.length ||
       selectedLessonSections.improvements.length ||
+      selectedLessonSections.contentGaps.length ||
       selectedLessonSections.recommendedNextStep ||
-      selectedLessonSections.coaching.length ||
       selectedLessonSections.teks.length ||
-      selectedLessonSections.staar.length
+      selectedLessonSections.staar.length ||
+      selectedLessonSections.higherEdAlignment.length
     );
   }, [selectedLessonSections]);
 
