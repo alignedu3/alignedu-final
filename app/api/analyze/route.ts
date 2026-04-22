@@ -77,13 +77,13 @@ function parseOptionalMetricsFromResult(result: string) {
   };
 
   return {
-    score: parseMetric(/(?:###\s+)?Instructional Score[:\s]*([0-9]+)/i),
-    coverage_score: parseMetric(/(?:###\s+)?Coverage[:\s]*([0-9]+)/i),
-    clarity_rating: parseMetric(/(?:###\s+)?Clarity[:\s]*([0-9]+)/i),
-    engagement_level: parseMetric(/(?:###\s+)?Engagement[:\s]*([0-9]+)/i),
-    assessment_quality: parseMetric(/(?:###\s+)?Assessment Quality[:\s]*([0-9]+)/i),
+    score: parseMetric(/(?:###\s+)?Instructional Score(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i),
+    coverage_score: parseMetric(/(?:###\s+)?Coverage(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i),
+    clarity_rating: parseMetric(/(?:###\s+)?Clarity(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i),
+    engagement_level: parseMetric(/(?:###\s+)?Engagement(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i),
+    assessment_quality: parseMetric(/(?:###\s+)?Assessment Quality(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i),
     gaps_detected: (() => {
-      const match = result.match(/(?:###\s+)?Gaps[\s]*(?:Flagged)?[:\s]*([0-9]+)/i);
+      const match = result.match(/(?:###\s+)?Gaps[\s]*(?:Flagged)?(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i);
       return match ? Math.max(0, parseInt(match[1], 10)) : null;
     })(),
   };
@@ -168,6 +168,45 @@ function needsWhatWentWellRepair(result: string) {
   return true;
 }
 
+function needsExecutiveSummaryRepair(result: string) {
+  const feedbackSections = parseFeedbackSections(result);
+  const summary = feedbackSections.executiveSummary.trim();
+  if (!summary) return true;
+
+  const normalized = summary.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  const genericPatterns = [
+    "lesson needs targeted support around clarity closure and reinforcement",
+    "solid lesson with room to sharpen execution and mastery checks",
+    "high performing lesson with clear evidence of strong instructional moves",
+  ];
+
+  return summary.length < 120 || genericPatterns.some((pattern) => normalized.includes(pattern));
+}
+
+function needsWhatCanImproveRepair(result: string) {
+  const feedbackSections = parseFeedbackSections(result);
+  const bullets = feedbackSections.whatCanImprove.map((bullet) => bullet.trim()).filter(Boolean);
+
+  const genericPatterns = [
+    "raise the overall lesson quality by tightening instruction checking for understanding and reinforcing closure",
+    "strengthen standards alignment so the lesson objective is reinforced in modeling practice and closure",
+    "improve clarity with tighter modeling clearer examples and better checks for understanding",
+    "increase student response opportunities so engagement is visible throughout the lesson",
+    "add stronger formative checks before independent work or closure to confirm mastery",
+  ];
+
+  if (bullets.length < 3) {
+    return true;
+  }
+
+  const genericCount = bullets.filter((bullet) => {
+    const normalized = bullet.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+    return genericPatterns.some((pattern) => normalized.includes(pattern));
+  }).length;
+
+  return genericCount >= 2;
+}
+
 function needsRecommendedNextStepRepair(result: string) {
   const feedbackSections = parseFeedbackSections(result);
   const nextStep = feedbackSections.recommendedNextStep.trim();
@@ -207,7 +246,7 @@ function buildMetricsBlock(metrics: {
 }
 
 function extractScoreFromResult(result: string): number {
-  const scoreMatch = result.match(/(?:###\s+)?Instructional Score[:\s]*([0-9]+)/i);
+  const scoreMatch = result.match(/(?:###\s+)?Instructional Score(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i);
   if (scoreMatch) {
     return Math.min(100, Math.max(0, parseInt(scoreMatch[1], 10)));
   }
@@ -229,11 +268,11 @@ function extractMetricsFromResult(result: string): {
     gaps_detected: 1,
   };
 
-  const coverageMatch = result.match(/(?:###\s+)?Coverage[:\s]*([0-9]+)/i);
-  const clarityMatch = result.match(/(?:###\s+)?Clarity[:\s]*([0-9]+)/i);
-  const engagementMatch = result.match(/(?:###\s+)?Engagement[:\s]*([0-9]+)/i);
-  const assessmentMatch = result.match(/(?:###\s+)?Assessment Quality[:\s]*([0-9]+)/i);
-  const gapsMatch = result.match(/(?:###\s+)?Gaps[\s]*(?:Flagged)?[:\s]*([0-9]+)/i);
+  const coverageMatch = result.match(/(?:###\s+)?Coverage(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i);
+  const clarityMatch = result.match(/(?:###\s+)?Clarity(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i);
+  const engagementMatch = result.match(/(?:###\s+)?Engagement(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i);
+  const assessmentMatch = result.match(/(?:###\s+)?Assessment Quality(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i);
+  const gapsMatch = result.match(/(?:###\s+)?Gaps[\s]*(?:Flagged)?(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i);
 
   return {
     coverage_score: coverageMatch ? parseInt(coverageMatch[1], 10) : defaults.coverage_score,
@@ -451,6 +490,10 @@ Important writing rules:
 - Prioritize the most distinctive strengths and weaknesses from this lesson, not the most common teacher coaching advice.
 - Gaps Flagged must match the number of substantive bullets listed in CONTENT GAPS TO REINFORCE. If no meaningful gaps are visible, set Gaps Flagged to 0 and say so plainly.
 - Calibrate each metric separately. Coverage, Clarity, Engagement, Assessment Quality, and the overall score should reflect different aspects of the lesson and should not default to the same number unless the evidence clearly supports that.
+- EXECUTIVE SUMMARY should synthesize the lesson, not repeat later bullets.
+- WHAT WENT WELL and WHAT CAN IMPROVE should contain the clearest distinct evidence, not generic coaching language.
+- RECOMMENDED NEXT STEP should build directly from the top improvement need without repeating the same wording already used above.
+- INSTRUCTIONAL COACHING FEEDBACK should summarize patterns and implications, not restate earlier bullets verbatim.
 
 Metrics:
 Instructional Score (0-100): [number]
@@ -592,6 +635,76 @@ ${transcript}`;
           "WHAT WENT WELL",
           repairedStrengthsText,
           "WHAT CAN IMPROVE"
+        );
+      }
+    }
+
+    if (needsExecutiveSummaryRepair(result)) {
+      const executiveSummaryRepairPrompt = `Return only the paragraph for the "EXECUTIVE SUMMARY" section of this lesson report.
+
+Requirements:
+- Write 2 to 4 sentences.
+- Keep it specific to this lesson.
+- Mention the strongest observed strength and the biggest instructional need.
+- Ground the summary in actual lesson content, pacing, questioning, modeling, or student understanding evidence.
+- Do not include a heading.
+- Do not use generic summary wording.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+      const executiveSummaryRepair = await callOpenAISectionRepair(openai, executiveSummaryRepairPrompt);
+      const repairedExecutiveSummaryText = String(executiveSummaryRepair.choices[0]?.message?.content || "")
+        .replace(/\r/g, "")
+        .trim();
+
+      if (repairedExecutiveSummaryText) {
+        result = upsertStructuredSection(
+          result,
+          "EXECUTIVE SUMMARY",
+          repairedExecutiveSummaryText,
+          "WHAT WENT WELL"
+        );
+      }
+    }
+
+    if (needsWhatCanImproveRepair(result)) {
+      const improvementsRepairPrompt = `Return only 3 bullets for the "WHAT CAN IMPROVE" section of this lesson report.
+
+Requirements:
+- Each bullet must identify a real improvement need from this exact lesson.
+- Make the bullets specific to the observed content, teacher moves, pacing, questioning, checks for understanding, or missed conceptual links.
+- Do not use generic coaching phrases unless you tie them to the actual lesson topic.
+- Keep each bullet to 1-2 sentences.
+- Do not include a heading.
+- Do not repeat the same idea across bullets.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+      const improvementsRepair = await callOpenAISectionRepair(openai, improvementsRepairPrompt);
+      const repairedImprovementsText = String(improvementsRepair.choices[0]?.message?.content || "")
+        .replace(/\r/g, "")
+        .trim();
+
+      if (repairedImprovementsText) {
+        result = upsertStructuredSection(
+          result,
+          "WHAT CAN IMPROVE",
+          repairedImprovementsText,
+          "CONTENT GAPS TO REINFORCE"
         );
       }
     }

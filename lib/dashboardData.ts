@@ -499,15 +499,31 @@ export function average(values: number[]): number {
 
 export function getLessonMetrics(report: AnalysisReport) {
   const parsedMetrics = parseAnalysisMetrics(report.result || report.analysis_result || '');
+  const storedCoverage = toNumberMetric(report.coverage ?? report.coverage_score, parsedMetrics.coverage ?? 75);
+  const storedClarity = toNumberMetric(report.clarity ?? report.clarity_rating, parsedMetrics.clarity ?? 75);
+  const storedEngagement = toNumberMetric(report.engagement ?? report.engagement_level, parsedMetrics.engagement ?? 75);
+  const storedAssessment = toNumberMetric(report.assessment ?? report.assessment_quality, parsedMetrics.assessment ?? 75);
+  const storedGaps = toNumberMetric(report.gaps ?? report.gaps_detected, parsedMetrics.gaps ?? 0);
+  const storedLooksLikeFallbackDefaults =
+    storedCoverage === 75 &&
+    storedClarity === 75 &&
+    storedEngagement === 75 &&
+    storedAssessment === 75 &&
+    storedGaps <= 1 &&
+    (parsedMetrics.coverage !== null ||
+      parsedMetrics.clarity !== null ||
+      parsedMetrics.engagement !== null ||
+      parsedMetrics.assessment !== null ||
+      parsedMetrics.gaps !== null);
   const fallbackScore = parsedMetrics.score ?? calculateLessonScore(report);
 
   return {
     score: toNumberMetric(report.score, fallbackScore),
-    coverage: toNumberMetric(report.coverage ?? report.coverage_score, parsedMetrics.coverage ?? 75),
-    clarity: toNumberMetric(report.clarity ?? report.clarity_rating, parsedMetrics.clarity ?? 75),
-    engagement: toNumberMetric(report.engagement ?? report.engagement_level, parsedMetrics.engagement ?? 75),
-    assessment: toNumberMetric(report.assessment ?? report.assessment_quality, parsedMetrics.assessment ?? 75),
-    gaps: toNumberMetric(report.gaps ?? report.gaps_detected, parsedMetrics.gaps ?? 0),
+    coverage: storedLooksLikeFallbackDefaults ? (parsedMetrics.coverage ?? storedCoverage) : storedCoverage,
+    clarity: storedLooksLikeFallbackDefaults ? (parsedMetrics.clarity ?? storedClarity) : storedClarity,
+    engagement: storedLooksLikeFallbackDefaults ? (parsedMetrics.engagement ?? storedEngagement) : storedEngagement,
+    assessment: storedLooksLikeFallbackDefaults ? (parsedMetrics.assessment ?? storedAssessment) : storedAssessment,
+    gaps: storedLooksLikeFallbackDefaults ? (parsedMetrics.gaps ?? storedGaps) : storedGaps,
   };
 }
 
