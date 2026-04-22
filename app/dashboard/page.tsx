@@ -350,8 +350,14 @@ export default function TeacherDashboard() {
         <div style={card}>
           <h2 style={cardTitle}>Overall Lesson Analysis</h2>
 
-          <div style={previewGrid}>
-            <div>
+          <div
+            style={{
+              ...analysisSummaryLayout,
+              gridTemplateColumns: isNarrowScreen ? '1fr' : analysisSummaryLayout.gridTemplateColumns,
+            }}
+          >
+            <div style={analysisScorePanel}>
+              <div style={analysisScoreEyebrow}>Current Average</div>
               <div style={bigScore}>{overallScore}/100</div>
               <div style={subText}>
                 {summary.lessonsAnalyzed > 0
@@ -360,24 +366,26 @@ export default function TeacherDashboard() {
               </div>
             </div>
 
-            <div>
-              <div style={label}>Coverage</div>
-              <div style={value}>{summary.averageCoverage}%</div>
-            </div>
+            <div style={analysisMetricsGrid}>
+              <div style={analysisMetricCard}>
+                <div style={label}>Coverage</div>
+                <div style={value}>{summary.averageCoverage}%</div>
+              </div>
 
-            <div>
-              <div style={label}>Clarity</div>
-              <div style={value}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
-            </div>
+              <div style={analysisMetricCard}>
+                <div style={label}>Clarity</div>
+                <div style={value}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
+              </div>
 
-            <div>
-              <div style={label}>Engagement</div>
-              <div style={value}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
-            </div>
+              <div style={analysisMetricCard}>
+                <div style={label}>Engagement</div>
+                <div style={value}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
+              </div>
 
-            <div>
-              <div style={label}>Total Gaps</div>
-              <div style={value}>{summary.totalGaps || 0}</div>
+              <div style={{ ...analysisMetricCard, ...analysisDiagnosticCard }}>
+                <div style={label}>Total Gaps</div>
+                <div style={value}>{summary.totalGaps || 0}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -844,6 +852,53 @@ const card: React.CSSProperties = { background: 'var(--surface-card-solid)', bor
 const cardTitle: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 10 };
 
 const previewGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16 };
+const analysisSummaryLayout: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'minmax(200px, 240px) minmax(0, 1fr)',
+  gap: 16,
+  alignItems: 'stretch',
+};
+const analysisScorePanel: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  gap: 8,
+  minWidth: 0,
+  padding: '18px 20px',
+  borderRadius: 16,
+  border: '1px solid rgba(249,115,22,0.22)',
+  background: 'linear-gradient(145deg, rgba(249,115,22,0.14) 0%, rgba(249,115,22,0.05) 52%, rgba(255,255,255,0.02) 100%)',
+  boxShadow: 'var(--shadow-soft)',
+};
+const analysisScoreEyebrow: React.CSSProperties = {
+  color: '#c2410c',
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: 0.8,
+  textTransform: 'uppercase',
+};
+const analysisMetricsGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+  gap: 12,
+  minWidth: 0,
+};
+const analysisMetricCard: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'space-between',
+  gap: 8,
+  minHeight: 94,
+  padding: '16px 16px 14px',
+  borderRadius: 14,
+  border: '1px solid var(--border)',
+  background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(148,163,184,0.05) 100%)',
+  boxShadow: 'var(--shadow-soft)',
+};
+const analysisDiagnosticCard: React.CSSProperties = {
+  border: '1px solid rgba(239,68,68,0.16)',
+  background: 'linear-gradient(180deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)',
+};
 const bigScore: React.CSSProperties = { fontSize: 32, color: 'var(--text-primary)', fontWeight: 700 };
 const subText: React.CSSProperties = { color: 'var(--text-secondary)' };
 
