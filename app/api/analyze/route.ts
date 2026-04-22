@@ -286,11 +286,43 @@ function buildMetricsBlock(metrics: {
   ].join("\n");
 }
 
+function calculateOverallScoreFromMetrics(metrics: {
+  coverage_score: number;
+  clarity_rating: number;
+  engagement_level: number;
+  assessment_quality: number;
+  gaps_detected: number;
+}) {
+  const weighted =
+    metrics.coverage_score * 0.35 +
+    metrics.clarity_rating * 0.30 +
+    metrics.engagement_level * 0.20 +
+    metrics.assessment_quality * 0.15;
+
+  return Math.max(0, Math.min(100, Math.round(weighted - metrics.gaps_detected * 2)));
+}
+
 function extractScoreFromResult(result: string): number {
-  const scoreMatch = result.match(/(?:###\s+)?Instructional Score(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i);
-  if (scoreMatch) {
-    return Math.min(100, Math.max(0, parseInt(scoreMatch[1], 10)));
+  const parsed = parseOptionalMetricsFromResult(result);
+  if (parsed.score !== null) {
+    return parsed.score;
   }
+
+  if (
+    parsed.coverage_score !== null &&
+    parsed.clarity_rating !== null &&
+    parsed.engagement_level !== null &&
+    parsed.assessment_quality !== null
+  ) {
+    return calculateOverallScoreFromMetrics({
+      coverage_score: parsed.coverage_score,
+      clarity_rating: parsed.clarity_rating,
+      engagement_level: parsed.engagement_level,
+      assessment_quality: parsed.assessment_quality,
+      gaps_detected: parsed.gaps_detected ?? 0,
+    });
+  }
+
   return 75;
 }
 
@@ -301,12 +333,41 @@ function extractMetricsFromResult(result: string): {
   assessment_quality: number;
   gaps_detected: number;
 } {
+  const parsed = parseOptionalMetricsFromResult(result);
+  const observedInstructionalValues = [
+    parsed.score,
+    parsed.coverage_score,
+    parsed.clarity_rating,
+    parsed.engagement_level,
+    parsed.assessment_quality,
+  ].filter((value): value is number => value !== null);
+  const inferredBaseline = observedInstructionalValues.length
+    ? Math.round(observedInstructionalValues.reduce((sum, value) => sum + value, 0) / observedInstructionalValues.length)
+    : 75;
+  const inferredGaps = parsed.gaps_detected ?? Math.max(0, parseFeedbackSections(result).contentGaps.length);
+
+  if (
+    parsed.coverage_score !== null &&
+    parsed.clarity_rating !== null &&
+    parsed.engagement_level !== null &&
+    parsed.assessment_quality !== null &&
+    parsed.gaps_detected !== null
+  ) {
+    return {
+      coverage_score: parsed.coverage_score,
+      clarity_rating: parsed.clarity_rating,
+      engagement_level: parsed.engagement_level,
+      assessment_quality: parsed.assessment_quality,
+      gaps_detected: parsed.gaps_detected,
+    };
+  }
+
   const defaults = {
-    coverage_score: 75,
-    clarity_rating: 75,
-    engagement_level: 75,
-    assessment_quality: 75,
-    gaps_detected: 1,
+    coverage_score: inferredBaseline,
+    clarity_rating: inferredBaseline,
+    engagement_level: inferredBaseline,
+    assessment_quality: inferredBaseline,
+    gaps_detected: inferredGaps,
   };
 
   const coverageMatch = result.match(/(?:###\s+)?Coverage(?:\s*\([^)]*\))?[:\s]*([0-9]+)/i);
@@ -882,7 +943,52 @@ ${transcript}`;
       observedTeacherId
         ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfile?.name || 'Admin').trim()} (Admin Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
         : "";
-    const finalResult = normalizeStructuredReportText(`${result}${submissionContext}`);
+    let finalResult = normalizeStructuredReportText(`${result}${submissionContext}`);
+
+    if (shouldRepairMetricsBlock(finalResult)) {
+      const finalMetricsRepairPrompt = `Based on the transcript and report below, return only this exact metrics block with integers:
+
+Metrics:
+Instructional Score (0-100): [number]
+Coverage (0-100): [number]
+Clarity (0-100): [number]
+Engagement (0-100): [number]
+Assessment Quality (0-100): [number]
+Gaps Flagged: [number]
+
+Rules:
+- Use the transcript and report together.
+- Do not return a flat 75/75/75/75/75 block unless the evidence is genuinely identical across every category.
+- If the evidence differs by category, the numbers must differ.
+- Use the full scoring range when justified by the lesson evidence.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report:
+${finalResult}
+
+Transcript:
+${transcript}`;
+
+      const finalMetricsRepair = await callOpenAIMetricsRepair(openai, finalMetricsRepairPrompt);
+      const repairedFinalMetrics = parseOptionalMetricsFromResult(
+        String(finalMetricsRepair.choices[0]?.message?.content || "")
+      );
+
+      if (Object.values(repairedFinalMetrics).every((value) => value !== null)) {
+        finalResult = normalizeStructuredReportText(
+          `${buildMetricsBlock({
+            score: repairedFinalMetrics.score as number,
+            coverage_score: repairedFinalMetrics.coverage_score as number,
+            clarity_rating: repairedFinalMetrics.clarity_rating as number,
+            engagement_level: repairedFinalMetrics.engagement_level as number,
+            assessment_quality: repairedFinalMetrics.assessment_quality as number,
+            gaps_detected: repairedFinalMetrics.gaps_detected as number,
+          })}\n\n${finalResult}`
+        );
+      }
+    }
 
     const score = extractScoreFromResult(finalResult);
     const metrics = extractMetricsFromResult(finalResult);
