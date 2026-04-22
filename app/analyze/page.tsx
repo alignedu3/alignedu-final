@@ -1316,18 +1316,20 @@ export default function AnalysisPage() {
               {error && <div className="analysis-error">{error}</div>}
             </section>
 
-            <aside className="analysis-side-card">
-              <h3>Report at a glance</h3>
-              <p>
-                A streamlined review designed to support classroom coaching, school leadership, and district reporting.
-              </p>
-              <ul className="analysis-side-list">
-                <li>Clear performance snapshot</li>
-                <li>Key strengths and coaching priorities</li>
-                <li>Standards alignment and readiness notes</li>
-                <li>Practical next steps for follow-up</li>
-              </ul>
-            </aside>
+            {!result && (
+              <aside className="analysis-side-card">
+                <h3>Report at a glance</h3>
+                <p>
+                  A streamlined review designed to support classroom coaching, school leadership, and district reporting.
+                </p>
+                <ul className="analysis-side-list">
+                  <li>Clear performance snapshot</li>
+                  <li>Key strengths and coaching priorities</li>
+                  <li>Standards alignment and readiness notes</li>
+                  <li>Practical next steps for follow-up</li>
+                </ul>
+              </aside>
+            )}
           </div>
 
           {result && (
