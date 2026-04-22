@@ -358,8 +358,8 @@ export default function TeacherDashboard() {
           >
             <div style={analysisScorePanel}>
               <div style={analysisScoreEyebrow}>Current Average</div>
-              <div style={bigScore}>{overallScore}/100</div>
-              <div style={subText}>
+              <div style={analysisScoreValue}>{overallScore}/100</div>
+              <div style={analysisScoreSubtext}>
                 {summary.lessonsAnalyzed > 0
                   ? `Average across ${summary.lessonsAnalyzed} lesson${summary.lessonsAnalyzed === 1 ? '' : 's'}`
                   : 'No lessons analyzed yet'}
@@ -368,23 +368,23 @@ export default function TeacherDashboard() {
 
             <div style={analysisMetricsGrid}>
               <div style={analysisMetricCard}>
-                <div style={label}>Coverage</div>
-                <div style={value}>{summary.averageCoverage}%</div>
+                <div style={analysisMetricLabel}>Coverage</div>
+                <div style={analysisMetricValue}>{summary.averageCoverage}%</div>
               </div>
 
               <div style={analysisMetricCard}>
-                <div style={label}>Clarity</div>
-                <div style={value}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
+                <div style={analysisMetricLabel}>Clarity</div>
+                <div style={analysisMetricValue}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
               </div>
 
               <div style={analysisMetricCard}>
-                <div style={label}>Engagement</div>
-                <div style={value}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
+                <div style={analysisMetricLabel}>Engagement</div>
+                <div style={analysisMetricValue}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
               </div>
 
-              <div style={{ ...analysisMetricCard, ...analysisDiagnosticCard }}>
-                <div style={label}>Total Gaps</div>
-                <div style={value}>{summary.totalGaps || 0}</div>
+              <div style={analysisMetricCard}>
+                <div style={analysisMetricLabel}>Total Gaps</div>
+                <div style={analysisMetricValue}>{summary.totalGaps || 0}</div>
               </div>
             </div>
           </div>
@@ -862,6 +862,8 @@ const analysisScorePanel: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
   justifyContent: 'center',
+  alignItems: 'center',
+  textAlign: 'center',
   gap: 8,
   minWidth: 0,
   padding: '18px 20px',
@@ -877,6 +879,19 @@ const analysisScoreEyebrow: React.CSSProperties = {
   letterSpacing: 0.8,
   textTransform: 'uppercase',
 };
+const analysisScoreValue: React.CSSProperties = {
+  fontSize: 40,
+  lineHeight: 1,
+  color: 'var(--text-primary)',
+  fontWeight: 800,
+  letterSpacing: '-0.03em',
+};
+const analysisScoreSubtext: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  lineHeight: 1.45,
+  maxWidth: 180,
+};
 const analysisMetricsGrid: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
@@ -886,18 +901,30 @@ const analysisMetricsGrid: React.CSSProperties = {
 const analysisMetricCard: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  justifyContent: 'space-between',
-  gap: 8,
-  minHeight: 94,
+  justifyContent: 'center',
+  alignItems: 'center',
+  textAlign: 'center',
+  gap: 10,
+  minHeight: 100,
   padding: '16px 16px 14px',
   borderRadius: 14,
   border: '1px solid var(--border)',
   background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(148,163,184,0.05) 100%)',
   boxShadow: 'var(--shadow-soft)',
 };
-const analysisDiagnosticCard: React.CSSProperties = {
-  border: '1px solid rgba(239,68,68,0.16)',
-  background: 'linear-gradient(180deg, rgba(239,68,68,0.08) 0%, rgba(239,68,68,0.03) 100%)',
+const analysisMetricLabel: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: '0.02em',
+  lineHeight: 1.3,
+};
+const analysisMetricValue: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontSize: 28,
+  lineHeight: 1,
+  fontWeight: 800,
+  letterSpacing: '-0.02em',
 };
 const bigScore: React.CSSProperties = { fontSize: 32, color: 'var(--text-primary)', fontWeight: 700 };
 const subText: React.CSSProperties = { color: 'var(--text-secondary)' };
