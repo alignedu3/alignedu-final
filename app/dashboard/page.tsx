@@ -371,6 +371,11 @@ export default function TeacherDashboard() {
             </div>
 
             <div>
+              <div style={label}>Engagement</div>
+              <div style={value}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
+            </div>
+
+            <div>
               <div style={label}>Total Gaps</div>
               <div style={value}>{summary.totalGaps || 0}</div>
             </div>
