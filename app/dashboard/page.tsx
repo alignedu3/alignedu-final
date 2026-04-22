@@ -579,8 +579,16 @@ export default function TeacherDashboard() {
 
         {selectedReport && (
           <div ref={selectedLessonRef} style={card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: isNarrowScreen ? 'flex-start' : 'center',
+                flexDirection: isNarrowScreen ? 'column' : 'row',
+                gap: isNarrowScreen ? 10 : 0,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
                 <h2 style={cardTitle}>Selected Lesson</h2>
                 <p style={subheading}>
                   {getReportDisplayLabel(selectedReport)}
@@ -590,7 +598,10 @@ export default function TeacherDashboard() {
                 </p>
               </div>
               <button
-                style={secondaryButton}
+                style={{
+                  ...secondaryButton,
+                  alignSelf: isNarrowScreen ? 'flex-start' : undefined,
+                }}
                 onClick={() => setSelectedReport(null)}
               >
                 Close
