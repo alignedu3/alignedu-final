@@ -594,13 +594,36 @@ export default function TeacherDashboard() {
             </div>
             {selectedLessonInsights && selectedLessonSections && (
               <div style={{ marginTop: 18 }}>
-                <div style={executiveSummaryCard}>
+                <div
+                  style={{
+                    ...executiveSummaryCard,
+                    gridTemplateColumns: isNarrowScreen ? '1fr' : executiveSummaryCard.gridTemplateColumns,
+                    gap: isNarrowScreen ? 14 : executiveSummaryCard.gap,
+                    padding: isNarrowScreen ? 16 : executiveSummaryCard.padding,
+                  }}
+                >
                   <div>
                     <div style={reportEyebrow}>Executive Summary</div>
-                    <div style={summaryLead}>{selectedLessonSections.executiveSummary}</div>
+                    <div
+                      style={{
+                        ...summaryLead,
+                        fontSize: isNarrowScreen ? 18 : summaryLead.fontSize,
+                        lineHeight: isNarrowScreen ? 1.45 : summaryLead.lineHeight,
+                      }}
+                    >
+                      {selectedLessonSections.executiveSummary}
+                    </div>
                   </div>
-                  <div style={summaryScorePill}>
-                    <div style={summaryScoreValue}>{selectedLessonInsights.score}</div>
+                  <div
+                    style={{
+                      ...summaryScorePill,
+                      width: isNarrowScreen ? '100%' : undefined,
+                      padding: isNarrowScreen ? 14 : summaryScorePill.padding,
+                    }}
+                  >
+                    <div style={{ ...summaryScoreValue, fontSize: isNarrowScreen ? 32 : summaryScoreValue.fontSize }}>
+                      {selectedLessonInsights.score}
+                    </div>
                     <div style={summaryScoreLabel}>Overall Score</div>
                   </div>
                 </div>
@@ -612,21 +635,21 @@ export default function TeacherDashboard() {
                 )}
 
                 <div style={reportMetricGrid}>
-                  <div style={{ ...reportMetricCard, ...coverageMetricCard }}>
-                    <div style={reportMetricLabel}>Coverage</div>
-                    <div style={reportMetricValue}>{selectedLessonInsights.coverage}%</div>
+                  <div style={{ ...reportMetricCard, ...coverageMetricCard, flexDirection: isNarrowScreen ? 'column' : reportMetricCard.flexDirection, justifyContent: isNarrowScreen ? 'center' : reportMetricCard.justifyContent, textAlign: 'center' }}>
+                    <div style={{ ...reportMetricLabel, textAlign: 'center' }}>Coverage</div>
+                    <div style={{ ...reportMetricValue, textAlign: 'center' }}>{selectedLessonInsights.coverage}%</div>
                   </div>
-                  <div style={{ ...reportMetricCard, ...clarityMetricCard }}>
-                    <div style={reportMetricLabel}>Clarity</div>
-                    <div style={reportMetricValue}>{selectedLessonInsights.clarity}%</div>
+                  <div style={{ ...reportMetricCard, ...clarityMetricCard, flexDirection: isNarrowScreen ? 'column' : reportMetricCard.flexDirection, justifyContent: isNarrowScreen ? 'center' : reportMetricCard.justifyContent, textAlign: 'center' }}>
+                    <div style={{ ...reportMetricLabel, textAlign: 'center' }}>Clarity</div>
+                    <div style={{ ...reportMetricValue, textAlign: 'center' }}>{selectedLessonInsights.clarity}%</div>
                   </div>
-                  <div style={{ ...reportMetricCard, ...engagementMetricCard }}>
-                    <div style={reportMetricLabel}>Engagement</div>
-                    <div style={reportMetricValue}>{selectedLessonInsights.engagement}%</div>
+                  <div style={{ ...reportMetricCard, ...engagementMetricCard, flexDirection: isNarrowScreen ? 'column' : reportMetricCard.flexDirection, justifyContent: isNarrowScreen ? 'center' : reportMetricCard.justifyContent, textAlign: 'center' }}>
+                    <div style={{ ...reportMetricLabel, textAlign: 'center' }}>Engagement</div>
+                    <div style={{ ...reportMetricValue, textAlign: 'center' }}>{selectedLessonInsights.engagement}%</div>
                   </div>
-                  <div style={{ ...reportMetricCard, ...gapsMetricCard }}>
-                    <div style={reportMetricLabel}>Gaps Flagged</div>
-                    <div style={reportMetricValue}>{selectedLessonInsights.gaps}</div>
+                  <div style={{ ...reportMetricCard, ...gapsMetricCard, flexDirection: isNarrowScreen ? 'column' : reportMetricCard.flexDirection, justifyContent: isNarrowScreen ? 'center' : reportMetricCard.justifyContent, textAlign: 'center' }}>
+                    <div style={{ ...reportMetricLabel, textAlign: 'center' }}>Gaps Flagged</div>
+                    <div style={{ ...reportMetricValue, textAlign: 'center' }}>{selectedLessonInsights.gaps}</div>
                   </div>
                 </div>
 
