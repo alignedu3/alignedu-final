@@ -4,6 +4,9 @@ import { createClient as createServerClient } from '@/lib/supabase/server';
 import { calculateLessonScore, getLatestLessonTrend, type AnalysisReport, type ProfileRecord } from '@/lib/dashboardData';
 import { captureRouteException } from '@/lib/sentryRoute';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 const MONITORING_OWNER_EMAIL = 'ryan@alignedu.net';
 
 type MonitoringReadiness = {
@@ -1860,48 +1863,56 @@ export async function GET(request: NextRequest) {
     const strongTeachers = recentActivity.filter((row) => row.role === 'teacher' && row.averageScore >= 85).length;
     const atRiskTeachers = recentActivity.filter((row) => row.role === 'teacher' && row.averageScore > 0 && row.averageScore < 75).length;
 
-    return NextResponse.json({
-      success: true,
-      caller: {
-        id: callerProfile?.id || user.id,
-        name: callerProfile?.name || null,
-        role: callerProfile?.role || null,
+    return NextResponse.json(
+      {
+        success: true,
+        caller: {
+          id: callerProfile?.id || user.id,
+          name: callerProfile?.name || null,
+          role: callerProfile?.role || null,
+        },
+        summary: {
+          days,
+          totalLessons,
+          lessonsInWindow: reportsInWindow.length,
+          totalTeachers,
+          totalAdmins,
+          activeTeachers,
+          observationCount,
+          averageScore,
+          strongTeachers,
+          atRiskTeachers,
+        },
+        series,
+        recentActivity,
+        readiness,
+        alerts,
+        uptime,
+        sentry: {
+          summaryCards: sentryHealth.summaryCards,
+          recentIssues: sentryHealth.recentIssues,
+          diagnostics: sentryHealth.diagnostics,
+        },
+        connections: hydratedConnections,
+        sync: {
+          generatedAt: new Date().toISOString(),
+          connectedProviders,
+          totalProviders: hydratedConnections.length,
+        },
+        httpTraffic: {
+          summaryCards: cloudflareTraffic.summaryCards,
+          topErrorRoutes: cloudflareTraffic.topErrorRoutes,
+          requestSeries: cloudflareTraffic.requestSeries,
+          bandwidthSeries: cloudflareTraffic.bandwidthSeries,
+          diagnostics: cloudflareTraffic.diagnostics,
+        },
       },
-      summary: {
-        days,
-        totalLessons,
-        lessonsInWindow: reportsInWindow.length,
-        totalTeachers,
-        totalAdmins,
-        activeTeachers,
-        observationCount,
-        averageScore,
-        strongTeachers,
-        atRiskTeachers,
-      },
-      series,
-      recentActivity,
-      readiness,
-      alerts,
-      uptime,
-      sentry: {
-        summaryCards: sentryHealth.summaryCards,
-        recentIssues: sentryHealth.recentIssues,
-        diagnostics: sentryHealth.diagnostics,
-      },
-      connections: hydratedConnections,
-      sync: {
-        generatedAt: new Date().toISOString(),
-        connectedProviders,
-        totalProviders: hydratedConnections.length,
-      },
-      httpTraffic: {
-        summaryCards: cloudflareTraffic.summaryCards,
-        requestSeries: cloudflareTraffic.requestSeries,
-        bandwidthSeries: cloudflareTraffic.bandwidthSeries,
-        diagnostics: cloudflareTraffic.diagnostics,
-      },
-    });
+      {
+        headers: {
+          'Cache-Control': 'no-store, max-age=0',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('Admin monitoring route error:', error);
     captureRouteException(error, {
