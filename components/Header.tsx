@@ -8,6 +8,7 @@ import { createClient, hasSupabaseBrowserEnv } from '@/lib/supabase/client';
 import { useTheme } from '@/app/context/ThemeContext';
 import type { ProfileRecord } from '@/lib/dashboardData';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 
 type AuthUser = {
   id: string;
@@ -189,15 +190,36 @@ export default function Header() {
 
   const handleLogoClick = async () => {
     if (!user) {
-      router.push('/');
+      if (pathname === '/') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+      }
+      router.push('/', { scroll: true });
       return;
     }
     const userRole = (profile?.role || '').toLowerCase();
-    if (userRole === 'admin' || userRole === 'super_admin') {
-      router.push('/admin');
-    } else {
-      router.push('/dashboard');
+    const destination = userRole === 'admin' || userRole === 'super_admin' ? '/admin' : '/dashboard';
+    if (pathname === destination) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
+    router.push(destination, { scroll: true });
+  };
+
+  const handleHeaderNavigation = (href: string, closeMenus = true) => (event?: ReactMouseEvent) => {
+    if (closeMenus) {
+      setOpen(false);
+      setMobileOpen(false);
+    }
+
+    if (pathname === href) {
+      event?.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    event?.preventDefault();
+    router.push(href, { scroll: true });
   };
 
   const handleGuestHomeClick = () => {
@@ -208,7 +230,7 @@ export default function Header() {
       return;
     }
 
-    router.push('/');
+    router.push('/', { scroll: true });
   };
 
   return (
@@ -267,7 +289,7 @@ export default function Header() {
                   <Link
                     href="/dashboard"
                     style={dropdownItem}
-                    onClick={() => setOpen(false)}
+                    onClick={handleHeaderNavigation('/dashboard')}
                   >
                     Teacher Dashboard
                   </Link>
@@ -287,7 +309,7 @@ export default function Header() {
                       <Link
                         href="/admin"
                         style={dropdownItem}
-                        onClick={() => setOpen(false)}
+                        onClick={handleHeaderNavigation('/admin')}
                       >
                         Admin Dashboard
                       </Link>
@@ -313,7 +335,7 @@ export default function Header() {
                           <Link
                             href="/admin/district"
                             style={dropdownItem}
-                            onClick={() => setOpen(false)}
+                            onClick={handleHeaderNavigation('/admin/district')}
                           >
                             District Dashboard
                           </Link>
@@ -321,7 +343,7 @@ export default function Header() {
                           <Link
                             href="/admin/monitoring"
                             style={dropdownItem}
-                            onClick={() => setOpen(false)}
+                            onClick={handleHeaderNavigation('/admin/monitoring')}
                           >
                             Monitoring Dashboard
                           </Link>
@@ -395,7 +417,7 @@ export default function Header() {
             {user && (
               <>
                 <div className="mobile-nav-user">{profile?.name || 'User'}</div>
-                <Link href="/dashboard" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                <Link href="/dashboard" className="mobile-nav-link" onClick={handleHeaderNavigation('/dashboard')}>
                   Teacher Dashboard
                 </Link>
                 {!isAdminUser && (
@@ -405,7 +427,7 @@ export default function Header() {
                 )}
                 {isAdminUser && (
                   <>
-                    <Link href="/admin" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                    <Link href="/admin" className="mobile-nav-link" onClick={handleHeaderNavigation('/admin')}>
                       Admin Dashboard
                     </Link>
                     <Link href="/admin/observe" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
@@ -417,10 +439,10 @@ export default function Header() {
 
                     {isSuperAdmin && (
                       <>
-                        <Link href="/admin/district" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                        <Link href="/admin/district" className="mobile-nav-link" onClick={handleHeaderNavigation('/admin/district')}>
                           District Dashboard
                         </Link>
-                        <Link href="/admin/monitoring" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                        <Link href="/admin/monitoring" className="mobile-nav-link" onClick={handleHeaderNavigation('/admin/monitoring')}>
                           Monitoring Dashboard
                         </Link>
                       </>
