@@ -221,7 +221,7 @@ export default function DistrictDashboard() {
                   <div>
                     <div style={rowTitle}>{teacher.name}</div>
                     <div style={rowMeta}>
-                      Current avg {teacher.avgScore}/100, latest {teacher.latestScore}/100, gaps {teacher.gaps}
+                      Current avg {teacher.avgScore}/100, trend {teacher.trend > 0 ? `+${teacher.trend}` : teacher.trend < 0 ? `${teacher.trend}` : '0'}, gaps {teacher.gaps}
                     </div>
                   </div>
                   <div style={pillDanger}>
@@ -263,8 +263,8 @@ export default function DistrictDashboard() {
                   <th style={th}>Teacher</th>
                   <th style={th}>Lessons</th>
                   <th style={th}>Current Avg</th>
-                  <th style={th}>Latest</th>
                   <th style={th}>Trend</th>
+                  <th style={th}>Gaps</th>
                   <th style={th}>Support Level</th>
                 </tr>
               </thead>
@@ -274,10 +274,10 @@ export default function DistrictDashboard() {
                     <td style={tdStrong}>{teacher.name}</td>
                     <td style={td}>{teacher.lessons}</td>
                     <td style={td}>{teacher.avgScore ? `${teacher.avgScore}/100` : '—'}</td>
-                    <td style={td}>{teacher.latestScore ? `${teacher.latestScore}/100` : '—'}</td>
                     <td style={td}>
                       {teacher.trend > 0 ? `+${teacher.trend}` : teacher.trend < 0 ? `${teacher.trend}` : '0'}
                     </td>
+                    <td style={td}>{teacher.gaps}</td>
                     <td style={td}>
                       <span
                         style={
