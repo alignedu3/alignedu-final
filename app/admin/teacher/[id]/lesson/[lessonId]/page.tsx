@@ -117,6 +117,7 @@ export default function LessonReportPage() {
     reportSections.strengths.length ||
     reportSections.improvements.length ||
     reportSections.recommendedNextStep ||
+    reportSections.contentGaps.length ||
     reportSections.coaching.length ||
     reportSections.teks.length ||
     reportSections.staar.length
@@ -216,6 +217,17 @@ export default function LessonReportPage() {
           <h2 style={sectionTitle}>Next Best Action</h2>
           <p style={bodyText}>{reportSections.recommendedNextStep}</p>
         </div>
+
+        {reportSections.contentGaps.length > 0 && (
+          <div style={{ ...sectionCard, ...analysisSectionCard }}>
+            <h2 style={sectionTitle}>Content Gaps To Reinforce</h2>
+            <ul style={findingsList}>
+              {reportSections.contentGaps.map((gap, index) => (
+                <li key={`content-gap-${index}`} style={findingItem}>{gap}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {reportSections.coaching.length > 0 && (
           <div style={{ ...sectionCard, ...analysisSectionCard }}>

@@ -236,6 +236,17 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     improvements.push('Revisit unfinished content and close conceptual gaps before progressing to the next lesson sequence.');
   }
 
+  const sampleContentGaps =
+    report.gaps > 0
+      ? [
+          `Students need a clearer explanation of how ${report.title.toLowerCase()} connects to the unit’s core biology concepts and vocabulary.`,
+          'The lesson needs a stronger bridge from teacher modeling to independent student explanation or application.',
+          'A more explicit mastery check is needed so misconceptions are identified before the lesson closes.',
+          'Students should revisit the prerequisite concept knowledge needed to fully understand the day’s content.',
+          'The lesson should more clearly connect the observed task to the assessed biology standard or course expectation.',
+        ].slice(0, report.gaps)
+      : ['No major content gaps identified.'];
+
   const standardsAlignment = buildSampleStandardsAlignment(report, improvements);
 
   return [
@@ -255,6 +266,9 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     '',
     '=== WHAT CAN IMPROVE ===',
     ...improvements.map((item) => `- ${item}`),
+    '',
+    '=== CONTENT GAPS TO REINFORCE ===',
+    ...sampleContentGaps.map((item, index) => `${index + 1}. ${item}`),
     '',
     '=== RECOMMENDED NEXT STEP ===',
     `${teacherDisplayName} should continue building on what worked while focusing next on stronger mastery checks, tighter closure, and clear evidence that students can independently demonstrate understanding by the end of the lesson.`,
@@ -399,6 +413,24 @@ export function toNumberMetric(value: unknown, fallback = 0): number {
   return fallback;
 }
 
+function normalizeInsightText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function dedupeInsightList(items: string[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const normalized = normalizeInsightText(item);
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
 export function calculateLessonScore(report: AnalysisReport): number {
   const coverage = toNumberMetric(report.coverage ?? report.coverage_score, 75);
   const clarity = toNumberMetric(report.clarity ?? report.clarity_rating, 75);
@@ -439,6 +471,17 @@ export function getLessonMetrics(report: AnalysisReport) {
 
 export function getLessonInsights(report: AnalysisReport) {
   const metrics = getLessonMetrics(report);
+  const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
+  const aiKeyFindingsSection = parsed.coaching.find((section) => section.title === 'Key Findings');
+  const aiFindings = dedupeInsightList([
+    ...(aiKeyFindingsSection?.bullets || []),
+    ...(aiKeyFindingsSection?.content
+      ? aiKeyFindingsSection.content
+          .split(/\n+/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+      : []),
+  ]);
   const findings: string[] = [];
   const strengths: string[] = [];
   const improvements: string[] = [];
@@ -511,7 +554,7 @@ export function getLessonInsights(report: AnalysisReport) {
 
   return {
     ...metrics,
-    findings,
+    findings: aiFindings.length > 0 ? aiFindings : dedupeInsightList(findings),
     strengths,
     improvements,
     nextAction,
@@ -526,6 +569,7 @@ export function getLessonReportSections(report: AnalysisReport): {
   strengths: string[];
   improvements: string[];
   recommendedNextStep: string;
+  contentGaps: string[];
   coaching: ReportSection[];
   teks: ReportSection[];
   staar: ReportSection[];
@@ -539,6 +583,15 @@ export function getLessonReportSections(report: AnalysisReport): {
     strengths: parsed.whatWentWell.length ? parsed.whatWentWell : insights.strengths,
     improvements: parsed.whatCanImprove.length ? parsed.whatCanImprove : insights.improvements,
     recommendedNextStep: parsed.recommendedNextStep || insights.nextAction,
+    contentGaps: parsed.contentGaps.flatMap((section) => {
+      if (section.bullets.length > 0) return section.bullets;
+      return section.content
+        ? section.content
+            .split(/\n+/)
+            .map((line) => line.replace(/^[0-9]+\.\s*/, '').trim())
+            .filter(Boolean)
+        : [];
+    }),
     coaching: parsed.coaching,
     teks: parsed.teks,
     staar: parsed.staar,

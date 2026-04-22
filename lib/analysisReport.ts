@@ -172,6 +172,7 @@ export function parseFeedbackSections(text: string) {
   const coachingMatch = text.match(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===([\s\S]*?)(?====|$)/i);
   const teksMatch = text.match(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===([\s\S]*?)(?====|$)/i);
   const staarMatch = text.match(/===\s*STAAR TEKS COVERAGE\s*===([\s\S]*?)(?====|$)/i);
+  const contentGapsMatch = text.match(/===\s*CONTENT GAPS TO REINFORCE\s*===([\s\S]*?)(?====|$)/i);
   const submissionContextMatch = text.match(/===\s*SUBMISSION CONTEXT\s*===([\s\S]*?)(?====|$)/i);
 
   return {
@@ -179,6 +180,7 @@ export function parseFeedbackSections(text: string) {
     whatWentWell: extractBulletSection(text, "WHAT WENT WELL"),
     whatCanImprove: extractBulletSection(text, "WHAT CAN IMPROVE"),
     recommendedNextStep: extractSimpleSection(text, "RECOMMENDED NEXT STEP"),
+    contentGaps: contentGapsMatch ? parseLabeledSection(contentGapsMatch[1]) : parseLabeledSection(extractSimpleSection(text, "CONTENT GAPS TO REINFORCE")),
     coaching: coachingMatch ? parseLabeledSection(coachingMatch[1]) : [],
     teks: teksMatch ? parseLabeledSection(teksMatch[1]) : [],
     staar: staarMatch ? parseLabeledSection(staarMatch[1]) : [],

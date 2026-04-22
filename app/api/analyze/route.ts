@@ -234,13 +234,25 @@ export async function POST(req: Request) {
       totalCount: standards.length,
     });
 
+    const isHigherEdBiology =
+      grade.trim().toLowerCase() === 'higher ed' &&
+      subject.trim().toLowerCase() === 'biology';
+
     let systemPrompt = `You are an elite instructional coach analyzing classroom teaching. Be specific, evidence-based, and actionable. Organize the report with clear sections, bullet points, and concise language so it is easy to follow.
 
 Every report must feel unique to the lesson in front of you, not like a reusable template. Anchor feedback to concrete evidence from this specific lesson: teacher moves, student responses, task structure, checks for understanding, pacing, and standards alignment. Avoid generic praise or generic coaching phrases unless they are tied to an explicit lesson detail.
 
 Use varied wording across sections. Do not repeat the same sentence frame in multiple sections. When possible, reference 3 or more distinct lesson moments across the report. You may quote short phrases from the transcript when it helps ground the feedback, but keep quotes brief.`;
+
+    if (isHigherEdBiology) {
+      systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.`;
+    }
     const waitTimeGuidance = `Important wait-time rule: once the lesson is underway, assume the teacher typically allows about 8 to 10 seconds for student response after questions unless the transcript gives clear evidence that the teacher rushed, answered their own questions, cut students off, or rapidly moved on without space for thinking. Audio transcription often removes silence, pauses, and think time, so do not criticize wait time based only on the absence of transcribed silence. Only flag weak wait time when there is explicit evidence of it in the lesson record.`;
     let userPrompt = '';
+
+    const higherEdBiologyFormat = isHigherEdBiology
+      ? `\n\n=== HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT ===\nCompare this lesson to the expectations of an introductory college biology course using Campbell Biology as the benchmark. Use labeled bullets for:\n- Textbook Alignment: what chapter-level or concept-level expectations the lesson appears to address.\n- Missing Conceptual Depth: what a strong introductory biology lesson or textbook treatment would include that was missing or underdeveloped here.\n- Terminology Precision: whether the biological language and explanation depth are at the level expected in an introductory biology course.\n- College-Level Recommendation: the most important adjustment needed to better align the lesson to a Campbell Biology-style course sequence.`
+      : '';
 
     const reportFormat = `Analyze this lesson transcript and provide feedback in the following structured format. Use these exact section headers and keep the feedback evidence-based, specific, and unbiased.
 
@@ -250,6 +262,7 @@ Important writing rules:
 - Avoid repeating the same praise or critique in multiple sections.
 - If evidence is limited, say what was observable instead of inventing detail.
 - Prioritize the most distinctive strengths and weaknesses from this lesson, not the most common teacher coaching advice.
+- Gaps Flagged must match the number of substantive bullets listed in CONTENT GAPS TO REINFORCE. If no meaningful gaps are visible, set Gaps Flagged to 0 and say so plainly.
 
 Metrics:
 Instructional Score (0-100): [number]
@@ -272,6 +285,9 @@ Provide a concise 2-4 sentence summary of overall lesson quality, student experi
 - [specific area for improvement tied to a concrete lesson moment]
 - [specific area for improvement tied to a concrete lesson moment]
 
+=== CONTENT GAPS TO REINFORCE ===
+Provide a numbered list of the exact content misunderstandings, missing ideas, weak prerequisite links, or underdeveloped biological concepts that need reteach. If there are no meaningful content gaps, write "1. No major content gaps identified."
+
 === RECOMMENDED NEXT STEP ===
 Provide 1 concise paragraph with the single highest-leverage next move for the teacher. It must directly address the most important weakness from this lesson and explain why it matters here.
 
@@ -284,7 +300,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 
     if (hasStandards) {
       systemPrompt += '\nProvide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.';
-      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${teksContext}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}`;
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${teksContext}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}`;
 
       if (isSTAAR) {
         userPrompt += `\n\n=== STAAR TEKS COVERAGE ===\nSummarize how well the lesson covered the most important TEKS for this STAAR-tested subject and grade. Use labeled bullets for:\n- Readiness Summary: ...\n- Standards Reinforced:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- Standards That Need Stronger Assessment Evidence:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- STAAR Readiness Recommendation: ...\nFor Standards Reinforced and Standards That Need Stronger Assessment Evidence, list only actual TEKS codes with their matching descriptions from the standards reference above. Do not use generic prose in those two fields. For the weaker-assessment field, choose TEKS that are directly related to the lesson topic and concept focus.`;
@@ -305,7 +321,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 For the three standards lists above, use only actual TEKS codes with their matching descriptions from the standards reference. Do not use generic prose in those list fields.
 \nTranscript:\n${transcript}\n`;
     } else {
-      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}\n\nTranscript:\n${transcript}\n`;
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}\n\nTranscript:\n${transcript}\n`;
     }
 
     const completion = await callOpenAI(openai, [

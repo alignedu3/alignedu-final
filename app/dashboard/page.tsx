@@ -153,8 +153,30 @@ export default function TeacherDashboard() {
       ? "Performance dipped — review recent lesson gaps."
       : "Performance is stable across lessons.";
 
-  const nextActions =
-    summary.totalGaps > 0
+  const latestReportSections = useMemo(
+    () => (reports[0] ? getLessonReportSections(reports[0]) : null),
+    [reports]
+  );
+
+  const nextActions = useMemo(() => {
+    const lessonDrivenActions = [
+      ...(latestReportSections?.improvements || []),
+      ...(latestReportSections?.contentGaps.length ? [latestReportSections.contentGaps[0]] : []),
+      latestReportSections?.recommendedNextStep || '',
+    ]
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    const dedupedActions = lessonDrivenActions.filter((item, index, all) => {
+      const normalized = item.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+      return normalized && all.findIndex((candidate) => candidate.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim() === normalized) === index;
+    });
+
+    if (dedupedActions.length > 0) {
+      return dedupedActions.slice(0, 3);
+    }
+
+    return summary.totalGaps > 0
       ? [
           'Reteach the top missed concept in your next lesson opener.',
           'Add a 2-minute exit check to confirm closure.',
@@ -164,6 +186,7 @@ export default function TeacherDashboard() {
           'Keep your current pacing and clarity moves consistent.',
           'Add one deeper check-for-understanding prompt in the final 10 minutes.',
         ];
+  }, [latestReportSections, summary.totalGaps]);
 
   const activeKeyFindingsReport = useMemo(() => {
     if (!reports.length) return null;
@@ -236,8 +259,6 @@ export default function TeacherDashboard() {
     if (!activeKeyFindingsReport) return [];
     return getLessonInsights(activeKeyFindingsReport).findings;
   }, [activeKeyFindingsReport]);
-
-  const previousLessonReports = useMemo(() => reports.slice(1), [reports]);
 
   if (!ready) {
     return (
@@ -409,11 +430,11 @@ export default function TeacherDashboard() {
                 ))}
               </ul>
 
-              {previousLessonReports.length > 0 && (
+              {reports.length > 0 && (
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
-                  <div style={{ ...label, marginBottom: 8 }}>Previous Lesson Key Findings</div>
+                  <div style={{ ...label, marginBottom: 8 }}>Lesson Findings</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    {previousLessonReports.map((r, idx) => {
+                    {reports.map((r, idx) => {
                       const chip = `${r.grade || 'Grade'} ${r.subject || 'Lesson'}${r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString()}` : ''}`;
                       const isActive = activeKeyFindingsReport?.id === r.id;
                       return (
