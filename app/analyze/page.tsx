@@ -14,6 +14,24 @@ import { fetchJsonWithTimeout } from "@/lib/fetchJsonWithTimeout";
 // Simulate premium check (replace with real check if available)
 const isPremium = true;
 
+type AnalysisMetricsState = {
+  score: number | null;
+  coverage: number | null;
+  clarity: number | null;
+  engagement: number | null;
+  assessment: number | null;
+  gaps: number | null;
+};
+
+const emptyAnalysisMetrics: AnalysisMetricsState = {
+  score: null,
+  coverage: null,
+  clarity: null,
+  engagement: null,
+  assessment: null,
+  gaps: null,
+};
+
 export default function AnalysisPage() {
     // Audio Recorder State
     const [isRecording, setIsRecording] = useState(false);
@@ -200,6 +218,7 @@ export default function AnalysisPage() {
   const [loading, setLoading] = useState(false);
   const [processingStep, setProcessingStep] = useState("");
   const [result, setResult] = useState("");
+  const [analysisMetrics, setAnalysisMetrics] = useState<AnalysisMetricsState>(emptyAnalysisMetrics);
   const [error, setError] = useState("");
   const [saveNotice, setSaveNotice] = useState("");
   const [observerReady, setObserverReady] = useState(!isAdminObservationMode);
@@ -632,7 +651,15 @@ export default function AnalysisPage() {
   };
 
   const resultSections = parseAnalysisResult(result);
-  const resultMetrics = parseAnalysisMetrics(result);
+  const parsedResultMetrics = parseAnalysisMetrics(result);
+  const resultMetrics = {
+    score: analysisMetrics.score ?? parsedResultMetrics.score,
+    coverage: analysisMetrics.coverage ?? parsedResultMetrics.coverage,
+    clarity: analysisMetrics.clarity ?? parsedResultMetrics.clarity,
+    engagement: analysisMetrics.engagement ?? parsedResultMetrics.engagement,
+    assessment: analysisMetrics.assessment ?? parsedResultMetrics.assessment,
+    gaps: analysisMetrics.gaps ?? parsedResultMetrics.gaps,
+  };
   const feedbackSections = parseFeedbackSections(result);
   const standardsRecommendationSections = feedbackSections.teks.filter(
     (section) =>
@@ -719,6 +746,62 @@ export default function AnalysisPage() {
     feedbackSections.coaching[0]?.content ||
     resultSections.find((section) => section.content)?.content ||
     "";
+  const renderedSectionFingerprints = new Set<string>();
+  const registerRenderedText = (value: string) => {
+    const cleaned = cleanDisplayText(value).toLowerCase().trim();
+    if (cleaned) {
+      renderedSectionFingerprints.add(cleaned);
+    }
+  };
+
+  registerRenderedText(executiveSummary);
+  registerRenderedText(recommendedNextStepText);
+  feedbackSections.whatWentWell.forEach(registerRenderedText);
+  feedbackSections.whatCanImprove.forEach(registerRenderedText);
+  instructionalHighlights.forEach((section) => {
+    registerRenderedText(section.content);
+    section.bullets.forEach(registerRenderedText);
+  });
+
+  const hiddenDetailedSectionTitles = new Set([
+    'executive summary',
+    'what went well',
+    'what can improve',
+    'content gaps to reinforce',
+    'recommended next step',
+    'instructional coaching feedback',
+    'texas teks standards alignment',
+    'staar teks coverage',
+    'higher ed biology textbook alignment',
+    'higher ed textbook alignment',
+    'submission context',
+  ]);
+
+  const detailedNotesSections = resultSections.filter((section) => {
+    if (hiddenDetailedSectionTitles.has(section.title.toLowerCase())) {
+      return false;
+    }
+
+    const sectionContent = cleanDisplayText(section.content);
+    const bulletContent = section.bullets.map((bullet) => cleanDisplayText(bullet)).filter(Boolean);
+    const fingerprint =
+      sectionContent ||
+      bulletContent.join(' ').trim();
+
+    if (!fingerprint) {
+      return false;
+    }
+
+    if (renderedSectionFingerprints.has(fingerprint.toLowerCase())) {
+      return false;
+    }
+
+    if (bulletContent.length > 0 && bulletContent.every((bullet) => renderedSectionFingerprints.has(bullet.toLowerCase()))) {
+      return false;
+    }
+
+    return true;
+  });
 
   const transcribeChunk = async (chunk: File, index: number, total: number): Promise<TranscriptionChunkResult> => {
     setProcessingStep(`Transcribing chunk ${index + 1} of ${total}...`);
@@ -867,6 +950,7 @@ export default function AnalysisPage() {
       setLoading(true);
       setError("");
       setResult("");
+      setAnalysisMetrics(emptyAnalysisMetrics);
       setSaveNotice("");
       setProcessingStep("Preparing analysis...");
 
@@ -952,6 +1036,14 @@ export default function AnalysisPage() {
 
       setProcessingStep("Finalizing results...");
       setResult(data?.result || "No result returned");
+      setAnalysisMetrics({
+        score: typeof data?.metrics?.score === 'number' ? data.metrics.score : null,
+        coverage: typeof data?.metrics?.coverage === 'number' ? data.metrics.coverage : null,
+        clarity: typeof data?.metrics?.clarity === 'number' ? data.metrics.clarity : null,
+        engagement: typeof data?.metrics?.engagement === 'number' ? data.metrics.engagement : null,
+        assessment: typeof data?.metrics?.assessment === 'number' ? data.metrics.assessment : null,
+        gaps: typeof data?.metrics?.gaps === 'number' ? data.metrics.gaps : null,
+      });
       if (data?.saved) {
         setSaveNotice(
           isAdminObservationMode
@@ -1432,11 +1524,11 @@ export default function AnalysisPage() {
                     </>
                   )}
 
-                  {resultSections.length > 0 && (
+                  {detailedNotesSections.length > 0 && (
                     <>
                       <div style={reportSectionHeadingStyle}>Detailed Notes</div>
                       <div style={reportStackStyle}>
-                        {resultSections.map((section, index) => (
+                        {detailedNotesSections.map((section, index) => (
                           <div key={index} style={reportSectionRowStyle}>
                             <div style={reportPanelTitleStyle}>{section.title}</div>
                             {section.bullets.length > 0 ? (

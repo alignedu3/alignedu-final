@@ -641,6 +641,14 @@ ${transcript}`;
       result: finalResult,
       error: null,
       score,
+      metrics: {
+        score,
+        coverage: metrics.coverage_score,
+        clarity: metrics.clarity_rating,
+        engagement: metrics.engagement_level,
+        assessment: metrics.assessment_quality,
+        gaps: metrics.gaps_detected,
+      },
       saved: dbSaved,
       analysisId,
     });

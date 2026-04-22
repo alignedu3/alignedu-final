@@ -46,11 +46,30 @@ export function cleanDisplayText(text: string) {
 
 export function normalizeStructuredReportText(text: string) {
   if (!text) return '';
+  const lines = text.replace(/\r/g, '').split('\n');
 
-  return STRUCTURED_SECTION_HEADINGS.reduce((current, heading) => {
-    const pattern = new RegExp(`(^|\\n)\\s*${heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*(?=\\n)`, 'gi');
-    return current.replace(pattern, `$1=== ${heading} ===`);
-  }, text.replace(/\r/g, ''));
+  const normalizedLines = lines.flatMap((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return [line];
+
+    for (const heading of STRUCTURED_SECTION_HEADINGS) {
+      const escapedHeading = heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const match = trimmed.match(new RegExp(`^${escapedHeading}\\s*:?\\s*(.*)$`, 'i'));
+
+      if (!match) continue;
+
+      const remainder = cleanDisplayText(match[1] || '');
+      if (remainder) {
+        return [`=== ${heading} ===`, remainder];
+      }
+
+      return [`=== ${heading} ===`];
+    }
+
+    return [line];
+  });
+
+  return normalizedLines.join('\n');
 }
 
 function normalizeTitle(title: string) {
