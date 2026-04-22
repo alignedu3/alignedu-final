@@ -302,8 +302,59 @@ function calculateOverallScoreFromMetrics(metrics: {
   return Math.max(0, Math.min(100, Math.round(weighted - metrics.gaps_detected * 2)));
 }
 
+function shouldNormalizeReportedScore(metrics: {
+  score: number | null;
+  coverage_score: number | null;
+  clarity_rating: number | null;
+  engagement_level: number | null;
+  assessment_quality: number | null;
+  gaps_detected: number | null;
+}) {
+  if (
+    metrics.score === null ||
+    metrics.coverage_score === null ||
+    metrics.clarity_rating === null ||
+    metrics.engagement_level === null ||
+    metrics.assessment_quality === null
+  ) {
+    return false;
+  }
+
+  const calculated = calculateOverallScoreFromMetrics({
+    coverage_score: metrics.coverage_score,
+    clarity_rating: metrics.clarity_rating,
+    engagement_level: metrics.engagement_level,
+    assessment_quality: metrics.assessment_quality,
+    gaps_detected: metrics.gaps_detected ?? 0,
+  });
+
+  const componentValues = [
+    metrics.coverage_score,
+    metrics.clarity_rating,
+    metrics.engagement_level,
+    metrics.assessment_quality,
+  ];
+  const hasDifferentiatedComponents = new Set(componentValues).size > 1;
+
+  return (
+    hasDifferentiatedComponents &&
+    metrics.score === 75 &&
+    Math.abs(metrics.score - calculated) >= 3
+  );
+}
+
 function extractScoreFromResult(result: string): number {
   const parsed = parseOptionalMetricsFromResult(result);
+  if (shouldNormalizeReportedScore(parsed)) {
+    return calculateOverallScoreFromMetrics({
+      coverage_score: parsed.coverage_score as number,
+      clarity_rating: parsed.clarity_rating as number,
+      engagement_level: parsed.engagement_level as number,
+      assessment_quality: parsed.assessment_quality as number,
+      gaps_detected: parsed.gaps_detected ?? 0,
+    });
+  }
+
   if (parsed.score !== null) {
     return parsed.score;
   }
@@ -988,6 +1039,26 @@ ${transcript}`;
           })}\n\n${finalResult}`
         );
       }
+    }
+
+    const normalizedReportedMetrics = parseOptionalMetricsFromResult(finalResult);
+    if (shouldNormalizeReportedScore(normalizedReportedMetrics)) {
+      finalResult = normalizeStructuredReportText(
+        `${buildMetricsBlock({
+          score: calculateOverallScoreFromMetrics({
+            coverage_score: normalizedReportedMetrics.coverage_score as number,
+            clarity_rating: normalizedReportedMetrics.clarity_rating as number,
+            engagement_level: normalizedReportedMetrics.engagement_level as number,
+            assessment_quality: normalizedReportedMetrics.assessment_quality as number,
+            gaps_detected: normalizedReportedMetrics.gaps_detected ?? 0,
+          }),
+          coverage_score: normalizedReportedMetrics.coverage_score as number,
+          clarity_rating: normalizedReportedMetrics.clarity_rating as number,
+          engagement_level: normalizedReportedMetrics.engagement_level as number,
+          assessment_quality: normalizedReportedMetrics.assessment_quality as number,
+          gaps_detected: normalizedReportedMetrics.gaps_detected ?? 0,
+        })}\n\n${finalResult}`
+      );
     }
 
     const score = extractScoreFromResult(finalResult);
