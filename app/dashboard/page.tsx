@@ -242,7 +242,9 @@ export default function TeacherDashboard() {
         extractSectionText(selectedLessonSections.staar, ['Readiness Summary']) ||
         extractSectionText(selectedLessonSections.higherEdAlignment, ['Textbook Alignment', 'Summary']),
       recommendations: extractSectionText(allSections, ['Recommended Standards Follow-Up', 'Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
-      higherEdAlignment: selectedLessonSections.higherEdAlignment,
+      higherEdAlignment: selectedLessonSections.higherEdAlignment.filter(
+        (section) => !['Textbook Alignment', 'Summary'].includes(section.title)
+      ),
     };
   }, [selectedLessonSections]);
   const hasStructuredSelectedLesson = useMemo(() => {
@@ -625,22 +627,6 @@ export default function TeacherDashboard() {
                   </div>
                 </div>
 
-                {selectedLessonSections.contentGaps.length > 0 && (
-                  <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
-                    <div style={reportSectionTitle}>Content Gaps To Reinforce</div>
-                    <ul style={reportList}>
-                      {selectedLessonSections.contentGaps.map((item, index) => (
-                        <li key={`content-gap-${index}`} style={reportListItem}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                <div style={{ ...reportSectionCard, ...nextStepSectionCard }}>
-                  <div style={reportSectionTitle}>Recommended Next Step</div>
-                  <p style={reportBodyText}>{selectedLessonSections.recommendedNextStep}</p>
-                </div>
-
                 {(selectedLessonSections.staar.length > 0 ||
                   selectedLessonSections.teks.length > 0 ||
                   (selectedLessonStandards.higherEdAlignment?.length ?? 0) > 0 ||
@@ -760,6 +746,22 @@ export default function TeacherDashboard() {
                     )}
                   </div>
                 )}
+
+                {selectedLessonSections.contentGaps.length > 0 && (
+                  <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
+                    <div style={reportSectionTitle}>Content Gaps To Reinforce</div>
+                    <ul style={reportList}>
+                      {selectedLessonSections.contentGaps.map((item, index) => (
+                        <li key={`content-gap-${index}`} style={reportListItem}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div style={{ ...reportSectionCard, ...nextStepSectionCard }}>
+                  <div style={reportSectionTitle}>Recommended Next Step</div>
+                  <p style={reportBodyText}>{selectedLessonSections.recommendedNextStep}</p>
+                </div>
 
                 {!hasStructuredSelectedLesson && (
                   <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
@@ -994,8 +996,8 @@ const reportSectionCard: React.CSSProperties = {
 
 const reportSectionTitle: React.CSSProperties = {
   color: 'var(--text-primary)',
-  fontSize: 15,
-  fontWeight: 700,
+  fontSize: 17,
+  fontWeight: 750,
   marginBottom: 12,
 };
 

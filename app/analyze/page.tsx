@@ -501,9 +501,16 @@ export default function AnalysisPage() {
 
   const reportSectionHeadingStyle: React.CSSProperties = {
     color: 'var(--text-primary)',
-    fontSize: 20,
-    fontWeight: 800,
+    fontSize: 17,
+    fontWeight: 750,
     margin: '28px 0 14px',
+  };
+
+  const reportMajorCardTitleStyle: React.CSSProperties = {
+    color: 'var(--text-primary)',
+    fontSize: 17,
+    fontWeight: 750,
+    marginBottom: 12,
   };
 
   const reportSummaryStyle: React.CSSProperties = {
@@ -676,7 +683,9 @@ export default function AnalysisPage() {
   const standardsMasterySection = standardsAlignmentSections.find(
     (section) => section.title === "Standards Mastery Notes"
   );
-  const higherEdAlignmentSections = feedbackSections.higherEdAlignment ?? [];
+  const higherEdAlignmentSections = (feedbackSections.higherEdAlignment ?? []).filter(
+    (section) => !["Textbook Alignment", "Summary"].includes(section.title)
+  );
   const readinessSummarySection = feedbackSections.staar.find(
     (section) => section.title === "Readiness Summary"
   );
@@ -1366,7 +1375,7 @@ export default function AnalysisPage() {
                       <div style={reportGridStyle}>
                         {reportStrengths.length > 0 && (
                           <div style={reportPanelStyle}>
-                            <div style={reportPanelTitleStyle}>What Went Well</div>
+                            <div style={reportMajorCardTitleStyle}>What Went Well</div>
                             <ul style={reportPanelListStyle}>
                               {reportStrengths.map((item, index) => (
                                 <li key={`strength-${index}`}>{item}</li>
@@ -1376,7 +1385,7 @@ export default function AnalysisPage() {
                         )}
                         {reportImprovements.length > 0 && (
                           <div style={reportPanelStyle}>
-                            <div style={reportPanelTitleStyle}>What Can Improve</div>
+                            <div style={reportMajorCardTitleStyle}>What Can Improve</div>
                             <ul style={reportPanelListStyle}>
                               {reportImprovements.map((item, index) => (
                                 <li key={`improvement-${index}`}>{item}</li>
@@ -1384,19 +1393,6 @@ export default function AnalysisPage() {
                             </ul>
                           </div>
                         )}
-                      </div>
-                    </>
-                  )}
-
-                  {contentGapItems.length > 0 && (
-                    <>
-                      <div style={reportSectionHeadingStyle}>Content Gaps To Reinforce</div>
-                      <div style={reportPanelStyle}>
-                        <ul style={reportPanelListStyle}>
-                          {contentGapItems.map((item, index) => (
-                            <li key={`content-gap-${index}`}>{item}</li>
-                          ))}
-                        </ul>
                       </div>
                     </>
                   )}
@@ -1509,6 +1505,19 @@ export default function AnalysisPage() {
                             </div>
                           ))}
                         </div>
+                      </div>
+                    </>
+                  )}
+
+                  {contentGapItems.length > 0 && (
+                    <>
+                      <div style={reportSectionHeadingStyle}>Content Gaps To Reinforce</div>
+                      <div style={reportPanelStyle}>
+                        <ul style={reportPanelListStyle}>
+                          {contentGapItems.map((item, index) => (
+                            <li key={`content-gap-${index}`}>{item}</li>
+                          ))}
+                        </ul>
                       </div>
                     </>
                   )}
