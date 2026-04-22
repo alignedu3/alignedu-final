@@ -469,23 +469,27 @@ function getCoachingSectionItems(report: AnalysisReport, title: string) {
   ]);
 }
 
-export function calculateLessonScore(report: AnalysisReport): number {
-  const coverage = toNumberMetric(report.coverage ?? report.coverage_score, 75);
-  const clarity = toNumberMetric(report.clarity ?? report.clarity_rating, 75);
-  const engagement = toNumberMetric(report.engagement ?? report.engagement_level, 75);
-  const assessment = toNumberMetric(report.assessment ?? report.assessment_quality, 75);
-  const gaps = toNumberMetric(report.gaps ?? report.gaps_detected, 0);
-
+function calculateLessonScoreFromMetrics(metrics: {
+  coverage: number;
+  clarity: number;
+  engagement: number;
+  assessment: number;
+  gaps: number;
+}): number {
   const weighted =
-    coverage * 0.35 +
-    clarity * 0.30 +
-    engagement * 0.20 +
-    assessment * 0.15;
+    metrics.coverage * 0.35 +
+    metrics.clarity * 0.30 +
+    metrics.engagement * 0.20 +
+    metrics.assessment * 0.15;
 
-  const gapPenalty = gaps * 2;
+  const gapPenalty = metrics.gaps * 2;
   const finalScore = Math.max(0, Math.min(100, Math.round(weighted - gapPenalty)));
 
   return finalScore;
+}
+
+export function calculateLessonScore(report: AnalysisReport): number {
+  return getLessonMetrics(report).score;
 }
 
 export function average(values: number[]): number {
@@ -511,7 +515,15 @@ export function getLessonMetrics(report: AnalysisReport) {
       parsedMetrics.engagement !== null ||
       parsedMetrics.assessment !== null ||
       parsedMetrics.gaps !== null);
-  const fallbackScore = parsedMetrics.score ?? calculateLessonScore(report);
+  const fallbackScore =
+    parsedMetrics.score ??
+    calculateLessonScoreFromMetrics({
+      coverage: storedLooksLikeFallbackDefaults ? (parsedMetrics.coverage ?? storedCoverage) : storedCoverage,
+      clarity: storedLooksLikeFallbackDefaults ? (parsedMetrics.clarity ?? storedClarity) : storedClarity,
+      engagement: storedLooksLikeFallbackDefaults ? (parsedMetrics.engagement ?? storedEngagement) : storedEngagement,
+      assessment: storedLooksLikeFallbackDefaults ? (parsedMetrics.assessment ?? storedAssessment) : storedAssessment,
+      gaps: storedLooksLikeFallbackDefaults ? (parsedMetrics.gaps ?? storedGaps) : storedGaps,
+    });
 
   return {
     score: toNumberMetric(report.score, fallbackScore),

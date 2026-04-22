@@ -109,7 +109,9 @@ export default function DistrictDashboard() {
           gaps: latestMetrics?.gaps ?? 0,
           trend: getLatestLessonTrend(teacherReports),
           supportLevel:
-            averageScore < 75 || (latestMetrics?.gaps ?? 0) >= 2
+            teacherReports.length === 0
+              ? 'No Data'
+              : averageScore < 75 || (latestMetrics?.gaps ?? 0) >= 2
               ? 'Priority'
               : averageScore < 82
                 ? 'Monitor'
@@ -117,7 +119,7 @@ export default function DistrictDashboard() {
         };
       })
       .sort((a, b) => {
-        const supportRank = { Priority: 0, Monitor: 1, Stable: 2 };
+        const supportRank = { Priority: 0, Monitor: 1, Stable: 2, 'No Data': 3 };
         if (supportRank[a.supportLevel as keyof typeof supportRank] !== supportRank[b.supportLevel as keyof typeof supportRank]) {
           return supportRank[a.supportLevel as keyof typeof supportRank] - supportRank[b.supportLevel as keyof typeof supportRank];
         }
@@ -135,8 +137,8 @@ export default function DistrictDashboard() {
       systemAverage,
       teachersTracked: teacherProfiles.length,
       lessonsAnalyzed: reports.length,
-      priorityTeachers: teacherStats.filter((teacher) => teacher.supportLevel === 'Priority').length,
-      stableTeachers: teacherStats.filter((teacher) => teacher.supportLevel === 'Stable').length,
+      priorityTeachers: teacherStats.filter((teacher) => teacher.lessons > 0 && teacher.supportLevel === 'Priority').length,
+      stableTeachers: teacherStats.filter((teacher) => teacher.lessons > 0 && teacher.supportLevel === 'Stable').length,
     };
   }, [reports.length, teacherProfiles.length, teacherStats]);
 
@@ -148,7 +150,7 @@ export default function DistrictDashboard() {
       return b.lessons - a.lessons;
     })
     .slice(0, 3);
-  const priorityTeachers = teacherStats.filter((teacher) => teacher.supportLevel === 'Priority').slice(0, 5);
+  const priorityTeachers = teacherStats.filter((teacher) => teacher.lessons > 0 && teacher.supportLevel === 'Priority').slice(0, 5);
 
   if (!ready) {
     return (
