@@ -248,6 +248,16 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
       : ['No major content gaps identified.'];
 
   const standardsAlignment = buildSampleStandardsAlignment(report, improvements);
+  const executiveSummary =
+    score >= 88
+      ? `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson was strong overall, with clear alignment to the target and solid evidence of student participation. The next step is tightening mastery checks so the lesson closes with clearer proof of understanding.`
+      : score >= 78
+        ? `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson showed solid instruction with clear strengths in content focus and student participation. The biggest opportunity is strengthening precision, pacing, and final mastery evidence so students leave with firmer understanding.`
+        : `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson showed effort and visible student participation, but it needs stronger clarity, pacing, and mastery checks to secure understanding by the end of the lesson. The most important improvement is making the lesson objective and evidence of learning more explicit throughout instruction.`;
+  const recommendedNextStep =
+    report.gaps > 0
+      ? `${teacherDisplayName} should reteach the most important unfinished concept from this lesson, then end with a brief written or verbal check that shows whether students can explain it independently. This will tighten closure and make the next instructional move easier to plan.`
+      : `${teacherDisplayName} should keep the strongest instructional move from this lesson and add one sharper mastery check before closure so students have to explain, apply, or justify their understanding before moving on.`;
 
   return [
     'Metrics:',
@@ -259,7 +269,7 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     `Gaps Flagged: ${report.gaps}`,
     '',
     '=== EXECUTIVE SUMMARY ===',
-    `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson was ${scoreBand}. The strongest evidence came from coverage, clarity, engagement, and how consistently the lesson checked for understanding before moving students forward.`,
+    executiveSummary,
     '',
     '=== WHAT WENT WELL ===',
     ...strengths.map((item) => `- ${item}`),
@@ -271,21 +281,7 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     ...sampleContentGaps.map((item, index) => `${index + 1}. ${item}`),
     '',
     '=== RECOMMENDED NEXT STEP ===',
-    `${teacherDisplayName} should continue building on what worked while focusing next on stronger mastery checks, tighter closure, and clear evidence that students can independently demonstrate understanding by the end of the lesson.`,
-    '',
-    '=== INSTRUCTIONAL COACHING FEEDBACK ===',
-    `- Key Findings: Coverage indicates ${report.coverage}% alignment to the lesson objective and intended content focus.`,
-    `- Missed Opportunities: ${report.clarity >= 85 ? 'Push for deeper student ownership and independent reasoning.' : 'Tighten modeling and explanation so students see exactly what success looks like.'}`,
-    `- Student Engagement Signals: Engagement was rated at ${report.engagement}%, reflecting ${report.engagement >= 82 ? 'active student participation during the lesson' : 'limited student response opportunities that should be strengthened'}.`,
-    `- Suggested Next Steps: ${report.assessment >= 78 ? 'Keep the current structure and strengthen the final mastery check.' : 'Add a stronger formative check before closure to confirm student understanding.'}`,
-    '',
-    '=== STAAR TEKS COVERAGE ===',
-    `- Readiness Summary: The lesson is ${report.coverage >= 88 ? 'strongly aligned' : 'partially aligned'} to the assessed Biology standard for this course sequence.`,
-    '- Standards Reinforced:',
-    ...formatStandardsBlock(standardsAlignment.covered),
-    '- Standards That Need Stronger Assessment Evidence:',
-    ...formatStandardsBlock(standardsAlignment.reinforcement),
-    `- STAAR Readiness Recommendation: ${report.coverage >= 88 ? 'Maintain strong standards alignment while deepening independent student evidence.' : 'Tighten the connection between instruction, practice, and the assessed TEKS expectation.'}`,
+    recommendedNextStep,
     '',
     '=== TEXAS TEKS STANDARDS ALIGNMENT ===',
     '- Covered in the Lesson:',

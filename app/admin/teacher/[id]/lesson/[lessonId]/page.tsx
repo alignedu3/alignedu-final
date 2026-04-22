@@ -93,14 +93,22 @@ export default function LessonReportPage() {
   const insights = getLessonInsights(lesson);
   const reportSections = getLessonReportSections(lesson);
   const teksCoverage = getTEKSCoverageInsights(lesson);
+  const allHigherEdAlignmentSections = reportSections.higherEdAlignment;
+  const hasHigherEdAlignment = allHigherEdAlignmentSections.length > 0;
   const lessonStandards = {
     reinforced: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards Reinforced', 'Standards Addressed', 'Covered in the Lesson']),
     revisit: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards That Need Stronger Assessment Evidence', 'Needs Reinforcement']),
     notObserved: extractStandardEntries([...reportSections.staar, ...reportSections.teks], ['Standards Not Observed', 'Not Covered in the Lesson']),
     summary:
       extractSectionText(reportSections.teks, ['Standards Mastery Notes']) ||
-      extractSectionText(reportSections.staar, ['Readiness Summary']),
+      extractSectionText(reportSections.staar, ['Readiness Summary']) ||
+      extractSectionText(allHigherEdAlignmentSections, ['Textbook Alignment', 'Summary']),
     recommendations: extractSectionText([...reportSections.staar, ...reportSections.teks], ['Recommended Standards Follow-Up', 'Recommendations for Standards Integration', 'STAAR Readiness Recommendation']),
+    sectionHeading: 'Standards Alignment',
+    summaryTitle: hasHigherEdAlignment ? 'Textbook Alignment' : 'Standards Summary',
+    higherEdAlignment: allHigherEdAlignmentSections.filter(
+      (section) => !['Textbook Alignment', 'Summary'].includes(section.title)
+    ),
   };
   const submissionContextText = reportSections.submissionContext
     .map((section) => {
@@ -118,9 +126,9 @@ export default function LessonReportPage() {
     reportSections.improvements.length ||
     reportSections.recommendedNextStep ||
     reportSections.contentGaps.length ||
-    reportSections.coaching.length ||
     reportSections.teks.length ||
-    reportSections.staar.length
+    reportSections.staar.length ||
+    reportSections.higherEdAlignment.length
   );
   const lessonDate = lesson.created_at ? new Date(lesson.created_at).toLocaleString() : '—';
   const titleText = lesson.title || `${lesson.grade || 'Grade'} ${lesson.subject || 'Lesson'}`;
@@ -213,50 +221,12 @@ export default function LessonReportPage() {
           </div>
         </div>
 
-        <div style={{ ...sectionCard, ...nextStepSectionCard }}>
-          <h2 style={sectionTitle}>Next Best Action</h2>
-          <p style={bodyText}>{reportSections.recommendedNextStep}</p>
-        </div>
-
-        {reportSections.contentGaps.length > 0 && (
-          <div style={{ ...sectionCard, ...analysisSectionCard }}>
-            <h2 style={sectionTitle}>Content Gaps To Reinforce</h2>
-            <ul style={findingsList}>
-              {reportSections.contentGaps.map((gap, index) => (
-                <li key={`content-gap-${index}`} style={findingItem}>{gap}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {reportSections.coaching.length > 0 && (
-          <div style={{ ...sectionCard, ...analysisSectionCard }}>
-            <h2 style={sectionTitle}>Coaching Notes</h2>
-            <div style={sectionStack}>
-              {reportSections.coaching.map((section, index) => (
-                <div key={`coaching-section-${index}`}>
-                  <div style={subsectionTitle}>{section.title}</div>
-                  {section.bullets.length > 0 ? (
-                    <ul style={findingsList}>
-                      {section.bullets.map((item, itemIndex) => (
-                        <li key={`coaching-item-${itemIndex}`} style={findingItem}>{item}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p style={bodyText}>{section.content}</p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {(reportSections.staar.length > 0 || reportSections.teks.length > 0 || teksCoverage) && (
+        {(reportSections.staar.length > 0 || reportSections.teks.length > 0 || reportSections.higherEdAlignment.length > 0 || teksCoverage) && (
           <div style={{ ...sectionCard, ...teksSectionCard }}>
-            <h2 style={sectionTitle}>TEKS Coverage</h2>
+            <h2 style={sectionTitle}>{lessonStandards.sectionHeading}</h2>
             <div style={teksSectionStack}>
               <div style={teksSectionRow}>
-                <div style={subsectionTitle}>Standards Summary</div>
+                <div style={subsectionTitle}>{lessonStandards.summaryTitle}</div>
                 <p style={bodyText}>
                   {lessonStandards.summary || teksCoverage?.readinessSummary || teksCoverage?.overview || 'Review the standards groups below to see which TEKS were reinforced, which need to be revisited, and which were not yet clearly observed in the lesson evidence.'}
                 </p>
@@ -325,6 +295,24 @@ export default function LessonReportPage() {
                 <p style={bodyText}>{lessonStandards.recommendations}</p>
               </div>
             )}
+            {lessonStandards.higherEdAlignment.length > 0 && (
+              <div style={teksSectionStack}>
+                {lessonStandards.higherEdAlignment.map((section, index) => (
+                  <div key={`higher-ed-alignment-${index}`} style={teksSectionRow}>
+                    <div style={subsectionTitle}>{section.title}</div>
+                    {section.bullets.length > 0 ? (
+                      <ul style={findingsList}>
+                        {section.bullets.map((item, itemIndex) => (
+                          <li key={`higher-ed-alignment-item-${itemIndex}`} style={findingItem}>{item}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p style={bodyText}>{section.content}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
             {reportSections.teks.length === 0 && (teksCoverage?.strengths?.length ?? 0) > 0 && (
               <div style={{ ...teksSectionRow, marginTop: 8 }}>
                 <div style={subsectionTitle}>Alignment Strengths</div>
@@ -347,6 +335,22 @@ export default function LessonReportPage() {
             )}
           </div>
         )}
+
+        {reportSections.contentGaps.length > 0 && (
+          <div style={{ ...sectionCard, ...analysisSectionCard }}>
+            <h2 style={sectionTitle}>Content Gaps To Reinforce</h2>
+            <ul style={findingsList}>
+              {reportSections.contentGaps.map((gap, index) => (
+                <li key={`content-gap-${index}`} style={findingItem}>{gap}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div style={{ ...sectionCard, ...nextStepSectionCard }}>
+          <h2 style={sectionTitle}>Recommended Next Step</h2>
+          <p style={bodyText}>{reportSections.recommendedNextStep}</p>
+        </div>
 
         {!hasStructuredReport && (
           <div style={{ ...sectionCard, ...analysisSectionCard }}>

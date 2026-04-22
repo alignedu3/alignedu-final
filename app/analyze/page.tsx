@@ -1476,16 +1476,7 @@ export default function AnalysisPage() {
                               )}
                             </div>
                           ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
 
-                  {standardsRecommendationSections.length > 0 && (
-                    <>
-                      <div style={reportSectionHeadingStyle}>Recommended Standards Follow-Up</div>
-                      <div style={reportSectionPanelStyle}>
-                        <div style={reportStackStyle}>
                           {standardsRecommendationSections.map((section, index) => (
                             <div
                               key={`standards-recommendation-${index}`}
@@ -1497,6 +1488,7 @@ export default function AnalysisPage() {
                                     : reportSectionRowStyle.borderBottom,
                               }}
                             >
+                              <div style={reportPanelTitleStyle}>Recommended Standards Follow-Up</div>
                               {section.bullets.length > 0 ? (
                                 <ul style={reportPanelListStyle}>
                                   {section.bullets.map((item, li) => (
