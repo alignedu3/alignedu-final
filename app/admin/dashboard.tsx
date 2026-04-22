@@ -266,6 +266,41 @@ export default function AdminDashboard() {
   const dashboardManagedTeachers = isSampleMode ? sampleManagedTeachers : managedTeachers;
   const dashboardManagedAdmins = isSampleMode ? sampleManagedAdmins : managedAdmins;
   const dashboardVisibleAdminIds = isSampleMode ? sampleVisibleAdminIds : visibleAdminIds;
+  const directTeacherPerformanceIds = useMemo(
+    () =>
+      activeAdminId
+        ? dashboardManagedTeachers
+            .filter((link) => link.admin_id === activeAdminId)
+            .map((link) => link.teacher_id)
+            .filter((id) => dashboardProfileById.get(id)?.role === 'teacher')
+        : [],
+    [activeAdminId, dashboardManagedTeachers, dashboardProfileById]
+  );
+  const parentViewTeachingAdminIds = useMemo(
+    () =>
+      activeAdminId
+        ? dashboardManagedAdmins
+            .filter((link) => link.parent_admin_id === activeAdminId)
+            .map((link) => link.child_admin_id)
+            .filter((id) => {
+              const role = dashboardProfileById.get(id)?.role;
+              return role === 'admin' || role === 'super_admin';
+            })
+        : [],
+    [activeAdminId, dashboardManagedAdmins, dashboardProfileById]
+  );
+  const teacherPerformanceUserIds = useMemo(
+    () => new Set([...directTeacherPerformanceIds, ...parentViewTeachingAdminIds]),
+    [directTeacherPerformanceIds, parentViewTeachingAdminIds]
+  );
+  const teacherPerformanceReports = useMemo(
+    () =>
+      dashboardReports.filter((report) => {
+        if (!report.user_id) return false;
+        return teacherPerformanceUserIds.has(report.user_id);
+      }),
+    [dashboardReports, teacherPerformanceUserIds]
+  );
   const summary = getDashboardSummary(dashboardReports);
   const schoolYearOptions = useMemo(() => {
     const labels = new Set<string>();
@@ -288,13 +323,13 @@ export default function AdminDashboard() {
   }, [schoolYearOptions, selectedSchoolYear]);
 
   const trendReports = useMemo(() => {
-    if (!selectedSchoolYear) return dashboardReports;
-    return dashboardReports.filter((report) => {
+    if (!selectedSchoolYear) return teacherPerformanceReports;
+    return teacherPerformanceReports.filter((report) => {
       const parsed = parseReportDate(report);
       if (!parsed) return false;
       return getSchoolYearLabel(parsed) === selectedSchoolYear && isWithinSelectedTerm(parsed, selectedTrendTerm);
     });
-  }, [dashboardReports, selectedSchoolYear, selectedTrendTerm]);
+  }, [selectedSchoolYear, selectedTrendTerm, teacherPerformanceReports]);
 
   const trendLessonCount = trendReports.length;
   const trendTeacherCount = useMemo(() => {
@@ -401,7 +436,7 @@ export default function AdminDashboard() {
   const teacherStats = useMemo(() => {
     const map: Record<string, AnalysisReport[]> = {};
 
-    dashboardReports.forEach((r) => {
+    teacherPerformanceReports.forEach((r) => {
       const key = r.user_id;
       if (!key) return;
       if (!map[key]) map[key] = [];
@@ -432,7 +467,7 @@ export default function AdminDashboard() {
         needsAttention: avg < 75,
       };
     });
-  }, [dashboardProfileById, dashboardReports]);
+  }, [dashboardProfileById, teacherPerformanceReports]);
 
   const atRiskTeachers = teacherStats
     .filter(t => t.needsAttention)
