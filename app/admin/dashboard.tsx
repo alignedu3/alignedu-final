@@ -443,19 +443,26 @@ export default function AdminDashboard() {
       map[key].push(r);
     });
 
+    const getReportTimestamp = (report: AnalysisReport) => {
+      const raw = report.date || report.created_at || '';
+      const parsed = new Date(raw).getTime();
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
     return Object.entries(map).map(([id, reps]) => {
       const profile = dashboardProfileById.get(id);
-      const scores = reps.map(r => calculateLessonScore(r));
+      const orderedReports = [...reps].sort((a, b) => getReportTimestamp(b) - getReportTimestamp(a));
+      const scores = orderedReports.map(r => calculateLessonScore(r));
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-      const trend = getLatestLessonTrend(reps);
+      const trend = getLatestLessonTrend(orderedReports);
 
       let teacherName = 'Unknown Teacher';
       if (profile?.name) {
         teacherName = profile.name;
-      } else if (reps?.length && reps[0]?.teacher_name) {
-        teacherName = reps[0].teacher_name;
-      } else if (reps?.length && reps[0]?.name) {
-        teacherName = reps[0].name;
+      } else if (orderedReports?.length && orderedReports[0]?.teacher_name) {
+        teacherName = orderedReports[0].teacher_name;
+      } else if (orderedReports?.length && orderedReports[0]?.name) {
+        teacherName = orderedReports[0].name;
       }
 
       return {
@@ -941,7 +948,7 @@ export default function AdminDashboard() {
               <thead>
                 <tr>
                   <th style={{ ...th, width: '40%', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Teacher</th>
-                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Score</th>
+                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Current Avg</th>
                   <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Trend</th>
                   <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Actions</th>
                 </tr>

@@ -80,9 +80,17 @@ export default function DistrictDashboard() {
       reportsByTeacher.set(report.user_id, existing);
     });
 
+    const getReportTimestamp = (report: AnalysisReport) => {
+      const raw = report.date || report.created_at || '';
+      const parsed = new Date(raw).getTime();
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
     return teacherProfiles
       .map((teacher) => {
-        const teacherReports = reportsByTeacher.get(teacher.id) || [];
+        const teacherReports = [...(reportsByTeacher.get(teacher.id) || [])].sort(
+          (a, b) => getReportTimestamp(b) - getReportTimestamp(a)
+        );
         const latestReport = teacherReports[0];
         const latestMetrics = latestReport ? getLessonMetrics(latestReport) : null;
         const averageScore = teacherReports.length
@@ -132,7 +140,14 @@ export default function DistrictDashboard() {
     };
   }, [reports.length, teacherProfiles.length, teacherStats]);
 
-  const topPerformers = teacherStats.filter((teacher) => teacher.lessons > 0).slice(-3).reverse();
+  const topPerformers = [...teacherStats]
+    .filter((teacher) => teacher.lessons > 0 && teacher.supportLevel === 'Stable')
+    .sort((a, b) => {
+      if (b.avgScore !== a.avgScore) return b.avgScore - a.avgScore;
+      if (b.latestScore !== a.latestScore) return b.latestScore - a.latestScore;
+      return b.lessons - a.lessons;
+    })
+    .slice(0, 3);
   const priorityTeachers = teacherStats.filter((teacher) => teacher.supportLevel === 'Priority').slice(0, 5);
 
   if (!ready) {
@@ -206,7 +221,7 @@ export default function DistrictDashboard() {
                   <div>
                     <div style={rowTitle}>{teacher.name}</div>
                     <div style={rowMeta}>
-                      Avg {teacher.avgScore}/100, latest {teacher.latestScore}/100, gaps {teacher.gaps}
+                      Current avg {teacher.avgScore}/100, latest {teacher.latestScore}/100, gaps {teacher.gaps}
                     </div>
                   </div>
                   <div style={pillDanger}>
@@ -221,14 +236,14 @@ export default function DistrictDashboard() {
             <div style={sectionEyebrow}>District Strength</div>
             <h2 style={title}>Top Performing Teachers</h2>
             {topPerformers.length === 0 ? (
-              <p style={text}>No lesson data has been submitted yet.</p>
+              <p style={text}>No teachers currently meet the stable top-performer threshold. Keep monitoring trends as new lesson data comes in.</p>
             ) : (
               topPerformers.map((teacher) => (
                 <div key={teacher.id} style={row}>
                   <div>
                     <div style={rowTitle}>{teacher.name}</div>
                     <div style={rowMeta}>
-                      Avg {teacher.avgScore}/100, latest coverage {teacher.latestCoverage}/100, {teacher.lessons} lesson{teacher.lessons === 1 ? '' : 's'}
+                      Current avg {teacher.avgScore}/100, latest coverage {teacher.latestCoverage}/100, {teacher.lessons} lesson{teacher.lessons === 1 ? '' : 's'}
                     </div>
                   </div>
                   <div style={pillSuccess}>{teacher.supportLevel}</div>
@@ -247,7 +262,7 @@ export default function DistrictDashboard() {
                 <tr>
                   <th style={th}>Teacher</th>
                   <th style={th}>Lessons</th>
-                  <th style={th}>Average</th>
+                  <th style={th}>Current Avg</th>
                   <th style={th}>Latest</th>
                   <th style={th}>Trend</th>
                   <th style={th}>Support Level</th>
