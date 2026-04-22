@@ -161,6 +161,7 @@ export async function POST(req: Request) {
 
     const grade = String(formData.get("grade") || "");
     const subject = String(formData.get("subject") || "");
+    const chapter = String(formData.get("chapter") || "").trim();
     const lectureText = String(formData.get("lecture") || "").trim();
     const waitTimeEvidence = String(formData.get("waitTimeEvidence") || "").trim();
     const audioDurationValue = formData.get("audioDuration");
@@ -237,6 +238,11 @@ export async function POST(req: Request) {
     const isHigherEdBiology =
       grade.trim().toLowerCase() === 'higher ed' &&
       subject.trim().toLowerCase() === 'biology';
+    const lessonContextTitle = chapter
+      ? isHigherEdBiology
+        ? `Campbell Biology ${chapter}`
+        : chapter
+      : '';
 
     let systemPrompt = `You are an elite instructional coach analyzing classroom teaching. Be specific, evidence-based, and actionable. Organize the report with clear sections, bullet points, and concise language so it is easy to follow.
 
@@ -300,7 +306,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 
     if (hasStandards) {
       systemPrompt += '\nProvide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.';
-      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${teksContext}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}`;
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}${chapter ? `\nChapter / Unit: ${chapter}` : ''}\n\n${teksContext}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}`;
 
       if (isSTAAR) {
         userPrompt += `\n\n=== STAAR TEKS COVERAGE ===\nSummarize how well the lesson covered the most important TEKS for this STAAR-tested subject and grade. Use labeled bullets for:\n- Readiness Summary: ...\n- Standards Reinforced:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- Standards That Need Stronger Assessment Evidence:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- STAAR Readiness Recommendation: ...\nFor Standards Reinforced and Standards That Need Stronger Assessment Evidence, list only actual TEKS codes with their matching descriptions from the standards reference above. Do not use generic prose in those two fields. For the weaker-assessment field, choose TEKS that are directly related to the lesson topic and concept focus.`;
@@ -321,7 +327,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 For the three standards lists above, use only actual TEKS codes with their matching descriptions from the standards reference. Do not use generic prose in those list fields.
 \nTranscript:\n${transcript}\n`;
     } else {
-      userPrompt = `Grade: ${grade}\nSubject: ${subject}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}\n\nTranscript:\n${transcript}\n`;
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}${chapter ? `\nChapter / Unit: ${chapter}` : ''}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}\n\nTranscript:\n${transcript}\n`;
     }
 
     const completion = await callOpenAI(openai, [
@@ -358,6 +364,7 @@ For the three standards lists above, use only actual TEKS codes with their match
     if (user?.id) {
       const analysisRecord = {
         user_id: targetUserId,
+        title: lessonContextTitle || null,
         grade,
         subject,
         coverage_score: metrics.coverage_score,
