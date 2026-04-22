@@ -1032,6 +1032,8 @@ const summaryScorePill: React.CSSProperties = {
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
+  textAlign: 'center',
+  gap: 6,
   padding: 16,
 };
 
@@ -1040,13 +1042,16 @@ const summaryScoreValue: React.CSSProperties = {
   fontSize: 36,
   fontWeight: 800,
   lineHeight: 1,
+  width: '100%',
+  textAlign: 'center',
 };
 
 const summaryScoreLabel: React.CSSProperties = {
   color: 'var(--text-secondary)',
   fontSize: 12,
   fontWeight: 700,
-  marginTop: 6,
+  lineHeight: 1.3,
+  textAlign: 'center',
   textTransform: 'uppercase',
   letterSpacing: 0.5,
 };
