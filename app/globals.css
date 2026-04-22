@@ -622,7 +622,7 @@ textarea {
   position: absolute;
   inset: 0;
   opacity: 0;
-  cursor: pointer;
+  pointer-events: none;
   z-index: 2;
 }
 

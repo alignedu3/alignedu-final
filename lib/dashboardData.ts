@@ -431,6 +431,48 @@ function dedupeInsightList(items: string[]) {
   });
 }
 
+function splitContentIntoThoughts(value: string) {
+  return cleanInsightText(value)
+    .split(/\n+/)
+    .flatMap((line) => line.split(/(?<=[.!?])\s+/))
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function cleanInsightText(value: string) {
+  return String(value || '')
+    .replace(/\r/g, '')
+    .replace(/^[\s\-•*0-9.]+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function looksTruncated(value: string) {
+  const text = cleanInsightText(value);
+  if (!text) return true;
+  const lastToken = text.split(/\s+/).at(-1) || '';
+  return text.length < 28 || (!/[.!?]$/.test(text) && lastToken.length <= 2);
+}
+
+function normalizeInsightItems(items: string[]) {
+  return dedupeInsightList(
+    items
+      .map(cleanInsightText)
+      .filter((item) => item && !looksTruncated(item))
+  );
+}
+
+function getCoachingSectionItems(report: AnalysisReport, title: string) {
+  const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
+  const section = parsed.coaching.find((entry) => entry.title === title);
+  if (!section) return [];
+
+  return normalizeInsightItems([
+    ...section.bullets,
+    ...splitContentIntoThoughts(section.content),
+  ]);
+}
+
 export function calculateLessonScore(report: AnalysisReport): number {
   const coverage = toNumberMetric(report.coverage ?? report.coverage_score, 75);
   const clarity = toNumberMetric(report.clarity ?? report.clarity_rating, 75);
@@ -482,6 +524,11 @@ export function getLessonInsights(report: AnalysisReport) {
           .filter(Boolean)
       : []),
   ]);
+  const parsedStrengths = normalizeInsightItems(parsed.whatWentWell);
+  const parsedImprovements = normalizeInsightItems(parsed.whatCanImprove);
+  const coachingKeyFindings = getCoachingSectionItems(report, 'Key Findings');
+  const coachingMissedOpportunities = getCoachingSectionItems(report, 'Missed Opportunities');
+  const coachingSuggestedNextSteps = getCoachingSectionItems(report, 'Suggested Next Steps');
   const findings: string[] = [];
   const strengths: string[] = [];
   const improvements: string[] = [];
@@ -533,9 +580,12 @@ export function getLessonInsights(report: AnalysisReport) {
   }
 
   const nextAction =
-    metrics.gaps > 0
-      ? 'Revisit missed concepts, strengthen closure, and add a quick mastery check before moving on.'
-      : 'Maintain strong instruction and add deeper checks for understanding to extend rigor.';
+    cleanInsightText(parsed.recommendedNextStep) ||
+    coachingSuggestedNextSteps[0] ||
+    parsedImprovements[0] ||
+    (metrics.gaps > 0
+      ? `Reteach the most important missed concept from this lesson, then end with a brief check that shows whether students can explain it independently.`
+      : 'Keep the strongest instructional move from this lesson and add one sharper understanding check before the lesson closes.');
 
   const summary =
     metrics.score >= 85
@@ -555,8 +605,8 @@ export function getLessonInsights(report: AnalysisReport) {
   return {
     ...metrics,
     findings: aiFindings.length > 0 ? aiFindings : dedupeInsightList(findings),
-    strengths,
-    improvements,
+    strengths: parsedStrengths.length > 0 ? parsedStrengths : (coachingKeyFindings.length > 0 ? coachingKeyFindings : strengths),
+    improvements: parsedImprovements.length > 0 ? parsedImprovements : (coachingMissedOpportunities.length > 0 ? coachingMissedOpportunities : improvements),
     nextAction,
     summary,
     celebration,
@@ -577,12 +627,15 @@ export function getLessonReportSections(report: AnalysisReport): {
 } {
   const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
   const insights = getLessonInsights(report);
+  const parsedStrengths = normalizeInsightItems(parsed.whatWentWell);
+  const parsedImprovements = normalizeInsightItems(parsed.whatCanImprove);
+  const recommendedNextStep = cleanInsightText(parsed.recommendedNextStep);
 
   return {
     executiveSummary: parsed.executiveSummary || insights.summary,
-    strengths: parsed.whatWentWell.length ? parsed.whatWentWell : insights.strengths,
-    improvements: parsed.whatCanImprove.length ? parsed.whatCanImprove : insights.improvements,
-    recommendedNextStep: parsed.recommendedNextStep || insights.nextAction,
+    strengths: parsedStrengths.length ? parsedStrengths : insights.strengths,
+    improvements: parsedImprovements.length ? parsedImprovements : insights.improvements,
+    recommendedNextStep: recommendedNextStep || insights.nextAction,
     contentGaps: parsed.contentGaps.flatMap((section) => {
       if (section.bullets.length > 0) return section.bullets;
       return section.content

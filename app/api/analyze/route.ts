@@ -152,12 +152,39 @@ function upsertStructuredSection(
 
 function needsWhatWentWellRepair(result: string) {
   const feedbackSections = parseFeedbackSections(result);
-  if (feedbackSections.whatWentWell.length >= 2) {
+  const bullets = feedbackSections.whatWentWell;
+  const combinedStrengthText = bullets.join(" ").trim();
+  const hasTruncatedBullet = bullets.some((bullet) => {
+    const trimmed = bullet.trim();
+    if (!trimmed) return true;
+    const lastToken = trimmed.split(/\s+/).at(-1) || "";
+    return trimmed.length < 40 || (!/[.!?]$/.test(trimmed) && lastToken.length <= 2);
+  });
+
+  if (bullets.length >= 3 && !hasTruncatedBullet && combinedStrengthText.length >= 150) {
     return false;
   }
 
-  const combinedStrengthText = feedbackSections.whatWentWell.join(" ").trim();
-  return combinedStrengthText.length < 80;
+  return true;
+}
+
+function needsRecommendedNextStepRepair(result: string) {
+  const feedbackSections = parseFeedbackSections(result);
+  const nextStep = feedbackSections.recommendedNextStep.trim();
+  if (!nextStep) return true;
+
+  const normalized = nextStep.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  const genericPatterns = [
+    "revisit missed concepts strengthen closure and add a quick mastery check before moving on",
+    "maintain strong instruction and add deeper checks for understanding to extend rigor",
+    "continue building on what worked while focusing next on stronger mastery checks tighter closure and clear evidence that students can independently demonstrate understanding by the end of the lesson",
+  ];
+
+  if (nextStep.length < 90) {
+    return true;
+  }
+
+  return genericPatterns.some((pattern) => normalized.includes(pattern));
 }
 
 function buildMetricsBlock(metrics: {
@@ -569,6 +596,39 @@ ${transcript}`;
       }
     }
 
+    if (needsRecommendedNextStepRepair(result)) {
+      const nextStepRepairPrompt = `Return only the paragraph for the "RECOMMENDED NEXT STEP" section of this lesson report.
+
+Requirements:
+- Write one concise paragraph.
+- Name the single highest-leverage next move for this exact lesson.
+- Ground it in the actual lesson content, teacher moves, or missed concept work from the transcript.
+- Do not use generic phrasing like "strengthen closure" or "add a quick mastery check" unless you explain what specifically needs to be checked or revisited in this lesson.
+- Do not include a heading.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+      const nextStepRepair = await callOpenAISectionRepair(openai, nextStepRepairPrompt);
+      const repairedNextStepText = String(nextStepRepair.choices[0]?.message?.content || "")
+        .replace(/\r/g, "")
+        .trim();
+
+      if (repairedNextStepText) {
+        result = upsertStructuredSection(
+          result,
+          "RECOMMENDED NEXT STEP",
+          repairedNextStepText
+        );
+      }
+    }
+
     const submissionContext =
       observedTeacherId
         ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfile?.name || 'Admin').trim()} (Admin Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
@@ -605,7 +665,7 @@ ${transcript}`;
         assessment_quality: metrics.assessment_quality,
         gaps_detected: metrics.gaps_detected,
         transcript: transcript.slice(0, 5000),
-        result: finalResult.slice(0, 5000),
+        result: finalResult,
         created_at: new Date().toISOString(),
       };
 

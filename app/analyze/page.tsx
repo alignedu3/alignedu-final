@@ -867,7 +867,10 @@ export default function AnalysisPage() {
   };
 
   const openAudioPicker = () => {
-    uploadInputRef.current?.click();
+    if (!uploadInputRef.current) return;
+    // Reset the value so re-selecting the same recording still triggers onChange.
+    uploadInputRef.current.value = '';
+    uploadInputRef.current.click();
   };
 
   useEffect(() => {
@@ -1035,14 +1038,21 @@ export default function AnalysisPage() {
       }
 
       setProcessingStep("Finalizing results...");
-      setResult(data?.result || "No result returned");
+      const returnedResult = data?.result || "No result returned";
+      const returnedMetrics = parseAnalysisMetrics(returnedResult);
+      setResult(returnedResult);
       setAnalysisMetrics({
-        score: typeof data?.metrics?.score === 'number' ? data.metrics.score : null,
-        coverage: typeof data?.metrics?.coverage === 'number' ? data.metrics.coverage : null,
-        clarity: typeof data?.metrics?.clarity === 'number' ? data.metrics.clarity : null,
-        engagement: typeof data?.metrics?.engagement === 'number' ? data.metrics.engagement : null,
-        assessment: typeof data?.metrics?.assessment === 'number' ? data.metrics.assessment : null,
-        gaps: typeof data?.metrics?.gaps === 'number' ? data.metrics.gaps : null,
+        score:
+          typeof data?.metrics?.score === 'number'
+            ? data.metrics.score
+            : typeof data?.score === 'number'
+              ? data.score
+              : returnedMetrics.score,
+        coverage: typeof data?.metrics?.coverage === 'number' ? data.metrics.coverage : returnedMetrics.coverage,
+        clarity: typeof data?.metrics?.clarity === 'number' ? data.metrics.clarity : returnedMetrics.clarity,
+        engagement: typeof data?.metrics?.engagement === 'number' ? data.metrics.engagement : returnedMetrics.engagement,
+        assessment: typeof data?.metrics?.assessment === 'number' ? data.metrics.assessment : returnedMetrics.assessment,
+        gaps: typeof data?.metrics?.gaps === 'number' ? data.metrics.gaps : returnedMetrics.gaps,
       });
       if (data?.saved) {
         setSaveNotice(
