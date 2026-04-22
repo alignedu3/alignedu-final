@@ -190,6 +190,7 @@ export default function AnalysisPage() {
 
   const [grade, setGrade] = useState("");
   const [subject, setSubject] = useState("");
+  const [book, setBook] = useState("");
   const [chapter, setChapter] = useState("");
   const [lessonNotes, setLessonNotes] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -249,7 +250,9 @@ export default function AnalysisPage() {
 
   const isHigherEd = grade === 'Higher Ed';
   const isHigherEdBiology = isHigherEd && subject === 'Biology';
+  const isHigherEdCustomText = isHigherEd && Boolean(subject) && subject !== 'Biology';
   const higherEdBiologyChapterOptions = Array.from({ length: 56 }, (_, index) => `Chapter ${index + 1}`);
+  const higherEdChapterOptions = Array.from({ length: 40 }, (_, index) => `Chapter ${index + 1}`);
 
   useEffect(() => {
     let isMounted = true;
@@ -921,6 +924,7 @@ export default function AnalysisPage() {
       const analysisForm = new FormData();
       analysisForm.append("grade", grade);
       analysisForm.append("subject", subject);
+      analysisForm.append("book", book.trim());
       analysisForm.append("chapter", chapter.trim());
       analysisForm.append("lecture", transcriptText);
       if (responseWaitNotes.length > 0) {
@@ -999,6 +1003,7 @@ export default function AnalysisPage() {
                     const nextGrade = e.target.value;
                     setGrade(nextGrade);
                     if (nextGrade !== 'Higher Ed') {
+                      setBook('');
                       setChapter('');
                     }
                   }}
@@ -1041,9 +1046,11 @@ export default function AnalysisPage() {
                     const nextSubject = e.target.value;
                     setSubject(nextSubject);
                     if (grade !== 'Higher Ed') return;
-                    if (nextSubject !== 'Biology' && chapter.startsWith('Chapter ')) {
-                      setChapter('');
+                    if (nextSubject === 'Biology') {
+                      setBook('');
+                      return;
                     }
+                    setChapter('');
                   }}
                 >
                   <option value="">Select subject</option>
@@ -1056,31 +1063,44 @@ export default function AnalysisPage() {
               </div>
 
               {isHigherEd && (
-                <div className="analysis-field-group">
-                  <label className="analysis-label">
-                    {isHigherEdBiology ? 'Campbell Biology Chapter' : 'Chapter / Unit'}
-                  </label>
-                  {isHigherEdBiology ? (
+                <>
+                  <div className="analysis-context-grid">
+                  {isHigherEdCustomText && (
+                    <div className="analysis-field-group">
+                      <label className="analysis-label">Book</label>
+                      <input
+                        type="text"
+                        value={book}
+                        onChange={(e) => setBook(e.target.value)}
+                        placeholder="Type the textbook being used"
+                      />
+                    </div>
+                  )}
+
+                  <div className="analysis-field-group">
+                    <label className="analysis-label">
+                      {isHigherEdBiology ? 'Campbell Biology Chapter' : 'Chapter'}
+                    </label>
                     <select
                       value={chapter}
                       onChange={(e) => setChapter(e.target.value)}
                     >
                       <option value="">Select chapter</option>
-                      {higherEdBiologyChapterOptions.map((option) => (
+                      {(isHigherEdBiology ? higherEdBiologyChapterOptions : higherEdChapterOptions).map((option) => (
                         <option key={option} value={option}>
                           {option}
                         </option>
                       ))}
                     </select>
-                  ) : (
-                    <input
-                      type="text"
-                      value={chapter}
-                      onChange={(e) => setChapter(e.target.value)}
-                      placeholder="Enter chapter or unit being covered"
-                    />
-                  )}
-                </div>
+                  </div>
+                  </div>
+
+                  <p className="analysis-context-note">
+                    {isHigherEdBiology
+                      ? 'Compared against your Campbell Biology reference.'
+                      : 'Compared against the selected textbook and chapter.'}
+                  </p>
+                </>
               )}
 
               <div className="analysis-field-group">

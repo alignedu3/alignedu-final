@@ -527,6 +527,23 @@ button:disabled {
   flex-direction: column;
 }
 
+.analysis-context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.analysis-context-grid .analysis-field-group {
+  margin-bottom: 0;
+}
+
+.analysis-context-note {
+  margin: 10px 0 18px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
 .analysis-label,
 label {
   display: block;
@@ -795,6 +812,11 @@ audio {
     padding: 64px 12px 72px;
   }
 
+  .analysis-context-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
   .analysis-header {
     margin-bottom: 22px;
   }
@@ -833,6 +855,11 @@ audio {
   .analysis-subtitle {
     font-size: 15px;
     margin-bottom: 26px;
+  }
+
+  .analysis-context-note {
+    font-size: 12px;
+    margin-top: 8px;
   }
 }
 
