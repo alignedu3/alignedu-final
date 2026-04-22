@@ -358,8 +358,8 @@ export default function TeacherDashboard() {
           >
             <div style={analysisScorePanel}>
               <div style={analysisScoreEyebrow}>Current Average</div>
-              <div style={analysisScoreValue}>{overallScore}/100</div>
-              <div style={analysisScoreSubtext}>
+              <div style={{ ...analysisScoreValue, fontSize: isNarrowScreen ? 34 : analysisScoreValue.fontSize }}>{overallScore}/100</div>
+              <div style={{ ...analysisScoreSubtext, fontSize: isNarrowScreen ? 12 : analysisScoreSubtext.fontSize }}>
                 {summary.lessonsAnalyzed > 0
                   ? `Average across ${summary.lessonsAnalyzed} lesson${summary.lessonsAnalyzed === 1 ? '' : 's'}`
                   : 'No lessons analyzed yet'}
@@ -367,24 +367,24 @@ export default function TeacherDashboard() {
             </div>
 
             <div style={analysisMetricsGrid}>
-              <div style={analysisMetricCard}>
-                <div style={analysisMetricLabel}>Coverage</div>
-                <div style={analysisMetricValue}>{summary.averageCoverage}%</div>
+              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 88 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '14px 12px 12px' : analysisMetricCard.padding }}>
+                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 11 : analysisMetricLabel.fontSize }}>Coverage</div>
+                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{summary.averageCoverage}%</div>
               </div>
 
-              <div style={analysisMetricCard}>
-                <div style={analysisMetricLabel}>Clarity</div>
-                <div style={analysisMetricValue}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
+              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 88 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '14px 12px 12px' : analysisMetricCard.padding }}>
+                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 11 : analysisMetricLabel.fontSize }}>Clarity</div>
+                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
               </div>
 
-              <div style={analysisMetricCard}>
-                <div style={analysisMetricLabel}>Engagement</div>
-                <div style={analysisMetricValue}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
+              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 88 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '14px 12px 12px' : analysisMetricCard.padding }}>
+                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 11 : analysisMetricLabel.fontSize }}>Engagement</div>
+                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
               </div>
 
-              <div style={analysisMetricCard}>
-                <div style={analysisMetricLabel}>Total Gaps</div>
-                <div style={analysisMetricValue}>{summary.totalGaps || 0}</div>
+              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 88 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '14px 12px 12px' : analysisMetricCard.padding }}>
+                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 11 : analysisMetricLabel.fontSize }}>Total Gaps</div>
+                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{summary.totalGaps || 0}</div>
               </div>
             </div>
           </div>

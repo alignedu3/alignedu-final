@@ -26,6 +26,7 @@ export default function DistrictDashboard() {
   const [districtName, setDistrictName] = useState('District Dashboard');
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -64,6 +65,13 @@ export default function DistrictDashboard() {
     }
 
     load();
+  }, []);
+
+  useEffect(() => {
+    const updateScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
+    updateScreen();
+    window.addEventListener('resize', updateScreen);
+    return () => window.removeEventListener('resize', updateScreen);
   }, []);
 
   const teacherProfiles = useMemo(
@@ -184,30 +192,36 @@ export default function DistrictDashboard() {
           </section>
         ) : null}
 
-        <div style={statsGrid}>
-          <div style={statCard}>
-            <div style={statLabel}>System Average</div>
-            <div style={{ ...statValue, color: summary.systemAverage >= 80 ? '#15803d' : '#c2410c' }}>
+        <div
+          style={{
+            ...statsGrid,
+            gridTemplateColumns: isNarrowScreen ? 'repeat(2, minmax(0, 1fr))' : statsGrid.gridTemplateColumns,
+            gap: isNarrowScreen ? 12 : statsGrid.gap,
+          }}
+        >
+          <div style={{ ...statCard, padding: isNarrowScreen ? 16 : statCard.padding }}>
+            <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>System Average</div>
+            <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize, color: summary.systemAverage >= 80 ? '#15803d' : '#c2410c' }}>
               {summary.systemAverage}/100
             </div>
-            <div style={statSub}>Average teacher score across visible lesson data</div>
+            <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Average teacher score across visible lesson data</div>
           </div>
-          <div style={statCard}>
-            <div style={statLabel}>Teachers Tracked</div>
-            <div style={statValue}>{summary.teachersTracked}</div>
-            <div style={statSub}>Teachers currently in district scope</div>
+          <div style={{ ...statCard, padding: isNarrowScreen ? 16 : statCard.padding }}>
+            <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>Teachers Tracked</div>
+            <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize }}>{summary.teachersTracked}</div>
+            <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Teachers currently in district scope</div>
           </div>
-          <div style={statCard}>
-            <div style={statLabel}>Lessons Analyzed</div>
-            <div style={statValue}>{summary.lessonsAnalyzed}</div>
-            <div style={statSub}>Saved submissions contributing to the district view</div>
+          <div style={{ ...statCard, padding: isNarrowScreen ? 16 : statCard.padding }}>
+            <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>Lessons Analyzed</div>
+            <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize }}>{summary.lessonsAnalyzed}</div>
+            <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Saved submissions contributing to the district view</div>
           </div>
-          <div style={statCard}>
-            <div style={statLabel}>Priority Teachers</div>
-            <div style={{ ...statValue, color: summary.priorityTeachers > 0 ? '#b91c1c' : 'var(--text-primary)' }}>
+          <div style={{ ...statCard, padding: isNarrowScreen ? 16 : statCard.padding }}>
+            <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>Priority Teachers</div>
+            <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize, color: summary.priorityTeachers > 0 ? '#b91c1c' : 'var(--text-primary)' }}>
               {summary.priorityTeachers}
             </div>
-            <div style={statSub}>Teachers currently crossing support thresholds</div>
+            <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Teachers currently crossing support thresholds</div>
           </div>
         </div>
 
