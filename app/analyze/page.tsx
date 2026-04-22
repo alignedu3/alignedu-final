@@ -694,35 +694,18 @@ export default function AnalysisPage() {
   );
   const findCoachingSection = (...titles: string[]) =>
     feedbackSections.coaching.find((section) => titles.includes(section.title));
-  const keyFindingsSection = findCoachingSection("Key Findings");
-  const missedOpportunitiesSection = findCoachingSection("Missed Opportunities");
-  const engagementSignalsSection = findCoachingSection("Student Engagement Signals");
   const suggestedNextStepsSection = findCoachingSection("Suggested Next Steps");
-  const instructionalHighlights = [
-    {
-      title: "Key Findings",
-      bullets: keyFindingsSection?.bullets.length
-        ? keyFindingsSection.bullets
-        : feedbackSections.whatWentWell,
-      content:
-        keyFindingsSection?.content ||
-        (!keyFindingsSection?.bullets.length ? feedbackSections.whatWentWell.join(" ") : ""),
-    },
-    {
-      title: "Missed Opportunities",
-      bullets: missedOpportunitiesSection?.bullets.length
-        ? missedOpportunitiesSection.bullets
-        : feedbackSections.whatCanImprove,
-      content:
-        missedOpportunitiesSection?.content ||
-        (!missedOpportunitiesSection?.bullets.length ? feedbackSections.whatCanImprove.join(" ") : ""),
-    },
-    {
-      title: "Student Engagement Signals",
-      bullets: engagementSignalsSection?.bullets ?? [],
-      content: engagementSignalsSection?.content || "",
-    },
-  ].filter((section) => section.bullets.length > 0 || section.content.trim());
+  const reportStrengths = feedbackSections.whatWentWell;
+  const reportImprovements = feedbackSections.whatCanImprove;
+  const contentGapItems = feedbackSections.contentGaps.flatMap((section) => {
+    if (section.bullets.length > 0) return section.bullets;
+    return section.content
+      ? section.content
+          .split(/\n+/)
+          .map((line) => line.replace(/^[0-9]+\.\s*/, '').trim())
+          .filter(Boolean)
+      : [];
+  });
   const recommendedNextStepText =
     suggestedNextStepsSection?.content ||
     (suggestedNextStepsSection?.bullets.length ? suggestedNextStepsSection.bullets.join(' ') : '') ||
@@ -758,50 +741,7 @@ export default function AnalysisPage() {
   registerRenderedText(recommendedNextStepText);
   feedbackSections.whatWentWell.forEach(registerRenderedText);
   feedbackSections.whatCanImprove.forEach(registerRenderedText);
-  instructionalHighlights.forEach((section) => {
-    registerRenderedText(section.content);
-    section.bullets.forEach(registerRenderedText);
-  });
-
-  const hiddenDetailedSectionTitles = new Set([
-    'executive summary',
-    'what went well',
-    'what can improve',
-    'content gaps to reinforce',
-    'recommended next step',
-    'instructional coaching feedback',
-    'texas teks standards alignment',
-    'staar teks coverage',
-    'higher ed biology textbook alignment',
-    'higher ed textbook alignment',
-    'submission context',
-  ]);
-
-  const detailedNotesSections = resultSections.filter((section) => {
-    if (hiddenDetailedSectionTitles.has(section.title.toLowerCase())) {
-      return false;
-    }
-
-    const sectionContent = cleanDisplayText(section.content);
-    const bulletContent = section.bullets.map((bullet) => cleanDisplayText(bullet)).filter(Boolean);
-    const fingerprint =
-      sectionContent ||
-      bulletContent.join(' ').trim();
-
-    if (!fingerprint) {
-      return false;
-    }
-
-    if (renderedSectionFingerprints.has(fingerprint.toLowerCase())) {
-      return false;
-    }
-
-    if (bulletContent.length > 0 && bulletContent.every((bullet) => renderedSectionFingerprints.has(bullet.toLowerCase()))) {
-      return false;
-    }
-
-    return true;
-  });
+  contentGapItems.forEach(registerRenderedText);
 
   const transcribeChunk = async (chunk: File, index: number, total: number): Promise<TranscriptionChunkResult> => {
     setProcessingStep(`Transcribing chunk ${index + 1} of ${total}...`);
@@ -1416,24 +1356,43 @@ export default function AnalysisPage() {
                     </div>
                   )}
 
-                  {instructionalHighlights.length > 0 && (
+                  {(reportStrengths.length > 0 || reportImprovements.length > 0) && (
                     <>
-                      <div style={reportSectionHeadingStyle}>Instructional Insights</div>
+                      <div style={reportSectionHeadingStyle}>Instructional Review</div>
                       <div style={reportGridStyle}>
-                        {instructionalHighlights.map((section) => (
-                          <div key={section.title} style={reportPanelStyle}>
-                            <div style={reportPanelTitleStyle}>{section.title}</div>
-                            {section.bullets.length > 0 ? (
-                              <ul style={reportPanelListStyle}>
-                                {section.bullets.map((item, index) => (
-                                  <li key={`${section.title}-${index}`}>{item}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <div style={reportPanelTextStyle}>{section.content}</div>
-                            )}
+                        {reportStrengths.length > 0 && (
+                          <div style={reportPanelStyle}>
+                            <div style={reportPanelTitleStyle}>What Went Well</div>
+                            <ul style={reportPanelListStyle}>
+                              {reportStrengths.map((item, index) => (
+                                <li key={`strength-${index}`}>{item}</li>
+                              ))}
+                            </ul>
                           </div>
-                        ))}
+                        )}
+                        {reportImprovements.length > 0 && (
+                          <div style={reportPanelStyle}>
+                            <div style={reportPanelTitleStyle}>What Can Improve</div>
+                            <ul style={reportPanelListStyle}>
+                              {reportImprovements.map((item, index) => (
+                                <li key={`improvement-${index}`}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {contentGapItems.length > 0 && (
+                    <>
+                      <div style={reportSectionHeadingStyle}>Content Gaps To Reinforce</div>
+                      <div style={reportPanelStyle}>
+                        <ul style={reportPanelListStyle}>
+                          {contentGapItems.map((item, index) => (
+                            <li key={`content-gap-${index}`}>{item}</li>
+                          ))}
+                        </ul>
                       </div>
                     </>
                   )}
@@ -1530,28 +1489,6 @@ export default function AnalysisPage() {
                             </div>
                           ))}
                         </div>
-                      </div>
-                    </>
-                  )}
-
-                  {detailedNotesSections.length > 0 && (
-                    <>
-                      <div style={reportSectionHeadingStyle}>Detailed Notes</div>
-                      <div style={reportStackStyle}>
-                        {detailedNotesSections.map((section, index) => (
-                          <div key={index} style={reportSectionRowStyle}>
-                            <div style={reportPanelTitleStyle}>{section.title}</div>
-                            {section.bullets.length > 0 ? (
-                              <ul style={reportPanelListStyle}>
-                                {section.bullets.map((item, li) => (
-                                  <li key={li}>{item}</li>
-                                ))}
-                              </ul>
-                            ) : (
-                              <div style={reportPanelTextStyle}>{section.content}</div>
-                            )}
-                          </div>
-                        ))}
                       </div>
                     </>
                   )}
