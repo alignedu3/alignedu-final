@@ -107,6 +107,10 @@ export default function TeacherDashboard() {
   const summary = useMemo(() => getDashboardSummary(reports), [reports]);
 
   const overallScore = summary.averageScore;
+  const getReportDisplayLabel = (report: AnalysisReport) =>
+    [report.grade || null, report.subject || 'Lesson', report.title || null]
+      .filter(Boolean)
+      .join(' · ');
 
   const handleViewReport = (report: AnalysisReport) => {
     setSelectedReport((current) => {
@@ -448,7 +452,7 @@ export default function TeacherDashboard() {
           ) : (
             <>
               <p style={{ ...text, marginTop: 0 }}>
-                Showing findings for: {activeKeyFindingsReport.grade || 'Grade'} {activeKeyFindingsReport.subject || 'Lesson'}
+                Showing findings for: {getReportDisplayLabel(activeKeyFindingsReport)}
                 {activeKeyFindingsReport.created_at ? ` · ${new Date(activeKeyFindingsReport.created_at).toLocaleDateString()}` : ''}
               </p>
               <ul style={text}>
@@ -462,7 +466,7 @@ export default function TeacherDashboard() {
                   <div style={{ ...label, marginBottom: 8 }}>Lesson Findings</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {reports.map((r, idx) => {
-                      const chip = `${r.grade || 'Grade'} ${r.subject || 'Lesson'}${r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString()}` : ''}`;
+                      const chip = `${getReportDisplayLabel(r)}${r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString()}` : ''}`;
                       const isActive = activeKeyFindingsReport?.id === r.id;
                       return (
                         <button
@@ -520,7 +524,7 @@ export default function TeacherDashboard() {
                   const score = getLessonMetrics(r).score;
                   const previous = reports[i + 1];
                   const trend = previous ? score - getLessonMetrics(previous).score : null;
-                  const lessonLabel = `${r.grade || 'Grade?'} ${r.subject || 'Lesson'}` || `Lesson ${i + 1}`;
+                  const lessonLabel = getReportDisplayLabel(r) || `Lesson ${i + 1}`;
                   const lessonDate = r.created_at ? new Date(r.created_at).toLocaleDateString() : '';
                   return (
                     <tr key={r.id || i}>
@@ -579,13 +583,7 @@ export default function TeacherDashboard() {
               <div>
                 <h2 style={cardTitle}>Selected Lesson</h2>
                 <p style={subheading}>
-                  {[
-                    selectedReport.grade || null,
-                    selectedReport.subject || 'Lesson',
-                    selectedReport.title || null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
+                  {getReportDisplayLabel(selectedReport)}
                   {selectedReport.created_at
                     ? ` · ${new Date(selectedReport.created_at).toLocaleDateString()}`
                     : ''}
@@ -839,7 +837,7 @@ export default function TeacherDashboard() {
               <p style={modalText}>
                 Delete{' '}
                 <strong>
-                  {pendingDeleteReport.title || `${pendingDeleteReport.grade || 'Grade'} ${pendingDeleteReport.subject || 'Lesson'}`}
+                  {getReportDisplayLabel(pendingDeleteReport)}
                 </strong>
                 ? This action cannot be undone.
               </p>
