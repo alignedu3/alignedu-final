@@ -35,7 +35,7 @@ async function callOpenAI(openai: OpenAI, messages: any[]) {
   return await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages,
-    temperature: 0.3,
+    temperature: 0.55,
   });
 }
 
@@ -234,11 +234,22 @@ export async function POST(req: Request) {
       totalCount: standards.length,
     });
 
-    let systemPrompt = `You are an elite instructional coach analyzing classroom teaching. Be specific, evidence-based, and actionable. Organize the report with clear sections, bullet points, and concise language so it is easy to follow.`;
+    let systemPrompt = `You are an elite instructional coach analyzing classroom teaching. Be specific, evidence-based, and actionable. Organize the report with clear sections, bullet points, and concise language so it is easy to follow.
+
+Every report must feel unique to the lesson in front of you, not like a reusable template. Anchor feedback to concrete evidence from this specific lesson: teacher moves, student responses, task structure, checks for understanding, pacing, and standards alignment. Avoid generic praise or generic coaching phrases unless they are tied to an explicit lesson detail.
+
+Use varied wording across sections. Do not repeat the same sentence frame in multiple sections. When possible, reference 3 or more distinct lesson moments across the report. You may quote short phrases from the transcript when it helps ground the feedback, but keep quotes brief.`;
     const waitTimeGuidance = `Important wait-time rule: once the lesson is underway, assume the teacher typically allows about 8 to 10 seconds for student response after questions unless the transcript gives clear evidence that the teacher rushed, answered their own questions, cut students off, or rapidly moved on without space for thinking. Audio transcription often removes silence, pauses, and think time, so do not criticize wait time based only on the absence of transcribed silence. Only flag weak wait time when there is explicit evidence of it in the lesson record.`;
     let userPrompt = '';
 
     const reportFormat = `Analyze this lesson transcript and provide feedback in the following structured format. Use these exact section headers and keep the feedback evidence-based, specific, and unbiased.
+
+Important writing rules:
+- Make every major section lesson-specific, not generic.
+- In each bullet, point to a concrete observed move, student behavior, question type, task design choice, or missed opportunity from this lesson.
+- Avoid repeating the same praise or critique in multiple sections.
+- If evidence is limited, say what was observable instead of inventing detail.
+- Prioritize the most distinctive strengths and weaknesses from this lesson, not the most common teacher coaching advice.
 
 Metrics:
 Instructional Score (0-100): [number]
@@ -249,27 +260,27 @@ Assessment Quality (0-100): [number]
 Gaps Flagged: [number]
 
 === EXECUTIVE SUMMARY ===
-Provide a concise 2-4 sentence summary of overall lesson quality, student experience, and biggest instructional takeaway.
+Provide a concise 2-4 sentence summary of overall lesson quality, student experience, and biggest instructional takeaway. Mention at least 2 concrete lesson details.
 
 === WHAT WENT WELL ===
-- [bullet]
-- [bullet]
-- [bullet]
+- [specific strength tied to a concrete lesson moment]
+- [specific strength tied to a concrete lesson moment]
+- [specific strength tied to a concrete lesson moment]
 
 === WHAT CAN IMPROVE ===
-- [bullet]
-- [bullet]
-- [bullet]
+- [specific area for improvement tied to a concrete lesson moment]
+- [specific area for improvement tied to a concrete lesson moment]
+- [specific area for improvement tied to a concrete lesson moment]
 
 === RECOMMENDED NEXT STEP ===
-Provide 1 concise paragraph with the single highest-leverage next move for the teacher.
+Provide 1 concise paragraph with the single highest-leverage next move for the teacher. It must directly address the most important weakness from this lesson and explain why it matters here.
 
 === INSTRUCTIONAL COACHING FEEDBACK ===
-Provide generic, high-quality instructional coaching feedback using labeled bullets:
-- Key Findings: ...
-- Missed Opportunities: ...
-- Student Engagement Signals: ...
-- Suggested Next Steps: ...`;
+Provide lesson-specific instructional coaching feedback using labeled bullets:
+- Key Findings: cite the most important observable patterns from this lesson.
+- Missed Opportunities: identify concrete moves that were absent, incomplete, or underdeveloped in this lesson.
+- Student Engagement Signals: describe what students appeared to be doing or not doing based on the lesson record.
+- Suggested Next Steps: give coaching moves tailored to this lesson, not generic teacher advice.`;
 
     if (hasStandards) {
       systemPrompt += '\nProvide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.';
