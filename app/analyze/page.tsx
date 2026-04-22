@@ -33,6 +33,7 @@ const emptyAnalysisMetrics: AnalysisMetricsState = {
 };
 
 export default function AnalysisPage() {
+    const [isNarrowScreen, setIsNarrowScreen] = useState(false);
     // Audio Recorder State
     const [isRecording, setIsRecording] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
@@ -303,6 +304,13 @@ export default function AnalysisPage() {
     };
   }, [isAdminObservationMode, router]);
 
+  useEffect(() => {
+    const updateScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
+    updateScreen();
+    window.addEventListener('resize', updateScreen);
+    return () => window.removeEventListener('resize', updateScreen);
+  }, []);
+
   const filePreviewCardStyle: React.CSSProperties = {
     background: 'var(--bg-secondary)',
     border: '1px solid rgba(148,163,184,0.14)',
@@ -366,6 +374,14 @@ export default function AnalysisPage() {
     gap: 8,
   };
 
+  const featuredMetricCardStyle: React.CSSProperties = {
+    background: 'linear-gradient(180deg, rgba(249,115,22,0.12) 0%, rgba(249,115,22,0.04) 100%)',
+    border: '1px solid rgba(249,115,22,0.2)',
+    minHeight: 172,
+    padding: '18px 18px 16px',
+    boxShadow: 'var(--shadow-soft)',
+  };
+
   const metricLabelStyle: React.CSSProperties = {
     color: 'var(--text-secondary)',
     fontSize: 12,
@@ -383,6 +399,11 @@ export default function AnalysisPage() {
     fontVariantNumeric: 'tabular-nums',
   };
 
+  const featuredMetricValueStyle: React.CSSProperties = {
+    fontSize: 48,
+    color: '#c2410c',
+  };
+
   const metricSubtextStyle: React.CSSProperties = {
     color: 'var(--text-secondary)',
     fontSize: 13,
@@ -392,6 +413,11 @@ export default function AnalysisPage() {
     alignItems: 'center',
     justifyContent: 'center',
     lineHeight: 1.35,
+  };
+
+  const featuredMetricSubtextStyle: React.CSSProperties = {
+    minHeight: 0,
+    fontSize: 14,
   };
 
   const reportIntroStyle: React.CSSProperties = {
@@ -1322,28 +1348,44 @@ export default function AnalysisPage() {
                 </div>
               </div>
 
-              <div style={summaryBarStyle}>
-                <div style={metricCardStyle}>
+              <div
+                style={{
+                  ...summaryBarStyle,
+                  gridTemplateColumns: isNarrowScreen ? 'repeat(2, minmax(0, 1fr))' : summaryBarStyle.gridTemplateColumns,
+                  gap: isNarrowScreen ? 12 : summaryBarStyle.gap,
+                }}
+              >
+                <div
+                  style={{
+                    ...metricCardStyle,
+                    ...featuredMetricCardStyle,
+                    gridColumn: isNarrowScreen ? '1 / -1' : 'span 2',
+                    minHeight: isNarrowScreen ? 156 : featuredMetricCardStyle.minHeight,
+                    padding: isNarrowScreen ? '18px 18px 16px' : featuredMetricCardStyle.padding,
+                  }}
+                >
                   <div style={metricLabelStyle}>Instructional Score</div>
-                  <div style={metricValueStyle}>{resultMetrics.score ?? '—'}</div>
-                  <div style={metricSubtextStyle}>Overall teaching quality</div>
+                  <div style={{ ...metricValueStyle, ...featuredMetricValueStyle, fontSize: isNarrowScreen ? 44 : featuredMetricValueStyle.fontSize }}>
+                    {resultMetrics.score ?? '—'}
+                  </div>
+                  <div style={{ ...metricSubtextStyle, ...featuredMetricSubtextStyle }}>Overall teaching quality</div>
                 </div>
-                <div style={metricCardStyle}>
+                <div style={{ ...metricCardStyle, minHeight: isNarrowScreen ? 122 : metricCardStyle.minHeight, padding: isNarrowScreen ? '14px 12px' : metricCardStyle.padding }}>
                   <div style={metricLabelStyle}>Coverage</div>
                   <div style={metricValueStyle}>{resultMetrics.coverage ?? '—'}</div>
                   <div style={metricSubtextStyle}>Standards & content scope</div>
                 </div>
-                <div style={metricCardStyle}>
+                <div style={{ ...metricCardStyle, minHeight: isNarrowScreen ? 122 : metricCardStyle.minHeight, padding: isNarrowScreen ? '14px 12px' : metricCardStyle.padding }}>
                   <div style={metricLabelStyle}>Clarity</div>
                   <div style={metricValueStyle}>{resultMetrics.clarity ?? '—'}</div>
                   <div style={metricSubtextStyle}>Instructional clarity</div>
                 </div>
-                <div style={metricCardStyle}>
+                <div style={{ ...metricCardStyle, minHeight: isNarrowScreen ? 122 : metricCardStyle.minHeight, padding: isNarrowScreen ? '14px 12px' : metricCardStyle.padding }}>
                   <div style={metricLabelStyle}>Engagement</div>
                   <div style={metricValueStyle}>{resultMetrics.engagement ?? '—'}</div>
                   <div style={metricSubtextStyle}>Student participation</div>
                 </div>
-                <div style={metricCardStyle}>
+                <div style={{ ...metricCardStyle, minHeight: isNarrowScreen ? 122 : metricCardStyle.minHeight, padding: isNarrowScreen ? '14px 12px' : metricCardStyle.padding }}>
                   <div style={metricLabelStyle}>Gaps</div>
                   <div style={metricValueStyle}>{resultMetrics.gaps ?? '—'}</div>
                   <div style={metricSubtextStyle}>Priority issues to address</div>
