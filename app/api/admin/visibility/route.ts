@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getAdminVisibility, type AdminRole } from '@/lib/adminVisibility';
+
+function getServiceSupabase() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error('Server configuration error: Supabase service credentials are not set.');
+  }
+
+  return createServiceClient(supabaseUrl, serviceRoleKey);
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,7 +49,8 @@ export async function GET(request: NextRequest) {
     let targetRole = profile.role as AdminRole;
 
     if (profile.role === 'super_admin' && requestedAdminId && requestedAdminId !== user.id) {
-      const { data: targetProfile, error: targetProfileError } = await serverClient
+      const serviceSupabase = getServiceSupabase();
+      const { data: targetProfile, error: targetProfileError } = await serviceSupabase
         .from('profiles')
         .select('id, role')
         .eq('id', requestedAdminId)

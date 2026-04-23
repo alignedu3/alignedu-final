@@ -25,7 +25,7 @@ const INVITE_TOKEN_TTL_MS = 1000 * 60 * 60 * 24 * 14;
 const RECOVERY_TOKEN_TTL_MS = 1000 * 60 * 60 * 2;
 
 function getInviteSigningSecret() {
-  return process.env.INVITE_SIGNING_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return process.env.INVITE_SIGNING_SECRET || '';
 }
 
 function toBase64Url(value: string) {

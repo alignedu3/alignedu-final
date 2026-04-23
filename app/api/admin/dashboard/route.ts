@@ -60,7 +60,8 @@ export async function GET(request: NextRequest) {
     let targetRole = callerProfile!.role as AdminRole;
 
     if (callerProfile?.role === 'super_admin' && requestedAdminId && requestedAdminId !== user.id) {
-      const { data: targetProfile, error: targetProfileError } = await serverSupabase
+      const serviceSupabase = getServiceSupabase();
+      const { data: targetProfile, error: targetProfileError } = await serviceSupabase
         .from('profiles')
         .select('id, name, role')
         .eq('id', requestedAdminId)
