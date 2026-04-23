@@ -1453,32 +1453,36 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
         : { status: 'warning' as const, statusLabel: 'Low Edge Cache', detail: 'Only a limited share of response bytes is being served from Cloudflare cache.' };
   const top4xxRoute = Array.isArray(zone.top4xxPaths) ? zone.top4xxPaths[0] : null;
   const top5xxRoute = Array.isArray(zone.top5xxPaths) ? zone.top5xxPaths[0] : null;
+  const top4xxRouteRequests = Number(top4xxRoute?.count || 0);
+  const top5xxRouteRequests = Number(top5xxRoute?.count || 0);
   const topErrorRoutes = [
     {
       key: 'top-4xx-route',
       label: 'Top 4xx Route',
       path: formatRoutePath(top4xxRoute),
-      requests: Number(top4xxRoute?.count || 0),
-      status: Number(top4xxRoute?.count || 0) > 0 ? ('warning' as const) : ('healthy' as const),
+      requests: top4xxRouteRequests,
+      status: top4xxRouteRequests >= 3 ? ('warning' as const) : ('healthy' as const),
       detail:
-        Number(top4xxRoute?.count || 0) > 0
-          ? `${formatNumber(Number(top4xxRoute?.count || 0))} 4xx responses were reported on this route in the latest day.`
+        top4xxRouteRequests >= 3
+          ? `${formatNumber(top4xxRouteRequests)} 4xx responses were reported on this route in the latest day.`
+          : top4xxRouteRequests > 0
+            ? `${formatNumber(top4xxRouteRequests)} low-volume 4xx responses were reported on this route in the latest day.`
           : 'No notable 4xx route was reported in the latest day.',
     },
     {
       key: 'top-5xx-route',
       label: 'Top 5xx Route',
       path: formatRoutePath(top5xxRoute),
-      requests: Number(top5xxRoute?.count || 0),
+      requests: top5xxRouteRequests,
       status:
-        Number(top5xxRoute?.count || 0) >= 10
+        top5xxRouteRequests >= 10
           ? ('critical' as const)
-          : Number(top5xxRoute?.count || 0) > 0
+          : top5xxRouteRequests > 0
             ? ('warning' as const)
             : ('healthy' as const),
       detail:
-        Number(top5xxRoute?.count || 0) > 0
-          ? `${formatNumber(Number(top5xxRoute?.count || 0))} 5xx responses were reported on this route in the latest day.`
+        top5xxRouteRequests > 0
+          ? `${formatNumber(top5xxRouteRequests)} 5xx responses were reported on this route in the latest day.`
           : 'No notable 5xx route was reported in the latest day.',
     },
   ];
