@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { calculateLessonScore, getLatestLessonTrend, type AnalysisReport, type ProfileRecord } from '@/lib/dashboardData';
+import { cleanDisplayText, parseFeedbackSections } from '@/lib/analysisReport';
 import { captureRouteException } from '@/lib/sentryRoute';
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,18 @@ type MonitoringActivityRow = {
   averageScore: number;
   trend: number;
   latestSubmittedAt: string | null;
+};
+
+type MonitoringLessonLedgerRow = {
+  id: string;
+  title: string;
+  context: string;
+  submittedBy: string;
+  submitterRole: string;
+  source: string;
+  createdAt: string | null;
+  score: number;
+  executiveSummary: string;
 };
 
 type ConnectionState = {
@@ -176,6 +189,53 @@ type SentryResult = {
   };
 };
 
+type SupabaseAdvisorLint = {
+  name?: string;
+  title?: string;
+  level?: string;
+  categories?: string[];
+  description?: string;
+  detail?: string;
+  remediation?: string;
+  metadata?: {
+    schema?: string;
+    name?: string;
+    entity?: string;
+    type?: string;
+    fkey_name?: string;
+  } | null;
+  cache_key?: string;
+};
+
+type SupabaseAdvisorResult = {
+  connected: boolean;
+  detail: string;
+  summaryCards: Array<{
+    key: string;
+    label: string;
+    value: number | null;
+    displayValue: string;
+    status: 'healthy' | 'warning' | 'critical' | 'connect_required';
+    detail: string;
+  }>;
+  findings: Array<{
+    key: string;
+    title: string;
+    severity: 'healthy' | 'warning' | 'critical';
+    category: 'security' | 'performance';
+    detail: string;
+    remediation: string | null;
+    entity: string | null;
+  }>;
+  diagnostics: {
+    tokenConfigured: boolean;
+    projectRefConfigured: boolean;
+    status: 'live' | 'missing_config' | 'error';
+    errorMessage: string | null;
+    hint: string | null;
+  };
+};
+
 type MonitoringAlert = {
   key: string;
   severity: 'critical' | 'warning' | 'info';
@@ -235,6 +295,24 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value);
 }
 
+function buildMonitoringLessonContext(report: AnalysisReport) {
+  return [report.grade, report.subject, report.title]
+    .map((value) => String(value || '').trim())
+    .filter(Boolean)
+    .join(' · ');
+}
+
+function buildMonitoringLessonSummary(report: AnalysisReport) {
+  const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
+  if (parsed.executiveSummary) {
+    return parsed.executiveSummary;
+  }
+
+  const fallback = cleanDisplayText(report.result || report.analysis_result || '');
+  if (!fallback) return 'No executive summary was saved for this lesson report.';
+  return fallback.length > 260 ? `${fallback.slice(0, 257).trimEnd()}...` : fallback;
+}
+
 function getTotalFromStatsGroups(payload: any, field: string) {
   return roundTo(
     Number(
@@ -291,8 +369,18 @@ function buildConnections() {
   const hasSentryApi = Boolean(process.env.SENTRY_AUTH_TOKEN && (process.env.SENTRY_ORG || process.env.SENTRY_ORG_SLUG));
   const hasCloudflareUsage = Boolean(process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ZONE_ID);
   const hasResendUsage = Boolean(process.env.RESEND_API_KEY);
+  const hasSupabaseAdvisors = Boolean(process.env.SUPABASE_MANAGEMENT_TOKEN && process.env.SUPABASE_PROJECT_REF);
 
   const connections: ConnectionState[] = [
+    {
+      key: 'supabase-advisors',
+      label: 'Supabase Security Advisors',
+      connected: hasSupabaseAdvisors,
+      detail: hasSupabaseAdvisors
+        ? 'Supabase management credentials are present for live security and performance advisor findings.'
+        : 'Add SUPABASE_MANAGEMENT_TOKEN and SUPABASE_PROJECT_REF to surface live advisor warnings.',
+      envKeys: ['SUPABASE_MANAGEMENT_TOKEN', 'SUPABASE_PROJECT_REF'],
+    },
     {
       key: 'sentry-api',
       label: 'Sentry Error Health',
@@ -325,6 +413,250 @@ function buildConnections() {
   return {
     connections,
     connectedCount: connections.filter((item) => item.connected).length,
+  };
+}
+
+function getSupabaseAdvisorConfig() {
+  const token = process.env.SUPABASE_MANAGEMENT_TOKEN || null;
+  const projectRef = process.env.SUPABASE_PROJECT_REF || null;
+
+  return {
+    token,
+    projectRef,
+    tokenConfigured: Boolean(token),
+    projectRefConfigured: Boolean(projectRef),
+  };
+}
+
+function buildSupabaseAdvisorMissingConfigDetail() {
+  const config = getSupabaseAdvisorConfig();
+  const missing = [
+    ...(!config.tokenConfigured ? ['SUPABASE_MANAGEMENT_TOKEN'] : []),
+    ...(!config.projectRefConfigured ? ['SUPABASE_PROJECT_REF'] : []),
+  ];
+
+  if (!missing.length) {
+    return 'Supabase advisor credentials are configured.';
+  }
+  if (missing.length === 1) {
+    return `Missing ${missing[0]} in the running app environment.`;
+  }
+  return `Missing ${missing.join(' and ')} in the running app environment.`;
+}
+
+function buildEmptySupabaseAdvisorCards(): SupabaseAdvisorResult['summaryCards'] {
+  return [
+    {
+      key: 'supabase-open-findings',
+      label: 'Open Findings',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Supabase advisor findings.',
+    },
+    {
+      key: 'supabase-security-findings',
+      label: 'Security Findings',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Supabase security advisor results.',
+    },
+    {
+      key: 'supabase-performance-findings',
+      label: 'Performance Findings',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Supabase performance advisor results.',
+    },
+    {
+      key: 'supabase-critical-findings',
+      label: 'Critical Findings',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      detail: 'Waiting on Supabase high-priority findings.',
+    },
+  ];
+}
+
+function buildSupabaseAdvisorErrorHint(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes('(401)') || normalized.includes('unauthorized')) {
+    return 'The Supabase management token may be invalid or expired.';
+  }
+  if (normalized.includes('(403)') || normalized.includes('forbidden')) {
+    return 'The Supabase management token may be missing advisors_read or database:read access.';
+  }
+  if (normalized.includes('(404)') || normalized.includes('not found')) {
+    return 'The configured SUPABASE_PROJECT_REF may not match this project.';
+  }
+  return 'Check the Supabase management token and project ref for this deployment.';
+}
+
+function formatSupabaseAdvisorEntity(lint: SupabaseAdvisorLint) {
+  const entity = lint.metadata?.entity || lint.metadata?.name || null;
+  const schema = lint.metadata?.schema || null;
+  const fkeyName = lint.metadata?.fkey_name || null;
+
+  if (schema && entity && fkeyName) {
+    return `${schema}.${entity} · ${fkeyName}`;
+  }
+  if (schema && entity) {
+    return `${schema}.${entity}`;
+  }
+  return entity;
+}
+
+function mapSupabaseAdvisorSeverity(level: string | undefined) {
+  const normalized = String(level || '').toUpperCase();
+  if (normalized === 'ERROR') return 'critical' as const;
+  if (normalized === 'WARN' || normalized === 'WARNING') return 'warning' as const;
+  return 'healthy' as const;
+}
+
+async function fetchSupabaseAdvisors(): Promise<SupabaseAdvisorResult> {
+  const config = getSupabaseAdvisorConfig();
+
+  if (!config.tokenConfigured || !config.projectRefConfigured) {
+    return {
+      connected: false,
+      detail: buildSupabaseAdvisorMissingConfigDetail(),
+      summaryCards: buildEmptySupabaseAdvisorCards(),
+      findings: [],
+      diagnostics: {
+        tokenConfigured: config.tokenConfigured,
+        projectRefConfigured: config.projectRefConfigured,
+        status: 'missing_config',
+        errorMessage: null,
+        hint: 'Add SUPABASE_MANAGEMENT_TOKEN and SUPABASE_PROJECT_REF to surface live database advisor findings.',
+      },
+    };
+  }
+
+  const advisorFetch = async (kind: 'security' | 'performance') => {
+    const response = await fetch(`https://api.supabase.com/v1/projects/${config.projectRef}/advisors/${kind}`, {
+      method: 'GET',
+      cache: 'no-store',
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        Accept: 'application/json',
+      },
+    });
+
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const errorMessage =
+        payload?.message ||
+        payload?.error ||
+        `Supabase advisor request failed (${response.status}) for /advisors/${kind}.`;
+      throw new Error(errorMessage);
+    }
+
+    return Array.isArray(payload?.lints) ? (payload.lints as SupabaseAdvisorLint[]) : [];
+  };
+
+  const [securityLints, performanceLints] = await Promise.all([
+    advisorFetch('security'),
+    advisorFetch('performance'),
+  ]);
+
+  const findings = [...securityLints, ...performanceLints]
+    .map((lint, index) => {
+      const categories = Array.isArray(lint.categories) ? lint.categories : [];
+      const category = categories.includes('PERFORMANCE') ? ('performance' as const) : ('security' as const);
+      return {
+        key: lint.cache_key || `${category}-${lint.name || lint.title || index}`,
+        title: lint.title || lint.name || 'Supabase advisor finding',
+        severity: mapSupabaseAdvisorSeverity(lint.level),
+        category,
+        detail: lint.detail || lint.description || 'Supabase reported an issue that needs review.',
+        remediation: lint.remediation || null,
+        entity: formatSupabaseAdvisorEntity(lint),
+      };
+    })
+    .sort((a, b) => {
+      const weight = { critical: 0, warning: 1, healthy: 2 } as const;
+      if (weight[a.severity] !== weight[b.severity]) {
+        return weight[a.severity] - weight[b.severity];
+      }
+      if (a.category !== b.category) {
+        return a.category.localeCompare(b.category);
+      }
+      return a.title.localeCompare(b.title);
+    });
+
+  const securityCount = findings.filter((item) => item.category === 'security').length;
+  const performanceCount = findings.filter((item) => item.category === 'performance').length;
+  const criticalCount = findings.filter((item) => item.severity === 'critical').length;
+  const warningCount = findings.filter((item) => item.severity === 'warning').length;
+  const openCount = findings.filter((item) => item.severity !== 'healthy').length;
+
+  return {
+    connected: true,
+    detail:
+      openCount > 0
+        ? `${formatNumber(openCount)} active Supabase advisor finding${openCount === 1 ? '' : 's'} need review.`
+        : 'Supabase advisors are connected and not currently reporting an active finding.',
+    summaryCards: [
+      {
+        key: 'supabase-open-findings',
+        label: 'Open Findings',
+        value: openCount,
+        displayValue: formatNumber(openCount),
+        status: criticalCount > 0 ? 'critical' : openCount > 0 ? 'warning' : 'healthy',
+        detail:
+          openCount > 0
+            ? 'Current Supabase security and performance advisories still need review.'
+            : 'No active Supabase advisor findings are currently open.',
+      },
+      {
+        key: 'supabase-security-findings',
+        label: 'Security Findings',
+        value: securityCount,
+        displayValue: formatNumber(securityCount),
+        status: criticalCount > 0 && securityCount > 0 ? 'critical' : securityCount > 0 ? 'warning' : 'healthy',
+        detail:
+          securityCount > 0
+            ? 'Supabase security advisors are surfacing database hardening items.'
+            : 'No active Supabase security findings are open right now.',
+      },
+      {
+        key: 'supabase-performance-findings',
+        label: 'Performance Findings',
+        value: performanceCount,
+        displayValue: formatNumber(performanceCount),
+        status: performanceCount > 0 ? 'warning' : 'healthy',
+        detail:
+          performanceCount > 0
+            ? 'Supabase performance advisors are surfacing index or policy efficiency items.'
+            : 'No active Supabase performance findings are open right now.',
+      },
+      {
+        key: 'supabase-critical-findings',
+        label: 'Critical Findings',
+        value: criticalCount,
+        displayValue: formatNumber(criticalCount),
+        status: criticalCount > 0 ? 'critical' : warningCount > 0 ? 'warning' : 'healthy',
+        detail:
+          criticalCount > 0
+            ? 'At least one Supabase advisor finding is marked high severity.'
+            : warningCount > 0
+              ? 'Open findings are currently warning-level only.'
+              : 'No critical Supabase advisor findings are open.',
+      },
+    ],
+    findings: findings.filter((item) => item.severity !== 'healthy').slice(0, 8),
+    diagnostics: {
+      tokenConfigured: true,
+      projectRefConfigured: true,
+      status: 'live',
+      errorMessage: null,
+      hint: null,
+    },
   };
 }
 
@@ -665,6 +997,7 @@ async function fetchSentryHealth(): Promise<SentryResult> {
 function buildMonitoringAlerts(args: {
   cloudflareTraffic: CloudflareTrafficResult;
   sentryHealth: SentryResult;
+  supabaseAdvisors: SupabaseAdvisorResult;
   uptime: UptimeResult;
 }) {
   const alerts: MonitoringAlert[] = [];
@@ -801,6 +1134,38 @@ function buildMonitoringAlerts(args: {
         title: 'Crash-free session health slipped',
         detail: `${crashFreeCard?.displayValue || '—'} of tracked sessions were crash-free in the last 24 hours.`,
         source: 'Sentry',
+      });
+    }
+  }
+
+  if (args.supabaseAdvisors.connected) {
+    const openFindingsCard = args.supabaseAdvisors.summaryCards.find((card) => card.key === 'supabase-open-findings');
+    const criticalFindingsCard = args.supabaseAdvisors.summaryCards.find((card) => card.key === 'supabase-critical-findings');
+    const securityFindingsCard = args.supabaseAdvisors.summaryCards.find((card) => card.key === 'supabase-security-findings');
+
+    if ((criticalFindingsCard?.value || 0) > 0) {
+      alerts.push({
+        key: 'supabase-critical-findings',
+        severity: 'critical',
+        title: 'Supabase advisor found critical issues',
+        detail: `${criticalFindingsCard?.displayValue || '0'} high-severity database finding(s) are still open.`,
+        source: 'Supabase',
+      });
+    } else if ((securityFindingsCard?.value || 0) > 0) {
+      alerts.push({
+        key: 'supabase-security-findings',
+        severity: 'warning',
+        title: 'Supabase security findings need review',
+        detail: `${securityFindingsCard?.displayValue || '0'} Supabase security advisor finding(s) are still open.`,
+        source: 'Supabase',
+      });
+    } else if ((openFindingsCard?.value || 0) >= 3) {
+      alerts.push({
+        key: 'supabase-open-findings',
+        severity: 'warning',
+        title: 'Supabase advisor has open findings',
+        detail: `${openFindingsCard?.displayValue || '0'} Supabase advisor finding(s) are currently open.`,
+        source: 'Supabase',
       });
     }
   }
@@ -1746,6 +2111,28 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, 8);
 
+    const lessonUploads: MonitoringLessonLedgerRow[] = reportList.map((report) => {
+      const profile = report.user_id ? profileById.get(report.user_id) : null;
+      const isAnonymous = !report.user_id;
+      const source = isAnonymous
+        ? 'Try It Now'
+        : isAdminObservation(report)
+          ? 'Admin Observation'
+          : 'Logged-in Lesson';
+
+      return {
+        id: report.id,
+        title: String(report.title || 'Untitled Lesson'),
+        context: buildMonitoringLessonContext(report) || 'Lesson context was not saved.',
+        submittedBy: isAnonymous ? 'Guest User' : profile?.name || profile?.email || 'User',
+        submitterRole: isAnonymous ? 'guest' : profile?.role || 'teacher',
+        source,
+        createdAt: report.created_at || null,
+        score: calculateLessonScore(report),
+        executiveSummary: buildMonitoringLessonSummary(report),
+      };
+    });
+
     const readiness = buildReadiness();
     const connectionState = buildConnections();
     const uptime = await fetchUptimeSummary(request);
@@ -1782,6 +2169,20 @@ export async function GET(request: NextRequest) {
         hint: 'Add SENTRY_AUTH_TOKEN and SENTRY_ORG to unlock live Sentry monitoring metrics.',
       },
     } as SentryResult;
+
+    let supabaseAdvisors = {
+      connected: false,
+      detail: buildSupabaseAdvisorMissingConfigDetail(),
+      summaryCards: buildEmptySupabaseAdvisorCards(),
+      findings: [],
+      diagnostics: {
+        tokenConfigured: Boolean(process.env.SUPABASE_MANAGEMENT_TOKEN),
+        projectRefConfigured: Boolean(process.env.SUPABASE_PROJECT_REF),
+        status: 'missing_config',
+        errorMessage: null,
+        hint: 'Add SUPABASE_MANAGEMENT_TOKEN and SUPABASE_PROJECT_REF to unlock live Supabase advisor findings.',
+      },
+    } as SupabaseAdvisorResult;
 
     await Promise.all([
       (async () => {
@@ -1839,11 +2240,38 @@ export async function GET(request: NextRequest) {
           };
         }
       })(),
+      (async () => {
+        try {
+          supabaseAdvisors = await fetchSupabaseAdvisors();
+        } catch (supabaseAdvisorError: any) {
+          console.error('Supabase advisor monitoring fetch error:', supabaseAdvisorError);
+          const errorMessage = supabaseAdvisorError?.message || 'Supabase advisor findings could not be loaded.';
+          const config = getSupabaseAdvisorConfig();
+          supabaseAdvisors = {
+            connected: false,
+            detail: errorMessage,
+            summaryCards: buildEmptySupabaseAdvisorCards().map((card) =>
+              card.key === 'supabase-open-findings' || card.key === 'supabase-critical-findings'
+                ? { ...card, detail: errorMessage }
+                : card
+            ),
+            findings: [],
+            diagnostics: {
+              tokenConfigured: config.tokenConfigured,
+              projectRefConfigured: config.projectRefConfigured,
+              status: 'error',
+              errorMessage,
+              hint: buildSupabaseAdvisorErrorHint(errorMessage),
+            },
+          };
+        }
+      })(),
     ]);
 
     const alerts = buildMonitoringAlerts({
       cloudflareTraffic,
       sentryHealth,
+      supabaseAdvisors,
       uptime,
     });
 
@@ -1853,6 +2281,13 @@ export async function GET(request: NextRequest) {
           ...item,
           connected: sentryHealth.connected,
           detail: sentryHealth.detail,
+        };
+      }
+      if (item.key === 'supabase-advisors') {
+        return {
+          ...item,
+          connected: supabaseAdvisors.connected,
+          detail: supabaseAdvisors.detail,
         };
       }
       if (item.key !== 'cloudflare-traffic') return item;
@@ -1889,6 +2324,7 @@ export async function GET(request: NextRequest) {
         },
         series,
         recentActivity,
+        lessonUploads,
         readiness,
         alerts,
         uptime,
@@ -1896,6 +2332,11 @@ export async function GET(request: NextRequest) {
           summaryCards: sentryHealth.summaryCards,
           recentIssues: sentryHealth.recentIssues,
           diagnostics: sentryHealth.diagnostics,
+        },
+        supabaseAdvisors: {
+          summaryCards: supabaseAdvisors.summaryCards,
+          findings: supabaseAdvisors.findings,
+          diagnostics: supabaseAdvisors.diagnostics,
         },
         connections: hydratedConnections,
         sync: {

@@ -463,28 +463,33 @@ export async function POST(req: Request) {
     ) as any;
 
     const { data: { user } } = await anonSupabase.auth.getUser();
-    if (!user?.id) {
-      return safeJson({ result: null, error: 'Not authenticated' }, 401);
-    }
-
-    const { data: callerProfile, error: callerProfileError } = await anonSupabase
-      .from("profiles")
-      .select("role, name")
-      .eq("id", user.id)
-      .single();
-
-    if (callerProfileError) {
-      return safeJson({ result: null, error: callerProfileError.message }, 500);
-    }
-
-    const callerRole = callerProfile?.role || null;
+    let callerProfile: { role?: string | null; name?: string | null } | null = null;
+    let callerRole: string | null = null;
     const observedTeacherValue = formData.get("observedTeacherId");
     const observedTeacherId = typeof observedTeacherValue === "string"
       ? observedTeacherValue.trim()
       : "";
-    let targetUserId = user.id;
+    let targetUserId = user?.id || null;
 
-    if (['admin', 'super_admin'].includes(callerRole) && !observedTeacherId) {
+    if (user?.id) {
+      const { data: loadedCallerProfile, error: callerProfileError } = await anonSupabase
+        .from("profiles")
+        .select("role, name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (callerProfileError) {
+        return safeJson({ result: null, error: callerProfileError.message }, 500);
+      }
+
+      callerProfile = loadedCallerProfile;
+      callerRole = loadedCallerProfile?.role || null;
+    }
+
+    const adminRole = callerRole === 'admin' || callerRole === 'super_admin' ? callerRole : undefined;
+    const isAdminCaller = Boolean(adminRole);
+
+    if (isAdminCaller && !observedTeacherId) {
       return safeJson(
         {
           result: null,
@@ -495,11 +500,14 @@ export async function POST(req: Request) {
     }
 
     if (observedTeacherId) {
-      if (!['admin', 'super_admin'].includes(callerRole)) {
+      if (!user?.id) {
+        return safeJson({ result: null, error: 'Sign in is required for admin observation mode.' }, 401);
+      }
+      if (!isAdminCaller) {
         return safeJson({ result: null, error: 'Forbidden' }, 403);
       }
 
-      const visibility = await getAdminVisibility(user.id, callerRole);
+      const visibility = await getAdminVisibility(user.id, adminRole);
       if (!visibility.teacherIds.includes(observedTeacherId)) {
         return safeJson({ result: null, error: 'You can only observe teachers under your scope.' }, 403);
       }
@@ -1079,48 +1087,44 @@ ${transcript}`;
     let dbSaved = false;
     let analysisId: string | null = null;
 
-    if (user?.id) {
-      const analysisRecord = {
-        user_id: targetUserId,
-        title: lessonContextTitle || null,
-        grade,
-        subject,
-        coverage_score: metrics.coverage_score,
-        clarity_rating: metrics.clarity_rating,
-        engagement_level: metrics.engagement_level,
-        assessment_quality: metrics.assessment_quality,
-        gaps_detected: metrics.gaps_detected,
-        transcript: transcript.slice(0, 5000),
-        result: finalResult,
-        created_at: new Date().toISOString(),
-      };
+    const analysisRecord = {
+      user_id: targetUserId,
+      title: lessonContextTitle || null,
+      grade,
+      subject,
+      coverage_score: metrics.coverage_score,
+      clarity_rating: metrics.clarity_rating,
+      engagement_level: metrics.engagement_level,
+      assessment_quality: metrics.assessment_quality,
+      gaps_detected: metrics.gaps_detected,
+      transcript: transcript.slice(0, 5000),
+      result: finalResult,
+      created_at: new Date().toISOString(),
+    };
 
-      let insertQuery = serviceSupabase
+    let insertQuery = serviceSupabase
+      .from("analyses")
+      .insert([analysisRecord])
+      .select()
+      .single();
+
+    let { data: insertedData, error: dbError } = await insertQuery;
+
+    if (dbError && /assessment_quality/i.test(dbError.message || "")) {
+      const { assessment_quality, ...legacyRecord } = analysisRecord;
+      ({ data: insertedData, error: dbError } = await serviceSupabase
         .from("analyses")
-        .insert([analysisRecord])
+        .insert([legacyRecord])
         .select()
-        .single();
+        .single());
+    }
 
-      let { data: insertedData, error: dbError } = await insertQuery;
-
-      if (dbError && /assessment_quality/i.test(dbError.message || "")) {
-        const { assessment_quality, ...legacyRecord } = analysisRecord;
-        ({ data: insertedData, error: dbError } = await serviceSupabase
-          .from("analyses")
-          .insert([legacyRecord])
-          .select()
-          .single());
-      }
-
-      if (dbError) {
-        console.error("DB SAVE ERROR:", dbError);
-        console.error("Record being saved:", analysisRecord);
-      } else if (insertedData) {
-        dbSaved = true;
-        analysisId = insertedData.id;
-      }
-    } else {
-      console.error("No authenticated user found when trying to save analysis");
+    if (dbError) {
+      console.error("DB SAVE ERROR:", dbError);
+      console.error("Record being saved:", analysisRecord);
+    } else if (insertedData) {
+      dbSaved = true;
+      analysisId = insertedData.id;
     }
 
     return safeJson({

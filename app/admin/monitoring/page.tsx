@@ -42,6 +42,18 @@ type MonitoringActivityRow = {
   latestSubmittedAt: string | null;
 };
 
+type MonitoringLessonLedgerRow = {
+  id: string;
+  title: string;
+  context: string;
+  submittedBy: string;
+  submitterRole: string;
+  source: string;
+  createdAt: string | null;
+  score: number;
+  executiveSummary: string;
+};
+
 type ConnectionState = {
   key: string;
   label: string;
@@ -135,6 +147,24 @@ type SentryDiagnostics = {
   hint?: string | null;
 };
 
+type SupabaseAdvisorDiagnostics = {
+  tokenConfigured?: boolean;
+  projectRefConfigured?: boolean;
+  status?: 'live' | 'missing_config' | 'error';
+  errorMessage?: string | null;
+  hint?: string | null;
+};
+
+type SupabaseAdvisorFinding = {
+  key: string;
+  title: string;
+  severity: 'healthy' | 'warning' | 'critical';
+  category: 'security' | 'performance';
+  detail: string;
+  remediation: string | null;
+  entity: string | null;
+};
+
 type MonitoringPayload = {
   success: boolean;
   error?: string;
@@ -155,6 +185,7 @@ type MonitoringPayload = {
   readiness?: MonitoringReadiness[];
   alerts?: MonitoringAlert[];
   recentActivity?: MonitoringActivityRow[];
+  lessonUploads?: MonitoringLessonLedgerRow[];
   uptime?: {
     summaryCards?: OpsSummaryCard[];
     checks?: UptimeCheck[];
@@ -163,6 +194,11 @@ type MonitoringPayload = {
     summaryCards?: OpsSummaryCard[];
     recentIssues?: SentryIssueRow[];
     diagnostics?: SentryDiagnostics;
+  };
+  supabaseAdvisors?: {
+    summaryCards?: OpsSummaryCard[];
+    findings?: SupabaseAdvisorFinding[];
+    diagnostics?: SupabaseAdvisorDiagnostics;
   };
   connections?: ConnectionState[];
   sync?: {
@@ -247,12 +283,16 @@ export default function MonitoringDashboard() {
   const series = payload?.series || [];
   const readiness = payload?.readiness || [];
   const recentActivity = payload?.recentActivity || [];
+  const lessonUploads = payload?.lessonUploads || [];
   const alerts = payload?.alerts || [];
   const uptimeCards = payload?.uptime?.summaryCards || [];
   const uptimeChecks = payload?.uptime?.checks || [];
   const sentryCards = payload?.sentry?.summaryCards || [];
   const sentryIssues = payload?.sentry?.recentIssues || [];
   const sentryDiagnostics = payload?.sentry?.diagnostics;
+  const supabaseAdvisorCards = payload?.supabaseAdvisors?.summaryCards || [];
+  const supabaseAdvisorFindings = payload?.supabaseAdvisors?.findings || [];
+  const supabaseAdvisorDiagnostics = payload?.supabaseAdvisors?.diagnostics;
   const connections = payload?.connections || [];
   const trafficCards = payload?.httpTraffic?.summaryCards || [];
   const trafficErrorRoutes = (payload?.httpTraffic?.topErrorRoutes || []).filter((route) => route.requests > 0);
@@ -263,8 +303,10 @@ export default function MonitoringDashboard() {
   const syncGeneratedAt = payload?.sync?.generatedAt || null;
   const hasLiveTraffic = trafficCards.some((card) => card.status !== 'connect_required');
   const hasLiveSentry = sentryCards.some((card) => card.status !== 'connect_required');
+  const hasLiveSupabaseAdvisors = supabaseAdvisorCards.some((card) => card.status !== 'connect_required');
   const cloudflareConnection = connections.find((item) => item.key === 'cloudflare-traffic');
   const sentryConnection = connections.find((item) => item.key === 'sentry-api');
+  const supabaseAdvisorConnection = connections.find((item) => item.key === 'supabase-advisors');
 
   const healthHeadline = useMemo(() => {
     if (!readiness.length) return 'Monitoring status is loading.';
@@ -619,6 +661,121 @@ export default function MonitoringDashboard() {
         <section style={sectionCard}>
           <div style={sectionHeader}>
             <div>
+              <div style={sectionEyebrow}>Database Advisors</div>
+              <h2 style={sectionTitle}>Supabase Security and Performance</h2>
+            </div>
+          </div>
+          <div style={sectionContentStack}>
+            {!hasLiveSupabaseAdvisors ? (
+              <div style={warningBanner}>
+                <div style={warningTitle}>Supabase advisor monitoring is not live yet.</div>
+                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                  {supabaseAdvisorConnection?.detail || 'Add Supabase management credentials so the monitoring API can pull live advisor findings.'}
+                </p>
+                {supabaseAdvisorDiagnostics ? (
+                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                    Token: {supabaseAdvisorDiagnostics.tokenConfigured ? 'configured' : 'missing'} | Project Ref: {supabaseAdvisorDiagnostics.projectRefConfigured ? 'configured' : 'missing'}
+                  </p>
+                ) : null}
+                {supabaseAdvisorDiagnostics?.errorMessage ? (
+                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                    Last Supabase advisor error: <strong>{supabaseAdvisorDiagnostics.errorMessage}</strong>
+                  </p>
+                ) : null}
+                {supabaseAdvisorDiagnostics?.hint ? (
+                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{supabaseAdvisorDiagnostics.hint}</p>
+                ) : null}
+              </div>
+            ) : null}
+            <div style={statsGrid}>
+              {supabaseAdvisorCards.map((card) => (
+                <div key={card.key} style={statCard}>
+                  <div style={statLabel}>{card.label}</div>
+                  <div style={statValue}>{card.displayValue}</div>
+                  <div
+                    style={{
+                      ...miniStatusPill,
+                      background:
+                        card.status === 'healthy'
+                          ? 'rgba(22,163,74,0.16)'
+                          : card.status === 'warning'
+                            ? 'rgba(245,158,11,0.16)'
+                            : card.status === 'critical'
+                              ? 'rgba(220,38,38,0.14)'
+                              : 'rgba(59,130,246,0.12)',
+                      color:
+                        card.status === 'healthy'
+                          ? '#16a34a'
+                          : card.status === 'warning'
+                            ? '#b45309'
+                            : card.status === 'critical'
+                              ? '#dc2626'
+                              : '#2563eb',
+                    }}
+                  >
+                    {card.status === 'healthy'
+                      ? 'Healthy'
+                      : card.status === 'warning'
+                        ? 'Watch'
+                        : card.status === 'critical'
+                          ? 'Urgent'
+                          : 'Connect'}
+                  </div>
+                  <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
+                </div>
+              ))}
+            </div>
+            {supabaseAdvisorFindings.length ? (
+              <div style={statusList} className="monitoring-status-list">
+                {supabaseAdvisorFindings.map((finding) => (
+                  <div key={finding.key} style={issueRow} className="monitoring-issue-row">
+                    <div style={{ minWidth: 0 }}>
+                      <div style={issueTitle}>{finding.title}</div>
+                      <div style={issueMeta}>
+                        {finding.category === 'security' ? 'Security' : 'Performance'} | {finding.entity || 'Project-wide'}
+                      </div>
+                      <div style={issueCulprit}>{finding.detail}</div>
+                      {finding.remediation ? (
+                        <div style={{ ...issueCulprit, marginTop: 8 }}>
+                          Recommended fix: {finding.remediation}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div
+                      style={{
+                        ...miniStatusPill,
+                        background:
+                          finding.severity === 'critical'
+                            ? 'rgba(220,38,38,0.14)'
+                            : finding.severity === 'warning'
+                              ? 'rgba(245,158,11,0.16)'
+                              : 'rgba(22,163,74,0.16)',
+                        color:
+                          finding.severity === 'critical'
+                            ? '#dc2626'
+                            : finding.severity === 'warning'
+                              ? '#b45309'
+                              : '#16a34a',
+                      }}
+                    >
+                      {finding.severity === 'critical' ? 'Urgent' : finding.severity === 'warning' ? 'Watch' : 'Clear'}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={bodyText}>
+                {hasLiveSupabaseAdvisors
+                  ? 'No active Supabase advisor findings are being surfaced right now.'
+                  : 'Supabase advisor findings will appear here once the management credentials are connected.'}
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section style={sectionCard}>
+          <div style={sectionHeader}>
+            <div>
               <div style={sectionEyebrow}>HTTP Traffic</div>
               <h2 style={sectionTitle}>Requests, Caching, Visitors, and Bandwidth</h2>
             </div>
@@ -796,6 +953,36 @@ export default function MonitoringDashboard() {
               </div>
             ))}
           </div>
+        </section>
+
+        <section style={sectionCard}>
+          <div style={sectionHeader}>
+            <div>
+              <div style={sectionEyebrow}>Lesson Ledger</div>
+              <h2 style={sectionTitle}>All Lessons Uploaded</h2>
+            </div>
+          </div>
+          {lessonUploads.length ? (
+            <div style={statusList} className="monitoring-status-list">
+              {lessonUploads.map((lesson) => (
+                <div key={lesson.id} style={issueRow} className="monitoring-issue-row">
+                  <div style={{ minWidth: 0 }}>
+                    <div style={issueTitle}>{lesson.title}</div>
+                    <div style={issueMeta}>
+                      {lesson.context} | {lesson.submittedBy} | {lesson.source}
+                    </div>
+                    <div style={issueCulprit}>{lesson.executiveSummary}</div>
+                  </div>
+                  <div style={lessonLedgerMeta}>
+                    <div style={lessonLedgerScore}>{lesson.score}/100</div>
+                    <div style={lessonLedgerTime}>{formatDateTime(lesson.createdAt)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={bodyText}>No saved lesson analyses are available yet.</p>
+          )}
         </section>
         </div>
       </div>
@@ -1269,6 +1456,27 @@ const issueTime: React.CSSProperties = {
   color: 'var(--text-secondary)',
   fontSize: 13,
   whiteSpace: 'nowrap',
+};
+
+const lessonLedgerMeta: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-end',
+  gap: 8,
+  flexShrink: 0,
+};
+
+const lessonLedgerScore: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontSize: 20,
+  fontWeight: 800,
+  whiteSpace: 'nowrap',
+};
+
+const lessonLedgerTime: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  textAlign: 'right',
 };
 
 const readinessGrid: React.CSSProperties = {
