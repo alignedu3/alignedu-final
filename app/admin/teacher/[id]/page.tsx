@@ -165,30 +165,30 @@ export default function AdminTeacherPage() {
         </div>
 
         <div style={grid}>
-          <div style={card}>
-            <div style={label}>Lesson Analysis</div>
-            <div style={big}>{summary.averageScore}/100</div>
-            <div style={muted}>Average across {summary.lessonsAnalyzed} lesson{summary.lessonsAnalyzed === 1 ? '' : 's'}</div>
+          <div style={statCard}>
+            <div style={statLabel}>Lesson Analysis</div>
+            <div style={statValue}>{summary.averageScore}/100</div>
+            <div style={statHelper}>Average across {summary.lessonsAnalyzed} lesson{summary.lessonsAnalyzed === 1 ? '' : 's'}</div>
           </div>
 
-          <div style={card}>
-            <div style={label}>Average Clarity</div>
-            <div style={big}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
-            <div style={muted}>Rolled up from analyzed lessons</div>
+          <div style={statCard}>
+            <div style={statLabel}>Average Clarity</div>
+            <div style={statValue}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
+            <div style={statHelper}>Rolled up from analyzed lessons</div>
           </div>
 
-          <div style={card}>
-            <div style={label}>Total Gaps</div>
-            <div style={big}>{summary.totalGaps}</div>
-            <div style={muted}>All detected gaps across lessons</div>
+          <div style={statCard}>
+            <div style={statLabel}>Total Gaps</div>
+            <div style={statValue}>{summary.totalGaps}</div>
+            <div style={statHelper}>All detected gaps across lessons</div>
           </div>
 
-          <div style={card}>
-            <div style={label}>Performance Trend</div>
-            <div style={big}>
+          <div style={statCard}>
+            <div style={statLabel}>Performance Trend</div>
+            <div style={statValue}>
               {overview.trend > 0 ? `↑ ${overview.trend}` : overview.trend < 0 ? `↓ ${Math.abs(overview.trend)}` : 'No change'}
             </div>
-            <div style={muted}>{overview.risk}</div>
+            <div style={statHelper}>{overview.risk}</div>
           </div>
         </div>
 
@@ -448,6 +448,19 @@ const card: React.CSSProperties = {
   border: '1px solid var(--border)',
 };
 
+const statCard: React.CSSProperties = {
+  ...card,
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  alignItems: 'center',
+  textAlign: 'center',
+  minHeight: 158,
+  padding: '20px 18px',
+  background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.05) 100%)',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
+};
+
 const cardFull: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   padding: 20,
@@ -462,10 +475,34 @@ const label: React.CSSProperties = {
   fontSize: 13
 };
 
+const statLabel: React.CSSProperties = {
+  ...label,
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: 0.4,
+  textTransform: 'uppercase',
+};
+
 const big: React.CSSProperties = {
   color: 'var(--text-primary)',
   fontSize: 24,
   marginTop: 6
+};
+
+const statValue: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontSize: 34,
+  lineHeight: 1.05,
+  marginTop: 10,
+  fontWeight: 800,
+};
+
+const statHelper: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  lineHeight: 1.45,
+  marginTop: 10,
+  maxWidth: 170,
 };
 
 const valueLarge: React.CSSProperties = {
