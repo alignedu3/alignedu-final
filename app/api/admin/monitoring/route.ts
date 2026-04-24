@@ -1099,7 +1099,7 @@ function buildMonitoringAlerts(args: {
     const top5xxRoute = args.cloudflareTraffic.topErrorRoutes.find((route) => route.key === 'top-5xx-route');
     const requests = args.cloudflareTraffic.requestSeries.map((point) => point.requests || 0);
 
-    if ((cacheRatioCard?.value || 0) < 20 && (cachedBandwidthCard?.value || 0) < 40) {
+    if ((cacheRatioCard?.value || 0) < 3 && (cachedBandwidthCard?.value || 0) < 20) {
       alerts.push({
         key: 'cache-ratio',
         severity: 'warning',
@@ -1119,7 +1119,10 @@ function buildMonitoringAlerts(args: {
       });
     }
 
-    if ((clientErrorsCard?.value || 0) >= 25 && (top4xxRoute?.requests || 0) > 0) {
+    const top4xxPath = top4xxRoute?.path || null;
+    const top4xxRouteIsExpected = isExpectedClientErrorRoute(top4xxPath);
+
+    if ((clientErrorsCard?.value || 0) >= 100 && (top4xxRoute?.requests || 0) >= 50 && !top4xxRouteIsExpected) {
       alerts.push({
         key: 'client-errors',
         severity: 'warning',
@@ -1129,7 +1132,7 @@ function buildMonitoringAlerts(args: {
       });
     }
 
-    if ((serverErrorsCard?.value || 0) > 0 && (top5xxRoute?.requests || 0) > 0) {
+    if ((serverErrorsCard?.value || 0) >= 5 && (top5xxRoute?.requests || 0) >= 3) {
       alerts.push({
         key: 'server-errors',
         severity: (serverErrorsCard?.value || 0) >= 10 ? 'critical' : 'warning',
@@ -1516,6 +1519,21 @@ function isEdgeProtectedProbeSet(checks: UptimeCheck[]) {
   }
 
   return publicChecks.every((check) => protectedStatuses.has(check.statusCode || 0));
+}
+
+function isExpectedClientErrorRoute(path: string | null) {
+  if (!path) {
+    return false;
+  }
+
+  return [
+    '/api/auth/me',
+    '/dashboard',
+    '/admin',
+    '/login',
+    '/favicon.ico',
+    '/robots.txt',
+  ].some((knownPath) => path.includes(knownPath));
 }
 
 function normalizeMonitoringBaseUrl(baseUrl: string) {
