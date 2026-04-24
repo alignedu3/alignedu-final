@@ -112,6 +112,7 @@ type OpsSummaryCard = {
   value: number | null;
   displayValue: string;
   status: 'healthy' | 'warning' | 'critical' | 'connect_required';
+  statusLabel: string;
   detail: string;
 };
 
