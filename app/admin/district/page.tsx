@@ -133,7 +133,7 @@ export default function DistrictDashboard() {
         }
         return a.avgScore - b.avgScore;
       });
-  }, [profiles, reports, teacherProfiles]);
+  }, [reports, teacherProfiles]);
 
   const summary = useMemo(() => {
     const analyzedTeachers = teacherStats.filter((teacher) => teacher.lessons > 0);
@@ -327,14 +327,6 @@ const page: React.CSSProperties = {
 const container: React.CSSProperties = {
   maxWidth: 1220,
   margin: '0 auto',
-};
-
-const loading: React.CSSProperties = {
-  minHeight: '100vh',
-  display: 'grid',
-  placeItems: 'center',
-  color: 'var(--text-secondary)',
-  background: 'var(--bg-primary)',
 };
 
 const header: React.CSSProperties = {

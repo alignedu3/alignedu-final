@@ -8,7 +8,6 @@ import {
   getDashboardSummary,
   calculateLessonScore,
   getLatestLessonTrend,
-  sampleReports,
   SAMPLE_PREVIEW_TEACHER_ID,
   type AnalysisReport,
   type ProfileRecord,
@@ -100,10 +99,6 @@ export default function AdminDashboard() {
 
   const handleObserveLesson = () => {
     router.push('/admin/observe');
-  };
-
-  const handleAddTeacher = () => {
-    router.push('/admin/invite');
   };
 
   const handleOpenDistrictDashboard = () => {
@@ -1358,7 +1353,6 @@ const th: React.CSSProperties = { textAlign: 'left', color: 'var(--text-secondar
 const td: React.CSSProperties = { color: 'var(--text-primary)', padding: '5px 6px', fontSize: 14, verticalAlign: 'middle' };
 const actionButton: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 8, padding: '5px 9px', fontSize: 12, cursor: 'pointer' };
 const listItem: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 6 };
-const loading: React.CSSProperties = { color: 'var(--text-primary)', padding: 40 };
 const hierarchyCard: React.CSSProperties = { border: '1px solid rgba(148,163,184,0.18)', borderRadius: 16, padding: 18, marginBottom: 14, background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, var(--surface-chip) 100%)', boxShadow: '0 18px 36px rgba(15,23,42,0.06)' };
 const hierarchyCardActive: React.CSSProperties = { border: '1px solid rgba(249,115,22,0.28)', boxShadow: '0 18px 40px rgba(249,115,22,0.12)' };
 const hierarchyHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 16 };
@@ -1379,12 +1373,10 @@ const pillRoleLabel: React.CSSProperties = { color: 'var(--text-secondary)', fon
 const entityLinkBtn: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 15, fontWeight: 800, padding: 0, cursor: 'pointer' };
 const actionsMenuWrap: React.CSSProperties = { position: 'relative' };
 const actionsMenuTrigger: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-secondary)', borderRadius: 8, cursor: 'pointer', fontSize: 12, lineHeight: 1, height: 28, minWidth: 34, padding: '0 8px' };
-const headerMenuTrigger: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, lineHeight: 1, height: 40, minWidth: 74, padding: '0 14px' };
 const pillActionsMenuTrigger: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--text-secondary)', borderRadius: 6, cursor: 'pointer', fontSize: 10, lineHeight: 1, height: 18, minWidth: 18, padding: 0 };
 const actionsMenuPanel: React.CSSProperties = { position: 'absolute', top: 32, right: 0, zIndex: 15, minWidth: 150, background: 'var(--surface-card-solid)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 14px 32px rgba(2,6,23,0.20)', padding: 4, display: 'flex', flexDirection: 'column', gap: 2 };
 const menuItemBtn: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--text-primary)', textAlign: 'left', borderRadius: 7, padding: '8px 10px', fontSize: 12, cursor: 'pointer' };
 const menuItemDanger: React.CSSProperties = { color: '#dc2626' };
-const mutedInline: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12 };
 const supportPlanHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 8 };
 const supportPlanLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 700, marginBottom: 4 };
 const supportPlanTeacher: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 20, fontWeight: 800 };

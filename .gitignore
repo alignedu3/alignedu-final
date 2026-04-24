@@ -23,10 +23,9 @@ node_modules/
 out/
 playwright-report/
 test-results/
+tsconfig.tsbuildinfo
 
 # mac
 .DS_Store
 .env*.local
-
-# Sentry Config File
-.env.sentry-build-plugin
+supabase/.temp/

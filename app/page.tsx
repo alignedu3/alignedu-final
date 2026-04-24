@@ -1765,17 +1765,6 @@ const previewSubjectTitle: React.CSSProperties = {
   lineHeight: 1.05,
 };
 
-const previewCoverageSchoolLabel: React.CSSProperties = {
-  fontSize: '9px',
-  color: '#334155',
-  fontWeight: 700,
-  textAlign: 'center',
-  lineHeight: 1,
-  marginTop: '4px',
-  whiteSpace: 'nowrap',
-  width: '100%',
-};
-
 const previewBottomGrid: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: '1.2fr 1fr',

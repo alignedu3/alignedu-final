@@ -3,6 +3,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { calculateLessonScore, getLatestLessonTrend, type AnalysisReport, type ProfileRecord } from '@/lib/dashboardData';
 import { cleanDisplayText, parseFeedbackSections } from '@/lib/analysisReport';
+import { getErrorMessage } from '@/lib/errorHandling';
 import { captureRouteException } from '@/lib/sentryRoute';
 
 export const dynamic = 'force-dynamic';
@@ -154,6 +155,16 @@ type UptimeCheckTarget = {
   expectedRedirectTo?: string;
 };
 
+const MONITORING_BROWSER_HEADERS = {
+  Accept: 'text/html,application/json;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Cache-Control': 'no-cache',
+  Pragma: 'no-cache',
+  'Upgrade-Insecure-Requests': '1',
+  'User-Agent':
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+} as const;
+
 type SentryIssueRow = {
   id: string;
   title: string;
@@ -236,6 +247,48 @@ type SupabaseAdvisorResult = {
   };
 };
 
+type StatsGroup = {
+  totals?: Record<string, number | string | null | undefined> | null;
+  by?: {
+    outcome?: string | null;
+  } | null;
+};
+
+type StatsPayload = {
+  groups?: StatsGroup[] | null;
+};
+
+type SentryProject = {
+  id: string | number;
+  slug?: string | null;
+  name?: string | null;
+};
+
+type SentryIssueLike = {
+  id?: string | number | null;
+  title?: string | null;
+  culprit?: string | null;
+  level?: string | null;
+  count?: string | number | null;
+  userCount?: string | number | null;
+  status?: string | null;
+  lastSeen?: string | null;
+  permalink?: string | null;
+  metadata?: {
+    title?: string | null;
+    value?: string | null;
+  } | null;
+};
+
+type CloudflareRouteEntry = {
+  dimensions?: {
+    clientRequestHTTPHost?: string | null;
+    clientRequestPath?: string | null;
+  } | null;
+  edgeResponseStatus?: string | number | null;
+  requests?: string | number | null;
+};
+
 type MonitoringAlert = {
   key: string;
   severity: 'critical' | 'warning' | 'info';
@@ -313,10 +366,10 @@ function buildMonitoringLessonSummary(report: AnalysisReport) {
   return fallback.length > 260 ? `${fallback.slice(0, 257).trimEnd()}...` : fallback;
 }
 
-function getTotalFromStatsGroups(payload: any, field: string) {
+function getTotalFromStatsGroups(payload: StatsPayload | null | undefined, field: string) {
   return roundTo(
     Number(
-      (payload?.groups || []).reduce((sum: number, group: any) => sum + Number(group?.totals?.[field] || 0), 0)
+      (payload?.groups || []).reduce((sum: number, group) => sum + Number(group?.totals?.[field] || 0), 0)
     ),
     0
   );
@@ -669,9 +722,7 @@ async function runUptimeCheck(target: UptimeCheckTarget, baseUrl: string): Promi
       method: 'GET',
       cache: 'no-store',
       redirect: 'manual',
-      headers: {
-        Accept: 'text/html,application/json;q=0.9,*/*;q=0.8',
-      },
+      headers: MONITORING_BROWSER_HEADERS,
     });
 
     const responseTimeMs = Date.now() - startedAt;
@@ -697,7 +748,7 @@ async function runUptimeCheck(target: UptimeCheckTarget, baseUrl: string): Promi
           : `${target.label} responded with HTTP ${response.status}.`,
       checkedAt: new Date().toISOString(),
     };
-  } catch (error: any) {
+  } catch (error) {
     return {
       key: target.key,
       label: target.label,
@@ -705,7 +756,7 @@ async function runUptimeCheck(target: UptimeCheckTarget, baseUrl: string): Promi
       ok: false,
       statusCode: null,
       responseTimeMs: null,
-      detail: error?.message || `${target.label} could not be reached.`,
+      detail: getErrorMessage(error, `${target.label} could not be reached.`),
       checkedAt: new Date().toISOString(),
     };
   }
@@ -729,7 +780,7 @@ async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
     { key: 'accept-invite', label: 'Accept Invite', path: '/accept-invite' },
     { key: 'dashboard-gate', label: 'Dashboard Gate', path: '/dashboard', expectedRedirectTo: '/login' },
     { key: 'admin-gate', label: 'Admin Gate', path: '/admin', expectedRedirectTo: '/login' },
-    { key: 'auth-api', label: 'Auth API', path: '/api/auth/me' },
+    { key: 'auth-api', label: 'Auth API', path: '/api/auth/me', acceptedStatuses: [200, 401] },
   ];
 
   const checks = await Promise.all(targets.map((target) => runUptimeCheck(target, checkBase)));
@@ -814,7 +865,7 @@ async function fetchSentryHealth(): Promise<SentryResult> {
     return response.json();
   };
 
-  const projects = (await sentryFetch(`/organizations/${config.orgSlug}/projects/`)) as Array<any>;
+  const projects = (await sentryFetch(`/organizations/${config.orgSlug}/projects/`)) as SentryProject[];
   const selectedProjects = config.projectSlug
     ? projects.filter((project) => project.slug === config.projectSlug || project.name === config.projectSlug)
     : projects;
@@ -871,18 +922,18 @@ async function fetchSentryHealth(): Promise<SentryResult> {
   ]);
 
   const unresolvedIssues = Array.isArray(unresolvedIssuesRaw)
-    ? unresolvedIssuesRaw.filter((issue) => !isNoiseSentryIssue(issue) && isRecentlySeenSentryIssue(issue))
+    ? (unresolvedIssuesRaw as SentryIssueLike[]).filter((issue) => !isNoiseSentryIssue(issue) && isRecentlySeenSentryIssue(issue))
     : [];
   const regressedIssues = Array.isArray(regressedIssuesRaw)
-    ? regressedIssuesRaw.filter((issue) => !isNoiseSentryIssue(issue) && isRecentlySeenSentryIssue(issue))
+    ? (regressedIssuesRaw as SentryIssueLike[]).filter((issue) => !isNoiseSentryIssue(issue) && isRecentlySeenSentryIssue(issue))
     : [];
 
-  const sumSentryOutcome = (payload: any, outcome: string) =>
+  const sumSentryOutcome = (payload: StatsPayload | null | undefined, outcome: string) =>
     roundTo(
       Number(
         (payload?.groups || [])
-          .filter((group: any) => group?.by?.outcome === outcome)
-          .reduce((sum: number, group: any) => sum + Number(group?.totals?.['sum(quantity)'] || 0), 0)
+          .filter((group) => group?.by?.outcome === outcome)
+          .reduce((sum: number, group) => sum + Number(group?.totals?.['sum(quantity)'] || 0), 0)
       ),
       0
     );
@@ -901,7 +952,7 @@ async function fetchSentryHealth(): Promise<SentryResult> {
   const crashFreeSessionsPercent =
     totalSessions24h > 0 ? roundTo(((totalSessions24h - crashedSessions24h) / totalSessions24h) * 100, 1) : null;
 
-  const recentIssues: SentryIssueRow[] = unresolvedIssues.map((issue: any) => ({
+  const recentIssues: SentryIssueRow[] = unresolvedIssues.map((issue) => ({
     id: String(issue?.id || ''),
     title: issue?.title || issue?.metadata?.title || 'Issue',
     culprit: issue?.culprit || issue?.metadata?.value || null,
@@ -1382,19 +1433,20 @@ function buildSentryErrorHint(message: string) {
   return 'Check the Sentry token scopes, organization slug, and project slug for this deployment.';
 }
 
-function isNoiseSentryIssue(issue: any) {
+function isNoiseSentryIssue(issue: SentryIssueLike) {
   const title = String(issue?.title || issue?.metadata?.title || '').toLowerCase();
   const culprit = String(issue?.culprit || issue?.metadata?.value || '').toLowerCase();
 
   return (
     title.includes('sentryexample') ||
     title.includes('exampleapierror') ||
+    culprit.includes('/api/debug-supabase') ||
     culprit.includes('/api/sentry-example') ||
     culprit.includes('/sentry-example-page')
   );
 }
 
-function isRecentlySeenSentryIssue(issue: any, maxAgeHours = 24) {
+function isRecentlySeenSentryIssue(issue: SentryIssueLike, maxAgeHours = 24) {
   const lastSeen = issue?.lastSeen;
   if (!lastSeen) return false;
   const timestamp = new Date(lastSeen).getTime();
@@ -1623,7 +1675,7 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
     throw new Error('Cloudflare zone analytics not found for the configured zone.');
   }
 
-  const formatRoutePath = (entry: any) => {
+  const formatRoutePath = (entry: CloudflareRouteEntry) => {
     const host = entry?.dimensions?.clientRequestHTTPHost || null;
     const path = entry?.dimensions?.clientRequestPath || null;
     if (!path) return host || null;
@@ -1631,9 +1683,9 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   };
 
   const totalBucket = zone.totals?.[0];
-  const sumResponseStatusMap = (statusMap: any, minStatus: number, maxStatus: number) =>
+  const sumResponseStatusMap = (statusMap: CloudflareRouteEntry[] | null | undefined, minStatus: number, maxStatus: number) =>
     Number(
-      (statusMap || []).reduce((sum: number, entry: any) => {
+      (statusMap || []).reduce((sum: number, entry) => {
         const statusCode = Number(entry?.edgeResponseStatus || 0);
         if (statusCode < minStatus || statusCode > maxStatus) return sum;
         return sum + Number(entry?.requests || 0);
@@ -2188,9 +2240,9 @@ export async function GET(request: NextRequest) {
       (async () => {
         try {
           cloudflareTraffic = await fetchCloudflareTraffic(windowKeys);
-        } catch (cloudflareError: any) {
+        } catch (cloudflareError) {
           console.error('Cloudflare monitoring fetch error:', cloudflareError);
-          const errorMessage = cloudflareError?.message || 'Cloudflare analytics could not be loaded.';
+          const errorMessage = getErrorMessage(cloudflareError, 'Cloudflare analytics could not be loaded.');
           cloudflareTraffic = {
             connected: false,
             detail: errorMessage,
@@ -2215,9 +2267,9 @@ export async function GET(request: NextRequest) {
       (async () => {
         try {
           sentryHealth = await fetchSentryHealth();
-        } catch (sentryError: any) {
+        } catch (sentryError) {
           console.error('Sentry monitoring fetch error:', sentryError);
-          const errorMessage = sentryError?.message || 'Sentry metrics could not be loaded.';
+          const errorMessage = getErrorMessage(sentryError, 'Sentry metrics could not be loaded.');
           const config = getSentryConfig();
           sentryHealth = {
             connected: false,
@@ -2243,9 +2295,9 @@ export async function GET(request: NextRequest) {
       (async () => {
         try {
           supabaseAdvisors = await fetchSupabaseAdvisors();
-        } catch (supabaseAdvisorError: any) {
+        } catch (supabaseAdvisorError) {
           console.error('Supabase advisor monitoring fetch error:', supabaseAdvisorError);
-          const errorMessage = supabaseAdvisorError?.message || 'Supabase advisor findings could not be loaded.';
+          const errorMessage = getErrorMessage(supabaseAdvisorError, 'Supabase advisor findings could not be loaded.');
           const config = getSupabaseAdvisorConfig();
           supabaseAdvisors = {
             connected: false,
@@ -2358,12 +2410,12 @@ export async function GET(request: NextRequest) {
         },
       }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error('Admin monitoring route error:', error);
     captureRouteException(error, {
       route: 'api/admin/monitoring',
       user: sentryUser,
     });
-    return NextResponse.json({ success: false, error: error.message || 'Server error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: getErrorMessage(error) }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getAdminVisibility } from '@/lib/adminVisibility';
+import { getErrorMessage } from '@/lib/errorHandling';
 
 function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -89,8 +90,8 @@ export async function GET(
       lesson,
       teacher: teacher || { id, name: 'Teacher' },
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Admin teacher lesson route error:', error);
-    return NextResponse.json({ success: false, error: error.message || 'Server error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: getErrorMessage(error) }, { status: 500 });
   }
 }

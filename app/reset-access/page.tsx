@@ -1,22 +1,29 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 type ResetState =
   | { status: 'loading'; message: string }
   | { status: 'error'; message: string };
 
-export default function ResetAccessPage() {
-  const [state, setState] = useState<ResetState>({
-    status: 'loading',
-    message: 'Preparing your password reset…',
-  });
+function ResetAccessContent() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token')?.trim() || '';
+  const [state, setState] = useState<ResetState>(() =>
+    token
+      ? {
+          status: 'loading',
+          message: 'Preparing your password reset…',
+        }
+      : {
+          status: 'error',
+          message: 'This reset link is missing required information.',
+        }
+  );
 
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get('token');
-
     if (!token) {
-      setState({ status: 'error', message: 'This reset link is missing required information.' });
       return;
     }
 
@@ -43,7 +50,7 @@ export default function ResetAccessPage() {
     };
 
     resolveReset();
-  }, []);
+  }, [token]);
 
   return (
     <main style={mainStyle}>
@@ -55,6 +62,28 @@ export default function ResetAccessPage() {
             Request a new reset email
           </a>
         ) : null}
+      </section>
+    </main>
+  );
+}
+
+export default function ResetAccessPage() {
+  return (
+    <Suspense fallback={<ResetPageShell message="Preparing your password reset…" href="/forgot-password" linkLabel="Request a new reset email" />}>
+      <ResetAccessContent />
+    </Suspense>
+  );
+}
+
+function ResetPageShell({ message, href, linkLabel }: { message: string; href: string; linkLabel: string }) {
+  return (
+    <main style={mainStyle}>
+      <section style={cardStyle}>
+        <h1 style={headingStyle}>AlignEDU Password Reset</h1>
+        <p style={messageStyle}>{message}</p>
+        <a href={href} style={linkStyle}>
+          {linkLabel}
+        </a>
       </section>
     </main>
   );

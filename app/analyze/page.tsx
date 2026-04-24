@@ -113,7 +113,7 @@ export default function AnalysisPage() {
         setIsRecording(true);
         setIsPaused(false);
         setRecorderStatus("Recording in progress.");
-      } catch (err) {
+      } catch {
         setError("Microphone access denied or unavailable.");
       }
     };

@@ -889,7 +889,6 @@ const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', 
 const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 20, minWidth: 0 };
 const cardTitle: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 10 };
 
-const previewGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 16 };
 const analysisSummaryLayout: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'minmax(200px, 240px) minmax(0, 1fr)',
@@ -964,11 +963,7 @@ const analysisMetricValue: React.CSSProperties = {
   fontWeight: 800,
   letterSpacing: '-0.02em',
 };
-const bigScore: React.CSSProperties = { fontSize: 32, color: 'var(--text-primary)', fontWeight: 700 };
-const subText: React.CSSProperties = { color: 'var(--text-secondary)' };
-
 const label: React.CSSProperties = { color: 'var(--text-secondary)' };
-const value: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 18 };
 
 const text: React.CSSProperties = { color: 'var(--text-secondary)' };
 
@@ -1006,9 +1001,6 @@ const emptyState: React.CSSProperties = { color: 'var(--text-secondary)' };
 
 const glow1: React.CSSProperties = { display: 'none' };
 const glow2: React.CSSProperties = { display: 'none' };
-
-const loadingContainer: React.CSSProperties = { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' };
-const loadingText: React.CSSProperties = { color: 'var(--text-primary)' };
 
 const executiveSummaryCard: React.CSSProperties = {
   display: 'grid',
@@ -1145,11 +1137,6 @@ const reportSubsectionTitle: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 700,
   marginBottom: 8,
-};
-
-const reportSectionStack: React.CSSProperties = {
-  display: 'grid',
-  gap: 14,
 };
 
 const reportList: React.CSSProperties = {

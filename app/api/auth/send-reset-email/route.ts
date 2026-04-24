@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { buildReusableRecoveryLink } from '@/lib/invite-link';
 
@@ -36,8 +35,6 @@ export async function POST(req: Request) {
   }
 
   try {
-    const supabaseServer = await createClient();
-
     const resetLink = buildReusableRecoveryLink(getSiteUrl(req), { email: normalizedEmail });
 
     // Send reset email via Resend

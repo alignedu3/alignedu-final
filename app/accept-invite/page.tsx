@@ -1,23 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 type InviteState =
   | { status: 'loading'; message: string }
   | { status: 'accepted'; message: string }
   | { status: 'error'; message: string };
 
-export default function AcceptInvitePage() {
-  const [state, setState] = useState<InviteState>({
-    status: 'loading',
-    message: 'Preparing your invitation…',
-  });
+function AcceptInviteContent() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token')?.trim() || '';
+  const [state, setState] = useState<InviteState>(() =>
+    token
+      ? {
+          status: 'loading',
+          message: 'Preparing your invitation…',
+        }
+      : {
+          status: 'error',
+          message: 'This invite link is missing required information.',
+        }
+  );
 
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get('token');
-
     if (!token) {
-      setState({ status: 'error', message: 'This invite link is missing required information.' });
       return;
     }
 
@@ -54,7 +61,7 @@ export default function AcceptInvitePage() {
     };
 
     resolveInvite();
-  }, []);
+  }, [token]);
 
   return (
     <main style={mainStyle}>
@@ -66,6 +73,28 @@ export default function AcceptInvitePage() {
             Go to Login
           </a>
         ) : null}
+      </section>
+    </main>
+  );
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <Suspense fallback={<InvitePageShell message="Preparing your invitation…" href="/login" linkLabel="Go to Login" />}>
+      <AcceptInviteContent />
+    </Suspense>
+  );
+}
+
+function InvitePageShell({ message, href, linkLabel }: { message: string; href: string; linkLabel: string }) {
+  return (
+    <main style={mainStyle}>
+      <section style={cardStyle}>
+        <h1 style={headingStyle}>AlignEDU Invite</h1>
+        <p style={messageStyle}>{message}</p>
+        <a href={href} style={linkStyle}>
+          {linkLabel}
+        </a>
       </section>
     </main>
   );

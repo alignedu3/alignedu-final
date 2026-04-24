@@ -279,10 +279,7 @@ export default function MonitoringDashboard() {
     return () => window.clearInterval(refreshId);
   }, [days]);
 
-  const summary = payload?.summary;
-  const series = payload?.series || [];
   const readiness = payload?.readiness || [];
-  const recentActivity = payload?.recentActivity || [];
   const lessonUploads = payload?.lessonUploads || [];
   const alerts = payload?.alerts || [];
   const uptimeCards = payload?.uptime?.summaryCards || [];
@@ -307,14 +304,6 @@ export default function MonitoringDashboard() {
   const cloudflareConnection = connections.find((item) => item.key === 'cloudflare-traffic');
   const sentryConnection = connections.find((item) => item.key === 'sentry-api');
   const supabaseAdvisorConnection = connections.find((item) => item.key === 'supabase-advisors');
-
-  const healthHeadline = useMemo(() => {
-    if (!readiness.length) return 'Monitoring status is loading.';
-    const healthyCount = readiness.filter((item) => item.healthy).length;
-    if (healthyCount === readiness.length) return 'Core monitoring and runtime services are configured.';
-    if (healthyCount >= readiness.length - 1) return 'Most core services are configured, with one area to review.';
-    return 'Multiple monitoring or runtime services still need attention.';
-  }, [readiness]);
 
   const connectionHeadline = useMemo(() => {
     const connected = payload?.sync?.connectedProviders ?? 0;
@@ -1120,71 +1109,6 @@ const refreshText: React.CSSProperties = {
   marginTop: 4,
 };
 
-const heroSection: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'stretch',
-  gap: 18,
-  flexWrap: 'wrap',
-  background: 'linear-gradient(135deg, rgba(59,130,246,0.14), rgba(15,23,42,0.04))',
-  border: '1px solid rgba(59,130,246,0.18)',
-  borderRadius: 24,
-  padding: 24,
-  marginBottom: 22,
-  boxShadow: 'var(--shadow-soft)',
-};
-
-const heroTextBlock: React.CSSProperties = {
-  flex: '1 1 560px',
-  minWidth: 0,
-};
-
-const heroKicker: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 800,
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase',
-  color: '#3b82f6',
-  marginBottom: 10,
-};
-
-const heroTitle: React.CSSProperties = {
-  margin: '0 0 10px 0',
-  color: 'var(--text-primary)',
-  fontSize: 28,
-  lineHeight: 1.1,
-};
-
-const heroText: React.CSSProperties = {
-  margin: 0,
-  color: 'var(--text-secondary)',
-  maxWidth: 680,
-};
-
-const heroBadge: React.CSSProperties = {
-  minWidth: 200,
-  borderRadius: 20,
-  padding: '20px 22px',
-  border: '1px solid rgba(59,130,246,0.16)',
-  background: 'var(--surface-card-solid)',
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
-  gap: 6,
-};
-
-const heroBadgeValue: React.CSSProperties = {
-  fontSize: 38,
-  fontWeight: 800,
-  color: 'var(--text-primary)',
-  lineHeight: 1,
-};
-
-const heroBadgeLabel: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  fontSize: 13,
-};
-
 const statsGrid: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
@@ -1399,17 +1323,6 @@ const uptimeCheckTopRow: React.CSSProperties = {
   gap: 10,
 };
 
-const statusRow: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  gap: 12,
-  padding: '14px 16px',
-  borderRadius: 16,
-  border: '1px solid var(--border)',
-  background: 'var(--surface-chip)',
-};
-
 const statusTitle: React.CSSProperties = {
   color: 'var(--text-primary)',
   fontWeight: 700,
@@ -1554,41 +1467,4 @@ const emptyChartNote: React.CSSProperties = {
   color: 'var(--text-secondary)',
   fontSize: 13,
   lineHeight: 1.55,
-};
-
-const tableWrap: React.CSSProperties = {
-  border: '1px solid var(--border)',
-  borderRadius: 16,
-  overflow: 'hidden',
-};
-
-const table: React.CSSProperties = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  minWidth: 760,
-};
-
-const th: React.CSSProperties = {
-  textAlign: 'left',
-  padding: '14px 16px',
-  color: 'var(--text-secondary)',
-  fontSize: 12,
-  fontWeight: 800,
-  textTransform: 'uppercase',
-  letterSpacing: '0.05em',
-  borderBottom: '1px solid var(--border)',
-};
-
-const td: React.CSSProperties = {
-  padding: '14px 16px',
-  color: 'var(--text-secondary)',
-  borderBottom: '1px solid var(--border)',
-  fontSize: 14,
-  verticalAlign: 'middle',
-};
-
-const tdStrong: React.CSSProperties = {
-  ...td,
-  color: 'var(--text-primary)',
-  fontWeight: 700,
 };

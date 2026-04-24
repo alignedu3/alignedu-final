@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getAdminVisibility } from '@/lib/adminVisibility';
+import { getErrorMessage } from '@/lib/errorHandling';
 import { captureRouteException } from '@/lib/sentryRoute';
 
 function getServiceSupabase() {
@@ -88,12 +89,12 @@ export async function GET() {
       analyses: analyses || [],
       visibility,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Admin district route error:', error);
     captureRouteException(error, {
       route: 'api/admin/district',
       user: sentryUser,
     });
-    return NextResponse.json({ success: false, error: error.message || 'Server error' }, { status: 500 });
+    return NextResponse.json({ success: false, error: getErrorMessage(error) }, { status: 500 });
   }
 }

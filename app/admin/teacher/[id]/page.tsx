@@ -27,7 +27,7 @@ export default function AdminTeacherPage() {
   const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [name, setName] = useState('');
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
-  const [chartReady, setChartReady] = useState(false);
+  const [chartReady] = useState(true);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState('');
 
@@ -70,10 +70,6 @@ export default function AdminTeacherPage() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [id]);
 
-  useEffect(() => {
-    setChartReady(true);
-  }, []);
-
   const resolvedActiveReportId = useMemo(() => {
     if (!reports.length) return null;
     return reports.some((report) => report.id === activeReportId) ? activeReportId : reports[0].id;
@@ -86,7 +82,6 @@ export default function AdminTeacherPage() {
       return { avg: 0, trend: 0, risk: 'Unknown', summary: 'No results available yet.' };
     }
 
-    const scores = reports.map((report) => getLessonMetrics(report).score);
     const avg = summary.averageScore;
     const trend = getLatestLessonTrend(reports);
     const risk = avg < 70 ? 'High Risk' : avg < 80 ? 'Moderate Risk' : 'Strong';
@@ -481,12 +476,6 @@ const statLabel: React.CSSProperties = {
   fontWeight: 700,
   letterSpacing: 0.4,
   textTransform: 'uppercase',
-};
-
-const big: React.CSSProperties = {
-  color: 'var(--text-primary)',
-  fontSize: 24,
-  marginTop: 6
 };
 
 const statValue: React.CSSProperties = {

@@ -1,10 +1,13 @@
 import OpenAI from "openai";
-import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
+import type { TranscriptionVerbose } from "openai/resources/audio/transcriptions";
 import { formatTEKSForPrompt, getRelatedTEKSStandards, getTEKSStandards } from "@/lib/teksStandards";
 import { STAAR_SUBJECTS } from "@/lib/staarSubjects";
 import { getAdminVisibility } from "@/lib/adminVisibility";
 import { normalizeStructuredReportText, parseFeedbackSections } from "@/lib/analysisReport";
+import { createClient as createServerClient } from "@/lib/supabase/server";
+import { getErrorMessage } from "@/lib/errorHandling";
 
 function getOpenAIKey() {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -23,7 +26,12 @@ function createOpenAIClient() {
   return new OpenAI({ apiKey: getOpenAIKey() });
 }
 
-function safeJson(data: any, status = 200) {
+type ChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
+function safeJson<T>(data: T, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -32,7 +40,7 @@ function safeJson(data: any, status = 200) {
   });
 }
 
-async function callOpenAI(openai: OpenAI, messages: any[]) {
+async function callOpenAI(openai: OpenAI, messages: ChatMessage[]) {
   return await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages,
@@ -439,28 +447,8 @@ function extractMetricsFromResult(result: string): {
 export async function POST(req: Request) {
   try {
     const formData = await req.formData();
-    const cookieStore = await cookies();
-
-    const anonSupabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                cookieStore.set(name, value, options);
-              });
-            } catch (error) {
-              // Handle error silently
-            }
-          },
-        },
-      }
-    ) as any;
+    await cookies();
+    const anonSupabase = await createServerClient();
 
     const { data: { user } } = await anonSupabase.auth.getUser();
     let callerProfile: { role?: string | null; name?: string | null } | null = null;
@@ -560,12 +548,13 @@ export async function POST(req: Request) {
       const spokenParts: string[] = [];
 
       for (const file of files) {
-        const transcription = await openai.audio.transcriptions.create({
+        const transcription: TranscriptionVerbose = await openai.audio.transcriptions.create({
           file,
           model: "whisper-1",
+          response_format: "verbose_json",
         });
 
-        const spokenText = String((transcription as any).text || "").trim();
+        const spokenText = String(transcription.text || "").trim();
         if (spokenText) spokenParts.push(spokenText);
       }
 
@@ -1073,16 +1062,10 @@ ${transcript}`;
     const metrics = extractMetricsFromResult(finalResult);
 
     // Service role client to bypass RLS for the insert
-    const serviceSupabase = createServerClient(
+    const serviceSupabase = createServiceClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          getAll() { return []; },
-          setAll() {},
-        },
-      }
-    ) as any;
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
 
     let dbSaved = false;
     let analysisId: string | null = null;
@@ -1102,7 +1085,7 @@ ${transcript}`;
       created_at: new Date().toISOString(),
     };
 
-    let insertQuery = serviceSupabase
+    const insertQuery = serviceSupabase
       .from("analyses")
       .insert([analysisRecord])
       .select()
@@ -1111,7 +1094,9 @@ ${transcript}`;
     let { data: insertedData, error: dbError } = await insertQuery;
 
     if (dbError && /assessment_quality/i.test(dbError.message || "")) {
-      const { assessment_quality, ...legacyRecord } = analysisRecord;
+      const legacyRecord = Object.fromEntries(
+        Object.entries(analysisRecord).filter(([key]) => key !== "assessment_quality")
+      ) as Omit<typeof analysisRecord, "assessment_quality">;
       ({ data: insertedData, error: dbError } = await serviceSupabase
         .from("analyses")
         .insert([legacyRecord])
@@ -1142,10 +1127,10 @@ ${transcript}`;
       saved: dbSaved,
       analysisId,
     });
-  } catch (err: any) {
+  } catch (err) {
     console.error("ANALYZE ERROR:", err);
 
-    const message = err?.message || "Analysis failed";
+    const message = getErrorMessage(err, "Analysis failed");
     const userError = message.includes("longer than")
       ? "Audio is too long for transcription. Please upload a file under 90 minutes."
       : message;

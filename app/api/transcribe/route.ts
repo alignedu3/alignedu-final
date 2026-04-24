@@ -1,6 +1,7 @@
 import OpenAI from "openai";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import type { TranscriptionVerbose } from "openai/resources/audio/transcriptions";
+import { createClient as createServerClient } from "@/lib/supabase/server";
+import { getErrorMessage } from "@/lib/errorHandling";
 
 function getOpenAIKey() {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
@@ -19,7 +20,7 @@ function createOpenAIClient() {
   return new OpenAI({ apiKey: getOpenAIKey() });
 }
 
-function safeJson(data: any, status = 200) {
+function safeJson<T>(data: T, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -102,25 +103,7 @@ function buildWaitTimeEvidence(segments: TranscriptSegment[] | undefined) {
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                cookieStore.set(name, value, options);
-              });
-            } catch {}
-          },
-        },
-      }
-    ) as any;
+    const supabase = await createServerClient();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -138,23 +121,22 @@ export async function POST(req: Request) {
       );
     }
 
-    const transcription = await openai.audio.transcriptions.create({
+    const transcription: TranscriptionVerbose = await openai.audio.transcriptions.create({
       file,
       model: "whisper-1",
       response_format: "verbose_json",
-    } as any);
+    });
 
-    const transcript = String((transcription as any).text || "").trim();
-    const waitTimeEvidence = buildWaitTimeEvidence((transcription as any).segments);
+    const transcript = String(transcription.text || "").trim();
+    const waitTimeEvidence = buildWaitTimeEvidence(transcription.segments);
 
     return safeJson({ transcript, error: null, ...waitTimeEvidence });
-  } catch (err: any) {
+  } catch (err) {
     console.error("TRANSCRIBE ERROR:", err);
     return safeJson(
       {
         transcript: "",
-        error:
-          err?.message || "Error transcribing audio chunk. Please try again.",
+        error: getErrorMessage(err, "Error transcribing audio chunk. Please try again."),
       },
       400
     );

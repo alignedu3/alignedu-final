@@ -1,36 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getAdminVisibility } from '@/lib/adminVisibility';
+import { getErrorMessage } from '@/lib/errorHandling';
 
 export async function DELETE(
-  req: NextRequest,
+  _req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params;
   try {
-    const cookieStore = await cookies();
-    const serverSupabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                cookieStore.set(name, value, options);
-              });
-            } catch (error) {
-              // ignore
-            }
-          },
-        },
-      }
-    ) as any;
+    const serverSupabase = await createServerClient();
 
     const {
       data: { user },
@@ -95,7 +75,7 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message || 'Server error' }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: getErrorMessage(error) }, { status: 500 });
   }
 }

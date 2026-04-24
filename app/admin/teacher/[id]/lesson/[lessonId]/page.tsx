@@ -578,20 +578,10 @@ const longformText: React.CSSProperties = {
   whiteSpace: 'pre-wrap',
 };
 
-const loadingState: React.CSSProperties = {
-  color: 'var(--text-primary)',
-  padding: 32,
-};
-
 const twoColumnGrid: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
   gap: 18,
-};
-
-const sectionStack: React.CSSProperties = {
-  display: 'grid',
-  gap: 14,
 };
 
 const coverageMetricCard: React.CSSProperties = {

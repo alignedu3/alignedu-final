@@ -1,4 +1,5 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { getErrorDetails, getErrorMessage } from '@/lib/errorHandling';
 
 type AdminVisibility = {
   adminIds: string[];
@@ -8,12 +9,24 @@ type AdminVisibility = {
 
 export type AdminRole = 'admin' | 'super_admin';
 
+type IdRow = {
+  id: string | null;
+};
+
+type ManagedAdminRow = {
+  child_admin_id: string | null;
+};
+
+type ManagedTeacherRow = {
+  teacher_id: string | null;
+};
+
 function unique(values: string[]) {
   return [...new Set(values)];
 }
 
-function isMissingTableError(error: any) {
-  const text = `${error?.message || ''} ${error?.details || ''}`.toLowerCase();
+function isMissingTableError(error: unknown) {
+  const text = `${getErrorMessage(error, '')} ${getErrorDetails(error)}`.toLowerCase();
   return text.includes('does not exist') || text.includes('relation') || text.includes('managed_admins');
 }
 
@@ -48,7 +61,7 @@ export async function getAdminVisibility(adminId: string, role: AdminRole = 'adm
       throw adminsError;
     }
 
-    const resolvedAdminIds = unique((admins || []).map((row: any) => row.id as string).filter(Boolean));
+    const resolvedAdminIds = unique(((admins || []) as IdRow[]).map((row) => row.id || '').filter(Boolean));
 
     const { data: teachers, error: teachersError } = await supabase
       .from('profiles')
@@ -59,7 +72,7 @@ export async function getAdminVisibility(adminId: string, role: AdminRole = 'adm
       throw teachersError;
     }
 
-    const teacherIds = unique((teachers || []).map((row: any) => row.id as string).filter(Boolean));
+    const teacherIds = unique(((teachers || []) as IdRow[]).map((row) => row.id || '').filter(Boolean));
     const visibleUserIds = unique([...resolvedAdminIds, ...teacherIds]);
 
     return {
@@ -86,8 +99,8 @@ export async function getAdminVisibility(adminId: string, role: AdminRole = 'adm
       throw error;
     }
 
-    const nextFrontier = (data || [])
-      .map((row: any) => row.child_admin_id as string)
+    const nextFrontier = ((data || []) as ManagedAdminRow[])
+      .map((row) => row.child_admin_id || '')
       .filter((id: string) => !!id && !adminIds.has(id));
 
     nextFrontier.forEach((id) => adminIds.add(id));
@@ -105,7 +118,7 @@ export async function getAdminVisibility(adminId: string, role: AdminRole = 'adm
     throw managedTeachersError;
   }
 
-  const teacherIds = unique((managedTeachers || []).map((row: any) => row.teacher_id as string).filter(Boolean));
+  const teacherIds = unique(((managedTeachers || []) as ManagedTeacherRow[]).map((row) => row.teacher_id || '').filter(Boolean));
   const visibleUserIds = unique([...resolvedAdminIds, ...teacherIds]);
 
   return {

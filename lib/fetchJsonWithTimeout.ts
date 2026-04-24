@@ -2,7 +2,7 @@ type FetchJsonOptions = RequestInit & {
   timeoutMs?: number;
 };
 
-export async function fetchJsonWithTimeout<T = any>(
+export async function fetchJsonWithTimeout<T = unknown>(
   input: RequestInfo | URL,
   { timeoutMs = 12000, ...init }: FetchJsonOptions = {}
 ) {

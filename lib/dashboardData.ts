@@ -198,13 +198,6 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     report.assessment * 0.15 -
     report.gaps * 2;
 
-  const scoreBand =
-    score >= 88
-      ? 'strong and increasingly consistent'
-      : score >= 78
-        ? 'solid with room to sharpen execution'
-        : 'in need of targeted support';
-
   const strengths: string[] = [];
   const improvements: string[] = [];
 

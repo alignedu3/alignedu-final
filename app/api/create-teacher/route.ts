@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { createClient as createServerClient } from '@/lib/supabase/server';
+import { getErrorMessage } from '@/lib/errorHandling';
 
 export async function POST(req: Request) {
   try {
@@ -16,27 +16,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const cookieStore = await cookies();
-    const serverClient = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                cookieStore.set(name, value, options);
-              });
-            } catch (error) {
-              // Handle error silently
-            }
-          },
-        },
-      }
-    ) as any;
+    const serverClient = await createServerClient();
 
     const { data: { user: adminUser } } = await serverClient.auth.getUser();
     if (!adminUser) {
@@ -195,13 +175,13 @@ export async function POST(req: Request) {
       user: data,
     });
 
-  } catch (err: any) {
+  } catch (err) {
     console.error('UNEXPECTED ERROR:', err);
 
     return NextResponse.json(
       {
         success: false,
-        error: err.message,
+        error: getErrorMessage(err),
       },
       { status: 500 }
     );
