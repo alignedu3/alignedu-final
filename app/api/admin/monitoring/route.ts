@@ -784,7 +784,18 @@ async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
     { key: 'auth-api', label: 'Auth API', path: '/api/auth/me', acceptedStatuses: [200, 401] },
   ];
 
-  const checks = await Promise.all(targets.map((target) => runUptimeCheck(target, checkBase)));
+  const rawChecks = await Promise.all(targets.map((target) => runUptimeCheck(target, checkBase)));
+  const edgeProtectedChecks = isEdgeProtectedProbeSet(rawChecks);
+  const checks = edgeProtectedChecks
+    ? rawChecks.map((check) => ({
+        ...check,
+        ok: true,
+        detail:
+          check.key === 'auth-api'
+            ? `${check.label} responded through an edge-protected host and is still reachable.`
+            : `${check.label} is being blocked by edge/deployment protection for this server-side probe, but the host is reachable.`,
+      }))
+    : rawChecks;
 
   const passingChecks = checks.filter((check) => check.ok);
   const averageResponseMs = passingChecks.length
@@ -802,8 +813,10 @@ async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
         label: 'Checks Passing',
         value: passingChecks.length,
         displayValue: `${passingChecks.length}/${checks.length}`,
-        status: availabilityStatus,
-        detail: allHealthy
+        status: edgeProtectedChecks ? 'warning' : availabilityStatus,
+        detail: edgeProtectedChecks
+          ? 'The current host is protected from server-side uptime probes, so these checks are being treated as reachable instead of down.'
+          : allHealthy
           ? 'All uptime probes are returning healthy responses right now.'
           : `${failingChecks} uptime ${failingChecks === 1 ? 'check is' : 'checks are'} failing in the latest pass.`,
       },
@@ -1478,6 +1491,31 @@ function resolveUptimeCheckBaseUrl(request: NextRequest) {
     DEFAULT_PUBLIC_SITE_URL;
 
   return normalizeMonitoringBaseUrl(configuredPublicSite);
+}
+
+function isEdgeProtectedProbeSet(checks: UptimeCheck[]) {
+  if (!checks.length) {
+    return false;
+  }
+
+  const protectedStatuses = new Set([401, 403]);
+  const publicCheckKeys = new Set([
+    'public-site',
+    'login-page',
+    'analyze-page',
+    'forgot-password',
+    'reset-access',
+    'accept-invite',
+  ]);
+
+  const publicChecks = checks.filter((check) => publicCheckKeys.has(check.key));
+  const protectedChecks = checks.filter((check) => protectedStatuses.has(check.statusCode || 0));
+
+  if (!publicChecks.length || protectedChecks.length !== checks.length) {
+    return false;
+  }
+
+  return publicChecks.every((check) => protectedStatuses.has(check.statusCode || 0));
 }
 
 function normalizeMonitoringBaseUrl(baseUrl: string) {
