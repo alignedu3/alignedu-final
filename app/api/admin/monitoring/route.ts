@@ -770,7 +770,7 @@ function getUptimeLatencyStatus(responseTimeMs: number | null): 'healthy' | 'war
 }
 
 async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
-  const checkBase = normalizeMonitoringBaseUrl(resolveBaseUrl(request) || request.nextUrl.origin);
+  const checkBase = normalizeMonitoringBaseUrl(resolveUptimeCheckBaseUrl(request));
   const targets: UptimeCheckTarget[] = [
     { key: 'public-site', label: 'Public Site', path: '/' },
     { key: 'login-page', label: 'Login Page', path: '/login' },
@@ -1460,15 +1460,12 @@ function formatDurationMs(value: number | null) {
   return `${roundTo(value / 1000, 2)} s`;
 }
 
-function resolveBaseUrl(request: NextRequest) {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.SITE_URL ||
-    process.env.APP_URL ||
+function resolveUptimeCheckBaseUrl(request: NextRequest) {
+  const deploymentBaseUrl =
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
-    request.nextUrl.origin
-  );
+    request.nextUrl.origin;
+
+  return deploymentBaseUrl;
 }
 
 function normalizeMonitoringBaseUrl(baseUrl: string) {
