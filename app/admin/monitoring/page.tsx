@@ -486,7 +486,7 @@ export default function MonitoringDashboard() {
                               : '#dc2626',
                       }}
                     >
-                      {card.status === 'healthy' ? 'Healthy' : card.status === 'warning' ? 'Slow' : 'Down'}
+                      {card.statusLabel}
                     </div>
                     <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
                   </div>

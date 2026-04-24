@@ -143,6 +143,7 @@ type UptimeResult = {
     value: number | null;
     displayValue: string;
     status: 'healthy' | 'warning' | 'critical';
+    statusLabel: string;
     detail: string;
   }>;
   checks: UptimeCheck[];
@@ -814,6 +815,7 @@ async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
         value: passingChecks.length,
         displayValue: `${passingChecks.length}/${checks.length}`,
         status: edgeProtectedChecks ? 'warning' : availabilityStatus,
+        statusLabel: edgeProtectedChecks ? 'Protected' : availabilityStatus === 'healthy' ? 'Healthy' : availabilityStatus === 'warning' ? 'Reachable' : 'Down',
         detail: edgeProtectedChecks
           ? 'The current host is protected from server-side uptime probes, so these checks are being treated as reachable instead of down.'
           : allHealthy
@@ -826,6 +828,12 @@ async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
         value: averageResponseMs,
         displayValue: formatDurationMs(averageResponseMs),
         status: getUptimeLatencyStatus(averageResponseMs),
+        statusLabel:
+          getUptimeLatencyStatus(averageResponseMs) === 'healthy'
+            ? 'Healthy'
+            : getUptimeLatencyStatus(averageResponseMs) === 'warning'
+              ? 'Slow'
+              : 'Down',
         detail:
           averageResponseMs != null
             ? `Average response time across successful uptime checks in the latest pass.`
