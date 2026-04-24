@@ -241,6 +241,9 @@ export default function MonitoringDashboard() {
         credentials: 'include',
         cache: 'no-store',
         timeoutMs: 12000,
+        headers: {
+          'x-monitor-origin': window.location.origin,
+        },
       });
 
       if (response.status === 401) {

@@ -1469,6 +1469,7 @@ function formatDurationMs(value: number | null) {
 }
 
 function resolveUptimeCheckBaseUrls(request: NextRequest) {
+  const explicitMonitorOrigin = request.headers.get('x-monitor-origin');
   const forwardedProto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '');
   const forwardedHost = request.headers.get('x-forwarded-host');
   const originHeader = request.headers.get('origin');
@@ -1481,6 +1482,7 @@ function resolveUptimeCheckBaseUrls(request: NextRequest) {
     process.env.APP_URL,
   ];
   const candidateBaseUrls = [
+    explicitMonitorOrigin,
     originHeader,
     refererOrigin,
     forwardedHost ? `${forwardedProto}://${forwardedHost}` : null,
