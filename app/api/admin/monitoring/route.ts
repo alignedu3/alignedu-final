@@ -283,6 +283,7 @@ type SentryIssueLike = {
 };
 
 type CloudflareRouteEntry = {
+  count?: string | number | null;
   dimensions?: {
     clientRequestHTTPHost?: string | null;
     clientRequestPath?: string | null;
