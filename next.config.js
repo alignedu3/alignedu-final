@@ -51,6 +51,18 @@ const nextConfig = {
   },
 };
 
-module.exports = withSentryConfig(nextConfig, {
-  silent: true,
-});
+const sentryOptions = {
+  org: "alignedu",
+  project: "alignedu-final",
+  silent: !process.env.CI,
+  widenClientFileUpload: true,
+  tunnelRoute: "/monitoring",
+  webpack: {
+    automaticVercelMonitors: true,
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
+};
+
+module.exports = withSentryConfig(nextConfig, sentryOptions);

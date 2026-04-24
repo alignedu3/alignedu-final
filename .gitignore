@@ -27,3 +27,6 @@ test-results/
 # mac
 .DS_Store
 .env*.local
+
+# Sentry Config File
+.env.sentry-build-plugin
