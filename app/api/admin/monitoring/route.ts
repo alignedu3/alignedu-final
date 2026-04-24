@@ -1471,6 +1471,9 @@ function formatDurationMs(value: number | null) {
 function resolveUptimeCheckBaseUrls(request: NextRequest) {
   const forwardedProto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '');
   const forwardedHost = request.headers.get('x-forwarded-host');
+  const originHeader = request.headers.get('origin');
+  const refererHeader = request.headers.get('referer');
+  const refererOrigin = refererHeader ? safeExtractOrigin(refererHeader) : null;
   const configuredBaseUrls = [
     process.env.NEXT_PUBLIC_SITE_URL,
     process.env.NEXT_PUBLIC_APP_URL,
@@ -1478,6 +1481,8 @@ function resolveUptimeCheckBaseUrls(request: NextRequest) {
     process.env.APP_URL,
   ];
   const candidateBaseUrls = [
+    originHeader,
+    refererOrigin,
     forwardedHost ? `${forwardedProto}://${forwardedHost}` : null,
     ...configuredBaseUrls,
     request.nextUrl.origin,
@@ -1495,6 +1500,14 @@ function scoreUptimeCheckSet(checkSet: { baseUrl: string; checks: UptimeCheck[] 
   const vercelPenalty = checkSet.baseUrl.includes('.vercel.app') ? 0.25 : 0;
 
   return passingChecks - authFailures * 0.01 - vercelPenalty;
+}
+
+function safeExtractOrigin(value: string) {
+  try {
+    return new URL(value).origin;
+  } catch {
+    return null;
+  }
 }
 
 function normalizeMonitoringBaseUrl(baseUrl: string) {
