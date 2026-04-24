@@ -770,7 +770,6 @@ function getUptimeLatencyStatus(responseTimeMs: number | null): 'healthy' | 'war
 }
 
 async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
-  const checkBase = normalizeMonitoringBaseUrl(resolveUptimeCheckBaseUrl(request));
   const targets: UptimeCheckTarget[] = [
     { key: 'public-site', label: 'Public Site', path: '/' },
     { key: 'login-page', label: 'Login Page', path: '/login' },
@@ -783,7 +782,16 @@ async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
     { key: 'auth-api', label: 'Auth API', path: '/api/auth/me', acceptedStatuses: [200, 401] },
   ];
 
-  const checks = await Promise.all(targets.map((target) => runUptimeCheck(target, checkBase)));
+  const candidateBaseUrls = resolveUptimeCheckBaseUrls(request);
+  const checkSets = await Promise.all(
+    candidateBaseUrls.map(async (baseUrl) => ({
+      baseUrl,
+      checks: await Promise.all(targets.map((target) => runUptimeCheck(target, baseUrl))),
+    }))
+  );
+
+  const checks =
+    checkSets.sort((left, right) => scoreUptimeCheckSet(right) - scoreUptimeCheckSet(left))[0]?.checks || [];
 
   const passingChecks = checks.filter((check) => check.ok);
   const averageResponseMs = passingChecks.length
@@ -1460,12 +1468,33 @@ function formatDurationMs(value: number | null) {
   return `${roundTo(value / 1000, 2)} s`;
 }
 
-function resolveUptimeCheckBaseUrl(request: NextRequest) {
-  const deploymentBaseUrl =
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
-    request.nextUrl.origin;
+function resolveUptimeCheckBaseUrls(request: NextRequest) {
+  const forwardedProto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '');
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const configuredBaseUrls = [
+    process.env.NEXT_PUBLIC_SITE_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+    process.env.SITE_URL,
+    process.env.APP_URL,
+  ];
+  const candidateBaseUrls = [
+    forwardedHost ? `${forwardedProto}://${forwardedHost}` : null,
+    ...configuredBaseUrls,
+    request.nextUrl.origin,
+    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => normalizeMonitoringBaseUrl(value));
 
-  return deploymentBaseUrl;
+  return [...new Set(candidateBaseUrls)];
+}
+
+function scoreUptimeCheckSet(checkSet: { baseUrl: string; checks: UptimeCheck[] }) {
+  const passingChecks = checkSet.checks.filter((check) => check.ok).length;
+  const authFailures = checkSet.checks.filter((check) => check.statusCode === 401 || check.statusCode === 403).length;
+  const vercelPenalty = checkSet.baseUrl.includes('.vercel.app') ? 0.25 : 0;
+
+  return passingChecks - authFailures * 0.01 - vercelPenalty;
 }
 
 function normalizeMonitoringBaseUrl(baseUrl: string) {
