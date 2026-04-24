@@ -1101,9 +1101,9 @@ function buildMonitoringAlerts(args: {
     const cacheRatioCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'cache-hit-ratio');
     const cachedBandwidthCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'cached-bandwidth-ratio');
     const threatsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'threats-blocked');
-    const clientErrorsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'client-errors');
+    const unexpectedClientErrorsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'unexpected-client-errors');
     const serverErrorsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'server-errors');
-    const top4xxRoute = args.cloudflareTraffic.topErrorRoutes.find((route) => route.key === 'top-4xx-route');
+    const top4xxRoute = args.cloudflareTraffic.topErrorRoutes.find((route) => route.key === 'top-unexpected-4xx-route');
     const top5xxRoute = args.cloudflareTraffic.topErrorRoutes.find((route) => route.key === 'top-5xx-route');
     const requests = args.cloudflareTraffic.requestSeries.map((point) => point.requests || 0);
 
@@ -1127,15 +1127,12 @@ function buildMonitoringAlerts(args: {
       });
     }
 
-    const top4xxPath = top4xxRoute?.path || null;
-    const top4xxRouteIsExpected = isExpectedClientErrorRoute(top4xxPath);
-
-    if ((clientErrorsCard?.value || 0) >= 100 && (top4xxRoute?.requests || 0) >= 50 && !top4xxRouteIsExpected) {
+    if ((unexpectedClientErrorsCard?.value || 0) >= 100 && (top4xxRoute?.requests || 0) >= 50) {
       alerts.push({
         key: 'client-errors',
         severity: 'warning',
-        title: 'Client-side 4xx responses are elevated',
-        detail: `${clientErrorsCard?.displayValue || '0'} 4xx responses were reported in the selected window.`,
+        title: 'Unexpected 4xx responses are elevated',
+        detail: `${unexpectedClientErrorsCard?.displayValue || '0'} unexpected 4xx responses were reported in the selected window.`,
         source: 'Cloudflare',
       });
     }
@@ -1307,13 +1304,22 @@ function buildTrafficCards(): TrafficSummaryCard[] {
       detail: 'Waiting on Cloudflare security analytics.',
     },
     {
-      key: 'client-errors',
-      label: '4xx Responses',
+      key: 'expected-client-errors',
+      label: 'Expected 4xx',
       value: null,
       displayValue: '—',
       status: 'connect_required',
       statusLabel: 'Connect account',
-      detail: 'Waiting on Cloudflare client error analytics.',
+      detail: 'Waiting on Cloudflare expected client error analytics.',
+    },
+    {
+      key: 'unexpected-client-errors',
+      label: 'Unexpected 4xx',
+      value: null,
+      displayValue: '—',
+      status: 'connect_required',
+      statusLabel: 'Connect account',
+      detail: 'Waiting on Cloudflare unexpected client error analytics.',
     },
     {
       key: 'server-errors',
@@ -1690,7 +1696,7 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
             }
           }
           top4xxPaths: httpRequestsAdaptiveGroups(
-            limit: 3
+            limit: 20
             orderBy: [count_DESC]
             filter: { datetime_geq: "${latestDayKey}T00:00:00Z", datetime_lt: "${endDateKey}T00:00:00Z", requestSource: "eyeball", edgeResponseStatus_geq: 400, edgeResponseStatus_lt: 500 }
           ) {
@@ -1854,6 +1860,13 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   const cachedBandwidthRatio = totals.bytes > 0 ? roundTo((totals.cachedBytes / totals.bytes) * 100, 1) : 0;
   const clientErrorRate = totals.requests > 0 ? roundTo((totals.clientErrors / totals.requests) * 100, 1) : 0;
   const serverErrorRate = totals.requests > 0 ? roundTo((totals.serverErrors / totals.requests) * 100, 1) : 0;
+  const top4xxEntries = Array.isArray(zone.top4xxPaths) ? zone.top4xxPaths : [];
+  const expected4xxEntries = top4xxEntries.filter((entry: CloudflareRouteEntry) => isExpectedClientErrorRoute(formatRoutePath(entry)));
+  const unexpected4xxEntries = top4xxEntries.filter((entry: CloudflareRouteEntry) => !isExpectedClientErrorRoute(formatRoutePath(entry)));
+  const expectedClientErrors = expected4xxEntries.reduce((sum: number, entry: CloudflareRouteEntry) => sum + Number(entry?.count || 0), 0);
+  const unexpectedClientErrors = Math.max(totals.clientErrors - expectedClientErrors, 0);
+  const expectedClientErrorRate = totals.requests > 0 ? roundTo((expectedClientErrors / totals.requests) * 100, 1) : 0;
+  const unexpectedClientErrorRate = totals.requests > 0 ? roundTo((unexpectedClientErrors / totals.requests) * 100, 1) : 0;
   const requestSeries = windowKeys.map((key) => {
     const point = dailyByDate.get(key)!;
     const uncachedRequests = Math.max(point.requests - point.cachedRequests, 0);
@@ -1915,12 +1928,16 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
         : totals.threats > 0
           ? { status: 'healthy' as const, statusLabel: 'Blocked at Edge', detail: 'Cloudflare blocked a small number of threat requests in this window.' }
           : { status: 'healthy' as const, statusLabel: 'No Threats', detail: 'No blocked threats were reported in the selected window.' };
-  const clientErrorsStatus =
-    totals.clientErrors === 0
-      ? { status: 'healthy' as const, statusLabel: 'Clean', detail: 'No client-side 4xx responses were reported in the selected window.' }
-      : clientErrorRate >= 5
-        ? { status: 'warning' as const, statusLabel: 'High 4xx', detail: `Client-side 4xx responses are ${formatNumber(clientErrorRate)}% of requests in this window.` }
-        : { status: 'healthy' as const, statusLabel: 'Some 4xx', detail: `A small number of client-side 4xx responses were reported (${formatNumber(clientErrorRate)}% of requests).` };
+  const expectedClientErrorsStatus =
+    expectedClientErrors === 0
+      ? { status: 'healthy' as const, statusLabel: 'None', detail: 'No expected auth/protected 4xx responses were reported in the selected window.' }
+      : { status: 'healthy' as const, statusLabel: 'Expected', detail: `${formatNumber(expectedClientErrors)} auth/protected 4xx responses were reported (${formatNumber(expectedClientErrorRate)}% of requests).` };
+  const unexpectedClientErrorsStatus =
+    unexpectedClientErrors === 0
+      ? { status: 'healthy' as const, statusLabel: 'Clean', detail: 'No unexpected client-side 4xx responses were reported in the selected window.' }
+      : unexpectedClientErrorRate >= 5
+        ? { status: 'warning' as const, statusLabel: 'High 4xx', detail: `Unexpected client-side 4xx responses are ${formatNumber(unexpectedClientErrorRate)}% of requests in this window.` }
+        : { status: 'warning' as const, statusLabel: 'Some 4xx', detail: `A small number of unexpected 4xx responses were reported (${formatNumber(unexpectedClientErrorRate)}% of requests).` };
   const serverErrorsStatus =
     totals.serverErrors === 0
       ? { status: 'healthy' as const, statusLabel: 'No 5xx', detail: 'No server-side 5xx responses were reported in the selected window.' }
@@ -1941,23 +1958,36 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
       : cachedBandwidthRatio >= 30
         ? { status: 'healthy' as const, statusLabel: 'Moderate Cache', detail: 'A meaningful share of response bytes is being delivered from the edge cache.' }
         : { status: 'warning' as const, statusLabel: 'Low Edge Cache', detail: 'Only a limited share of response bytes is being served from Cloudflare cache.' };
-  const top4xxRoute = Array.isArray(zone.top4xxPaths) ? zone.top4xxPaths[0] : null;
+  const topExpected4xxRoute = expected4xxEntries[0] || null;
+  const topUnexpected4xxRoute = unexpected4xxEntries[0] || null;
   const top5xxRoute = Array.isArray(zone.top5xxPaths) ? zone.top5xxPaths[0] : null;
-  const top4xxRouteRequests = Number(top4xxRoute?.count || 0);
+  const topExpected4xxRouteRequests = Number(topExpected4xxRoute?.count || 0);
+  const topUnexpected4xxRouteRequests = Number(topUnexpected4xxRoute?.count || 0);
   const top5xxRouteRequests = Number(top5xxRoute?.count || 0);
   const topErrorRoutes = [
     {
-      key: 'top-4xx-route',
-      label: 'Top 4xx Route',
-      path: formatRoutePath(top4xxRoute),
-      requests: top4xxRouteRequests,
-      status: top4xxRouteRequests >= 3 ? ('warning' as const) : ('healthy' as const),
+      key: 'top-expected-4xx-route',
+      label: 'Top Expected 4xx Route',
+      path: formatRoutePath(topExpected4xxRoute),
+      requests: topExpected4xxRouteRequests,
+      status: 'healthy' as const,
       detail:
-        top4xxRouteRequests >= 3
-          ? `${formatNumber(top4xxRouteRequests)} 4xx responses were reported on this route in the latest day.`
-          : top4xxRouteRequests > 0
-            ? `${formatNumber(top4xxRouteRequests)} low-volume 4xx responses were reported on this route in the latest day.`
-          : 'No notable 4xx route was reported in the latest day.',
+        topExpected4xxRouteRequests > 0
+          ? `${formatNumber(topExpected4xxRouteRequests)} expected auth/protected 4xx responses were reported on this route in the latest day.`
+          : 'No notable expected 4xx route was reported in the latest day.',
+    },
+    {
+      key: 'top-unexpected-4xx-route',
+      label: 'Top Unexpected 4xx Route',
+      path: formatRoutePath(topUnexpected4xxRoute),
+      requests: topUnexpected4xxRouteRequests,
+      status: topUnexpected4xxRouteRequests >= 3 ? ('warning' as const) : ('healthy' as const),
+      detail:
+        topUnexpected4xxRouteRequests >= 3
+          ? `${formatNumber(topUnexpected4xxRouteRequests)} unexpected 4xx responses were reported on this route in the latest day.`
+          : topUnexpected4xxRouteRequests > 0
+            ? `${formatNumber(topUnexpected4xxRouteRequests)} low-volume unexpected 4xx responses were reported on this route in the latest day.`
+            : 'No notable unexpected 4xx route was reported in the latest day.',
     },
     {
       key: 'top-5xx-route',
@@ -2027,13 +2057,22 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
         detail: threatsStatus.detail,
       },
       {
-        key: 'client-errors',
-        label: '4xx Responses',
-        value: totals.clientErrors,
-        displayValue: formatNumber(totals.clientErrors),
-        status: clientErrorsStatus.status,
-        statusLabel: clientErrorsStatus.statusLabel,
-        detail: clientErrorsStatus.detail,
+        key: 'expected-client-errors',
+        label: 'Expected 4xx',
+        value: expectedClientErrors,
+        displayValue: formatNumber(expectedClientErrors),
+        status: expectedClientErrorsStatus.status,
+        statusLabel: expectedClientErrorsStatus.statusLabel,
+        detail: expectedClientErrorsStatus.detail,
+      },
+      {
+        key: 'unexpected-client-errors',
+        label: 'Unexpected 4xx',
+        value: unexpectedClientErrors,
+        displayValue: formatNumber(unexpectedClientErrors),
+        status: unexpectedClientErrorsStatus.status,
+        statusLabel: unexpectedClientErrorsStatus.statusLabel,
+        detail: unexpectedClientErrorsStatus.detail,
       },
       {
         key: 'server-errors',
