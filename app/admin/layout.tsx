@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { attachSentryUser } from '@/lib/monitoring/sentryUser';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function AdminLayout({
@@ -24,6 +25,8 @@ export default async function AdminLayout({
   if (profile?.role !== 'admin' && profile?.role !== 'super_admin') {
     redirect('/dashboard');
   }
+
+  attachSentryUser(user, profile?.role ?? null);
 
   return <div>{children}</div>;
 }

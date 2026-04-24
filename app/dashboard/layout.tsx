@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { attachSentryUser } from '@/lib/monitoring/sentryUser';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function DashboardLayout({
@@ -14,6 +15,8 @@ export default async function DashboardLayout({
   if (!user) {
     redirect('/login');
   }
+
+  attachSentryUser(user);
 
   return <div>{children}</div>;
 }
