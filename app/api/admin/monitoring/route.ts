@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const MONITORING_OWNER_EMAIL = 'ryan@alignedu.net';
+const DEFAULT_PUBLIC_SITE_URL = 'https://www.alignedu.net';
 
 type MonitoringReadiness = {
   key: string;
@@ -1475,6 +1476,12 @@ function resolveUptimeCheckBaseUrls(request: NextRequest) {
   const originHeader = request.headers.get('origin');
   const refererHeader = request.headers.get('referer');
   const refererOrigin = refererHeader ? safeExtractOrigin(refererHeader) : null;
+  const shouldPreferStablePublicSite = [
+    explicitMonitorOrigin,
+    originHeader,
+    refererOrigin,
+    request.nextUrl.origin,
+  ].some((value) => value?.includes('.vercel.app'));
   const configuredBaseUrls = [
     process.env.NEXT_PUBLIC_SITE_URL,
     process.env.NEXT_PUBLIC_APP_URL,
@@ -1482,6 +1489,7 @@ function resolveUptimeCheckBaseUrls(request: NextRequest) {
     process.env.APP_URL,
   ];
   const candidateBaseUrls = [
+    shouldPreferStablePublicSite ? DEFAULT_PUBLIC_SITE_URL : null,
     explicitMonitorOrigin,
     originHeader,
     refererOrigin,
