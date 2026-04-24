@@ -771,6 +771,7 @@ function getUptimeLatencyStatus(responseTimeMs: number | null): 'healthy' | 'war
 }
 
 async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
+  const checkBase = resolveUptimeCheckBaseUrl(request);
   const targets: UptimeCheckTarget[] = [
     { key: 'public-site', label: 'Public Site', path: '/' },
     { key: 'login-page', label: 'Login Page', path: '/login' },
@@ -783,16 +784,7 @@ async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
     { key: 'auth-api', label: 'Auth API', path: '/api/auth/me', acceptedStatuses: [200, 401] },
   ];
 
-  const candidateBaseUrls = resolveUptimeCheckBaseUrls(request);
-  const checkSets = await Promise.all(
-    candidateBaseUrls.map(async (baseUrl) => ({
-      baseUrl,
-      checks: await Promise.all(targets.map((target) => runUptimeCheck(target, baseUrl))),
-    }))
-  );
-
-  const checks =
-    checkSets.sort((left, right) => scoreUptimeCheckSet(right) - scoreUptimeCheckSet(left))[0]?.checks || [];
+  const checks = await Promise.all(targets.map((target) => runUptimeCheck(target, checkBase)));
 
   const passingChecks = checks.filter((check) => check.ok);
   const averageResponseMs = passingChecks.length
@@ -1469,55 +1461,23 @@ function formatDurationMs(value: number | null) {
   return `${roundTo(value / 1000, 2)} s`;
 }
 
-function resolveUptimeCheckBaseUrls(request: NextRequest) {
-  const explicitMonitorOrigin = request.headers.get('x-monitor-origin');
-  const forwardedProto = request.headers.get('x-forwarded-proto') || request.nextUrl.protocol.replace(':', '');
-  const forwardedHost = request.headers.get('x-forwarded-host');
-  const originHeader = request.headers.get('origin');
-  const refererHeader = request.headers.get('referer');
-  const refererOrigin = refererHeader ? safeExtractOrigin(refererHeader) : null;
-  const shouldPreferStablePublicSite = [
-    explicitMonitorOrigin,
-    originHeader,
-    refererOrigin,
-    request.nextUrl.origin,
-  ].some((value) => value?.includes('.vercel.app'));
-  const configuredBaseUrls = [
-    process.env.NEXT_PUBLIC_SITE_URL,
-    process.env.NEXT_PUBLIC_APP_URL,
-    process.env.SITE_URL,
-    process.env.APP_URL,
-  ];
-  const candidateBaseUrls = [
-    shouldPreferStablePublicSite ? DEFAULT_PUBLIC_SITE_URL : null,
-    explicitMonitorOrigin,
-    originHeader,
-    refererOrigin,
-    forwardedHost ? `${forwardedProto}://${forwardedHost}` : null,
-    ...configuredBaseUrls,
-    request.nextUrl.origin,
-    process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null,
-  ]
-    .filter((value): value is string => Boolean(value))
-    .map((value) => normalizeMonitoringBaseUrl(value));
+function resolveUptimeCheckBaseUrl(request: NextRequest) {
+  const requestHostname = request.nextUrl.hostname;
+  const isLocalRequest =
+    requestHostname === 'localhost' ||
+    requestHostname === '127.0.0.1' ||
+    requestHostname.endsWith('.local');
 
-  return [...new Set(candidateBaseUrls)];
-}
-
-function scoreUptimeCheckSet(checkSet: { baseUrl: string; checks: UptimeCheck[] }) {
-  const passingChecks = checkSet.checks.filter((check) => check.ok).length;
-  const authFailures = checkSet.checks.filter((check) => check.statusCode === 401 || check.statusCode === 403).length;
-  const vercelPenalty = checkSet.baseUrl.includes('.vercel.app') ? 0.25 : 0;
-
-  return passingChecks - authFailures * 0.01 - vercelPenalty;
-}
-
-function safeExtractOrigin(value: string) {
-  try {
-    return new URL(value).origin;
-  } catch {
-    return null;
+  if (isLocalRequest) {
+    return normalizeMonitoringBaseUrl(request.nextUrl.origin);
   }
+
+  const configuredPublicSite =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    DEFAULT_PUBLIC_SITE_URL;
+
+  return normalizeMonitoringBaseUrl(configuredPublicSite);
 }
 
 function normalizeMonitoringBaseUrl(baseUrl: string) {
