@@ -1859,7 +1859,6 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   const cacheHitRatio = totals.requests > 0 ? roundTo((totals.cachedRequests / totals.requests) * 100, 1) : 0;
   const totalBandwidthMb = roundTo(totals.bytes / (1024 * 1024), 1);
   const cachedBandwidthRatio = totals.bytes > 0 ? roundTo((totals.cachedBytes / totals.bytes) * 100, 1) : 0;
-  const clientErrorRate = totals.requests > 0 ? roundTo((totals.clientErrors / totals.requests) * 100, 1) : 0;
   const serverErrorRate = totals.requests > 0 ? roundTo((totals.serverErrors / totals.requests) * 100, 1) : 0;
   const top4xxEntries = Array.isArray(zone.top4xxPaths) ? zone.top4xxPaths : [];
   const expected4xxEntries = top4xxEntries.filter((entry: CloudflareRouteEntry) => isExpectedClientErrorRoute(formatRoutePath(entry)));
