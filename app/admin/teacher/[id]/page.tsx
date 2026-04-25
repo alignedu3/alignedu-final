@@ -16,6 +16,20 @@ import {
 import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
 import ProtectedPageState from '@/components/ProtectedPageState';
 
+const stableDateFormatter = new Intl.DateTimeFormat('en-US', {
+  month: 'numeric',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+function formatStableDate(value: string | null | undefined) {
+  if (!value) return 'No date';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'No date';
+  return stableDateFormatter.format(parsed);
+}
+
 export default function AdminTeacherPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
@@ -115,7 +129,7 @@ export default function AdminTeacherPage() {
 
   const latestLessonLabel = useMemo(() => {
     if (!activeReport) return 'No lesson selected';
-    const date = activeReport.created_at ? new Date(activeReport.created_at).toLocaleDateString() : 'No date';
+    const date = formatStableDate(activeReport.created_at);
     return `${activeReport.grade || 'Grade'} ${activeReport.subject || 'Lesson'} · ${date}`;
   }, [activeReport]);
 
@@ -303,7 +317,8 @@ export default function AdminTeacherPage() {
                   <div style={{ ...label, marginBottom: 8 }}>Previous Lesson Findings</div>
                   <div style={chipWrap}>
                     {previousReports.map((report, index) => {
-                      const chipLabel = `${report.grade || 'Grade'} ${report.subject || 'Lesson'}${report.created_at ? ` · ${new Date(report.created_at).toLocaleDateString()}` : ''}`;
+                      const lessonDate = formatStableDate(report.created_at);
+                      const chipLabel = `${report.grade || 'Grade'} ${report.subject || 'Lesson'}${lessonDate !== 'No date' ? ` · ${lessonDate}` : ''}`;
                       const isActive = activeReport.id === report.id;
                       return (
                         <button
@@ -335,7 +350,7 @@ export default function AdminTeacherPage() {
           ) : (
             <div style={historyGrid}>
               {reports.map((report, index) => {
-                const lessonDate = report.created_at ? new Date(report.created_at).toLocaleDateString() : 'No date';
+                const lessonDate = formatStableDate(report.created_at);
                 return (
                   <Link
                     key={report.id || index}
