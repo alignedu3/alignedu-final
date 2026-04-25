@@ -1923,9 +1923,9 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
         : { status: 'warning' as const, statusLabel: 'Low Cache', detail: 'Only a small share of requests is being served from Cloudflare cache.' };
   const threatsStatus =
     totals.threats >= 50
-      ? { status: 'critical' as const, statusLabel: 'Elevated Threats', detail: 'Cloudflare is blocking a high level of threat traffic in this window.' }
+      ? { status: 'critical' as const, statusLabel: 'Threats Blocked at Edge', detail: 'Cloudflare is blocking a high level of threat traffic in this window.' }
       : totals.threats >= 10
-        ? { status: 'warning' as const, statusLabel: 'Threats Rising', detail: 'Cloudflare is blocking repeated threat traffic in this window.' }
+        ? { status: 'warning' as const, statusLabel: 'Threats Blocked at Edge', detail: 'Cloudflare is blocking repeated threat traffic in this window.' }
         : totals.threats > 0
           ? { status: 'healthy' as const, statusLabel: 'Blocked at Edge', detail: 'Cloudflare blocked a small number of threat requests in this window.' }
           : { status: 'healthy' as const, statusLabel: 'No Threats', detail: 'No blocked threats were reported in the selected window.' };
