@@ -110,7 +110,7 @@ export default function AdminDashboard() {
   };
 
   const navigateToUserDashboard = (userId: string, role?: string | null, returnSection?: 'team' | 'performance') => {
-    if (userId.startsWith('sample-')) return;
+    if (userId.startsWith('sample-') && !canOpenSampleTeacher(userId)) return;
     const queryParts = [
       ...(returnSection ? [`from=${returnSection}`] : []),
       ...(selectedAdminId ? [`adminId=${selectedAdminId}`] : []),
