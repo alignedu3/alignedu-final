@@ -36,14 +36,23 @@ export default function AdminTeacherPage() {
   const id = params?.id;
   const returnSection = searchParams?.get('from');
   const returnAdminId = searchParams?.get('adminId');
-  const backHref = `/admin${returnAdminId ? `?adminId=${encodeURIComponent(returnAdminId)}` : ''}${returnSection === 'team' ? '#team' : returnSection === 'performance' ? '#performance' : ''}`;
+  const computedBackHref = `/admin${returnAdminId ? `?adminId=${encodeURIComponent(returnAdminId)}` : ''}${returnSection === 'team' ? '#team' : returnSection === 'performance' ? '#performance' : ''}`;
 
   const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [name, setName] = useState('');
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
-  const [chartReady] = useState(true);
+  const [chartReady, setChartReady] = useState(false);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState('');
+  const [backHref, setBackHref] = useState('/admin');
+
+  useEffect(() => {
+    setChartReady(true);
+  }, []);
+
+  useEffect(() => {
+    setBackHref(computedBackHref);
+  }, [computedBackHref]);
 
   useEffect(() => {
     async function load() {
