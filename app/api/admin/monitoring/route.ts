@@ -1118,12 +1118,18 @@ function buildMonitoringAlerts(args: {
       });
     }
 
-    if ((threatsCard?.value || 0) >= 10) {
+    const threatCount = threatsCard?.value || 0;
+    const hasCorrelatedEdgeStress =
+      (serverErrorsCard?.value || 0) >= 5 || (unexpectedClientErrorsCard?.value || 0) >= 100;
+
+    if (threatCount >= 250 || (threatCount >= 100 && hasCorrelatedEdgeStress)) {
       alerts.push({
         key: 'threats-blocked',
-        severity: (threatsCard?.value || 0) > 50 ? 'critical' : 'warning',
+        severity: threatCount >= 250 ? 'critical' : 'warning',
         title: 'Threat traffic detected',
-        detail: `${threatsCard?.displayValue || '0'} threats were blocked in the selected window.`,
+        detail: hasCorrelatedEdgeStress
+          ? `${threatsCard?.displayValue || '0'} threats were blocked in the selected window alongside elevated 4xx/5xx activity.`
+          : `${threatsCard?.displayValue || '0'} threats were blocked in the selected window.`,
         source: 'Cloudflare',
       });
     }
@@ -1148,20 +1154,14 @@ function buildMonitoringAlerts(args: {
       });
     }
 
-    if (requests.length >= 3) {
-      const latest = requests[requests.length - 1];
-      const prior = requests.slice(0, -1);
-      const priorAverage = prior.length ? prior.reduce((sum, value) => sum + value, 0) / prior.length : 0;
-
-      if (priorAverage >= 100 && latest < priorAverage * 0.4) {
-        alerts.push({
-          key: 'traffic-drop',
-          severity: 'warning',
-          title: 'Traffic dropped below recent baseline',
-          detail: `Latest request volume is materially below the recent average for this window.`,
-          source: 'Cloudflare',
-        });
-      }
+    if (hasMaterialTrafficDrop(requests)) {
+      alerts.push({
+        key: 'traffic-drop',
+        severity: 'warning',
+        title: 'Traffic dropped below recent baseline',
+        detail: 'Latest request volume is materially below the recent baseline for this window.',
+        source: 'Cloudflare',
+      });
     }
   }
 
@@ -1366,6 +1366,40 @@ function getTrendDirection(values: number[]) {
   return 'steady' as const;
 }
 
+function getMedian(values: number[]) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+
+  if (sorted.length % 2 === 0) {
+    return (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+
+  return sorted[middle];
+}
+
+function hasMaterialTrafficDrop(values: number[]) {
+  if (values.length < 5) {
+    return false;
+  }
+
+  const latest = values[values.length - 1] || 0;
+  const prior = values.slice(0, -1).filter((value) => value > 0);
+
+  if (prior.length < 4) {
+    return false;
+  }
+
+  const priorAverage = prior.reduce((sum, value) => sum + value, 0) / prior.length;
+  const priorMedian = getMedian(prior);
+
+  if (priorAverage < 150 || priorMedian < 150) {
+    return false;
+  }
+
+  return latest < priorAverage * 0.35 && latest < priorMedian * 0.3;
+}
+
 function buildEmptySentryCards(): SentryResult['summaryCards'] {
   return [
     {
@@ -1541,6 +1575,8 @@ function isExpectedClientErrorRoute(path: string | null) {
     return false;
   }
 
+  const normalized = path.toLowerCase();
+
   return [
     '/api/auth/me',
     '/dashboard',
@@ -1548,7 +1584,19 @@ function isExpectedClientErrorRoute(path: string | null) {
     '/login',
     '/favicon.ico',
     '/robots.txt',
-  ].some((knownPath) => path.includes(knownPath));
+    '/_environment',
+    '/.env',
+    '/wp-admin',
+    '/wp-login.php',
+    '/xmlrpc.php',
+    '/webroot/index.php',
+    '/vendor/phpunit',
+    '/cgi-bin',
+    '/server-status',
+    '/.git/',
+    '/actuator',
+    '/boaform',
+  ].some((knownPath) => normalized.includes(knownPath));
 }
 
 function normalizeMonitoringBaseUrl(baseUrl: string) {
@@ -1930,8 +1978,8 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
           : { status: 'healthy' as const, statusLabel: 'No Threats', detail: 'No blocked threats were reported in the selected window.' };
   const expectedClientErrorsStatus =
     expectedClientErrors === 0
-      ? { status: 'healthy' as const, statusLabel: 'None', detail: 'No expected auth/protected 4xx responses were reported in the selected window.' }
-      : { status: 'healthy' as const, statusLabel: 'Expected', detail: `${formatNumber(expectedClientErrors)} auth/protected 4xx responses were reported (${formatNumber(expectedClientErrorRate)}% of requests).` };
+      ? { status: 'healthy' as const, statusLabel: 'None', detail: 'No expected or scanner-driven 4xx responses were reported in the selected window.' }
+      : { status: 'healthy' as const, statusLabel: 'Expected', detail: `${formatNumber(expectedClientErrors)} expected or scanner-driven 4xx responses were reported (${formatNumber(expectedClientErrorRate)}% of requests).` };
   const unexpectedClientErrorsStatus =
     unexpectedClientErrors === 0
       ? { status: 'healthy' as const, statusLabel: 'Clean', detail: 'No unexpected client-side 4xx responses were reported in the selected window.' }
@@ -1967,14 +2015,14 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   const topErrorRoutes = [
     {
       key: 'top-expected-4xx-route',
-      label: 'Top Expected 4xx Route',
+      label: 'Top Expected/Noisy 4xx Route',
       path: formatRoutePath(topExpected4xxRoute),
       requests: topExpected4xxRouteRequests,
       status: 'healthy' as const,
       detail:
         topExpected4xxRouteRequests > 0
-          ? `${formatNumber(topExpected4xxRouteRequests)} expected auth/protected 4xx responses were reported on this route in the latest day.`
-          : 'No notable expected 4xx route was reported in the latest day.',
+          ? `${formatNumber(topExpected4xxRouteRequests)} expected or scanner-driven 4xx responses were reported on this route in the latest day.`
+          : 'No notable expected or scanner-driven 4xx route was reported in the latest day.',
     },
     {
       key: 'top-unexpected-4xx-route',
