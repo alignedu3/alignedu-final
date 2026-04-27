@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { NextRequest } from 'next/server'
+import { captureRouteException } from '@/lib/sentryRoute'
 
 export async function proxy(req: NextRequest) {
+  const path = req.nextUrl.pathname
+
+  // Only admin routes rely on proxy-based auth enforcement.
+  if (!path.startsWith('/admin')) {
+    return NextResponse.next({ request: req })
+  }
+
   let res = NextResponse.next({ request: req })
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -28,32 +36,37 @@ export async function proxy(req: NextRequest) {
     }
   )
 
-  const {
-    data: { user },
-    error: authError,
-  } = await supabase.auth.getUser()
+  try {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
 
-  if (authError) {
-    const message = authError.message.toLowerCase()
-    if (message.includes('invalid refresh token') || message.includes('refresh token not found')) {
-      req.cookies
-        .getAll()
-        .filter((cookie) => cookie.name.startsWith('sb-'))
-        .forEach((cookie) => {
-          res.cookies.set(cookie.name, '', { maxAge: 0, path: '/' })
+    if (authError) {
+      const message = authError.message.toLowerCase()
+      if (message.includes('invalid refresh token') || message.includes('refresh token not found')) {
+        req.cookies
+          .getAll()
+          .filter((cookie) => cookie.name.startsWith('sb-'))
+          .forEach((cookie) => {
+            res.cookies.set(cookie.name, '', { maxAge: 0, path: '/' })
+          })
+      } else {
+        captureRouteException(authError, {
+          route: 'proxy',
+          stage: 'get_user',
+          extra: {
+            path,
+          },
+          level: 'warning',
         })
+      }
     }
-  }
 
-  const path = req.nextUrl.pathname
+    if (!user) {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
 
-  // Block admin routes if not logged in
-  if (!user && path.startsWith('/admin')) {
-    return NextResponse.redirect(new URL('/login', req.url))
-  }
-
-  // Role check
-  if (user && path.startsWith('/admin')) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
@@ -63,13 +76,20 @@ export async function proxy(req: NextRequest) {
     if (!['admin', 'super_admin'].includes(profile?.role)) {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
+  } catch (error) {
+    captureRouteException(error, {
+      route: 'proxy',
+      stage: 'admin_guard',
+      extra: {
+        path,
+      },
+    })
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 
   return res
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/admin/:path*'],
 }
