@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { sendInviteEmail } from '@/lib/email';
-import { buildReusableInviteLink } from '@/lib/invite-link';
 
 function jsonResponse(body: Record<string, unknown>, status: number) {
   return new Response(JSON.stringify(body), {
@@ -14,10 +13,6 @@ function jsonResponse(body: Record<string, unknown>, status: number) {
 
 function getInviteErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : '';
-
-  if (message.includes('Invite signing secret is not configured')) {
-    return 'Invite links are not configured yet. Add INVITE_SIGNING_SECRET to the deployment and redeploy.';
-  }
 
   if (message.includes('RESEND_API_KEY')) {
     return 'Invite email delivery is not configured yet. Add RESEND_API_KEY to the deployment and redeploy.';
@@ -39,29 +34,37 @@ function isAcceptedUser(user: { email_confirmed_at?: string | null; confirmed_at
   return Boolean(user.email_confirmed_at || user.confirmed_at || user.last_sign_in_at);
 }
 
-function getSiteUrl(req: Request) {
-  const originHeader = req.headers.get('origin');
-  if (originHeader && /^https?:\/\//i.test(originHeader)) {
-    return originHeader.replace(/\/$/, '');
+type InviteLinkCapableClient = {
+  auth: {
+    admin: {
+      generateLink(input: {
+        type: 'invite';
+        email: string;
+      }): Promise<{
+        data: {
+          properties?: {
+            action_link?: string | null;
+          } | null;
+        } | null;
+        error: {
+          message?: string | null;
+        } | null;
+      }>;
+    };
+  };
+};
+
+async function generateSupabaseInviteLink(supabase: InviteLinkCapableClient, email: string) {
+  const { data: inviteData, error: inviteError } = await supabase.auth.admin.generateLink({
+    type: 'invite',
+    email,
+  });
+
+  if (inviteError || !inviteData?.properties?.action_link) {
+    throw new Error(inviteError?.message || 'Unable to generate invite link.');
   }
 
-  const refererHeader = req.headers.get('referer');
-  if (refererHeader) {
-    try {
-      return new URL(refererHeader).origin.replace(/\/$/, '');
-    } catch {
-      // Ignore malformed referer and continue to configured fallbacks.
-    }
-  }
-
-  const configured =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
-    'https://www.alignedu.net' ||
-    'http://localhost:3000';
-
-  return configured.replace(/\/$/, '');
+  return inviteData.properties.action_link;
 }
 
 export async function POST(req: Request) {
@@ -100,14 +103,8 @@ export async function POST(req: Request) {
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const safeRole = role === 'admin' ? 'admin' : 'teacher';
 
-    const sendInviteForExistingUser = async (existingUserId: string, existingRole: 'teacher' | 'admin', existingName: string) => {
-      const inviteLink = buildReusableInviteLink(getSiteUrl(req), {
-        userId: existingUserId,
-        email: normalizedEmail,
-        name: existingName,
-        role: existingRole,
-      });
-
+    const sendInviteForExistingUser = async (existingRole: 'teacher' | 'admin', existingName: string) => {
+      const inviteLink = await generateSupabaseInviteLink(supabase, normalizedEmail);
       const inviteEmail = await sendInviteEmail(normalizedEmail, existingName, existingRole, inviteLink);
       console.log('Invite email re-sent via Resend', {
         inviteEmailId: inviteEmail.id,
@@ -161,7 +158,7 @@ export async function POST(req: Request) {
       const existingName = String(existingProfile.name || normalizedName || normalizedEmail).trim();
 
       try {
-        const resentInvite = await sendInviteForExistingUser(existingProfile.id, existingRole, existingName);
+        const resentInvite = await sendInviteForExistingUser(existingRole, existingName);
         return jsonResponse({ success: true, inviteEmailId: resentInvite.id, resent: true }, 200);
       } catch (emailError) {
         console.error('Failed to re-send invite email via Resend:', emailError);
@@ -184,13 +181,6 @@ export async function POST(req: Request) {
       await supabase.from('profiles').delete().eq('id', newUserId);
       await supabase.auth.admin.deleteUser(newUserId);
     };
-
-    const inviteLink = buildReusableInviteLink(getSiteUrl(req), {
-      userId: newUserId,
-      email: normalizedEmail,
-      name: normalizedName,
-      role: safeRole,
-    });
 
     const { error: upsertError } = await supabase.from('profiles').upsert(
       { id: newUserId, name: normalizedName, email: normalizedEmail, role: safeRole },
@@ -263,6 +253,7 @@ export async function POST(req: Request) {
     }
 
     try {
+      const inviteLink = await generateSupabaseInviteLink(supabase, normalizedEmail);
       const inviteEmail = await sendInviteEmail(normalizedEmail, normalizedName, safeRole, inviteLink);
       console.log('Invite email queued via Resend', {
         inviteEmailId: inviteEmail.id,
