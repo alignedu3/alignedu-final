@@ -5,6 +5,34 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 
+const PASSWORD_MIN_LENGTH = 8;
+
+function getPasswordRequirementErrors(password: string) {
+  const errors: string[] = [];
+
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    errors.push(`at least ${PASSWORD_MIN_LENGTH} characters`);
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    errors.push('one uppercase letter');
+  }
+
+  if (!/[a-z]/.test(password)) {
+    errors.push('one lowercase letter');
+  }
+
+  if (!/[0-9]/.test(password)) {
+    errors.push('one number');
+  }
+
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    errors.push('one special character');
+  }
+
+  return errors;
+}
+
 export default function ResetPassword() {
   const router = useRouter();
   const [sessionReady, setSessionReady] = useState(false);
@@ -66,16 +94,36 @@ export default function ResetPassword() {
     return text.includes('invalid refresh token') || text.includes('refresh token not found');
   };
 
+  const getPasswordValidationMessage = () => {
+    const requirementErrors = getPasswordRequirementErrors(password);
+
+    if (requirementErrors.length > 0) {
+      return `Your password must include ${requirementErrors.join(', ')}.`;
+    }
+
+    if (password !== confirm) {
+      return 'Your confirmation password must exactly match your new password.';
+    }
+
+    return null;
+  };
+
+  const passwordRequirementErrors = getPasswordRequirementErrors(password);
+  const passwordChecklist = [
+    { label: `At least ${PASSWORD_MIN_LENGTH} characters`, met: password.length >= PASSWORD_MIN_LENGTH },
+    { label: 'One uppercase letter', met: /[A-Z]/.test(password) },
+    { label: 'One lowercase letter', met: /[a-z]/.test(password) },
+    { label: 'One number', met: /[0-9]/.test(password) },
+    { label: 'One special character', met: /[^A-Za-z0-9]/.test(password) },
+  ];
+
   const handleReset = async () => {
     setError('');
     setSuccess('');
 
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
-    if (password !== confirm) {
-      setError('Passwords do not match.');
+    const validationMessage = getPasswordValidationMessage();
+    if (validationMessage) {
+      setError(validationMessage);
       return;
     }
 
@@ -134,15 +182,66 @@ export default function ResetPassword() {
       <section style={card}>
         <h1 style={heading}>Set Your Password</h1>
         <p style={subheading}>Create a secure password for your account.</p>
+        <div style={requirementsCard}>
+          <div style={requirementsHeader}>
+            <p style={requirementsEyebrow}>Password requirements</p>
+            <p style={requirementsTitle}>Use a strong password that meets all five checks.</p>
+          </div>
+          <div style={checklistGrid}>
+            {passwordChecklist.map((item) => (
+              <div
+                key={item.label}
+                style={{
+                  ...checklistItem,
+                  borderColor: item.met ? 'rgba(34, 197, 94, 0.28)' : 'rgba(148, 163, 184, 0.18)',
+                  background: item.met ? 'rgba(34, 197, 94, 0.10)' : 'rgba(255, 255, 255, 0.02)',
+                }}
+              >
+                <span
+                  style={{
+                    ...checkIcon,
+                    background: item.met ? 'rgba(34, 197, 94, 0.18)' : 'rgba(148, 163, 184, 0.14)',
+                    color: item.met ? '#86efac' : 'var(--text-secondary)',
+                  }}
+                >
+                  {item.met ? '✓' : '•'}
+                </span>
+                <span
+                  style={{
+                    ...checklistLabel,
+                    color: item.met ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  }}
+                >
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p style={requirementsHint}>Your confirmation password must match exactly before you can continue.</p>
+        </div>
 
         <div style={formGroup}>
           <label style={labelStyle}>New Password</label>
           <input
             type="password"
-            placeholder="At least 8 characters"
+            placeholder="Use 8+ characters, upper/lowercase, a number, and a symbol"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={input}
+            style={{
+              ...input,
+              borderColor:
+                password.length === 0
+                  ? 'var(--border-strong)'
+                  : passwordRequirementErrors.length === 0
+                    ? 'rgba(34, 197, 94, 0.45)'
+                    : 'rgba(249, 115, 22, 0.38)',
+              boxShadow:
+                password.length === 0
+                  ? 'none'
+                  : passwordRequirementErrors.length === 0
+                    ? '0 0 0 4px rgba(34, 197, 94, 0.10)'
+                    : '0 0 0 4px rgba(249, 115, 22, 0.08)',
+            }}
           />
         </div>
 
@@ -183,6 +282,68 @@ const card: React.CSSProperties = {
 };
 const heading: React.CSSProperties = { fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 0 };
 const subheading: React.CSSProperties = { fontSize: '15px', color: 'var(--text-secondary)', margin: 0 };
+const requirementsCard: React.CSSProperties = {
+  background: 'linear-gradient(180deg, rgba(125, 211, 252, 0.10), rgba(15, 23, 42, 0.04))',
+  border: '1px solid rgba(125, 211, 252, 0.16)',
+  borderRadius: '18px',
+  padding: '16px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '12px',
+  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+};
+const requirementsHeader: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '4px',
+};
+const requirementsEyebrow: React.CSSProperties = {
+  margin: 0,
+  fontSize: '11px',
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  fontWeight: 800,
+  color: '#7dd3fc',
+};
+const requirementsTitle: React.CSSProperties = {
+  margin: 0,
+  fontSize: '14px',
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+};
+const checklistGrid: React.CSSProperties = {
+  display: 'grid',
+  gap: '8px',
+};
+const checklistItem: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '10px',
+  padding: '10px 12px',
+  borderRadius: '12px',
+  border: '1px solid transparent',
+};
+const checkIcon: React.CSSProperties = {
+  width: '22px',
+  height: '22px',
+  borderRadius: '999px',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  fontSize: '12px',
+  fontWeight: 800,
+  flexShrink: 0,
+};
+const checklistLabel: React.CSSProperties = {
+  fontSize: '13px',
+  lineHeight: 1.4,
+};
+const requirementsHint: React.CSSProperties = {
+  margin: 0,
+  fontSize: '12px',
+  color: 'var(--text-secondary)',
+  lineHeight: 1.5,
+};
 const formGroup: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '6px' };
 const labelStyle: React.CSSProperties = { color: 'var(--text-primary)', fontSize: '14px', fontWeight: 700 };
 const input: React.CSSProperties = {
