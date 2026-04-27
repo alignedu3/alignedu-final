@@ -30,6 +30,15 @@ function getInviteErrorMessage(error: unknown) {
   return 'Something went wrong while sending the invite.';
 }
 
+function isDuplicateUserError(message: string) {
+  const normalized = message.toLowerCase();
+  return normalized.includes('already been registered') || normalized.includes('already registered');
+}
+
+function isAcceptedUser(user: { email_confirmed_at?: string | null; confirmed_at?: string | null; last_sign_in_at?: string | null }) {
+  return Boolean(user.email_confirmed_at || user.confirmed_at || user.last_sign_in_at);
+}
+
 function getSiteUrl(req: Request) {
   const originHeader = req.headers.get('origin');
   if (originHeader && /^https?:\/\//i.test(originHeader)) {
@@ -91,11 +100,75 @@ export async function POST(req: Request) {
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const safeRole = role === 'admin' ? 'admin' : 'teacher';
 
+    const sendInviteForExistingUser = async (existingUserId: string, existingRole: 'teacher' | 'admin', existingName: string) => {
+      const inviteLink = buildReusableInviteLink(getSiteUrl(req), {
+        userId: existingUserId,
+        email: normalizedEmail,
+        name: existingName,
+        role: existingRole,
+      });
+
+      const inviteEmail = await sendInviteEmail(normalizedEmail, existingName, existingRole, inviteLink);
+      console.log('Invite email re-sent via Resend', {
+        inviteEmailId: inviteEmail.id,
+        to: normalizedEmail,
+        role: existingRole,
+      });
+
+      return inviteEmail;
+    };
+
     const { data: authData, error: createError } = await supabase.auth.admin.createUser({
       email: normalizedEmail,
       email_confirm: false,
       user_metadata: { name: normalizedName },
     });
+
+    if (createError && isDuplicateUserError(createError.message)) {
+      const { data: existingProfile, error: existingProfileError } = await supabase
+        .from('profiles')
+        .select('id, name, role')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      if (existingProfileError) {
+        console.error('Existing invite profile lookup error:', existingProfileError.message);
+        return jsonResponse({ error: 'This email is already registered, but the existing invite could not be looked up.' }, 500);
+      }
+
+      if (!existingProfile?.id) {
+        return jsonResponse(
+          { error: 'This email is already registered. Ask the user to log in or use password reset instead of sending a new invite.' },
+          409
+        );
+      }
+
+      const { data: existingUserResult, error: existingUserError } = await supabase.auth.admin.getUserById(existingProfile.id);
+
+      if (existingUserError || !existingUserResult.user) {
+        console.error('Existing invite auth lookup error:', existingUserError);
+        return jsonResponse({ error: 'This email is already registered, but the auth record could not be loaded.' }, 500);
+      }
+
+      if (isAcceptedUser(existingUserResult.user)) {
+        return jsonResponse(
+          { error: 'This user already has an active account. Ask them to log in or use password reset instead of re-inviting.' },
+          409
+        );
+      }
+
+      const existingRole = existingProfile.role === 'admin' ? 'admin' : 'teacher';
+      const existingName = String(existingProfile.name || normalizedName || normalizedEmail).trim();
+
+      try {
+        const resentInvite = await sendInviteForExistingUser(existingProfile.id, existingRole, existingName);
+        return jsonResponse({ success: true, inviteEmailId: resentInvite.id, resent: true }, 200);
+      } catch (emailError) {
+        console.error('Failed to re-send invite email via Resend:', emailError);
+        const detail = emailError instanceof Error ? emailError.message : 'Unknown email provider error';
+        return jsonResponse({ error: `Failed to send invite email: ${detail}` }, 500);
+      }
+    }
 
     if (createError || !authData.user) {
       return jsonResponse({ error: createError?.message || 'Failed to create user' }, 400);
