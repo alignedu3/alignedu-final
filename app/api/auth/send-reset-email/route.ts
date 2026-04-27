@@ -1,29 +1,37 @@
 import { sendPasswordResetEmail } from '@/lib/email';
-import { buildReusableRecoveryLink } from '@/lib/invite-link';
+import { createClient } from '@supabase/supabase-js';
 
-function getSiteUrl(req: Request) {
-  const originHeader = req.headers.get('origin');
-  if (originHeader && /^https?:\/\//i.test(originHeader)) {
-    return originHeader.replace(/\/$/, '');
+type RecoveryLinkCapableClient = {
+  auth: {
+    admin: {
+      generateLink(input: {
+        type: 'recovery';
+        email: string;
+      }): Promise<{
+        data: {
+          properties?: {
+            action_link?: string | null;
+          } | null;
+        } | null;
+        error: {
+          message?: string | null;
+        } | null;
+      }>;
+    };
+  };
+};
+
+async function generateSupabaseRecoveryLink(supabase: RecoveryLinkCapableClient, email: string) {
+  const { data, error } = await supabase.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+  });
+
+  if (error || !data?.properties?.action_link) {
+    throw new Error(error?.message || 'Unable to generate recovery link.');
   }
 
-  const refererHeader = req.headers.get('referer');
-  if (refererHeader) {
-    try {
-      return new URL(refererHeader).origin.replace(/\/$/, '');
-    } catch {
-      // Ignore malformed referer and continue to configured fallbacks.
-    }
-  }
-
-  const configured =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined) ||
-    'https://www.alignedu.net' ||
-    'http://localhost:3000';
-
-  return configured.replace(/\/$/, '');
+  return data.properties.action_link;
 }
 
 export async function POST(req: Request) {
@@ -35,7 +43,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const resetLink = buildReusableRecoveryLink(getSiteUrl(req), { email: normalizedEmail });
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const resetLink = await generateSupabaseRecoveryLink(supabase, normalizedEmail);
 
     // Send reset email via Resend
     try {
