@@ -43,9 +43,15 @@ export default function InvitePage() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
-      if (data.error) {
+      if (!res.ok) {
+        setError(
+          typeof data?.error === 'string'
+            ? data.error
+            : 'The invite request failed before the server returned details. Please try again.'
+        );
+      } else if (data?.error) {
         setError(data.error);
       } else {
         setSuccess(`Invite sent to ${email}!`);
