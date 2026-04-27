@@ -163,11 +163,44 @@ export async function POST(req: Request) {
         );
       }
 
-      const existingRole = existingProfile.role === 'admin' ? 'admin' : 'teacher';
-      const existingName = String(existingProfile.name || normalizedName || normalizedEmail).trim();
+      const existingName = String(normalizedName || existingProfile.name || normalizedEmail).trim();
 
       try {
-        const resentInvite = await sendInviteForExistingUser(existingRole, existingName);
+        const { error: profileUpdateError } = await supabase
+          .from('profiles')
+          .update({ role: safeRole, name: existingName, email: normalizedEmail })
+          .eq('id', existingProfile.id);
+
+        if (profileUpdateError) {
+          throw new Error(`Failed to update existing invited user profile: ${profileUpdateError.message}`);
+        }
+
+        await supabase.from('managed_teachers').delete().eq('teacher_id', existingProfile.id);
+        await supabase.from('managed_teachers').delete().eq('admin_id', existingProfile.id);
+        await supabase.from('managed_admins').delete().eq('child_admin_id', existingProfile.id);
+        await supabase.from('managed_admins').delete().eq('parent_admin_id', existingProfile.id);
+
+        if (safeRole === 'teacher') {
+          const { error: linkError } = await supabase.from('managed_teachers').insert({
+            admin_id: adminUser.id,
+            teacher_id: existingProfile.id,
+          });
+
+          if (linkError) {
+            throw new Error(`Failed to link the invited teacher to this admin: ${linkError.message}`);
+          }
+        } else {
+          const { error: linkError } = await supabase.from('managed_admins').insert({
+            parent_admin_id: adminUser.id,
+            child_admin_id: existingProfile.id,
+          });
+
+          if (linkError) {
+            throw new Error(`Failed to link the invited admin to this hierarchy: ${linkError.message}`);
+          }
+        }
+
+        const resentInvite = await sendInviteForExistingUser(safeRole, existingName);
         return jsonResponse({ success: true, inviteEmailId: resentInvite.id, resent: true }, 200);
       } catch (emailError) {
         console.error('Failed to re-send invite email via Resend:', emailError);
