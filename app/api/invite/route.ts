@@ -7,7 +7,6 @@ function jsonResponse(body: Record<string, unknown>, status: number) {
     status,
     headers: {
       'Content-Type': 'application/json',
-      'X-Invite-Route-Version': 'invite-route-version-2026-04-27-b',
     },
   });
 }
