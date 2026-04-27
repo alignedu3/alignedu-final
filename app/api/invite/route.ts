@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { sendInviteEmail } from '@/lib/email';
+import { createHash } from 'node:crypto';
 
 function jsonResponse(body: Record<string, unknown>, status: number) {
   return new Response(JSON.stringify(body), {
@@ -32,6 +33,14 @@ function isDuplicateUserError(message: string) {
 
 function isAcceptedUser(user: { email_confirmed_at?: string | null; confirmed_at?: string | null; last_sign_in_at?: string | null }) {
   return Boolean(user.email_confirmed_at || user.confirmed_at || user.last_sign_in_at);
+}
+
+function getMaskedEnvFingerprint(value: string | undefined) {
+  if (!value) {
+    return 'missing';
+  }
+
+  return createHash('sha256').update(value).digest('hex').slice(0, 10);
 }
 
 type InviteLinkCapableClient = {
@@ -163,7 +172,12 @@ export async function POST(req: Request) {
       } catch (emailError) {
         console.error('Failed to re-send invite email via Resend:', emailError);
         const detail = emailError instanceof Error ? emailError.message : 'Unknown email provider error';
-        return jsonResponse({ error: `Failed to send invite email: ${detail}` }, 500);
+        return jsonResponse(
+          {
+            error: `Failed to send invite email: ${detail} [resend_key_fp:${getMaskedEnvFingerprint(process.env.RESEND_API_KEY)}]`,
+          },
+          500
+        );
       }
     }
 
@@ -266,7 +280,12 @@ export async function POST(req: Request) {
       console.error('Failed to send invite email via Resend:', emailError);
       await rollbackInviteCreation();
       const detail = emailError instanceof Error ? emailError.message : 'Unknown email provider error';
-      return jsonResponse({ error: `Failed to send invite email: ${detail}` }, 500);
+      return jsonResponse(
+        {
+          error: `Failed to send invite email: ${detail} [resend_key_fp:${getMaskedEnvFingerprint(process.env.RESEND_API_KEY)}]`,
+        },
+        500
+      );
     }
   } catch (error) {
     console.error('Invite route error:', error);
