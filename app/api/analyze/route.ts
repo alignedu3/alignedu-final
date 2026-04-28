@@ -302,12 +302,12 @@ function calculateOverallScoreFromMetrics(metrics: {
   gaps_detected: number;
 }) {
   const weighted =
-    metrics.coverage_score * 0.35 +
-    metrics.clarity_rating * 0.30 +
-    metrics.engagement_level * 0.20 +
-    metrics.assessment_quality * 0.15;
+    metrics.coverage_score * 0.30 +
+    metrics.clarity_rating * 0.25 +
+    metrics.engagement_level * 0.25 +
+    metrics.assessment_quality * 0.20;
 
-  return Math.max(0, Math.min(100, Math.round(weighted - metrics.gaps_detected * 2)));
+  return Math.max(0, Math.min(100, Math.round(weighted - metrics.gaps_detected * 0.75)));
 }
 
 function shouldNormalizeReportedScore(metrics: {

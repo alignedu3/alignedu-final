@@ -470,12 +470,12 @@ function calculateLessonScoreFromMetrics(metrics: {
   gaps: number;
 }): number {
   const weighted =
-    metrics.coverage * 0.35 +
-    metrics.clarity * 0.30 +
-    metrics.engagement * 0.20 +
-    metrics.assessment * 0.15;
+    metrics.coverage * 0.30 +
+    metrics.clarity * 0.25 +
+    metrics.engagement * 0.25 +
+    metrics.assessment * 0.20;
 
-  const gapPenalty = metrics.gaps * 2;
+  const gapPenalty = metrics.gaps * 0.75;
   const finalScore = Math.max(0, Math.min(100, Math.round(weighted - gapPenalty)));
 
   return finalScore;
@@ -508,23 +508,27 @@ export function getLessonMetrics(report: AnalysisReport) {
       parsedMetrics.engagement !== null ||
       parsedMetrics.assessment !== null ||
       parsedMetrics.gaps !== null);
-  const fallbackScore =
-    parsedMetrics.score ??
-    calculateLessonScoreFromMetrics({
-      coverage: storedLooksLikeFallbackDefaults ? (parsedMetrics.coverage ?? storedCoverage) : storedCoverage,
-      clarity: storedLooksLikeFallbackDefaults ? (parsedMetrics.clarity ?? storedClarity) : storedClarity,
-      engagement: storedLooksLikeFallbackDefaults ? (parsedMetrics.engagement ?? storedEngagement) : storedEngagement,
-      assessment: storedLooksLikeFallbackDefaults ? (parsedMetrics.assessment ?? storedAssessment) : storedAssessment,
-      gaps: storedLooksLikeFallbackDefaults ? (parsedMetrics.gaps ?? storedGaps) : storedGaps,
-    });
+  const normalizedCoverage = storedLooksLikeFallbackDefaults ? (parsedMetrics.coverage ?? storedCoverage) : storedCoverage;
+  const normalizedClarity = storedLooksLikeFallbackDefaults ? (parsedMetrics.clarity ?? storedClarity) : storedClarity;
+  const normalizedEngagement = storedLooksLikeFallbackDefaults ? (parsedMetrics.engagement ?? storedEngagement) : storedEngagement;
+  const normalizedAssessment = storedLooksLikeFallbackDefaults ? (parsedMetrics.assessment ?? storedAssessment) : storedAssessment;
+  const normalizedGaps = storedLooksLikeFallbackDefaults ? (parsedMetrics.gaps ?? storedGaps) : storedGaps;
+
+  const fallbackScore = calculateLessonScoreFromMetrics({
+    coverage: normalizedCoverage,
+    clarity: normalizedClarity,
+    engagement: normalizedEngagement,
+    assessment: normalizedAssessment,
+    gaps: normalizedGaps,
+  });
 
   return {
-    score: toNumberMetric(report.score, fallbackScore),
-    coverage: storedLooksLikeFallbackDefaults ? (parsedMetrics.coverage ?? storedCoverage) : storedCoverage,
-    clarity: storedLooksLikeFallbackDefaults ? (parsedMetrics.clarity ?? storedClarity) : storedClarity,
-    engagement: storedLooksLikeFallbackDefaults ? (parsedMetrics.engagement ?? storedEngagement) : storedEngagement,
-    assessment: storedLooksLikeFallbackDefaults ? (parsedMetrics.assessment ?? storedAssessment) : storedAssessment,
-    gaps: storedLooksLikeFallbackDefaults ? (parsedMetrics.gaps ?? storedGaps) : storedGaps,
+    score: fallbackScore,
+    coverage: normalizedCoverage,
+    clarity: normalizedClarity,
+    engagement: normalizedEngagement,
+    assessment: normalizedAssessment,
+    gaps: normalizedGaps,
   };
 }
 
@@ -550,9 +554,12 @@ export function getLessonInsights(report: AnalysisReport) {
   const strengths: string[] = [];
   const improvements: string[] = [];
 
-  if (metrics.score >= 80) {
+  if (metrics.score >= 82) {
     findings.push('Overall lesson quality is strong with consistent instructional delivery.');
     strengths.push('The lesson shows solid overall instructional quality with evidence of coherent delivery.');
+  } else if (metrics.score >= 68) {
+    findings.push('Overall lesson quality is solid, with a few specific refinements needed to strengthen consistency.');
+    strengths.push('The lesson shows a workable instructional foundation with clear strengths to build on.');
   } else {
     findings.push('Overall lesson quality is below target and needs targeted refinement.');
     improvements.push('Raise the overall lesson quality by tightening instruction, checking for understanding, and reinforcing closure.');
@@ -607,7 +614,7 @@ export function getLessonInsights(report: AnalysisReport) {
   const summary =
     metrics.score >= 85
       ? 'High-performing lesson with clear evidence of strong instructional moves.'
-      : metrics.score >= 75
+      : metrics.score >= 68
         ? 'Solid lesson with room to sharpen execution and mastery checks.'
         : 'Lesson needs targeted support around clarity, closure, and reinforcement.';
 

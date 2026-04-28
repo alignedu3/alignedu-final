@@ -1388,6 +1388,11 @@ export default function AnalysisPage() {
                   <div style={metricSubtextStyle}>Student participation</div>
                 </div>
                 <div style={{ ...metricCardStyle, minHeight: isNarrowScreen ? 122 : metricCardStyle.minHeight, padding: isNarrowScreen ? '14px 12px' : metricCardStyle.padding }}>
+                  <div style={metricLabelStyle}>Assessment</div>
+                  <div style={metricValueStyle}>{resultMetrics.assessment ?? '—'}</div>
+                  <div style={metricSubtextStyle}>Checks for understanding</div>
+                </div>
+                <div style={{ ...metricCardStyle, minHeight: isNarrowScreen ? 122 : metricCardStyle.minHeight, padding: isNarrowScreen ? '14px 12px' : metricCardStyle.padding }}>
                   <div style={metricLabelStyle}>Gaps</div>
                   <div style={metricValueStyle}>{resultMetrics.gaps ?? '—'}</div>
                   <div style={metricSubtextStyle}>Priority issues to address</div>

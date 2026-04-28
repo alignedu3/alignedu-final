@@ -662,6 +662,10 @@ export default function TeacherDashboard() {
                     <div style={{ ...reportMetricLabel, textAlign: 'center' }}>Engagement</div>
                     <div style={{ ...reportMetricValue, textAlign: 'center' }}>{selectedLessonInsights.engagement}%</div>
                   </div>
+                  <div style={{ ...reportMetricCard, ...assessmentMetricCard, flexDirection: isNarrowScreen ? 'column' : reportMetricCard.flexDirection, justifyContent: isNarrowScreen ? 'center' : reportMetricCard.justifyContent, textAlign: 'center' }}>
+                    <div style={{ ...reportMetricLabel, textAlign: 'center' }}>Assessment</div>
+                    <div style={{ ...reportMetricValue, textAlign: 'center' }}>{selectedLessonInsights.assessment}%</div>
+                  </div>
                   <div style={{ ...reportMetricCard, ...gapsMetricCard, flexDirection: isNarrowScreen ? 'column' : reportMetricCard.flexDirection, justifyContent: isNarrowScreen ? 'center' : reportMetricCard.justifyContent, textAlign: 'center' }}>
                     <div style={{ ...reportMetricLabel, textAlign: 'center' }}>Gaps Flagged</div>
                     <div style={{ ...reportMetricValue, textAlign: 'center' }}>{selectedLessonInsights.gaps}</div>
@@ -1177,6 +1181,11 @@ const clarityMetricCard: React.CSSProperties = {
 const engagementMetricCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   borderColor: 'rgba(16,185,129,0.16)',
+};
+
+const assessmentMetricCard: React.CSSProperties = {
+  background: 'var(--surface-card-solid)',
+  borderColor: 'rgba(245,158,11,0.16)',
 };
 
 const gapsMetricCard: React.CSSProperties = {
