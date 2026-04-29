@@ -363,6 +363,7 @@ export default function AnalysisPage() {
           status: string;
           progressStep?: string | null;
           progressPercent?: number | null;
+          error?: string | null;
           result?: string | null;
           metrics?: Partial<AnalysisMetricsState>;
           analysisId?: string | null;
