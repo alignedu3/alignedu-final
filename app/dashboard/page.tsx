@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { buildTeacherDashboardSampleReports, getDashboardSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getRelatedPriorLessonGaps, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
+import { buildTeacherDashboardSampleReports, getDashboardSummary, getOpenGapSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getRelatedPriorLessonGaps, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
 import { extractSectionText, extractStandardEntries } from '@/lib/analysisReport';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
@@ -20,6 +20,7 @@ export default function TeacherDashboard() {
   const [loadError, setLoadError] = useState<string>('');
   const [pendingDeleteReport, setPendingDeleteReport] = useState<AnalysisReport | null>(null);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
+  const [showOpenGaps, setShowOpenGaps] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const selectedLessonRef = useRef<HTMLDivElement | null>(null);
 
@@ -105,6 +106,7 @@ export default function TeacherDashboard() {
 
   const trendData = useMemo(() => getTrendData(reports), [reports]);
   const summary = useMemo(() => getDashboardSummary(reports), [reports]);
+  const openGapSummary = useMemo(() => getOpenGapSummary(reports), [reports]);
 
   const overallScore = summary.averageScore;
   const getReportDisplayLabel = (report: AnalysisReport) =>
@@ -185,7 +187,7 @@ export default function TeacherDashboard() {
       return dedupedActions.slice(0, 3);
     }
 
-    return summary.totalGaps > 0
+    return openGapSummary.total > 0
       ? [
           'Reteach the top missed concept in your next lesson opener.',
           'Add a 2-minute exit check to confirm closure.',
@@ -195,7 +197,7 @@ export default function TeacherDashboard() {
           'Keep your current pacing and clarity moves consistent.',
           'Add one deeper check-for-understanding prompt in the final 10 minutes.',
         ];
-  }, [latestRelatedPriorGaps, latestReportSections, summary.totalGaps]);
+  }, [latestRelatedPriorGaps, latestReportSections, openGapSummary.total]);
 
   const activeKeyFindingsReport = useMemo(() => {
     if (!reports.length) return null;
@@ -395,10 +397,25 @@ export default function TeacherDashboard() {
                 <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
               </div>
 
-              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 88 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '14px 12px 12px' : analysisMetricCard.padding }}>
-                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 11 : analysisMetricLabel.fontSize }}>Total Gaps</div>
-                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{summary.totalGaps || 0}</div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowOpenGaps(true)}
+                style={{
+                  ...analysisMetricCard,
+                  ...openGapMetricButton,
+                  minHeight: isNarrowScreen ? 88 : analysisMetricCard.minHeight,
+                  padding: isNarrowScreen ? '14px 12px 12px' : analysisMetricCard.padding,
+                }}
+                title="Review unresolved gaps"
+              >
+                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 11 : analysisMetricLabel.fontSize }}>Open Gaps</div>
+                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{openGapSummary.total || 0}</div>
+                <div style={analysisMetricHint}>
+                  {openGapSummary.total > 0
+                    ? `Click to review ${openGapSummary.topicsWithOpenGaps} lesson topic${openGapSummary.topicsWithOpenGaps === 1 ? '' : 's'}`
+                    : 'Click to confirm all tracked gaps are covered'}
+                </div>
+              </button>
             </div>
           </div>
         </div>
@@ -903,6 +920,46 @@ export default function TeacherDashboard() {
             </div>
           </div>
         )}
+
+        {showOpenGaps && (
+          <div
+            style={modalOverlay}
+            onClick={() => setShowOpenGaps(false)}
+          >
+            <div
+              style={{ ...modalCard, maxWidth: 720, maxHeight: '80vh', overflowY: 'auto' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={modalTitle}>Open Gaps To Cover</div>
+              <p style={modalText}>
+                This list only shows the latest unresolved gaps by lesson topic. When a newer lesson on the same or similar topic no longer shows an older gap, it drops out of this count.
+              </p>
+              {openGapSummary.items.length > 0 ? (
+                <ul style={{ ...reportList, marginBottom: 16 }}>
+                  {openGapSummary.items.map((item, index) => (
+                    <li key={`${item.reportId}-${index}`} style={reportListItem}>
+                      <strong>{item.lessonLabel}</strong>
+                      {item.createdAt ? ` · ${new Date(item.createdAt).toLocaleDateString()}` : ''}: {item.gap}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ ...modalText, marginBottom: 16 }}>
+                  No open gaps are being tracked right now.
+                </p>
+              )}
+              <div style={modalActions}>
+                <button
+                  type="button"
+                  onClick={() => setShowOpenGaps(false)}
+                  style={modalCancelBtn}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   );
@@ -992,6 +1049,16 @@ const analysisMetricValue: React.CSSProperties = {
   lineHeight: 1,
   fontWeight: 800,
   letterSpacing: '-0.02em',
+};
+const analysisMetricHint: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 11,
+  lineHeight: 1.35,
+};
+const openGapMetricButton: React.CSSProperties = {
+  appearance: 'none',
+  width: '100%',
+  cursor: 'pointer',
 };
 const label: React.CSSProperties = { color: 'var(--text-secondary)' };
 

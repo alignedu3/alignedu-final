@@ -243,6 +243,19 @@ export type RelatedPriorLessonGapSummary = {
   items: RelatedPriorLessonGap[];
 };
 
+export type OpenGapItem = {
+  reportId: string;
+  lessonLabel: string;
+  createdAt?: string | null;
+  gap: string;
+};
+
+export type OpenGapSummary = {
+  total: number;
+  topicsWithOpenGaps: number;
+  items: OpenGapItem[];
+};
+
 export function isSTAARTestedLesson(report: AnalysisReport | LessonReport) {
   const reportGrade = normalizeGradeLabel(String(report.grade || ''));
   const reportSubject = normalizeSubjectLabel(String(report.subject || ''));
@@ -933,6 +946,51 @@ export function getDashboardSummary(reports: AnalysisReport[]) {
   };
 }
 
+function buildLessonLabel(report: AnalysisReport) {
+  return [report.grade || null, report.subject || 'Lesson', report.title || null]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+export function getOpenGapSummary(reports: AnalysisReport[]): OpenGapSummary {
+  const sortedReports = sortReportsNewestFirst(reports);
+  const latestReportByTopic: AnalysisReport[] = [];
+
+  sortedReports.forEach((report) => {
+    if (latestReportByTopic.some((existingReport) => areLessonsTopicRelated(existingReport, report))) {
+      return;
+    }
+
+    latestReportByTopic.push(report);
+  });
+
+  const items: OpenGapItem[] = [];
+
+  latestReportByTopic.forEach((report) => {
+    const sections = getLessonReportSections(report);
+    const seen = new Set<string>();
+
+    sections.contentGaps.forEach((gap) => {
+      const cleanedGap = cleanInsightText(gap);
+      const normalizedGap = normalizeInsightText(cleanedGap);
+      if (!normalizedGap || seen.has(normalizedGap)) return;
+      seen.add(normalizedGap);
+      items.push({
+        reportId: report.id,
+        lessonLabel: buildLessonLabel(report) || 'Lesson',
+        createdAt: report.created_at || report.date || null,
+        gap: cleanedGap,
+      });
+    });
+  });
+
+  return {
+    total: items.length,
+    topicsWithOpenGaps: new Set(items.map((item) => item.reportId)).size,
+    items,
+  };
+}
+
 export function getTeacherRankings(reports: LessonReport[]) {
   const byTeacher = new Map<string, LessonReport[]>();
 
@@ -999,9 +1057,7 @@ export function getRelatedPriorLessonGaps(
 
   relatedReports.forEach((report) => {
     const sections = getLessonReportSections(report);
-    const lessonLabel = [report.grade || null, report.subject || 'Lesson', report.title || null]
-      .filter(Boolean)
-      .join(' · ');
+    const lessonLabel = buildLessonLabel(report);
 
     sections.contentGaps.forEach((gap) => {
       const normalizedGap = normalizeInsightText(gap);
