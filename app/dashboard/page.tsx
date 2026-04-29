@@ -197,13 +197,53 @@ export default function TeacherDashboard() {
   );
 
   const nextActions = useMemo(() => {
+    const toActionStep = (item: string) => {
+      const cleaned = item.trim().replace(/\s+/g, ' ');
+      if (!cleaned) return '';
+
+      if (/^(add|use|plan|reteach|model|review|check|clarify|have|ask|revisit|anchor|include|tighten|connect|provide|incorporate|focus|build|end|start)\b/i.test(cleaned)) {
+        return cleaned.replace(/\.$/, '') + '.';
+      }
+
+      if (/could improve by /i.test(cleaned)) {
+        return cleaned.replace(/.*could improve by\s+/i, '').replace(/\.$/, '') + '.';
+      }
+
+      if (/needs clearer explanation|needs clearer|needs more explicit|needs stronger|needs additional|needs deeper|requires deeper|requires clearer/i.test(cleaned)) {
+        return `Clarify ${cleaned
+          .replace(/^(the|this)\s+/i, '')
+          .replace(/\bneeds\b.*$/i, '')
+          .replace(/\.$/, '')
+          .trim()} in the next lesson with direct modeling and a quick check for understanding.`;
+      }
+
+      if (/not adequately detailed|not thoroughly explained|not fully explained|not adequately addressed|underdeveloped|limited explanation|insufficient detail|lack of clarity/i.test(cleaned)) {
+        const focus = cleaned
+          .replace(/^(the|this)\s+/i, '')
+          .replace(/\b(were|was|is)\b.*$/i, '')
+          .replace(/\.$/, '')
+          .trim();
+        return `Revisit ${focus} and teach it more explicitly before moving to the next related concept.`;
+      }
+
+      if (/teacher should /i.test(cleaned)) {
+        return cleaned.replace(/.*teacher should /i, '').replace(/\.$/, '') + '.';
+      }
+
+      if (/focus on /i.test(cleaned)) {
+        return cleaned.replace(/.*focus on /i, 'Focus on ').replace(/\.$/, '') + '.';
+      }
+
+      return `Plan a short reteach or check-for-understanding move around ${cleaned.replace(/\.$/, '').toLowerCase()}.`;
+    };
+
     const lessonDrivenActions = [
       ...(latestRelatedPriorGaps?.items.map((item) => item.gap) || []),
       ...(latestReportSections?.improvements || []),
       ...(latestReportSections?.contentGaps.length ? [latestReportSections.contentGaps[0]] : []),
       latestReportSections?.recommendedNextStep || '',
     ]
-      .map((item) => item.trim())
+      .map((item) => toActionStep(item))
       .filter(Boolean);
 
     const dedupedActions = lessonDrivenActions.filter((item, index, all) => {
