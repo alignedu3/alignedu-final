@@ -826,7 +826,7 @@ export default function AnalysisPage() {
     for (let index = 0; index < chunkCount; index += 1) {
       const start = index * chunkSeconds;
       const currentChunkSeconds = Math.min(chunkSeconds, duration - start);
-      const segmentName = `segment-${index}.wav`;
+      const segmentName = `segment-${index}.mp3`;
 
       setProcessingStep(
         `Creating chunk ${index + 1} of ${chunkCount}...`
@@ -843,8 +843,10 @@ export default function AnalysisPage() {
         "16000",
         "-ac",
         "1",
+        "-b:a",
+        "64k",
         "-c:a",
-        "pcm_s16le",
+        "libmp3lame",
         segmentName,
       ]);
 
@@ -855,11 +857,11 @@ export default function AnalysisPage() {
           : new TextEncoder().encode(segmentData);
       const segmentBlob = new Blob([
         segmentBytes.buffer as ArrayBuffer,
-      ], { type: "audio/wav" });
+      ], { type: "audio/mpeg" });
 
       chunks.push(
         new File([segmentBlob], segmentName, {
-          type: "audio/wav",
+          type: "audio/mpeg",
         })
       );
       await ffmpeg.deleteFile(segmentName);
