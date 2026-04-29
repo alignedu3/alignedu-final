@@ -2,9 +2,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import dynamic from 'next/dynamic';
 import { useTheme } from './context/ThemeContext';
 import { getTEKSStandards, type TEKSStandard } from '@/lib/teksStandards';
+
+const HeroCoverageCharts = dynamic(() => import('@/components/HeroCoverageCharts'), {
+  ssr: false,
+  loading: () => (
+    <>
+      {heroPreviewSchoolGroups.map((schoolGroup) => (
+        <div key={schoolGroup.name} className="preview-school-card" style={previewSubjectCard}>
+          <div style={previewSubjectTitle}>{schoolGroup.name.replace(' ', '\n')}</div>
+          <div className="preview-coverage-wrap" style={previewCoverageChartWrap}>
+            <div style={previewChartSkeleton}>
+              {schoolGroup.subjects.map((item) => (
+                <div key={`${schoolGroup.name}-${item.subject}`} style={previewSkeletonBarWrap}>
+                  <div style={{ ...previewSkeletonBar, height: `${Math.max(item.value, 20)}%`, background: item.color }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
+    </>
+  ),
+});
 
 type TeksCoverageItem = {
   label: string;
@@ -12,10 +34,39 @@ type TeksCoverageItem = {
   subject: string;
 };
 
+const heroPreviewSchoolGroups = [
+  {
+    name: 'Elementary School',
+    subjects: [
+      { subject: 'Math', value: 92, color: '#0ea5e9' },
+      { subject: 'Science', value: 88, color: '#2563eb' },
+      { subject: 'Reading', value: 85, color: '#14b8a6' },
+    ],
+  },
+  {
+    name: 'Middle School',
+    subjects: [
+      { subject: 'RLA', value: 90, color: '#22c55e' },
+      { subject: 'Math', value: 86, color: '#38bdf8' },
+      { subject: 'Science', value: 84, color: '#6366f1' },
+      { subject: 'Social Studies', value: 81, color: '#f59e0b' },
+    ],
+  },
+  {
+    name: 'High School',
+    subjects: [
+      { subject: 'Algebra I', value: 79, color: '#0284c7' },
+      { subject: 'English I', value: 86, color: '#10b981' },
+      { subject: 'English II', value: 83, color: '#059669' },
+      { subject: 'Biology', value: 91, color: '#4f46e5' },
+      { subject: 'U.S. History', value: 88, color: '#d97706' },
+    ],
+  },
+];
+
 export default function HomePage() {
   const { theme: currentTheme } = useTheme();
   const [isDarkMode, setIsDarkMode] = useState(currentTheme === 'dark');
-  const [chartReady, setChartReady] = useState(false);
   const [selectedTeksItem, setSelectedTeksItem] = useState<TeksCoverageItem | null>(null);
   const router = useRouter();
   const teksSectionRef = useRef<HTMLElement | null>(null);
@@ -23,10 +74,6 @@ export default function HomePage() {
   useEffect(() => {
     setIsDarkMode(currentTheme === 'dark');
   }, [currentTheme]);
-
-  useEffect(() => {
-    setChartReady(true);
-  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -372,88 +419,7 @@ export default function HomePage() {
                       </div>
 
                       <div className="preview-subject-row" style={previewSubjectCardsRow}>
-                        {[
-                          {
-                            name: 'Elementary School',
-                            subjects: [
-                              { subject: 'Math', value: 92, color: '#0ea5e9' },
-                              { subject: 'Science', value: 88, color: '#2563eb' },
-                              { subject: 'Reading', value: 85, color: '#14b8a6' },
-                            ],
-                          },
-                          {
-                            name: 'Middle School',
-                            subjects: [
-                              { subject: 'RLA', value: 90, color: '#22c55e' },
-                              { subject: 'Math', value: 86, color: '#38bdf8' },
-                              { subject: 'Science', value: 84, color: '#6366f1' },
-                              { subject: 'Social Studies', value: 81, color: '#f59e0b' },
-                            ],
-                          },
-                          {
-                            name: 'High School',
-                            subjects: [
-                              { subject: 'Algebra I', value: 79, color: '#0284c7' },
-                              { subject: 'English I', value: 86, color: '#10b981' },
-                              { subject: 'English II', value: 83, color: '#059669' },
-                              { subject: 'Biology', value: 91, color: '#4f46e5' },
-                              { subject: 'U.S. History', value: 88, color: '#d97706' },
-                            ],
-                          },
-                        ].map((schoolGroup) => (
-                          <div key={schoolGroup.name} className="preview-school-card" style={previewSubjectCard}>
-                            <div style={previewSubjectTitle}>{schoolGroup.name.replace(' ', '\n')}</div>
-                            <div className="preview-coverage-wrap" style={previewCoverageChartWrap}>
-                              {chartReady ? (
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <BarChart
-                                    data={schoolGroup.subjects}
-                                    margin={{ top: 10, right: 2, left: -12, bottom: 0 }}
-                                    barCategoryGap="14%"
-                                  >
-                                    <CartesianGrid vertical={false} stroke="rgba(148,163,184,0.26)" strokeDasharray="3 5" />
-                                    <XAxis
-                                      dataKey="subject"
-                                      axisLine={false}
-                                      tickLine={false}
-                                      tick={false}
-                                      height={0}
-                                    />
-                                    <YAxis
-                                      type="number"
-                                      domain={[0, 100]}
-                                      ticks={[0, 25, 50, 75, 100]}
-                                      axisLine={false}
-                                      tickLine={false}
-                                      width={24}
-                                      tick={{ fontSize: 8, fill: '#94a3b8', fontWeight: 700 }}
-                                    />
-                                    <ReferenceLine
-                                      y={85}
-                                      stroke="#0284c7"
-                                      strokeDasharray="4 4"
-                                      ifOverflow="extendDomain"
-                                      label={{
-                                        value: 'Target 85%',
-                                        position: 'insideTopRight',
-                                        fill: '#0369a1',
-                                        fontSize: 8,
-                                        fontWeight: 700,
-                                      }}
-                                    />
-                                    <Bar dataKey="value" radius={[10, 10, 3, 3]} maxBarSize={14} minPointSize={3}>
-                                      {schoolGroup.subjects.map((item) => (
-                                        <Cell key={`${schoolGroup.name}-${item.subject}`} fill={item.color} fillOpacity={0.95} />
-                                      ))}
-                                    </Bar>
-                                  </BarChart>
-                                </ResponsiveContainer>
-                              ) : (
-                                <div style={{ width: '100%', height: '100%' }} />
-                              )}
-                            </div>
-                          </div>
-                        ))}
+                        <HeroCoverageCharts schoolGroups={heroPreviewSchoolGroups} />
                       </div>
                     </div>
 
@@ -1732,6 +1698,29 @@ const previewCoverageChartWrap: React.CSSProperties = {
   height: '136px',
   minWidth: 0,
   minHeight: 136,
+};
+
+const previewChartSkeleton: React.CSSProperties = {
+  height: '100%',
+  display: 'flex',
+  alignItems: 'flex-end',
+  justifyContent: 'space-evenly',
+  gap: '8px',
+  padding: '8px 6px 2px',
+};
+
+const previewSkeletonBarWrap: React.CSSProperties = {
+  flex: 1,
+  display: 'flex',
+  alignItems: 'flex-end',
+  justifyContent: 'center',
+  height: '100%',
+};
+
+const previewSkeletonBar: React.CSSProperties = {
+  width: '14px',
+  borderRadius: '10px 10px 3px 3px',
+  opacity: 0.85,
 };
 
 const previewSubjectCardsRow: React.CSSProperties = {
