@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   cleanDisplayText,
@@ -32,6 +32,31 @@ const emptyAnalysisMetrics: AnalysisMetricsState = {
   assessment: null,
   gaps: null,
 };
+
+const ACTIVE_ANALYSIS_JOB_KEY = "active-analysis-job-id";
+
+function formatDurationLabel(totalSeconds: number | null) {
+  if (!totalSeconds || totalSeconds <= 0) return "Less than a minute";
+  const rounded = Math.max(0, Math.round(totalSeconds));
+  const minutes = Math.floor(rounded / 60);
+  const seconds = rounded % 60;
+
+  if (minutes <= 0) return `${seconds}s`;
+  if (seconds === 0) return `${minutes}m`;
+  return `${minutes}m ${seconds}s`;
+}
+
+function estimateAnalysisProcessingSeconds(audioSeconds: number | null, chunkCount: number) {
+  if (!audioSeconds || audioSeconds <= 0) {
+    return 90;
+  }
+
+  const splittingSeconds = audioSeconds > 60 ? Math.min(150, Math.max(12, chunkCount * 1.8)) : 0;
+  const uploadAndTranscriptionSeconds = Math.max(40, chunkCount * 5.5);
+  const reportSeconds = Math.min(150, Math.max(45, audioSeconds / 50));
+
+  return Math.round(splittingSeconds + uploadAndTranscriptionSeconds + reportSeconds);
+}
 
 export default function AnalysisPage() {
     const [isNarrowScreen, setIsNarrowScreen] = useState(false);
@@ -219,6 +244,11 @@ export default function AnalysisPage() {
 
   const [loading, setLoading] = useState(false);
   const [processingStep, setProcessingStep] = useState("");
+  const [analysisStartedAt, setAnalysisStartedAt] = useState<number | null>(null);
+  const [elapsedAnalysisSeconds, setElapsedAnalysisSeconds] = useState(0);
+  const [estimatedProcessingSeconds, setEstimatedProcessingSeconds] = useState<number | null>(null);
+  const [estimatedChunkCount, setEstimatedChunkCount] = useState<number | null>(null);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [result, setResult] = useState("");
   const [analysisMetrics, setAnalysisMetrics] = useState<AnalysisMetricsState>(emptyAnalysisMetrics);
   const [error, setError] = useState("");
@@ -300,6 +330,143 @@ export default function AnalysisPage() {
     window.addEventListener('resize', updateScreen);
     return () => window.removeEventListener('resize', updateScreen);
   }, []);
+
+  const applyCompletedJob = (job: {
+    result?: string | null;
+    metrics?: Partial<AnalysisMetricsState>;
+  }) => {
+    const returnedResult = job.result || "No result returned";
+    const returnedMetrics = parseAnalysisMetrics(returnedResult);
+    setResult(returnedResult);
+    setAnalysisMetrics({
+      score: typeof job.metrics?.score === "number" ? job.metrics.score : returnedMetrics.score,
+      coverage: typeof job.metrics?.coverage === "number" ? job.metrics.coverage : returnedMetrics.coverage,
+      clarity: typeof job.metrics?.clarity === "number" ? job.metrics.clarity : returnedMetrics.clarity,
+      engagement: typeof job.metrics?.engagement === "number" ? job.metrics.engagement : returnedMetrics.engagement,
+      assessment: typeof job.metrics?.assessment === "number" ? job.metrics.assessment : returnedMetrics.assessment,
+      gaps: typeof job.metrics?.gaps === "number" ? job.metrics.gaps : returnedMetrics.gaps,
+    });
+  };
+
+  const pollAnalysisJobUntilComplete = useCallback(async (jobId: string) => {
+    setActiveJobId(jobId);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(ACTIVE_ANALYSIS_JOB_KEY, jobId);
+    }
+
+    while (true) {
+      const { response, data } = await fetchJsonWithTimeout<{
+        success: boolean;
+        error?: string;
+        job?: {
+          id: string;
+          status: string;
+          progressStep?: string | null;
+          progressPercent?: number | null;
+          result?: string | null;
+          metrics?: Partial<AnalysisMetricsState>;
+          analysisId?: string | null;
+        };
+      }>(`/api/analyze/jobs/${jobId}`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (!response.ok || !data?.success || !data.job) {
+        throw new Error(data?.error || "Unable to load analysis status.");
+      }
+
+      if (data.job.progressStep) {
+        setProcessingStep(data.job.progressStep);
+      }
+
+      if (typeof data.job.progressPercent === "number" && estimatedProcessingSeconds) {
+        const normalizedPercent = Math.max(1, Math.min(99, data.job.progressPercent));
+        setElapsedAnalysisSeconds(Math.round((normalizedPercent / 100) * estimatedProcessingSeconds));
+      }
+
+      if (data.job.status === "completed") {
+        applyCompletedJob(data.job);
+        setSaveNotice(
+          isAdminObservationMode
+            ? "Observation saved. Review the report below and return to the admin dashboard when you are ready."
+            : "Analysis saved. Review the report below and return to your dashboard when you are ready."
+        );
+        setActiveJobId(null);
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(ACTIVE_ANALYSIS_JOB_KEY);
+        }
+        return;
+      }
+
+      if (data.job.status === "failed") {
+        setActiveJobId(null);
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(ACTIVE_ANALYSIS_JOB_KEY);
+        }
+        throw new Error(data?.error || data.job.error || "Analysis failed.");
+      }
+
+      await new Promise((resolve) => window.setTimeout(resolve, 3000));
+    }
+  }, [estimatedProcessingSeconds, isAdminObservationMode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || result) return;
+    const savedJobId = window.localStorage.getItem(ACTIVE_ANALYSIS_JOB_KEY);
+    if (!savedJobId) return;
+
+    let cancelled = false;
+
+    const resumeJob = async () => {
+      try {
+        setLoading(true);
+        setActiveJobId(savedJobId);
+        setProcessingStep("Reconnecting to your saved analysis...");
+        await pollAnalysisJobUntilComplete(savedJobId);
+      } catch (resumeError) {
+        if (cancelled) return;
+        setError(resumeError instanceof Error ? resumeError.message : "Unable to resume analysis status.");
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+          setAnalysisStartedAt(null);
+          setElapsedAnalysisSeconds(0);
+        }
+      }
+    };
+
+    void resumeJob();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [result, isAdminObservationMode, pollAnalysisJobUntilComplete]);
+
+  useEffect(() => {
+    if (!loading || !analysisStartedAt) {
+      setElapsedAnalysisSeconds(0);
+      return;
+    }
+
+    setElapsedAnalysisSeconds(Math.max(0, Math.round((Date.now() - analysisStartedAt) / 1000)));
+    const timer = window.setInterval(() => {
+      setElapsedAnalysisSeconds(Math.max(0, Math.round((Date.now() - analysisStartedAt) / 1000)));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [analysisStartedAt, loading]);
+
+  const analysisProgress = useMemo(() => {
+    if (!loading || !estimatedProcessingSeconds) return null;
+    const percent = Math.min(96, Math.max(8, Math.round((elapsedAnalysisSeconds / estimatedProcessingSeconds) * 100)));
+    const remainingSeconds = Math.max(0, estimatedProcessingSeconds - elapsedAnalysisSeconds);
+
+    return {
+      percent,
+      remainingSeconds,
+    };
+  }, [elapsedAnalysisSeconds, estimatedProcessingSeconds, loading]);
 
   const filePreviewCardStyle: React.CSSProperties = {
     background: 'var(--bg-secondary)',
@@ -544,6 +711,51 @@ export default function AnalysisPage() {
     color: 'var(--text-primary)',
     fontSize: 14,
     marginTop: 16,
+  };
+
+  const processingCardStyle: React.CSSProperties = {
+    marginTop: 18,
+    borderRadius: 18,
+    border: '1px solid rgba(14,165,233,0.22)',
+    background: 'linear-gradient(180deg, rgba(14,165,233,0.12), rgba(15,23,42,0.06))',
+    padding: 18,
+    display: 'grid',
+    gap: 12,
+    boxShadow: 'var(--shadow-soft)',
+  };
+
+  const processingMetaRowStyle: React.CSSProperties = {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: 10,
+    alignItems: 'center',
+  };
+
+  const processingChipStyle: React.CSSProperties = {
+    padding: '7px 10px',
+    borderRadius: 999,
+    background: 'rgba(15,23,42,0.12)',
+    border: '1px solid rgba(148,163,184,0.18)',
+    color: 'var(--text-secondary)',
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase',
+  };
+
+  const progressTrackStyle: React.CSSProperties = {
+    width: '100%',
+    height: 10,
+    borderRadius: 999,
+    background: 'rgba(148,163,184,0.2)',
+    overflow: 'hidden',
+  };
+
+  const progressFillStyle: React.CSSProperties = {
+    height: '100%',
+    borderRadius: 999,
+    background: 'linear-gradient(90deg, #0ea5e9 0%, #22c55e 100%)',
+    transition: 'width 0.6s ease',
   };
 
   const recorderCardStyle: React.CSSProperties = {
@@ -890,6 +1102,7 @@ export default function AnalysisPage() {
       }
 
       setLoading(true);
+      setAnalysisStartedAt(Date.now());
       setError("");
       setResult("");
       setAnalysisMetrics(emptyAnalysisMetrics);
@@ -910,6 +1123,7 @@ export default function AnalysisPage() {
 
       const transcriptText = lessonNotes.trim();
       let audioChunksForAnalysis: File[] = [];
+      let nextEstimatedChunkCount = 1;
 
       if (audioFile) {
         if (!resolvedDuration || resolvedDuration <= 60) {
@@ -918,7 +1132,16 @@ export default function AnalysisPage() {
           setProcessingStep("Splitting audio into chunks...");
           audioChunksForAnalysis = await splitAudioIntoChunks(audioFile, resolvedDuration);
         }
+        nextEstimatedChunkCount = audioChunksForAnalysis.length || 1;
       }
+
+      setEstimatedChunkCount(audioFile ? nextEstimatedChunkCount : null);
+      setEstimatedProcessingSeconds(
+        estimateAnalysisProcessingSeconds(
+          resolvedDuration ?? audioDuration ?? null,
+          audioFile ? nextEstimatedChunkCount : 1
+        )
+      );
 
       if (!transcriptText && audioChunksForAnalysis.length === 0) {
         setError("Please provide lesson notes or upload an audio file for transcription.");
@@ -967,30 +1190,12 @@ export default function AnalysisPage() {
         return;
       }
 
-      setProcessingStep("Finalizing results...");
-      const returnedResult = data?.result || "No result returned";
-      const returnedMetrics = parseAnalysisMetrics(returnedResult);
-      setResult(returnedResult);
-      setAnalysisMetrics({
-        score:
-          typeof data?.metrics?.score === 'number'
-            ? data.metrics.score
-            : typeof data?.score === 'number'
-              ? data.score
-              : returnedMetrics.score,
-        coverage: typeof data?.metrics?.coverage === 'number' ? data.metrics.coverage : returnedMetrics.coverage,
-        clarity: typeof data?.metrics?.clarity === 'number' ? data.metrics.clarity : returnedMetrics.clarity,
-        engagement: typeof data?.metrics?.engagement === 'number' ? data.metrics.engagement : returnedMetrics.engagement,
-        assessment: typeof data?.metrics?.assessment === 'number' ? data.metrics.assessment : returnedMetrics.assessment,
-        gaps: typeof data?.metrics?.gaps === 'number' ? data.metrics.gaps : returnedMetrics.gaps,
-      });
-      if (data?.saved) {
-        setSaveNotice(
-          isAdminObservationMode
-            ? "Observation saved. Review the report below and return to the admin dashboard when you are ready."
-            : "Analysis saved. Review the report below and return to your dashboard when you are ready."
-        );
+      if (!data?.jobId) {
+        throw new Error("Analysis job was created without an id.");
       }
+
+      setProcessingStep(data?.progressStep || "Queued for analysis...");
+      await pollAnalysisJobUntilComplete(String(data.jobId));
 
     } catch (err: unknown) {
       console.error(err);
@@ -998,6 +1203,8 @@ export default function AnalysisPage() {
     } finally {
       setLoading(false);
       setProcessingStep("");
+      setAnalysisStartedAt(null);
+      setElapsedAnalysisSeconds(0);
     }
   };
 
@@ -1264,6 +1471,39 @@ export default function AnalysisPage() {
                   {loading ? processingStep || "Analyzing..." : "Analyze Lesson"}
                 </button>
               </div>
+
+              {loading && (
+                <div style={processingCardStyle}>
+                  <div style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 800 }}>
+                    {processingStep || "Analyzing your lesson..."}
+                  </div>
+                  <div style={progressTrackStyle}>
+                    <div
+                      style={{
+                        ...progressFillStyle,
+                        width: `${analysisProgress?.percent ?? 12}%`,
+                      }}
+                    />
+                  </div>
+                  <div style={processingMetaRowStyle}>
+                    <div style={processingChipStyle}>Elapsed {formatDurationLabel(elapsedAnalysisSeconds)}</div>
+                    {analysisProgress && (
+                      <div style={processingChipStyle}>Est. left {formatDurationLabel(analysisProgress.remainingSeconds)}</div>
+                    )}
+                    {estimatedChunkCount && estimatedChunkCount > 1 && (
+                      <div style={processingChipStyle}>{estimatedChunkCount} chunks</div>
+                    )}
+                  </div>
+                  <div style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
+                    Long recordings can take several minutes. We’ll keep working while this tab stays open.
+                  </div>
+                  {activeJobId && (
+                    <div style={{ color: 'var(--text-secondary)', fontSize: 12, opacity: 0.78 }}>
+                      Saved job: {activeJobId.slice(0, 8)}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {error && <div className="analysis-error">{error}</div>}
             </section>

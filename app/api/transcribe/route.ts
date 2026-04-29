@@ -20,6 +20,8 @@ function createOpenAIClient() {
   return new OpenAI({ apiKey: getOpenAIKey() });
 }
 
+const TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
+
 function safeJson<T>(data: T, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -123,7 +125,7 @@ export async function POST(req: Request) {
 
     const transcription: TranscriptionVerbose = await openai.audio.transcriptions.create({
       file,
-      model: "whisper-1",
+      model: TRANSCRIPTION_MODEL,
       response_format: "verbose_json",
     });
 

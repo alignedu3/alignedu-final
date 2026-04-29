@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
-import type { TranscriptionVerbose } from "openai/resources/audio/transcriptions";
+import { after } from "next/server";
 import { formatTEKSForPrompt, getPrimaryTEKSStandards, getRelatedTEKSStandards, getTEKSStandards } from "@/lib/teksStandards";
 import { STAAR_SUBJECTS } from "@/lib/staarSubjects";
 import { getAdminVisibility } from "@/lib/adminVisibility";
@@ -177,9 +177,55 @@ function createOpenAIClient() {
   return new OpenAI({ apiKey: getOpenAIKey() });
 }
 
+const TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
+const TRANSCRIPTION_CONCURRENCY = 4;
+
+type WorkflowProgress = {
+  percent: number;
+  step: string;
+};
+
+type AnalysisWorkflowInput = {
+  targetUserId: string;
+  observedTeacherId: string;
+  observedTeacherName: string;
+  callerProfileName: string;
+  grade: string;
+  subject: string;
+  book: string;
+  chapter: string;
+  lectureText: string;
+  waitTimeEvidence: string;
+  audioDuration?: number;
+  files: File[];
+  onProgress?: (progress: WorkflowProgress) => Promise<void> | void;
+};
+
+type AnalysisWorkflowOutput = {
+  result: string;
+  transcript: string;
+  score: number;
+  metrics: {
+    score: number;
+    coverage: number;
+    clarity: number;
+    engagement: number;
+    assessment: number;
+    gaps: number;
+  };
+  analysisId: string | null;
+  saved: boolean;
+};
+
 type ChatMessage = {
   role: "system" | "user" | "assistant";
   content: string;
+};
+
+type TranscriptionProgress = {
+  completed: number;
+  index: number;
+  total: number;
 };
 
 function safeJson<T>(data: T, status = 200) {
@@ -227,6 +273,61 @@ async function callOpenAISectionRepair(openai: OpenAI, prompt: string) {
     ],
     temperature: 0.35,
   });
+}
+
+async function transcribeAudioFiles(
+  openai: OpenAI,
+  files: File[],
+  onChunkComplete?: (progress: TranscriptionProgress) => Promise<void> | void
+) {
+  if (files.length === 0) {
+    return [];
+  }
+
+  const transcripts = new Array<string>(files.length).fill("");
+  let nextIndex = 0;
+  let completed = 0;
+  const workerCount = Math.min(TRANSCRIPTION_CONCURRENCY, files.length);
+
+  const worker = async () => {
+    while (true) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+
+      if (currentIndex >= files.length) {
+        return;
+      }
+
+      const transcription = await openai.audio.transcriptions.create({
+        file: files[currentIndex],
+        model: TRANSCRIPTION_MODEL,
+        response_format: "verbose_json",
+      });
+
+      transcripts[currentIndex] = String(transcription.text || "").trim();
+      completed += 1;
+
+      if (onChunkComplete) {
+        await onChunkComplete({
+          completed,
+          index: currentIndex,
+          total: files.length,
+        });
+      }
+    }
+  };
+
+  await Promise.all(
+    Array.from({ length: workerCount }, () => worker())
+  );
+
+  return transcripts
+    .map((spokenText, index) =>
+      spokenText
+        ? `[Transcript chunk ${index + 1} of ${files.length}]\n${spokenText}`
+        : ""
+    )
+    .filter(Boolean);
 }
 
 function parseOptionalMetricsFromResult(result: string) {
@@ -712,7 +813,799 @@ function extractStructuredSectionBody(text: string, heading: string) {
   return String(match?.[1] || "").trim();
 }
 
-export async function POST(req: Request) {
+function createServiceSupabaseClient() {
+  return createServiceClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+}
+
+async function updateAnalysisJob(
+  jobId: string,
+  patch: Record<string, unknown>
+) {
+  const serviceSupabase = createServiceSupabaseClient();
+  const { error } = await serviceSupabase
+    .from("analysis_jobs")
+    .update({
+      ...patch,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", jobId);
+
+  if (error) {
+    console.error("ANALYSIS JOB UPDATE ERROR:", { jobId, error, patch });
+  }
+}
+
+async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<AnalysisWorkflowOutput> {
+  const {
+    targetUserId,
+    observedTeacherId,
+    observedTeacherName,
+    callerProfileName,
+    grade,
+    subject,
+    book,
+    chapter,
+    lectureText,
+    waitTimeEvidence,
+    files,
+    onProgress,
+  } = input;
+
+  const reportProgress = async (percent: number, step: string) => {
+    if (!onProgress) return;
+    await onProgress({ percent, step });
+  };
+
+  const openai = createOpenAIClient();
+  let transcript = lectureText;
+
+  if (files.length > 0) {
+    await reportProgress(8, `Transcribing audio chunks (0 of ${files.length})...`);
+    const spokenParts = await transcribeAudioFiles(openai, files, async ({ completed, total }) => {
+      await reportProgress(
+        Math.min(42, 8 + Math.round((completed / total) * 34)),
+        `Transcribing audio chunks (${completed} of ${total})...`
+      );
+    });
+    const spokenText = spokenParts.join("\n\n");
+    if (spokenText) {
+      transcript = transcript
+        ? `${transcript}\n\nAudio Transcript:\n${spokenText}`
+        : spokenText;
+    }
+  }
+
+  if (!transcript || transcript.trim().length < 10) {
+    throw new Error("Please provide lesson notes or upload an audio file for transcription.");
+  }
+
+  await reportProgress(46, "Matching standards and lesson context...");
+
+  const { standards, overview, found: hasStandards } = getTEKSStandards(grade, subject);
+  const isSTAAR = STAAR_SUBJECTS.some(
+    (s) => s.grade.toLowerCase() === grade.toLowerCase() && s.subject.toLowerCase() === subject.toLowerCase()
+  );
+  const primaryPromptStandards = hasStandards
+    ? getPrimaryTEKSStandards(grade, subject, transcript, {
+        limit: isSTAAR ? 10 : 8,
+      })
+    : [];
+  const relatedPromptStandards = hasStandards
+    ? getRelatedTEKSStandards(grade, subject, transcript, {
+        limit: isSTAAR ? 10 : 8,
+        excludeCodes: primaryPromptStandards.map((standard) => standard.code),
+      })
+    : [];
+  const teksContext = formatTEKSForPrompt(primaryPromptStandards, overview, {
+    totalCount: standards.length,
+    relatedStandards: relatedPromptStandards,
+  });
+
+  const isHigherEdBiology =
+    grade.trim().toLowerCase() === 'higher ed' &&
+    subject.trim().toLowerCase() === 'biology';
+  const isHigherEdCustomText =
+    grade.trim().toLowerCase() === 'higher ed' &&
+    subject.trim().length > 0 &&
+    subject.trim().toLowerCase() !== 'biology';
+  const matchedBiologyObjectives = isHigherEdBiology ? getHigherEdBiologyObjectivesForChapter(chapter) : [];
+  const lessonContextTitle = chapter
+    ? isHigherEdBiology
+      ? `Campbell Biology ${chapter}`
+      : book
+        ? `${book} ${chapter}`
+        : chapter
+    : '';
+
+  let systemPrompt = `You are an elite instructional coach analyzing classroom teaching. Be specific, evidence-based, and actionable. Organize the report with clear sections, bullet points, and concise language so it is easy to follow.
+
+Every report must feel unique to the lesson in front of you, not like a reusable template. Anchor feedback to concrete evidence from this specific lesson: teacher moves, student responses, task structure, checks for understanding, pacing, and standards alignment. Avoid generic praise or generic coaching phrases unless they are tied to an explicit lesson detail.
+
+Use varied wording across sections. Do not repeat the same sentence frame in multiple sections. When possible, reference 3 or more distinct lesson moments across the report. You may quote short phrases from the transcript when it helps ground the feedback, but keep quotes brief.
+
+Score the lesson with professional calibration. The scores do not need to match each other. Let strengths and weaknesses land where the evidence supports them. Only use the same number across multiple categories if the transcript truly supports that level across all of them.`;
+
+  if (isHigherEdBiology) {
+    systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson.`;
+  } else if (isHigherEdCustomText && book) {
+    systemPrompt += `\n\nFor this Higher Ed lesson, compare the instruction to the expectations of the provided textbook and chapter. Evaluate whether the lesson reflects accurate terminology, concept depth, prerequisite logic, and chapter-level expectations for that course text.`;
+  }
+
+  const waitTimeGuidance = `Important wait-time rule: once the lesson is underway, assume the teacher typically allows about 8 to 10 seconds for student response after questions unless the transcript gives clear evidence that the teacher rushed, answered their own questions, cut students off, or rapidly moved on without space for thinking. Audio transcription often removes silence, pauses, and think time, so do not criticize wait time based only on the absence of transcribed silence. Only flag weak wait time when there is explicit evidence of it in the lesson record.`;
+  let userPrompt = '';
+
+  const higherEdBiologyFormat = isHigherEdBiology
+    ? `\n\n=== HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT ===\nCompare this lesson to the expectations of an introductory college biology course using Campbell Biology as the benchmark. Use labeled bullets for:\n- Textbook Alignment: what chapter-level or concept-level expectations the lesson appears to address.\n- Missing Conceptual Depth: what a strong introductory biology lesson or textbook treatment would include that was missing or underdeveloped here.\n- Terminology Precision: whether the biological language and explanation depth are at the level expected in an introductory biology course.\n- College-Level Recommendation: the most important adjustment needed to better align the lesson to a Campbell Biology-style course sequence.`
+    : '';
+  const higherEdCustomTextFormat = isHigherEdCustomText && book
+    ? `\n\n=== HIGHER ED TEXTBOOK ALIGNMENT ===\nCompare this lesson to ${book}${chapter ? `, ${chapter},` : ''} as the benchmark. Use labeled bullets for:\n- Textbook Alignment: what chapter-level or concept-level expectations the lesson appears to address.\n- Missing Conceptual Depth: what a strong textbook-aligned lesson for this course would include that was missing or underdeveloped here.\n- Terminology Precision: whether the course language and explanation depth are at the level expected for this textbook.\n- College-Level Recommendation: the most important adjustment needed to better align the lesson to this textbook and chapter.`
+    : '';
+
+  const reportFormat = `Analyze this lesson transcript and provide feedback in the following structured format. Use these exact section headers and keep the feedback evidence-based, specific, and unbiased.
+
+Important writing rules:
+- Make every major section lesson-specific, not generic.
+- In each bullet, point to a concrete observed move, student behavior, question type, task design choice, or missed opportunity from this lesson.
+- Avoid repeating the same praise or critique in multiple sections.
+- If evidence is limited, say what was observable instead of inventing detail.
+- Review the full transcript before judging coverage. Do not overweight the opening explanation or analogy if later chunks show broader content coverage.
+- Treat the transcript as a full sequence. Check beginning, middle, and end before deciding a concept was omitted or underdeveloped.
+- Prioritize the most distinctive strengths and weaknesses from this lesson, not the most common teacher coaching advice.
+- Gaps Flagged must match the number of substantive bullets listed in CONTENT GAPS TO REINFORCE. If no meaningful gaps are visible, set Gaps Flagged to 0 and say so plainly.
+- Calibrate each metric separately. Coverage, Clarity, Engagement, Assessment Quality, and the overall score should reflect different aspects of the lesson and should not default to the same number unless the evidence clearly supports that.
+- EXECUTIVE SUMMARY should synthesize the lesson, not repeat later bullets.
+- WHAT WENT WELL and WHAT CAN IMPROVE should contain the clearest distinct evidence, not generic coaching language.
+- RECOMMENDED NEXT STEP should build directly from the top improvement need without repeating the same wording already used above.
+- INSTRUCTIONAL COACHING FEEDBACK should summarize patterns and implications, not restate earlier bullets verbatim.
+- For CONTENT GAPS TO REINFORCE, only include concepts that are truly absent, inaccurate, or materially underdeveloped across the lesson as a whole. If a concept is clearly taught later in the transcript, do not list it as a gap.
+- If the recording is part one of a multi-part lesson sequence, distinguish between "not yet covered in this recording" and "incorrectly or inadequately taught."
+- For Higher Ed Biology, do not claim mRNA, tRNA, rRNA, codons, transcription, or translation were missing if the transcript explicitly names them and gives their role with basic accuracy. In that case, you may note a need for added depth or precision, but not absence.
+- Before naming a biology content gap, verify that the concept was not adequately addressed anywhere in the transcript. If it was taught with reasonable introductory accuracy, frame the issue as limited depth, incomplete distinction, or deferred follow-up instead of saying it was not covered.
+- For Higher Ed Biology, anchor missing-content judgments to the selected Campbell Biology chapter and the matched course objective(s), not to every concept that could appear somewhere in a broader biology unit.
+
+Metrics:
+Instructional Score (0-100): [number]
+Coverage (0-100): [number]
+Clarity (0-100): [number]
+Engagement (0-100): [number]
+Assessment Quality (0-100): [number]
+Gaps Flagged: [number]
+
+=== EXECUTIVE SUMMARY ===
+Provide a concise 1-2 sentence summary of overall lesson quality, student experience, and biggest instructional takeaway. Mention at least 1 concrete lesson detail. Keep it brief and avoid repeating later bullets.
+
+=== WHAT WENT WELL ===
+- [specific strength tied to a concrete lesson moment]
+- [specific strength tied to a concrete lesson moment]
+- [specific strength tied to a concrete lesson moment]
+
+=== WHAT CAN IMPROVE ===
+- [specific area for improvement tied to a concrete lesson moment]
+- [specific area for improvement tied to a concrete lesson moment]
+- [specific area for improvement tied to a concrete lesson moment]
+
+=== CONTENT GAPS TO REINFORCE ===
+Provide a numbered list of the exact content misunderstandings, missing ideas, weak prerequisite links, or underdeveloped biological concepts that need reteach. If there are no meaningful content gaps, write "1. No major content gaps identified."
+
+=== RECOMMENDED NEXT STEP ===
+Provide 1 short paragraph with the single highest-leverage next move for the teacher. Limit it to 2-3 sentences. It must directly address the most important weakness from this lesson and explain why it matters here without repeating the summary.
+
+=== INSTRUCTIONAL COACHING FEEDBACK ===
+Provide lesson-specific instructional coaching feedback using labeled bullets:
+- Key Findings: cite the most important observable patterns from this lesson.
+- Missed Opportunities: identify concrete moves that were absent, incomplete, or underdeveloped in this lesson.
+- Student Engagement Signals: describe what students appeared to be doing or not doing based on the lesson record.
+- Suggested Next Steps: give coaching moves tailored to this lesson, not generic teacher advice.`;
+
+  if (hasStandards) {
+    systemPrompt += '\nProvide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.';
+    userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${teksContext}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}`;
+
+    if (isSTAAR) {
+      userPrompt += `\n\n=== STAAR TEKS COVERAGE ===\nSummarize how well the lesson covered the most important TEKS for this STAAR-tested subject and grade. Use labeled bullets for:\n- Readiness Summary: ...\n- Standards Reinforced:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- Standards That Need Stronger Assessment Evidence:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- STAAR Readiness Recommendation: ...\nFor Standards Reinforced and Standards That Need Stronger Assessment Evidence, list only actual TEKS codes with their matching descriptions from the standards reference above. Do not use generic prose in those two fields. For the weaker-assessment field, choose TEKS that are directly related to the lesson topic and concept focus.`;
+    }
+
+    userPrompt += `\n\n=== TEXAS TEKS STANDARDS ALIGNMENT ===\nProvide specific curriculum alignment feedback using labeled bullets:
+- Covered in the Lesson:
+  - CODE: exact TEKS description
+  - CODE: exact TEKS description
+- Needs Reinforcement:
+  - CODE: exact TEKS description
+  - CODE: exact TEKS description
+- Not Covered in the Lesson:
+  - CODE: exact TEKS description
+  - CODE: exact TEKS description
+- Standards Mastery Notes: observations about depth and quality of standards instruction.
+- Recommended Standards Follow-Up: how to better integrate missing or partially developed standards with concrete instructional moves.
+For the three standards lists above, use the provided Primary TEKS first, then use the Related Supporting TEKS when they genuinely connect to the lesson. Do not invent codes outside the provided standards reference, and do not use generic prose in those list fields.
+\nTranscript:\n${transcript}\n`;
+  } else {
+    userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}\n\nTranscript:\n${transcript}\n`;
+  }
+
+  await reportProgress(55, "Analyzing lesson content...");
+
+  const completion = await callOpenAI(openai, [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt },
+  ]);
+
+  let result =
+    completion.choices[0]?.message?.content || "No result returned";
+
+  result = normalizeStructuredReportText(result);
+
+  await reportProgress(68, "Refining report and scoring...");
+
+  if (shouldRepairMetricsBlock(result)) {
+    const buildMetricsRepairPrompt = (strictCalibration = false) => `Based on the lesson transcript and the saved report draft below, return only this exact format with integer values:
+
+Metrics:
+Instructional Score (0-100): [number]
+Coverage (0-100): [number]
+Clarity (0-100): [number]
+Engagement (0-100): [number]
+Assessment Quality (0-100): [number]
+Gaps Flagged: [number]
+
+Calibrate each metric independently. Do not give all five instructional metrics the same number unless the evidence clearly supports that. Use the report draft and transcript together to infer the most defensible scores.
+${strictCalibration ? 'Avoid a flat 75/75/75/75/75 block unless the transcript overwhelmingly supports identical middle-of-the-road performance across every category. When evidence differs by category, the numbers must differ.' : ''}
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+    const attemptMetricsRepair = async (strictCalibration = false) => {
+      const metricsRepair = await callOpenAIMetricsRepair(openai, buildMetricsRepairPrompt(strictCalibration));
+      const repairedMetricsText = metricsRepair.choices[0]?.message?.content || '';
+      return parseOptionalMetricsFromResult(repairedMetricsText);
+    };
+
+    let repairedMetrics = await attemptMetricsRepair(false);
+
+    if (
+      Object.values(repairedMetrics).every((value) => value !== null) &&
+      (hasSuspiciousDefaultMetrics(repairedMetrics) ||
+        new Set([
+          repairedMetrics.score,
+          repairedMetrics.coverage_score,
+          repairedMetrics.clarity_rating,
+          repairedMetrics.engagement_level,
+          repairedMetrics.assessment_quality,
+        ]).size === 1)
+    ) {
+      repairedMetrics = await attemptMetricsRepair(true);
+    }
+
+    if (Object.values(repairedMetrics).every((value) => value !== null)) {
+      result = `${buildMetricsBlock({
+        score: repairedMetrics.score as number,
+        coverage_score: repairedMetrics.coverage_score as number,
+        clarity_rating: repairedMetrics.clarity_rating as number,
+        engagement_level: repairedMetrics.engagement_level as number,
+        assessment_quality: repairedMetrics.assessment_quality as number,
+        gaps_detected: repairedMetrics.gaps_detected as number,
+      })}\n\n${result}`;
+    }
+  }
+
+  if (needsWhatWentWellRepair(result)) {
+    const strengthsRepairPrompt = `Return only 3 bullets for the "WHAT WENT WELL" section of this lesson report.
+
+Requirements:
+- Each bullet must name a real strength that can be supported by the lesson transcript or report draft.
+- Each bullet must be specific to this lesson, not generic teacher praise.
+- Focus on instructional moves, student engagement signals, explanation choices, questioning, examples, modeling, or structure that actually helped the lesson.
+- Keep each bullet to 1-2 sentences.
+- Do not include a heading.
+- Do not repeat the same point in multiple bullets.
+- If the evidence is limited, still identify the strongest genuine positives you can support from the transcript.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+    const strengthsRepair = await callOpenAISectionRepair(openai, strengthsRepairPrompt);
+    const repairedStrengthsText = String(strengthsRepair.choices[0]?.message?.content || "")
+      .replace(/\r/g, "")
+      .trim();
+
+    if (repairedStrengthsText) {
+      result = upsertStructuredSection(
+        result,
+        "WHAT WENT WELL",
+        repairedStrengthsText,
+        "WHAT CAN IMPROVE"
+      );
+    }
+  }
+
+  if (needsExecutiveSummaryRepair(result)) {
+    const executiveSummaryRepairPrompt = `Return only the paragraph for the "EXECUTIVE SUMMARY" section of this lesson report.
+
+Requirements:
+- Write 1 to 2 sentences.
+- Keep it specific to this lesson.
+- Mention the strongest observed strength and the biggest instructional need.
+- Ground the summary in actual lesson content, pacing, questioning, modeling, or student understanding evidence.
+- Do not include a heading.
+- Do not use generic summary wording.
+- Keep it brief and direct.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+    const executiveSummaryRepair = await callOpenAISectionRepair(openai, executiveSummaryRepairPrompt);
+    const repairedExecutiveSummaryText = String(executiveSummaryRepair.choices[0]?.message?.content || "")
+      .replace(/\r/g, "")
+      .trim();
+
+    if (repairedExecutiveSummaryText) {
+      result = upsertStructuredSection(
+        result,
+        "EXECUTIVE SUMMARY",
+        repairedExecutiveSummaryText,
+        "WHAT WENT WELL"
+      );
+    }
+  }
+
+  if (needsWhatCanImproveRepair(result)) {
+    const improvementsRepairPrompt = `Return only 3 bullets for the "WHAT CAN IMPROVE" section of this lesson report.
+
+Requirements:
+- Each bullet must identify a real improvement need from this exact lesson.
+- Make the bullets specific to the observed content, teacher moves, pacing, questioning, checks for understanding, or missed conceptual links.
+- Do not use generic coaching phrases unless you tie them to the actual lesson topic.
+- Keep each bullet to 1-2 sentences.
+- Do not include a heading.
+- Do not repeat the same idea across bullets.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+    const improvementsRepair = await callOpenAISectionRepair(openai, improvementsRepairPrompt);
+    const repairedImprovementsText = String(improvementsRepair.choices[0]?.message?.content || "")
+      .replace(/\r/g, "")
+      .trim();
+
+    if (repairedImprovementsText) {
+      result = upsertStructuredSection(
+        result,
+        "WHAT CAN IMPROVE",
+        repairedImprovementsText,
+        "CONTENT GAPS TO REINFORCE"
+      );
+    }
+  }
+
+  if (needsContentGapsRepair(result)) {
+    const contentGapsRepairPrompt = `Return only the numbered list for the "CONTENT GAPS TO REINFORCE" section of this lesson report.
+
+Requirements:
+- Provide exactly ${isHigherEdBiology || isHigherEdCustomText ? '3' : '2 to 3'} specific content gaps if meaningful gaps are present.
+- Each item must name a concrete missing concept, misconception, weak conceptual link, or underdeveloped idea from this lesson.
+- Ground the list in the actual lesson content.
+- If there are no meaningful content gaps, return exactly: 1. No major content gaps identified.
+- Do not include a heading.
+- Do not mark a concept as missing if the transcript explicitly teaches it with basic accuracy. In that case, describe the issue as limited depth or incomplete precision instead.
+- For Higher Ed Biology, if the transcript explicitly covers a biology concept, term set, or named process, do not list it as absent. Frame the issue as limited depth, incomplete distinction, or deferred follow-up instead.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+    const contentGapsRepair = await callOpenAISectionRepair(openai, contentGapsRepairPrompt);
+    const repairedContentGapsText = String(contentGapsRepair.choices[0]?.message?.content || "")
+      .replace(/\r/g, "")
+      .trim();
+
+    if (repairedContentGapsText) {
+      result = upsertStructuredSection(
+        result,
+        "CONTENT GAPS TO REINFORCE",
+        repairedContentGapsText,
+        "RECOMMENDED NEXT STEP"
+      );
+    }
+  }
+
+  if (needsRecommendedNextStepRepair(result)) {
+    const nextStepRepairPrompt = `Return only the paragraph for the "RECOMMENDED NEXT STEP" section of this lesson report.
+
+Requirements:
+- Write one concise paragraph of 2 to 3 sentences.
+- Name the single highest-leverage next move for this exact lesson.
+- Ground it in the actual lesson content, teacher moves, or missed concept work from the transcript.
+- Do not use generic phrasing like "strengthen closure" or "add a quick mastery check" unless you explain what specifically needs to be checked or revisited in this lesson.
+- Do not include a heading.
+- Keep it brief and to the point.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+    const nextStepRepair = await callOpenAISectionRepair(openai, nextStepRepairPrompt);
+    const repairedNextStepText = String(nextStepRepair.choices[0]?.message?.content || "")
+      .replace(/\r/g, "")
+      .trim();
+
+    if (repairedNextStepText) {
+      result = upsertStructuredSection(
+        result,
+        "RECOMMENDED NEXT STEP",
+        repairedNextStepText
+      );
+    }
+  }
+
+  if ((isHigherEdBiology || (isHigherEdCustomText && book)) && needsHigherEdAlignmentRepair(result)) {
+    const alignmentHeading = isHigherEdBiology
+      ? "HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT"
+      : "HIGHER ED TEXTBOOK ALIGNMENT";
+    const alignmentRepairPrompt = `Return only the labeled bullets for the "${alignmentHeading}" section of this lesson report.
+
+Requirements:
+- Use these exact labels:
+  - Textbook Alignment:
+  - Missing Conceptual Depth:
+  - Terminology Precision:
+  - College-Level Recommendation:
+- Keep each field concise and specific to this lesson.
+- Ground the response in the selected ${isHigherEdBiology ? 'Campbell Biology chapter' : 'textbook and chapter'}.
+- Do not include a heading outside of the labeled bullets.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+    const alignmentRepair = await callOpenAISectionRepair(openai, alignmentRepairPrompt);
+    const repairedAlignmentText = String(alignmentRepair.choices[0]?.message?.content || "")
+      .replace(/\r/g, "")
+      .trim();
+
+    if (repairedAlignmentText) {
+      result = upsertStructuredSection(
+        result,
+        alignmentHeading,
+        repairedAlignmentText,
+        "SUBMISSION CONTEXT"
+      );
+    }
+  }
+
+  const contradictedBiologyGapConcepts = isHigherEdBiology
+    ? getContradictedHigherEdBiologyGapConcepts(result, transcript)
+    : [];
+
+  if (isHigherEdBiology && contradictedBiologyGapConcepts.length > 0) {
+    const biologyConsistencyRepairPrompt = `The draft lesson report below likely overstates missing content. Some draft content gaps appear to overlap with biology concepts that were explicitly discussed in the transcript.
+
+Potentially contradicted draft gaps:
+${contradictedBiologyGapConcepts.map((item, index) => `${index + 1}. Draft gap: ${item.gap}\n   Transcript overlap: ${item.matchedTokens.join(", ")}`).join("\n")}
+
+Return only these exact section headings with replacement content:
+
+=== EXECUTIVE SUMMARY ===
+[1 to 2 sentences]
+
+=== WHAT CAN IMPROVE ===
+- [bullet]
+- [bullet]
+- [bullet]
+
+=== CONTENT GAPS TO REINFORCE ===
+1. [gap]
+2. [gap]
+3. [gap]
+
+=== RECOMMENDED NEXT STEP ===
+[1 short paragraph]
+
+Rules:
+- Do not say a biology concept was missing or not covered when the transcript shows that concept, phrase, or terminology was explicitly taught.
+- If a covered concept still needs refinement, frame that as limited depth, incomplete distinction, or uneven precision, not absence.
+- Prefer concepts that were truly deferred, missing, or underdeveloped in this specific recording.
+- Keep the report specific to this lesson and selected Campbell Biology chapter.
+- Preserve a fair, evidence-based tone.
+
+Grade: ${grade}
+Subject: ${subject}
+Book: Campbell Biology
+Chapter / Unit: ${chapter}
+Matched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}
+
+Current Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+    const biologyConsistencyRepair = await callOpenAISectionRepair(openai, biologyConsistencyRepairPrompt);
+    const repairedBiologySections = normalizeStructuredReportText(
+      String(biologyConsistencyRepair.choices[0]?.message?.content || "")
+        .replace(/\r/g, "")
+        .trim()
+    );
+
+    const repairedExecutiveSummary = extractStructuredSectionBody(repairedBiologySections, "EXECUTIVE SUMMARY");
+    if (repairedExecutiveSummary) {
+      result = upsertStructuredSection(result, "EXECUTIVE SUMMARY", repairedExecutiveSummary, "WHAT WENT WELL");
+    }
+
+    const repairedImprovements = extractStructuredSectionBody(repairedBiologySections, "WHAT CAN IMPROVE");
+    if (repairedImprovements) {
+      result = upsertStructuredSection(result, "WHAT CAN IMPROVE", repairedImprovements, "CONTENT GAPS TO REINFORCE");
+    }
+
+    const repairedContentGaps = extractStructuredSectionBody(repairedBiologySections, "CONTENT GAPS TO REINFORCE");
+    if (repairedContentGaps) {
+      result = upsertStructuredSection(result, "CONTENT GAPS TO REINFORCE", repairedContentGaps, "RECOMMENDED NEXT STEP");
+    }
+
+    const repairedNextStep = extractStructuredSectionBody(repairedBiologySections, "RECOMMENDED NEXT STEP");
+    if (repairedNextStep) {
+      result = upsertStructuredSection(result, "RECOMMENDED NEXT STEP", repairedNextStep);
+    }
+
+    const existingMetrics = parseOptionalMetricsFromResult(result);
+    const normalizedGapCount = getContentGapItems(result).length;
+    if (
+      existingMetrics.score !== null &&
+      existingMetrics.coverage_score !== null &&
+      existingMetrics.clarity_rating !== null &&
+      existingMetrics.engagement_level !== null &&
+      existingMetrics.assessment_quality !== null
+    ) {
+      result = upsertMetricsBlock(result, {
+        score: calculateOverallScoreFromMetrics({
+          coverage_score: existingMetrics.coverage_score,
+          clarity_rating: existingMetrics.clarity_rating,
+          engagement_level: existingMetrics.engagement_level,
+          assessment_quality: existingMetrics.assessment_quality,
+          gaps_detected: normalizedGapCount,
+        }),
+        coverage_score: existingMetrics.coverage_score,
+        clarity_rating: existingMetrics.clarity_rating,
+        engagement_level: existingMetrics.engagement_level,
+        assessment_quality: existingMetrics.assessment_quality,
+        gaps_detected: normalizedGapCount,
+      });
+    }
+  }
+
+  const submissionContext =
+    observedTeacherId
+      ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfileName || 'Admin').trim()} (Admin Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
+      : "";
+  let finalResult = normalizeStructuredReportText(`${result}${submissionContext}`);
+
+  if (shouldRepairMetricsBlock(finalResult)) {
+    const finalMetricsRepairPrompt = `Based on the transcript and report below, return only this exact metrics block with integers:
+
+Metrics:
+Instructional Score (0-100): [number]
+Coverage (0-100): [number]
+Clarity (0-100): [number]
+Engagement (0-100): [number]
+Assessment Quality (0-100): [number]
+Gaps Flagged: [number]
+
+Rules:
+- Use the transcript and report together.
+- Do not return a flat 75/75/75/75/75 block unless the evidence is genuinely identical across every category.
+- If the evidence differs by category, the numbers must differ.
+- Use the full scoring range when justified by the lesson evidence.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Report:
+${finalResult}
+
+Transcript:
+${transcript}`;
+
+    const finalMetricsRepair = await callOpenAIMetricsRepair(openai, finalMetricsRepairPrompt);
+    const repairedFinalMetrics = parseOptionalMetricsFromResult(
+      String(finalMetricsRepair.choices[0]?.message?.content || "")
+    );
+
+    if (Object.values(repairedFinalMetrics).every((value) => value !== null)) {
+      finalResult = normalizeStructuredReportText(
+        `${buildMetricsBlock({
+          score: repairedFinalMetrics.score as number,
+          coverage_score: repairedFinalMetrics.coverage_score as number,
+          clarity_rating: repairedFinalMetrics.clarity_rating as number,
+          engagement_level: repairedFinalMetrics.engagement_level as number,
+          assessment_quality: repairedFinalMetrics.assessment_quality as number,
+          gaps_detected: repairedFinalMetrics.gaps_detected as number,
+        })}\n\n${finalResult}`
+      );
+    }
+  }
+
+  const normalizedReportedMetrics = parseOptionalMetricsFromResult(finalResult);
+  if (shouldNormalizeReportedScore(normalizedReportedMetrics)) {
+    finalResult = normalizeStructuredReportText(
+      `${buildMetricsBlock({
+        score: calculateOverallScoreFromMetrics({
+          coverage_score: normalizedReportedMetrics.coverage_score as number,
+          clarity_rating: normalizedReportedMetrics.clarity_rating as number,
+          engagement_level: normalizedReportedMetrics.engagement_level as number,
+          assessment_quality: normalizedReportedMetrics.assessment_quality as number,
+          gaps_detected: normalizedReportedMetrics.gaps_detected ?? 0,
+        }),
+        coverage_score: normalizedReportedMetrics.coverage_score as number,
+        clarity_rating: normalizedReportedMetrics.clarity_rating as number,
+        engagement_level: normalizedReportedMetrics.engagement_level as number,
+        assessment_quality: normalizedReportedMetrics.assessment_quality as number,
+        gaps_detected: normalizedReportedMetrics.gaps_detected ?? 0,
+      })}\n\n${finalResult}`
+    );
+  }
+
+  const score = extractScoreFromResult(finalResult);
+  const metrics = extractMetricsFromResult(finalResult);
+
+  await reportProgress(92, "Saving analysis...");
+
+  const serviceSupabase = createServiceSupabaseClient();
+
+  let dbSaved = false;
+  let analysisId: string | null = null;
+
+  const analysisRecord = {
+    user_id: targetUserId,
+    title: lessonContextTitle || null,
+    grade,
+    subject,
+    coverage_score: metrics.coverage_score,
+    clarity_rating: metrics.clarity_rating,
+    engagement_level: metrics.engagement_level,
+    assessment_quality: metrics.assessment_quality,
+    gaps_detected: metrics.gaps_detected,
+    transcript,
+    result: finalResult,
+    created_at: new Date().toISOString(),
+  };
+
+  const insertQuery = serviceSupabase
+    .from("analyses")
+    .insert([analysisRecord])
+    .select()
+    .single();
+
+  let { data: insertedData, error: dbError } = await insertQuery;
+
+  if (dbError && /assessment_quality/i.test(dbError.message || "")) {
+    const legacyRecord = Object.fromEntries(
+      Object.entries(analysisRecord).filter(([key]) => key !== "assessment_quality")
+    ) as Omit<typeof analysisRecord, "assessment_quality">;
+    ({ data: insertedData, error: dbError } = await serviceSupabase
+      .from("analyses")
+      .insert([legacyRecord])
+      .select()
+      .single());
+  }
+
+  if (dbError) {
+    console.error("DB SAVE ERROR:", dbError);
+    console.error("Record being saved:", analysisRecord);
+  } else if (insertedData) {
+    dbSaved = true;
+    analysisId = insertedData.id;
+  }
+
+  await reportProgress(100, "Analysis complete.");
+
+  return {
+    result: finalResult,
+    transcript,
+    score,
+    metrics: {
+      score,
+      coverage: metrics.coverage_score,
+      clarity: metrics.clarity_rating,
+      engagement: metrics.engagement_level,
+      assessment: metrics.assessment_quality,
+      gaps: metrics.gaps_detected,
+    },
+    analysisId,
+    saved: dbSaved,
+  };
+}
+
+async function processAnalysisJob(
+  jobId: string,
+  workflowInput: AnalysisWorkflowInput
+) {
+  await updateAnalysisJob(jobId, {
+    status: "processing",
+    progress_step: "Preparing analysis...",
+    progress_percent: 3,
+    error: null,
+  });
+
+  try {
+    const output = await runAnalysisWorkflow({
+      ...workflowInput,
+      onProgress: async ({ percent, step }) => {
+        await updateAnalysisJob(jobId, {
+          status: "processing",
+          progress_percent: percent,
+          progress_step: step,
+        });
+      },
+    });
+
+    await updateAnalysisJob(jobId, {
+      status: "completed",
+      progress_percent: 100,
+      progress_step: "Analysis complete.",
+      result: output.result,
+      transcript: output.transcript,
+      score: output.metrics.score,
+      coverage_score: output.metrics.coverage,
+      clarity_rating: output.metrics.clarity,
+      engagement_level: output.metrics.engagement,
+      assessment_quality: output.metrics.assessment,
+      gaps_detected: output.metrics.gaps,
+      analysis_id: output.analysisId,
+      error: null,
+    });
+  } catch (error) {
+    const message = getErrorMessage(error, "Analysis failed");
+    await updateAnalysisJob(jobId, {
+      status: "failed",
+      progress_step: "Analysis failed.",
+      progress_percent: 100,
+      error: message,
+    });
+  }
+}
+
+export async function legacyPOST(req: Request) {
   try {
     const formData = await req.formData();
     await cookies();
@@ -813,21 +1706,7 @@ export async function POST(req: Request) {
     let transcript = lectureText;
 
     if (files.length > 0) {
-      const spokenParts: string[] = [];
-
-      for (const file of files) {
-        const transcription: TranscriptionVerbose = await openai.audio.transcriptions.create({
-          file,
-          model: "whisper-1",
-          response_format: "verbose_json",
-        });
-
-        const spokenText = String(transcription.text || "").trim();
-        if (spokenText) {
-          spokenParts.push(`[Transcript chunk ${spokenParts.length + 1} of ${files.length}]\n${spokenText}`);
-        }
-      }
-
+      const spokenParts = await transcribeAudioFiles(openai, files);
       const spokenText = spokenParts.join("\n\n");
       if (spokenText) {
         transcript = transcript
@@ -1519,6 +2398,194 @@ ${transcript}`;
       saved: dbSaved,
       analysisId,
       transcript,
+    });
+  } catch (err) {
+    console.error("ANALYZE ERROR:", err);
+
+    const message = getErrorMessage(err, "Analysis failed");
+    const userError = message.includes("longer than")
+      ? "Audio is too long for transcription. Please upload a file under 90 minutes."
+      : message;
+
+    return safeJson(
+      {
+        result: null,
+        error: userError,
+      },
+      400
+    );
+  }
+}
+
+export async function POST(req: Request) {
+  try {
+    const formData = await req.formData();
+    await cookies();
+    const anonSupabase = await createServerClient();
+
+    const { data: { user } } = await anonSupabase.auth.getUser();
+    let callerProfile: { role?: string | null; name?: string | null } | null = null;
+    let callerRole: string | null = null;
+    const observedTeacherValue = formData.get("observedTeacherId");
+    const observedTeacherId = typeof observedTeacherValue === "string"
+      ? observedTeacherValue.trim()
+      : "";
+    let targetUserId = user?.id || null;
+
+    if (user?.id) {
+      const { data: loadedCallerProfile, error: callerProfileError } = await anonSupabase
+        .from("profiles")
+        .select("role, name")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (callerProfileError) {
+        return safeJson({ result: null, error: callerProfileError.message }, 500);
+      }
+
+      callerProfile = loadedCallerProfile;
+      callerRole = loadedCallerProfile?.role || null;
+    }
+
+    const adminRole = callerRole === "admin" || callerRole === "super_admin" ? callerRole : undefined;
+    const isAdminCaller = Boolean(adminRole);
+
+    if (isAdminCaller && !observedTeacherId) {
+      return safeJson(
+        {
+          result: null,
+          error: "Admins must select a teacher from the observation flow so reports save to the correct teacher profile.",
+        },
+        400
+      );
+    }
+
+    if (observedTeacherId) {
+      if (!user?.id) {
+        return safeJson({ result: null, error: "Sign in is required for admin observation mode." }, 401);
+      }
+      if (!isAdminCaller) {
+        return safeJson({ result: null, error: "Forbidden" }, 403);
+      }
+
+      const visibility = await getAdminVisibility(user.id, adminRole);
+      if (!visibility.teacherIds.includes(observedTeacherId)) {
+        return safeJson({ result: null, error: "You can only observe teachers under your scope." }, 403);
+      }
+
+      targetUserId = observedTeacherId;
+    }
+
+    let observedTeacherName = "";
+    if (observedTeacherId) {
+      const { data: observedTeacherProfile } = await anonSupabase
+        .from("profiles")
+        .select("name")
+        .eq("id", observedTeacherId)
+        .maybeSingle();
+
+      observedTeacherName = observedTeacherProfile?.name || "";
+    }
+
+    const grade = String(formData.get("grade") || "");
+    const subject = String(formData.get("subject") || "");
+    const book = String(formData.get("book") || "").trim();
+    const chapter = String(formData.get("chapter") || "").trim();
+    const lectureText = String(formData.get("lecture") || "").trim();
+    const waitTimeEvidence = String(formData.get("waitTimeEvidence") || "").trim();
+    const audioDurationValue = formData.get("audioDuration");
+    const audioDuration = audioDurationValue
+      ? Number(audioDurationValue)
+      : undefined;
+
+    const files = formData
+      .getAll("file")
+      .filter(
+        (entry): entry is File => entry instanceof File && entry.size > 0
+      );
+
+    if (!targetUserId) {
+      return safeJson({ result: null, error: "Sign in is required to analyze and save lessons." }, 401);
+    }
+
+    if (audioDuration && audioDuration > 5400) {
+      return safeJson(
+        {
+          result: null,
+          error: "Audio is too long. Please upload a file shorter than 90 minutes.",
+        },
+        400
+      );
+    }
+
+    if (!lectureText && files.length === 0) {
+      return safeJson(
+        {
+          result: null,
+          error: "Please provide lesson notes or upload an audio file for transcription.",
+        },
+        400
+      );
+    }
+
+    const serviceSupabase = createServiceSupabaseClient();
+    const { data: insertedJob, error: jobInsertError } = await serviceSupabase
+      .from("analysis_jobs")
+      .insert([
+        {
+          submitted_by_user_id: user?.id || null,
+          target_user_id: targetUserId,
+          observed_teacher_id: observedTeacherId || null,
+          observed_teacher_name: observedTeacherName || null,
+          grade,
+          subject,
+          book,
+          chapter,
+          audio_duration_seconds: audioDuration ?? null,
+          status: "queued",
+          progress_step: files.length > 0 ? "Queued and preparing audio..." : "Queued for analysis...",
+          progress_percent: 2,
+        },
+      ])
+      .select("id")
+      .single();
+
+    if (jobInsertError || !insertedJob?.id) {
+      return safeJson(
+        {
+          result: null,
+          error: jobInsertError?.message || "Unable to create analysis job.",
+        },
+        500
+      );
+    }
+
+    const jobId = insertedJob.id as string;
+
+    after(async () => {
+      await processAnalysisJob(jobId, {
+        targetUserId,
+        observedTeacherId,
+        observedTeacherName,
+        callerProfileName: callerProfile?.name || "",
+        grade,
+        subject,
+        book,
+        chapter,
+        lectureText,
+        waitTimeEvidence,
+        audioDuration,
+        files,
+      });
+    });
+
+    return safeJson({
+      queued: true,
+      jobId,
+      status: "queued",
+      progressStep: files.length > 0 ? "Queued and preparing audio..." : "Queued for analysis...",
+      progressPercent: 2,
+      error: null,
     });
   } catch (err) {
     console.error("ANALYZE ERROR:", err);
