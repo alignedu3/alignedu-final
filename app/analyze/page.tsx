@@ -668,11 +668,6 @@ export default function AnalysisPage() {
     }
   };
 
-  type TranscriptionChunkResult = {
-    transcript: string;
-    responseWaitEvidence?: string | null;
-  };
-
   const resultSections = parseAnalysisResult(result);
   const parsedResultMetrics = parseAnalysisMetrics(result);
   const resultMetrics = {
@@ -775,35 +770,6 @@ export default function AnalysisPage() {
   feedbackSections.whatWentWell.forEach(registerRenderedText);
   feedbackSections.whatCanImprove.forEach(registerRenderedText);
   contentGapItems.forEach(registerRenderedText);
-
-  const transcribeChunk = async (chunk: File, index: number, total: number): Promise<TranscriptionChunkResult> => {
-    setProcessingStep(`Transcribing chunk ${index + 1} of ${total}...`);
-    const chunkForm = new FormData();
-    chunkForm.append("file", chunk);
-
-    const chunkRes = await fetch("/api/transcribe", {
-      method: "POST",
-      body: chunkForm,
-    });
-
-    const chunkData = await parseJsonOrText(chunkRes);
-    if (!chunkRes.ok) {
-      const message =
-        chunkRes.status === 413 ||
-        String(chunkData?.error || "").includes("Request Entity Too Large")
-          ? "Audio chunk is too large. Try a shorter recording or smaller chunk size."
-          : chunkData?.error || chunkData?.result || "Chunk transcription failed.";
-      throw new Error(message);
-    }
-
-    return {
-      transcript: String(chunkData.transcript || ""),
-      responseWaitEvidence:
-        typeof chunkData.responseWaitEvidence === "string"
-          ? chunkData.responseWaitEvidence
-          : null,
-    };
-  };
 
   const handleAudioChange = (file: File | null) => {
     if (!file) {
@@ -942,41 +908,19 @@ export default function AnalysisPage() {
         return;
       }
 
-      let transcriptText = lessonNotes.trim();
-      const responseWaitNotes: string[] = [];
+      const transcriptText = lessonNotes.trim();
+      let audioChunksForAnalysis: File[] = [];
 
       if (audioFile) {
-        const spokenParts: string[] = [];
-
-        // If duration is unknown or short, transcribe directly as one chunk.
         if (!resolvedDuration || resolvedDuration <= 60) {
-          const chunkResult = await transcribeChunk(audioFile, 0, 1);
-          if (chunkResult.transcript) {
-            spokenParts.push(`[Transcript chunk 1 of 1]\n${chunkResult.transcript}`);
-          }
-          if (chunkResult.responseWaitEvidence) responseWaitNotes.push(chunkResult.responseWaitEvidence);
+          audioChunksForAnalysis = [audioFile];
         } else {
           setProcessingStep("Splitting audio into chunks...");
-          const chunks = await splitAudioIntoChunks(audioFile, resolvedDuration);
-
-          for (let index = 0; index < chunks.length; index += 1) {
-            const chunkResult = await transcribeChunk(chunks[index], index, chunks.length);
-            if (chunkResult.transcript) {
-              spokenParts.push(`[Transcript chunk ${index + 1} of ${chunks.length}]\n${chunkResult.transcript}`);
-            }
-            if (chunkResult.responseWaitEvidence) responseWaitNotes.push(chunkResult.responseWaitEvidence);
-          }
-        }
-
-        const spokenText = spokenParts.join("\n\n");
-        if (spokenText) {
-          transcriptText = transcriptText
-            ? `${transcriptText}\n\nAudio Transcript:\n${spokenText}`
-            : spokenText;
+          audioChunksForAnalysis = await splitAudioIntoChunks(audioFile, resolvedDuration);
         }
       }
 
-      if (!transcriptText || transcriptText.length < 10) {
+      if (!transcriptText && audioChunksForAnalysis.length === 0) {
         setError("Please provide lesson notes or upload an audio file for transcription.");
         setLoading(false);
         return;
@@ -987,9 +931,18 @@ export default function AnalysisPage() {
       analysisForm.append("subject", subject);
       analysisForm.append("book", book.trim());
       analysisForm.append("chapter", chapter.trim());
-      analysisForm.append("lecture", transcriptText);
-      if (responseWaitNotes.length > 0) {
-        analysisForm.append("waitTimeEvidence", responseWaitNotes.join("\n"));
+      if (transcriptText) {
+        analysisForm.append("lecture", transcriptText);
+      }
+      audioChunksForAnalysis.forEach((chunk) => {
+        analysisForm.append("file", chunk);
+      });
+      if (audioChunksForAnalysis.length > 0) {
+        setProcessingStep(
+          audioChunksForAnalysis.length > 1
+            ? `Uploading ${audioChunksForAnalysis.length} audio chunks for transcription...`
+            : "Uploading audio for transcription..."
+        );
       }
       if (isAdminObservationMode) {
         analysisForm.append("observedTeacherId", observedTeacherId);

@@ -308,7 +308,7 @@ function calculateOverallScoreFromMetrics(metrics: {
     metrics.engagement_level * 0.25 +
     metrics.assessment_quality * 0.20;
 
-  return Math.max(0, Math.min(100, Math.round(weighted - metrics.gaps_detected * 0.75)));
+  return Math.max(0, Math.min(100, Math.round(weighted)));
 }
 
 function shouldNormalizeReportedScore(metrics: {
@@ -345,11 +345,11 @@ function shouldNormalizeReportedScore(metrics: {
   ];
   const hasDifferentiatedComponents = new Set(componentValues).size > 1;
 
-  return (
-    hasDifferentiatedComponents &&
-    metrics.score === 75 &&
-    Math.abs(metrics.score - calculated) >= 3
-  );
+  if (metrics.score === null) {
+    return true;
+  }
+
+  return Math.abs(metrics.score - calculated) >= 1 || (hasDifferentiatedComponents && metrics.score === 75);
 }
 
 function extractScoreFromResult(result: string): number {
@@ -652,6 +652,8 @@ Important writing rules:
 - INSTRUCTIONAL COACHING FEEDBACK should summarize patterns and implications, not restate earlier bullets verbatim.
 - For CONTENT GAPS TO REINFORCE, only include concepts that are truly absent, inaccurate, or materially underdeveloped across the lesson as a whole. If a concept is clearly taught later in the transcript, do not list it as a gap.
 - If the recording is part one of a multi-part lesson sequence, distinguish between "not yet covered in this recording" and "incorrectly or inadequately taught."
+- For Higher Ed Biology, do not claim mRNA, tRNA, rRNA, codons, transcription, or translation were missing if the transcript explicitly names them and gives their role with basic accuracy. In that case, you may note a need for added depth or precision, but not absence.
+- Before naming a biology content gap, verify that the concept was not adequately addressed anywhere in the transcript. If it was taught with reasonable introductory accuracy, frame the issue as limited depth, incomplete distinction, or deferred follow-up instead of saying it was not covered.
 
 Metrics:
 Instructional Score (0-100): [number]
@@ -896,6 +898,8 @@ Requirements:
 - Ground the list in the actual lesson content.
 - If there are no meaningful content gaps, return exactly: 1. No major content gaps identified.
 - Do not include a heading.
+- Do not mark a concept as missing if the transcript explicitly teaches it with basic accuracy. In that case, describe the issue as limited depth or incomplete precision instead.
+- For Higher Ed Biology, if the transcript explicitly covers mRNA, tRNA, rRNA, codons, transcription, or translation, do not list those as absent gaps.
 
 Grade: ${grade}
 Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
@@ -1088,7 +1092,7 @@ ${transcript}`;
       engagement_level: metrics.engagement_level,
       assessment_quality: metrics.assessment_quality,
       gaps_detected: metrics.gaps_detected,
-      transcript: transcript.slice(0, 5000),
+      transcript,
       result: finalResult,
       created_at: new Date().toISOString(),
     };
@@ -1134,6 +1138,7 @@ ${transcript}`;
       },
       saved: dbSaved,
       analysisId,
+      transcript,
     });
   } catch (err) {
     console.error("ANALYZE ERROR:", err);

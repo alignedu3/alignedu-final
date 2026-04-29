@@ -216,6 +216,12 @@ export default function TeacherDashboard() {
     () => (selectedReport ? getRelatedPriorLessonGaps(selectedReport, reports) : null),
     [reports, selectedReport]
   );
+  const selectedReportIsHigherEdBiology = useMemo(
+    () =>
+      String(selectedReport?.grade || '').trim().toLowerCase() === 'higher ed' &&
+      String(selectedReport?.subject || '').trim().toLowerCase() === 'biology',
+    [selectedReport]
+  );
   const selectedSubmissionContext = useMemo(() => {
     if (!selectedLessonSections) return '';
     return selectedLessonSections.submissionContext
@@ -852,7 +858,9 @@ export default function TeacherDashboard() {
                   <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
                     <div style={reportSectionTitle}>Related Prior Lesson Gaps</div>
                     <p style={reportBodyText}>
-                      Showing gaps from {selectedRelatedPriorGaps.matchedLessonCount} earlier related lesson{selectedRelatedPriorGaps.matchedLessonCount === 1 ? '' : 's'} only when the topic or standards overlap with this lesson.
+                      {selectedReportIsHigherEdBiology
+                        ? `Showing gaps from ${selectedRelatedPriorGaps.matchedLessonCount} earlier lesson${selectedRelatedPriorGaps.matchedLessonCount === 1 ? '' : 's'} only when the same Campbell Biology chapter was selected.`
+                        : `Showing gaps from ${selectedRelatedPriorGaps.matchedLessonCount} earlier related lesson${selectedRelatedPriorGaps.matchedLessonCount === 1 ? '' : 's'} only when the topic or standards overlap with this lesson.`}
                     </p>
                     <ul style={reportList}>
                       {selectedRelatedPriorGaps.items.map((item, index) => (

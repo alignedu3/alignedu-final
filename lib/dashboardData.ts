@@ -203,12 +203,35 @@ function countSharedValues(left: Set<string>, right: Set<string>) {
   return count;
 }
 
+function extractHigherEdBiologyChapterNumber(report: AnalysisReport) {
+  const titleMatch = String(report.title || '').match(/chapter\s*(\d+)/i);
+  if (titleMatch) return Number(titleMatch[1]);
+
+  const transcriptMatch = String(report.transcript || '').match(/chapter\s*\/?\s*unit\s*:\s*chapter\s*(\d+)/i);
+  return transcriptMatch ? Number(transcriptMatch[1]) : null;
+}
+
 function areLessonsTopicRelated(currentReport: AnalysisReport, previousReport: AnalysisReport) {
   const currentProfile = getTopicProfile(currentReport);
   const previousProfile = getTopicProfile(previousReport);
 
   if (currentProfile.subject && previousProfile.subject && currentProfile.subject !== previousProfile.subject) {
     return false;
+  }
+
+  const isHigherEdBiologyPair =
+    normalizeGradeLabel(String(currentReport.grade || '')) === 'higher ed' &&
+    normalizeGradeLabel(String(previousReport.grade || '')) === 'higher ed' &&
+    currentProfile.subject === 'biology' &&
+    previousProfile.subject === 'biology';
+
+  if (isHigherEdBiologyPair) {
+    const currentChapter = extractHigherEdBiologyChapterNumber(currentReport);
+    const previousChapter = extractHigherEdBiologyChapterNumber(previousReport);
+
+    if (currentChapter !== null || previousChapter !== null) {
+      return currentChapter !== null && previousChapter !== null && currentChapter === previousChapter;
+    }
   }
 
   const sharedStandards = countSharedValues(currentProfile.standardCodes, previousProfile.standardCodes);
