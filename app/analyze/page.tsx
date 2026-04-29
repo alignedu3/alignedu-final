@@ -739,10 +739,12 @@ export default function AnalysisPage() {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
   };
 
   const analyzeButtonLoadingStyle: React.CSSProperties = {
     width: '100%',
+    maxWidth: 560,
     minHeight: 74,
     padding: '14px 18px 16px',
     borderRadius: 18,
@@ -751,10 +753,13 @@ export default function AnalysisPage() {
     background:
       'linear-gradient(135deg, rgba(249,115,22,0.96), rgba(251,146,60,0.95))',
     boxShadow: '0 18px 38px rgba(249, 115, 22, 0.22)',
+    alignSelf: 'center',
   };
 
   const analyzeButtonIdleStyle: React.CSSProperties = {
-    width: 'min(100%, 360px)',
+    width: '100%',
+    maxWidth: 360,
+    alignSelf: 'center',
     marginInline: 'auto',
   };
 

@@ -21,6 +21,7 @@ export default function TeacherDashboard() {
   const [pendingDeleteReport, setPendingDeleteReport] = useState<AnalysisReport | null>(null);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   const [showOpenGaps, setShowOpenGaps] = useState(false);
+  const [lessonsPage, setLessonsPage] = useState(1);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const selectedLessonRef = useRef<HTMLDivElement | null>(null);
 
@@ -84,6 +85,29 @@ export default function TeacherDashboard() {
 
   const isSampleMode = dbReports.length === 0;
   const reports = isSampleMode ? sampleTeacherReports : dbReports;
+  const lessonsPerPage = isNarrowScreen ? 4 : 6;
+  const lessonsPageCount = Math.max(1, Math.ceil(reports.length / lessonsPerPage));
+  const pagedReports = useMemo(() => {
+    const start = (lessonsPage - 1) * lessonsPerPage;
+    return reports.slice(start, start + lessonsPerPage);
+  }, [lessonsPage, lessonsPerPage, reports]);
+  const lessonsRangeStart = reports.length === 0 ? 0 : (lessonsPage - 1) * lessonsPerPage + 1;
+  const lessonsRangeEnd = Math.min(lessonsPage * lessonsPerPage, reports.length);
+  const lessonsPageNumbers = useMemo(() => {
+    if (lessonsPageCount <= 5) {
+      return Array.from({ length: lessonsPageCount }, (_, index) => index + 1);
+    }
+
+    if (lessonsPage <= 3) {
+      return [1, 2, 3, 4, lessonsPageCount];
+    }
+
+    if (lessonsPage >= lessonsPageCount - 2) {
+      return [1, lessonsPageCount - 3, lessonsPageCount - 2, lessonsPageCount - 1, lessonsPageCount];
+    }
+
+    return [1, lessonsPage - 1, lessonsPage, lessonsPage + 1, lessonsPageCount];
+  }, [lessonsPage, lessonsPageCount]);
 
   useEffect(() => {
     if (!reports.length) {
@@ -103,6 +127,10 @@ export default function TeacherDashboard() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [selectedReport]);
+
+  useEffect(() => {
+    setLessonsPage((current) => Math.min(current, lessonsPageCount));
+  }, [lessonsPageCount]);
 
   const trendData = useMemo(() => getTrendData(reports), [reports]);
   const summary = useMemo(() => getDashboardSummary(reports), [reports]);
@@ -538,74 +566,158 @@ export default function TeacherDashboard() {
               Upload your first lesson to receive AI-powered feedback, scoring, and improvement suggestions.
             </p>
           ) : (
-            <div
-              className="table-scroll-wrap"
-              style={isNarrowScreen ? { overflowX: 'hidden', border: '1px solid var(--border)', borderRadius: 10, padding: '4px 6px', background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.05) 100%)' } : undefined}
-            >
-          <table style={{ ...table, minWidth: '100%' }}>
-              <thead>
-                <tr>
-                  <th style={{ ...th, width: '40%', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Lesson</th>
-                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Score</th>
-                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Trend</th>
-                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.slice(0, isSampleMode ? 10 : 5).map((r, i) => {
-                  const score = getLessonMetrics(r).score;
-                  const previous = reports[i + 1];
-                  const trend = previous ? score - getLessonMetrics(previous).score : null;
-                  const lessonLabel = getReportDisplayLabel(r) || `Lesson ${i + 1}`;
-                  const lessonDate = r.created_at ? new Date(r.created_at).toLocaleDateString() : '';
-                  return (
-                    <tr key={r.id || i}>
-                      <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word', padding: isNarrowScreen ? '4px 3px' : td.padding, fontSize: isNarrowScreen ? 12 : td.fontSize }}>
-                        {lessonLabel}{lessonDate ? ` · ${lessonDate}` : ''}
-                      </td>
-                      <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding, fontSize: isNarrowScreen ? 12 : td.fontSize }}>{score}/100</td>
-                      <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding, fontSize: isNarrowScreen ? 12 : td.fontSize, color: trend === null ? 'var(--text-secondary)' : trend >= 0 ? '#22c55e' : '#ef4444' }}>
-                        {trend === null
-                          ? '—'
-                          : trend > 0
-                            ? `↑ ${trend}`
-                            : trend < 0
-                              ? `↓ ${Math.abs(trend)}`
-                              : '→ 0'}
-                      </td>
-                      <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <>
+              <div
+                className="table-scroll-wrap"
+                style={isNarrowScreen ? { overflowX: 'hidden', border: '1px solid var(--border)', borderRadius: 10, padding: '4px 6px', background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.05) 100%)' } : undefined}
+              >
+                <table style={{ ...table, minWidth: '100%' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...th, width: '40%', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Lesson</th>
+                      <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Score</th>
+                      <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Trend</th>
+                      <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pagedReports.map((r, i) => {
+                      const score = getLessonMetrics(r).score;
+                      const absoluteIndex = (lessonsPage - 1) * lessonsPerPage + i;
+                      const previous = reports[absoluteIndex + 1];
+                      const trend = previous ? score - getLessonMetrics(previous).score : null;
+                      const lessonLabel = getReportDisplayLabel(r) || `Lesson ${absoluteIndex + 1}`;
+                      const lessonDate = r.created_at ? new Date(r.created_at).toLocaleDateString() : '';
+                      return (
+                        <tr key={r.id || absoluteIndex}>
+                          <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word', padding: isNarrowScreen ? '4px 3px' : td.padding, fontSize: isNarrowScreen ? 12 : td.fontSize }}>
+                            {lessonLabel}{lessonDate ? ` · ${lessonDate}` : ''}
+                          </td>
+                          <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding, fontSize: isNarrowScreen ? 12 : td.fontSize }}>{score}/100</td>
+                          <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding, fontSize: isNarrowScreen ? 12 : td.fontSize, color: trend === null ? 'var(--text-secondary)' : trend >= 0 ? '#22c55e' : '#ef4444' }}>
+                            {trend === null
+                              ? '—'
+                              : trend > 0
+                                ? `↑ ${trend}`
+                                : trend < 0
+                                  ? `↓ ${Math.abs(trend)}`
+                                  : '→ 0'}
+                          </td>
+                          <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding }}>
+                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                              <button
+                                style={{ ...actionButton, padding: isNarrowScreen ? '3px 7px' : actionButton.padding, fontSize: isNarrowScreen ? 11 : undefined }}
+                                onClick={() => handleViewReport(r)}
+                              >
+                                View
+                              </button>
+                              <button
+                                style={{
+                                  ...deleteButton,
+                                  padding: isNarrowScreen ? '3px 7px' : deleteButton.padding,
+                                  fontSize: isNarrowScreen ? 11 : undefined,
+                                  opacity: isSampleMode ? 0.55 : 1,
+                                  cursor: isSampleMode ? 'not-allowed' : 'pointer',
+                                }}
+                                onClick={() => {
+                                  if (isSampleMode) return;
+                                  setPendingDeleteReport(r);
+                                }}
+                                disabled={isSampleMode}
+                                title={isSampleMode ? 'Sample lessons cannot be deleted.' : 'Delete lesson'}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {reports.length > lessonsPerPage && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    display: 'flex',
+                    flexDirection: isNarrowScreen ? 'column' : 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ color: 'var(--text-secondary)', fontSize: 13 }}>
+                    Showing {lessonsRangeStart}-{lessonsRangeEnd} of {reports.length} lessons
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexWrap: 'wrap',
+                      gap: 8,
+                    }}
+                  >
+                    <button
+                      style={{
+                        ...secondaryButton,
+                        opacity: lessonsPage === 1 ? 0.5 : 1,
+                        cursor: lessonsPage === 1 ? 'not-allowed' : 'pointer',
+                        padding: isNarrowScreen ? '8px 12px' : secondaryButton.padding,
+                      }}
+                      type="button"
+                      onClick={() => setLessonsPage((current) => Math.max(1, current - 1))}
+                      disabled={lessonsPage === 1}
+                    >
+                      Previous
+                    </button>
+                    {lessonsPageNumbers.map((pageNumber, index) => {
+                      const previousNumber = lessonsPageNumbers[index - 1];
+                      const shouldShowGap = typeof previousNumber === 'number' && pageNumber - previousNumber > 1;
+
+                      return (
+                        <div key={pageNumber} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {shouldShowGap && (
+                            <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>…</span>
+                          )}
                           <button
-                            style={{ ...actionButton, padding: isNarrowScreen ? '3px 7px' : actionButton.padding, fontSize: isNarrowScreen ? 11 : undefined }}
-                            onClick={() => handleViewReport(r)}
-                          >
-                            View
-                          </button>
-                          <button
+                            type="button"
+                            onClick={() => setLessonsPage(pageNumber)}
                             style={{
-                              ...deleteButton,
-                              padding: isNarrowScreen ? '3px 7px' : deleteButton.padding,
-                              fontSize: isNarrowScreen ? 11 : undefined,
-                              opacity: isSampleMode ? 0.55 : 1,
-                              cursor: isSampleMode ? 'not-allowed' : 'pointer',
+                              border: `1px solid ${pageNumber === lessonsPage ? '#f97316' : 'var(--border)'}`,
+                              background: pageNumber === lessonsPage ? 'rgba(249,115,22,0.14)' : 'var(--surface-chip)',
+                              color: 'var(--text-primary)',
+                              borderRadius: 999,
+                              minWidth: 38,
+                              padding: '8px 12px',
+                              fontSize: 13,
+                              fontWeight: 700,
+                              cursor: 'pointer',
                             }}
-                            onClick={() => {
-                              if (isSampleMode) return;
-                              setPendingDeleteReport(r);
-                            }}
-                            disabled={isSampleMode}
-                            title={isSampleMode ? 'Sample lessons cannot be deleted.' : 'Delete lesson'}
                           >
-                            Delete
+                            {pageNumber}
                           </button>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      );
+                    })}
+                    <button
+                      style={{
+                        ...secondaryButton,
+                        opacity: lessonsPage === lessonsPageCount ? 0.5 : 1,
+                        cursor: lessonsPage === lessonsPageCount ? 'not-allowed' : 'pointer',
+                        padding: isNarrowScreen ? '8px 12px' : secondaryButton.padding,
+                      }}
+                      type="button"
+                      onClick={() => setLessonsPage((current) => Math.min(lessonsPageCount, current + 1))}
+                      disabled={lessonsPage === lessonsPageCount}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 

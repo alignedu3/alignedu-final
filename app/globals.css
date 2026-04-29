@@ -825,7 +825,8 @@ audio {
 
   .analysis-actions,
   .submit-btn-container {
-    justify-content: stretch;
+    justify-content: center;
+    width: 100%;
   }
 
   .analyze-btn,
