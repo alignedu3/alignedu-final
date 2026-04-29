@@ -926,16 +926,35 @@ export function buildAdminSupportPlanForTeacher(
 
   const sortedReports = sortReportsNewestFirst(reports);
   const latestReport = sortedReports[0];
+  const recentReports = sortedReports.slice(0, 3);
   const latestMetrics = getLessonMetrics(latestReport);
+  const recentMetrics = recentReports.map(getLessonMetrics);
+  const recentAverageScore = average(recentMetrics.map((metric) => metric.score));
   const trend = getLatestLessonTrend(sortedReports);
   const reportSections = getLessonReportSections(latestReport);
+  const openGapSummary = getOpenGapSummary(sortedReports);
+  const topOpenGap =
+    openGapSummary.items[0]?.gap ||
+    reportSections.contentGaps[0] ||
+    reportSections.improvements[0] ||
+    '';
 
-  const weakestDomain = [
-    { key: 'coverage', label: 'standards alignment', value: latestMetrics.coverage },
-    { key: 'clarity', label: 'instructional clarity', value: latestMetrics.clarity },
-    { key: 'engagement', label: 'student engagement', value: latestMetrics.engagement },
-    { key: 'assessment', label: 'checks for understanding', value: latestMetrics.assessment },
-  ].sort((a, b) => a.value - b.value)[0];
+  const domainSnapshots = [
+    { key: 'coverage', label: 'standards alignment', value: latestMetrics.coverage, values: recentMetrics.map((metric) => metric.coverage) },
+    { key: 'clarity', label: 'instructional clarity', value: latestMetrics.clarity, values: recentMetrics.map((metric) => metric.clarity) },
+    { key: 'engagement', label: 'student engagement', value: latestMetrics.engagement, values: recentMetrics.map((metric) => metric.engagement) },
+    { key: 'assessment', label: 'checks for understanding', value: latestMetrics.assessment, values: recentMetrics.map((metric) => metric.assessment) },
+  ].map((domain) => ({
+    ...domain,
+    average: average(domain.values),
+    belowTargetCount: domain.values.filter((value) => value < 75).length,
+  }));
+
+  const weakestDomain = [...domainSnapshots].sort((a, b) => {
+    if (a.belowTargetCount !== b.belowTargetCount) return b.belowTargetCount - a.belowTargetCount;
+    if (a.average !== b.average) return a.average - b.average;
+    return a.value - b.value;
+  })[0];
 
   const trendMagnitude = Math.abs(trend);
   const trendText =
@@ -947,26 +966,44 @@ export function buildAdminSupportPlanForTeacher(
 
   const supportPriorityScore =
     Math.max(0, 78 - latestMetrics.score) +
+    Math.max(0, 78 - recentAverageScore) +
     Math.max(0, 76 - weakestDomain.value) +
+    weakestDomain.belowTargetCount * 5 +
+    openGapSummary.total * 4 +
     latestMetrics.gaps * 6 +
     (trend < 0 ? Math.min(12, trendMagnitude * 2) : 0);
 
   const requiresPrioritySupport =
     latestMetrics.score < 75 ||
+    recentAverageScore < 76 ||
     weakestDomain.value < 72 ||
+    weakestDomain.belowTargetCount >= 2 ||
     latestMetrics.gaps >= 2 ||
+    openGapSummary.total >= 2 ||
     trend <= -4 ||
     (latestMetrics.score < 78 && latestMetrics.gaps > 0 && weakestDomain.value < 74);
 
-  const priorityReason =
-    latestMetrics.gaps > 0
-      ? `${teacherName} is the priority because the most recent lesson still showed ${latestMetrics.gaps} content gap${latestMetrics.gaps === 1 ? '' : 's'} and ${weakestDomain.label} remains the clearest support need.`
-      : `${teacherName} is the priority because ${weakestDomain.label} remains the clearest support need in the most recent lesson.`;
+  const priorityReasonParts = [
+    `${teacherName} is the priority because ${weakestDomain.label} remains the clearest support need`,
+    weakestDomain.belowTargetCount >= 2
+      ? `it has been below target in ${weakestDomain.belowTargetCount} of the last ${recentReports.length} lesson${recentReports.length === 1 ? '' : 's'}`
+      : null,
+    openGapSummary.total > 0
+      ? `${openGapSummary.total} open gap${openGapSummary.total === 1 ? '' : 's'} still remain across current lesson topics`
+      : null,
+  ].filter(Boolean);
+  const priorityReason = `${priorityReasonParts.join(', ')}.`;
 
-  const adminAction =
+  const adminActionParts = [
+    `Use the next planning touchpoint to coach ${teacherName} on ${weakestDomain.label}.`,
     reportSections.recommendedNextStep
-      ? `Use the next planning touchpoint to coach ${teacherName} on ${weakestDomain.label}, then anchor the follow-up observation to this next step: ${reportSections.recommendedNextStep}`
-      : `Use the next planning touchpoint to coach ${teacherName} on ${weakestDomain.label} and preview one concrete move before the next lesson.`;
+      ? `Anchor the follow-up observation to this next move: ${reportSections.recommendedNextStep}`
+      : `Preview one concrete teacher move that should be visible in the next lesson.`,
+    topOpenGap
+      ? `Make sure the plan explicitly addresses this still-open content need: ${topOpenGap}`
+      : null,
+  ].filter(Boolean);
+  const adminAction = adminActionParts.join(' ');
 
   const lookFors = [
     weakestDomain.key === 'coverage'
@@ -976,21 +1013,33 @@ export function buildAdminSupportPlanForTeacher(
         : weakestDomain.key === 'engagement'
           ? 'Students have visible response opportunities and are asked to explain their thinking during instruction.'
           : 'The teacher uses a clear mastery check before closure and responds to misconceptions before moving on.',
-    latestMetrics.gaps > 0
-      ? `Previously flagged gaps are revisited and checked for mastery before the lesson closes.`
+    topOpenGap
+      ? `The lesson revisits this priority content gap with explicit reteach and mastery evidence: ${topOpenGap}`
       : 'Students can demonstrate understanding before the lesson ends.',
     trend < 0
       ? 'The teacher follows the agreed coaching move consistently from the start of the lesson.'
-      : 'The targeted support move is visible and strengthens overall lesson coherence.',
+      : weakestDomain.belowTargetCount >= 2
+        ? 'The targeted support move is visible early and stays consistent across the lesson, not just at the end.'
+        : 'The targeted support move is visible and strengthens overall lesson coherence.',
   ];
 
   const followUpTimeline =
-    latestMetrics.score < 70 || latestMetrics.gaps >= 3
+    latestMetrics.score < 70 || recentAverageScore < 72 || latestMetrics.gaps >= 3 || openGapSummary.total >= 3
       ? 'Follow up within 5 instructional days.'
       : 'Follow up within 7 to 10 instructional days.';
 
-  const summary =
-    `${teacherName} needs targeted support in ${weakestDomain.label}. The latest lesson scored ${latestMetrics.score}/100, with ${weakestDomain.label} at ${weakestDomain.value}/100. ${trendText}.`;
+  const summaryParts = [
+    `${teacherName} needs targeted support in ${weakestDomain.label}.`,
+    `The latest lesson scored ${latestMetrics.score}/100, with ${weakestDomain.label} at ${weakestDomain.value}/100.`,
+    recentReports.length > 1
+      ? `Across the last ${recentReports.length} lessons, the average score is ${recentAverageScore}/100 and ${weakestDomain.label} averaged ${weakestDomain.average}/100.`
+      : null,
+    openGapSummary.total > 0
+      ? `${openGapSummary.total} open gap${openGapSummary.total === 1 ? '' : 's'} remain across current lesson topics${topOpenGap ? `, led by: ${topOpenGap}` : ''}.`
+      : null,
+    `${trendText}.`,
+  ].filter(Boolean);
+  const summary = summaryParts.join(' ');
 
   return {
     teacherId,

@@ -48,12 +48,18 @@ function formatDurationLabel(totalSeconds: number | null) {
 
 function estimateAnalysisProcessingSeconds(audioSeconds: number | null, chunkCount: number) {
   if (!audioSeconds || audioSeconds <= 0) {
-    return 150;
+    return 110;
   }
 
-  const splittingSeconds = audioSeconds > 60 ? Math.min(210, Math.max(20, chunkCount * 3)) : 0;
-  const uploadAndTranscriptionSeconds = Math.max(75, chunkCount * 10);
-  const reportSeconds = Math.min(240, Math.max(75, audioSeconds / 32));
+  const splittingSeconds =
+    audioSeconds > 60
+      ? Math.min(90, Math.max(12, Math.round(chunkCount * 1.5)))
+      : 0;
+  const uploadAndTranscriptionSeconds = Math.max(
+    40,
+    Math.round(Math.ceil(chunkCount / 2) * 9 + audioSeconds / 85)
+  );
+  const reportSeconds = Math.min(150, Math.max(45, Math.round(audioSeconds / 55)));
 
   return Math.round(splittingSeconds + uploadAndTranscriptionSeconds + reportSeconds);
 }
@@ -263,6 +269,7 @@ export default function AnalysisPage() {
   const [analysisStartedAt, setAnalysisStartedAt] = useState<number | null>(null);
   const [elapsedAnalysisSeconds, setElapsedAnalysisSeconds] = useState(0);
   const [estimatedProcessingSeconds, setEstimatedProcessingSeconds] = useState<number | null>(null);
+  const [analysisProgressPercent, setAnalysisProgressPercent] = useState<number | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [result, setResult] = useState("");
   const [analysisMetrics, setAnalysisMetrics] = useState<AnalysisMetricsState>(emptyAnalysisMetrics);
@@ -396,9 +403,8 @@ export default function AnalysisPage() {
         setProcessingStep(data.job.progressStep);
       }
 
-      if (typeof data.job.progressPercent === "number" && estimatedProcessingSeconds) {
-        const normalizedPercent = Math.max(1, Math.min(99, data.job.progressPercent));
-        setElapsedAnalysisSeconds(Math.round((normalizedPercent / 100) * estimatedProcessingSeconds));
+      if (typeof data.job.progressPercent === "number") {
+        setAnalysisProgressPercent(Math.max(1, Math.min(99, data.job.progressPercent)));
       }
 
       if (data.job.status === "completed") {
@@ -425,7 +431,7 @@ export default function AnalysisPage() {
 
       await new Promise((resolve) => window.setTimeout(resolve, 3000));
     }
-  }, [estimatedProcessingSeconds, isAdminObservationMode]);
+  }, [isAdminObservationMode]);
 
   useEffect(() => {
     if (typeof window === "undefined" || result) return;
@@ -447,6 +453,7 @@ export default function AnalysisPage() {
         if (!cancelled) {
           setLoading(false);
           setAnalysisStartedAt(null);
+          setAnalysisProgressPercent(null);
           setElapsedAnalysisSeconds(0);
         }
       }
@@ -475,7 +482,10 @@ export default function AnalysisPage() {
 
   const analysisProgress = useMemo(() => {
     if (!loading || !estimatedProcessingSeconds) return null;
-    const percent = Math.min(96, Math.max(8, Math.round((elapsedAnalysisSeconds / estimatedProcessingSeconds) * 100)));
+    const elapsedPercent = Math.min(96, Math.max(8, Math.round((elapsedAnalysisSeconds / estimatedProcessingSeconds) * 100)));
+    const percent = analysisProgressPercent !== null
+      ? Math.max(elapsedPercent, Math.min(96, analysisProgressPercent))
+      : elapsedPercent;
     const remainingSeconds = Math.max(0, estimatedProcessingSeconds - elapsedAnalysisSeconds);
     const isPastEstimate = elapsedAnalysisSeconds >= estimatedProcessingSeconds;
 
@@ -484,7 +494,7 @@ export default function AnalysisPage() {
       remainingSeconds,
       isPastEstimate,
     };
-  }, [elapsedAnalysisSeconds, estimatedProcessingSeconds, loading]);
+  }, [analysisProgressPercent, elapsedAnalysisSeconds, estimatedProcessingSeconds, loading]);
 
   const filePreviewCardStyle: React.CSSProperties = {
     background: 'var(--bg-secondary)',
@@ -1297,6 +1307,7 @@ export default function AnalysisPage() {
       setResult("");
       setAnalysisMetrics(emptyAnalysisMetrics);
       setSaveNotice("");
+      setAnalysisProgressPercent(null);
       setProcessingStep("Preparing analysis...");
 
       let resolvedDuration = audioDuration;
@@ -1429,6 +1440,7 @@ export default function AnalysisPage() {
       setLoading(false);
       setProcessingStep("");
       setAnalysisStartedAt(null);
+      setAnalysisProgressPercent(null);
       setElapsedAnalysisSeconds(0);
     }
   };
