@@ -236,7 +236,7 @@ type AnalysisWorkflowInput = {
   chapter: string;
   lectureText: string;
   waitTimeEvidence: string;
-  priorSameChapterContext?: string;
+  priorLessonTargetContext?: string;
   audioDuration?: number;
   files: File[];
   onProgress?: (progress: WorkflowProgress) => Promise<void> | void;
@@ -1097,23 +1097,46 @@ function extractPriorCoverageSignalsFromResult(result: string) {
     .slice(0, 4);
 }
 
-async function getPriorSameChapterContext(params: {
+function buildLessonTargetTitle(params: {
+  grade: string;
+  subject: string;
+  book: string;
+  chapter: string;
+}) {
+  const trimmedChapter = params.chapter.trim();
+  const trimmedBook = params.book.trim();
+  const isHigherEdBiology =
+    params.grade.trim().toLowerCase() === "higher ed" &&
+    params.subject.trim().toLowerCase() === "biology";
+
+  if (!trimmedChapter) {
+    return "";
+  }
+
+  if (isHigherEdBiology) {
+    return `Campbell Biology ${trimmedChapter}`;
+  }
+
+  if (trimmedBook) {
+    return `${trimmedBook} ${trimmedChapter}`;
+  }
+
+  return trimmedChapter;
+}
+
+async function getPriorLessonTargetContext(params: {
   targetUserId: string;
   grade: string;
   subject: string;
+  book: string;
   chapter: string;
 }) {
-  const isHigherEdBiology =
-    params.grade.trim().toLowerCase() === "higher ed" &&
-    params.subject.trim().toLowerCase() === "biology" &&
-    params.chapter.trim().length > 0;
-
-  if (!isHigherEdBiology) {
+  const lessonTitle = buildLessonTargetTitle(params);
+  if (!lessonTitle) {
     return "";
   }
 
   const serviceSupabase = createServiceSupabaseClient();
-  const lessonTitle = `Campbell Biology ${params.chapter.trim()}`;
   const { data, error } = await serviceSupabase
     .from("analyses")
     .select("result, created_at")
@@ -1125,7 +1148,7 @@ async function getPriorSameChapterContext(params: {
     .limit(4);
 
   if (error) {
-    console.error("PRIOR SAME-CHAPTER CONTEXT LOAD ERROR:", error);
+    console.error("PRIOR LESSON TARGET CONTEXT LOAD ERROR:", error);
     return "";
   }
 
@@ -1140,12 +1163,12 @@ async function getPriorSameChapterContext(params: {
   const dedupedSignals = Array.from(new Set(priorSignals)).slice(0, 4);
 
   const signalBlock = dedupedSignals.length
-    ? `\nPreviously covered same-chapter content from earlier saved lessons may include:\n${dedupedSignals
+    ? `\nPreviously covered content from earlier lessons on this same target may include:\n${dedupedSignals
         .map((item) => `- ${item}`)
         .join("\n")}`
     : "";
 
-  return `There ${priorReports.length === 1 ? "is 1 earlier saved lesson" : `are ${priorReports.length} earlier saved lessons`} for this same teacher and Campbell Biology chapter. Treat this recording as one part of an ongoing same-chapter sequence. Do not mark previously covered chapter objectives or concepts as missing simply because they are not repeated in this recording.${signalBlock}\nOnly flag a same-chapter objective as a gap if this recording was clearly expected to reteach or deepen it and the transcript shows that did not happen.`;
+  return `There ${priorReports.length === 1 ? "is 1 earlier saved lesson" : `are ${priorReports.length} earlier saved lessons`} for this same teacher and lesson target (${lessonTitle}). Treat this recording as one part of an ongoing same-target sequence. Do not mark previously covered objectives, standards, or core concepts as missing simply because they are not repeated in this recording.${signalBlock}\nOnly flag a same-target objective, standard, or concept as a gap if this recording was clearly expected to reteach, assess, or deepen it and the transcript shows that did not happen.`;
 }
 
 async function updateAnalysisJob(
@@ -1178,7 +1201,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
     chapter,
     lectureText,
     waitTimeEvidence,
-    priorSameChapterContext,
+    priorLessonTargetContext,
     audioDuration,
     files,
     onProgress,
@@ -1283,9 +1306,13 @@ Use varied wording across sections. Do not repeat the same sentence frame in mul
 Score the lesson with professional calibration. The scores do not need to match each other. Let strengths and weaknesses land where the evidence supports them. Only use the same number across multiple categories if the transcript truly supports that level across all of them.`;
 
   if (isHigherEdBiology) {
-    systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson. Do not penalize the lesson for failing to repeat chapter content or objectives that were already covered in earlier same-chapter lessons unless this specific recording was clearly expected to reteach or extend that content.${priorSameChapterContext ? `\n\nSame-chapter prior context:\n${priorSameChapterContext}` : ''}`;
+    systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson.`;
   } else if (isHigherEdCustomText && book) {
     systemPrompt += `\n\nFor this Higher Ed lesson, compare the instruction to the expectations of the provided textbook and chapter. Evaluate whether the lesson reflects accurate terminology, concept depth, prerequisite logic, and chapter-level expectations for that course text.`;
+  }
+
+  if (priorLessonTargetContext) {
+    systemPrompt += `\n\nPrior same-target context:\n${priorLessonTargetContext}`;
   }
 
   const waitTimeGuidance = `Important wait-time rule: once the lesson is underway, assume the teacher typically allows about 8 to 10 seconds for student response after questions unless the transcript gives clear evidence that the teacher rushed, answered their own questions, cut students off, or rapidly moved on without space for thinking. Audio transcription often removes silence, pauses, and think time, so do not criticize wait time based only on the absence of transcribed silence. Only flag weak wait time when there is explicit evidence of it in the lesson record.`;
@@ -1316,6 +1343,8 @@ Important writing rules:
 - INSTRUCTIONAL COACHING FEEDBACK should summarize patterns and implications, not restate earlier bullets verbatim.
 - For CONTENT GAPS TO REINFORCE, only include concepts that are truly absent, inaccurate, or materially underdeveloped across the lesson as a whole. If a concept is clearly taught later in the transcript, do not list it as a gap.
 - If the recording is part one of a multi-part lesson sequence, distinguish between "not yet covered in this recording" and "incorrectly or inadequately taught."
+- If earlier lessons already covered the same chapter, unit, or lesson target, do not mark that prior-covered information as missing just because it is not repeated here.
+- Only flag previously taught content as a gap when this specific recording was clearly expected to reteach, assess, or deepen it and the transcript shows that did not happen.
 - For Higher Ed Biology, do not treat previously covered same-chapter objectives as newly missing just because this recording focused on a different part of the chapter sequence.
 - For Higher Ed Biology, do not claim mRNA, tRNA, rRNA, codons, transcription, or translation were missing if the transcript explicitly names them and gives their role with basic accuracy. In that case, you may note a need for added depth or precision, but not absence.
 - For Higher Ed Biology, if the transcript explicitly ties tRNA to amino acids or anticodons, or ties rRNA to the ribosome's structure or function, do not keep those as content gaps.
@@ -2243,9 +2272,13 @@ Use varied wording across sections. Do not repeat the same sentence frame in mul
 Score the lesson with professional calibration. The scores do not need to match each other. Let strengths and weaknesses land where the evidence supports them. Only use the same number across multiple categories if the transcript truly supports that level across all of them.`;
 
     if (isHigherEdBiology) {
-      systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson. Do not penalize the lesson for failing to repeat chapter content or objectives that were already covered in earlier same-chapter lessons unless this specific recording was clearly expected to reteach or extend that content.`;
+      systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson.`;
     } else if (isHigherEdCustomText && book) {
       systemPrompt += `\n\nFor this Higher Ed lesson, compare the instruction to the expectations of the provided textbook and chapter. Evaluate whether the lesson reflects accurate terminology, concept depth, prerequisite logic, and chapter-level expectations for that course text.`;
+    }
+
+    if (priorLessonTargetContext) {
+      systemPrompt += `\n\nPrior same-target context:\n${priorLessonTargetContext}`;
     }
     const waitTimeGuidance = `Important wait-time rule: once the lesson is underway, assume the teacher typically allows about 8 to 10 seconds for student response after questions unless the transcript gives clear evidence that the teacher rushed, answered their own questions, cut students off, or rapidly moved on without space for thinking. Audio transcription often removes silence, pauses, and think time, so do not criticize wait time based only on the absence of transcribed silence. Only flag weak wait time when there is explicit evidence of it in the lesson record.`;
     let userPrompt = '';
@@ -2275,6 +2308,8 @@ Important writing rules:
 - INSTRUCTIONAL COACHING FEEDBACK should summarize patterns and implications, not restate earlier bullets verbatim.
 - For CONTENT GAPS TO REINFORCE, only include concepts that are truly absent, inaccurate, or materially underdeveloped across the lesson as a whole. If a concept is clearly taught later in the transcript, do not list it as a gap.
 - If the recording is part one of a multi-part lesson sequence, distinguish between "not yet covered in this recording" and "incorrectly or inadequately taught."
+- If earlier lessons already covered the same chapter, unit, or lesson target, do not mark that prior-covered information as missing just because it is not repeated here.
+- Only flag previously taught content as a gap when this specific recording was clearly expected to reteach, assess, or deepen it and the transcript shows that did not happen.
 - For Higher Ed Biology, do not treat previously covered same-chapter objectives as newly missing just because this recording focused on a different part of the chapter sequence.
 - For Higher Ed Biology, do not claim mRNA, tRNA, rRNA, codons, transcription, or translation were missing if the transcript explicitly names them and gives their role with basic accuracy. In that case, you may note a need for added depth or precision, but not absence.
 - Before naming a biology content gap, verify that the concept was not adequately addressed anywhere in the transcript. If it was taught with reasonable introductory accuracy, frame the issue as limited depth, incomplete distinction, or deferred follow-up instead of saying it was not covered.
@@ -2999,10 +3034,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const priorSameChapterContext = await getPriorSameChapterContext({
+    const priorLessonTargetContext = await getPriorLessonTargetContext({
       targetUserId,
       grade,
       subject,
+      book,
       chapter,
     });
 
@@ -3042,7 +3078,7 @@ export async function POST(req: Request) {
         chapter,
         lectureText,
         waitTimeEvidence,
-        priorSameChapterContext,
+        priorLessonTargetContext,
         audioDuration,
         files,
       });
@@ -3075,7 +3111,7 @@ export async function POST(req: Request) {
         chapter,
         lectureText,
         waitTimeEvidence,
-        priorSameChapterContext,
+        priorLessonTargetContext,
         audioDuration,
         files,
       });
