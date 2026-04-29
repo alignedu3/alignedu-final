@@ -84,30 +84,37 @@ export default function HeroCoverageCharts({
 }
 
 const previewSubjectCard: React.CSSProperties = {
+  borderRadius: '10px',
+  border: '1px solid rgba(148,163,184,0.2)',
+  background: 'linear-gradient(180deg, rgba(255,255,255,0.94), rgba(248,250,252,0.9))',
+  padding: '8px',
+  boxShadow: '0 6px 14px rgba(15,23,42,0.05)',
   minWidth: 0,
-  background: '#ffffff',
-  border: '1px solid rgba(148, 163, 184, 0.2)',
-  borderRadius: '18px',
-  padding: '12px',
-  display: 'grid',
-  gridTemplateColumns: '70px minmax(0, 1fr)',
-  gap: '12px',
-  alignItems: 'stretch',
-  boxShadow: '0 10px 30px rgba(15, 23, 42, 0.08)',
 };
 
 const previewSubjectTitle: React.CSSProperties = {
+  fontSize: '11px',
+  fontWeight: 800,
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  marginBottom: '8px',
+  textAlign: 'center',
   color: '#0f172a',
-  fontSize: '12px',
-  fontWeight: 700,
-  lineHeight: 1.5,
-  whiteSpace: 'pre-line',
+  minHeight: '26px',
   display: 'flex',
   alignItems: 'center',
+  justifyContent: 'center',
+  whiteSpace: 'pre-line',
+  lineHeight: 1.05,
 };
 
 const previewCoverageChartWrap: React.CSSProperties = {
-  width: '100%',
-  height: 210,
+  position: 'relative',
+  borderRadius: '9px',
+  background: 'rgba(255,255,255,0.92)',
+  border: '1px solid rgba(148,163,184,0.24)',
+  padding: '8px 6px 6px 2px',
+  height: '136px',
   minWidth: 0,
+  minHeight: 136,
 };
