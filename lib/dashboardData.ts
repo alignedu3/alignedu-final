@@ -211,7 +211,58 @@ function extractHigherEdBiologyChapterNumber(report: AnalysisReport) {
   return transcriptMatch ? Number(transcriptMatch[1]) : null;
 }
 
+function normalizeComparisonText(value: string) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getTranscriptComparisonSlice(report: AnalysisReport) {
+  return normalizeComparisonText(String(report.transcript || ''))
+    .split(/\s+/)
+    .slice(0, 80)
+    .join(' ');
+}
+
+function areLikelyDuplicateLessonAttempts(currentReport: AnalysisReport, previousReport: AnalysisReport) {
+  if (String(currentReport.id || '') === String(previousReport.id || '')) {
+    return true;
+  }
+
+  const currentCreatedAt = Date.parse(String(currentReport.created_at || currentReport.date || ''));
+  const previousCreatedAt = Date.parse(String(previousReport.created_at || previousReport.date || ''));
+  const withinOneDay =
+    Number.isFinite(currentCreatedAt) &&
+    Number.isFinite(previousCreatedAt) &&
+    Math.abs(currentCreatedAt - previousCreatedAt) <= 24 * 60 * 60 * 1000;
+
+  const sameGrade =
+    normalizeGradeLabel(String(currentReport.grade || '')) ===
+    normalizeGradeLabel(String(previousReport.grade || ''));
+  const sameSubject =
+    normalizeSubjectLabel(String(currentReport.subject || '')) ===
+    normalizeSubjectLabel(String(previousReport.subject || ''));
+  const sameTitle =
+    normalizeComparisonText(String(currentReport.title || '')) ===
+    normalizeComparisonText(String(previousReport.title || ''));
+
+  const currentTranscriptSlice = getTranscriptComparisonSlice(currentReport);
+  const previousTranscriptSlice = getTranscriptComparisonSlice(previousReport);
+  const sameTranscriptLead =
+    currentTranscriptSlice.length >= 40 &&
+    previousTranscriptSlice.length >= 40 &&
+    currentTranscriptSlice === previousTranscriptSlice;
+
+  return sameGrade && sameSubject && sameTitle && withinOneDay && sameTranscriptLead;
+}
+
 function areLessonsTopicRelated(currentReport: AnalysisReport, previousReport: AnalysisReport) {
+  if (areLikelyDuplicateLessonAttempts(currentReport, previousReport)) {
+    return false;
+  }
+
   const currentProfile = getTopicProfile(currentReport);
   const previousProfile = getTopicProfile(previousReport);
 

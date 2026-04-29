@@ -741,7 +741,7 @@ export default function AnalysisPage() {
     padding: '14px 18px 16px',
     borderRadius: 18,
     alignItems: 'stretch',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
     background:
       'linear-gradient(135deg, rgba(249,115,22,0.96), rgba(251,146,60,0.95))',
     boxShadow: '0 18px 38px rgba(249, 115, 22, 0.22)',
@@ -750,18 +750,20 @@ export default function AnalysisPage() {
   const analyzeButtonIdleStyle: React.CSSProperties = {
     width: '100%',
     maxWidth: 360,
+    margin: '0 auto',
   };
 
   const buttonStatusStackStyle: React.CSSProperties = {
     width: '100%',
     display: 'grid',
     gap: 10,
-    textAlign: 'left',
+    textAlign: 'center',
   };
 
   const buttonStatusRowStyle: React.CSSProperties = {
     display: 'flex',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 10,
     minWidth: 0,
   };
@@ -777,12 +779,12 @@ export default function AnalysisPage() {
 
   const buttonStatusTextStyle: React.CSSProperties = {
     color: '#ffffff',
-    fontSize: 15,
+    fontSize: 'clamp(13px, 2.8vw, 15px)',
     fontWeight: 800,
-    lineHeight: 1.25,
-    whiteSpace: 'nowrap',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
+    lineHeight: 1.3,
+    whiteSpace: 'normal',
+    overflowWrap: 'anywhere',
+    maxWidth: '100%',
   };
 
   const buttonMetaTextStyle: React.CSSProperties = {
@@ -814,6 +816,8 @@ export default function AnalysisPage() {
     fontSize: 12,
     textAlign: 'center',
     opacity: 0.82,
+    maxWidth: 420,
+    marginInline: 'auto',
   };
 
   const recorderCardStyle: React.CSSProperties = {

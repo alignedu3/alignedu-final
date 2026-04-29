@@ -254,7 +254,7 @@ async function callOpenAI(openai: OpenAI, messages: ChatMessage[]) {
   return await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages,
-    temperature: 0.2,
+    temperature: 0,
   });
 }
 
@@ -269,7 +269,7 @@ async function callOpenAIMetricsRepair(openai: OpenAI, prompt: string) {
       },
       { role: "user", content: prompt },
     ],
-    temperature: 0.2,
+    temperature: 0,
   });
 }
 
@@ -284,7 +284,7 @@ async function callOpenAISectionRepair(openai: OpenAI, prompt: string) {
       },
       { role: "user", content: prompt },
     ],
-    temperature: 0.35,
+    temperature: 0,
   });
 }
 
