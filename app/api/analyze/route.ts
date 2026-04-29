@@ -288,6 +288,100 @@ function safeJson<T>(data: T, status = 200) {
   });
 }
 
+function buildCoverageCalibrationContext(params: {
+  hasStandards: boolean;
+  isHigherEdBiology: boolean;
+  isHigherEdCustomText: boolean;
+  grade: string;
+  subject: string;
+  chapter: string;
+  book: string;
+  primaryPromptStandards: Array<{ code: string; description: string }>;
+  relatedPromptStandards: Array<{ code: string; description: string }>;
+  matchedBiologyObjectives: string[];
+}) {
+  const {
+    hasStandards,
+    isHigherEdBiology,
+    isHigherEdCustomText,
+    chapter,
+    book,
+    primaryPromptStandards,
+    relatedPromptStandards,
+    matchedBiologyObjectives,
+  } = params;
+
+  const rubric = `Coverage scoring rubric:
+- 95-100: Nearly all priority lesson targets for this chapter/objective set or TEKS set were taught accurately and with strong completeness.
+- 85-94: Most priority targets were covered well, with only minor omissions or thin spots.
+- 70-84: The lesson covered the core target, but multiple important subtopics, distinctions, or standard elements remained partial, thin, or deferred.
+- 50-69: Only part of the intended target set was covered; several key concepts or required elements were not developed enough.
+- 30-49: Limited coverage of what was supposed to be taught.
+- 0-29: The lesson was largely off-target from the intended chapter/objective or standards set.`;
+
+  if (isHigherEdBiology) {
+    return `${rubric}
+
+For Higher Ed Biology, score Coverage against what should reasonably be taught for ${chapter || "the selected Campbell Biology chapter"} and these matched course objective(s):
+${matchedBiologyObjectives.length ? matchedBiologyObjectives.map((objective) => `- ${objective}`).join("\n") : "- No matched objective available."}
+
+Do not default Coverage to around 70 just because 2 or 3 content gaps appear.
+Coverage must reflect how much of the intended chapter/objective content was actually taught across the full lesson, on a true 0-100 scale.`;
+  }
+
+  if (isHigherEdCustomText) {
+    return `${rubric}
+
+For Higher Ed lessons, score Coverage against the intended textbook target${book ? ` from ${book}` : ""}${chapter ? ` for ${chapter}` : ""}.
+Do not default Coverage to around 70 just because a few content gaps appear.`;
+  }
+
+  if (hasStandards) {
+    return `${rubric}
+
+For school-grade lessons, score Coverage against the intended standards target using the Primary TEKS first and the Related Supporting TEKS second.
+Primary TEKS:
+${primaryPromptStandards.length ? primaryPromptStandards.map((standard) => `- ${standard.code}: ${standard.description}`).join("\n") : "- None identified."}
+
+Related Supporting TEKS:
+${relatedPromptStandards.length ? relatedPromptStandards.map((standard) => `- ${standard.code}: ${standard.description}`).join("\n") : "- None identified."}
+
+Do not default Coverage to around 70 just because 2 or 3 content gaps appear.
+Coverage must reflect how much of the intended TEKS set was actually taught, on a true 0-100 scale.`;
+  }
+
+  return `${rubric}
+
+Score Coverage based on how completely the intended lesson target was actually taught, not simply on the number of listed gaps.`;
+}
+
+function buildMetricCalibrationContext(params: {
+  coverageCalibrationContext: string;
+}) {
+  return `${params.coverageCalibrationContext}
+
+Additional metric calibration:
+- Clarity:
+  - 90-100: Explanations, modeling, and distinctions were consistently precise and easy to follow.
+  - 75-89: Mostly clear, with a few rushed, thin, or less precise moments.
+  - 60-74: Understandable in parts, but several explanations or distinctions were incomplete or confusing.
+  - Below 60: Students would likely struggle to follow the lesson due to major imprecision or confusion.
+- Engagement:
+  - 90-100: Students were consistently prompted to think, respond, discuss, or demonstrate understanding.
+  - 75-89: Good participation and interaction, though not constant.
+  - 60-74: Some engagement was present, but much of the lesson was passive or uneven.
+  - Below 60: Little evidence of active student participation.
+- Assessment Quality:
+  - 90-100: Checks for understanding gave strong evidence of actual mastery.
+  - 75-89: Useful checks were present, but not consistently deep or precise.
+  - 60-74: Limited or surface-level checks for understanding.
+  - Below 60: Little reliable evidence that student understanding was checked.
+- Instructional Score:
+  - This should reflect the weighted quality of the lesson as a whole, based on Coverage, Clarity, Engagement, and Assessment Quality.
+  - Do not anchor Instructional Score or Coverage to the number of gap bullets alone.
+  - Use the full 0-100 range when justified by the evidence.`;
+}
+
 async function callOpenAI(openai: OpenAI, messages: ChatMessage[]) {
   return await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -1075,6 +1169,21 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
     subject.trim().length > 0 &&
     subject.trim().toLowerCase() !== 'biology';
   const matchedBiologyObjectives = isHigherEdBiology ? getHigherEdBiologyObjectivesForChapter(chapter) : [];
+  const coverageCalibrationContext = buildCoverageCalibrationContext({
+    hasStandards,
+    isHigherEdBiology,
+    isHigherEdCustomText,
+    grade,
+    subject,
+    chapter,
+    book,
+    primaryPromptStandards,
+    relatedPromptStandards,
+    matchedBiologyObjectives,
+  });
+  const metricCalibrationContext = buildMetricCalibrationContext({
+    coverageCalibrationContext,
+  });
   const lessonContextTitle = chapter
     ? isHigherEdBiology
       ? `Campbell Biology ${chapter}`
@@ -1129,6 +1238,9 @@ Important writing rules:
 - For Higher Ed Biology, if the transcript explicitly ties tRNA to amino acids or anticodons, or ties rRNA to the ribosome's structure or function, do not keep those as content gaps.
 - Before naming a biology content gap, verify that the concept was not adequately addressed anywhere in the transcript. If it was taught with reasonable introductory accuracy, frame the issue as limited depth, incomplete distinction, or deferred follow-up instead of saying it was not covered.
 - For Higher Ed Biology, anchor missing-content judgments to the selected Campbell Biology chapter and the matched course objective(s), not to every concept that could appear somewhere in a broader biology unit.
+- Coverage must be scored directly against the intended chapter/objective target or TEKS target, not inferred only from the number of gap bullets.
+
+${metricCalibrationContext}
 
 Metrics:
 Instructional Score (0-100): [number]
@@ -1216,7 +1328,10 @@ Assessment Quality (0-100): [number]
 Gaps Flagged: [number]
 
 Calibrate each metric independently. Do not give all five instructional metrics the same number unless the evidence clearly supports that. Use the report draft and transcript together to infer the most defensible scores.
+Coverage must be judged directly against the intended chapter/objective target or TEKS target, not simply from the count of listed gaps.
 ${strictCalibration ? 'Avoid a flat 75/75/75/75/75 block unless the transcript overwhelmingly supports identical middle-of-the-road performance across every category. When evidence differs by category, the numbers must differ.' : ''}
+
+${metricCalibrationContext}
 
 Grade: ${grade}
 Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}
@@ -1705,6 +1820,9 @@ Rules:
 - Do not return a flat 75/75/75/75/75 block unless the evidence is genuinely identical across every category.
 - If the evidence differs by category, the numbers must differ.
 - Use the full scoring range when justified by the lesson evidence.
+- Coverage must be judged directly against the intended chapter/objective target or TEKS target, not simply from the count of listed gaps.
+
+${metricCalibrationContext}
 
 Grade: ${grade}
 Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}

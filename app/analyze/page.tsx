@@ -733,8 +733,12 @@ export default function AnalysisPage() {
 
   const actionClusterStyle: React.CSSProperties = {
     position: 'relative',
-    width: 'min(100%, 560px)',
+    width: '100%',
+    maxWidth: 560,
     margin: '0 auto',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
   };
 
   const analyzeButtonLoadingStyle: React.CSSProperties = {
@@ -750,9 +754,8 @@ export default function AnalysisPage() {
   };
 
   const analyzeButtonIdleStyle: React.CSSProperties = {
-    width: '100%',
-    maxWidth: 360,
-    margin: '0 auto',
+    width: 'min(100%, 360px)',
+    marginInline: 'auto',
   };
 
   const buttonStatusStackStyle: React.CSSProperties = {
