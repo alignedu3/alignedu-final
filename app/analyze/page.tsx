@@ -60,7 +60,7 @@ function estimateAnalysisProcessingSeconds(audioSeconds: number | null, chunkCou
 
 function getChunkSecondsForDuration(duration: number) {
   if (duration >= 40 * 60) {
-    return 10 * 60;
+    return 5 * 60;
   }
 
   if (duration >= 15 * 60) {
@@ -898,6 +898,122 @@ export default function AnalysisPage() {
     }
   };
 
+  const buildCombinedWaitTimeEvidence = (responses: Array<{
+    responseWaitEvidence?: string;
+    promptPauseCount?: number;
+    averagePromptPauseSeconds?: number | null;
+    longestPromptPauseSeconds?: number | null;
+  }>) => {
+    const totalPromptPauses = responses.reduce(
+      (sum, item) => sum + (typeof item.promptPauseCount === "number" ? item.promptPauseCount : 0),
+      0
+    );
+    const weightedPauseSeconds = responses.reduce((sum, item) => {
+      if (
+        typeof item.promptPauseCount === "number" &&
+        item.promptPauseCount > 0 &&
+        typeof item.averagePromptPauseSeconds === "number"
+      ) {
+        return sum + item.promptPauseCount * item.averagePromptPauseSeconds;
+      }
+      return sum;
+    }, 0);
+    const longestPause = responses.reduce((longest, item) => {
+      if (typeof item.longestPromptPauseSeconds === "number") {
+        return Math.max(longest, item.longestPromptPauseSeconds);
+      }
+      return longest;
+    }, 0);
+
+    if (totalPromptPauses > 0) {
+      const averagePause = weightedPauseSeconds / totalPromptPauses;
+      return `Audio timing evidence: across the submitted audio, ${totalPromptPauses} likely prompt-response pause${totalPromptPauses === 1 ? "" : "s"} of at least 4 seconds were detected. Average detected pause: ${averagePause.toFixed(
+        1
+      )} seconds. Longest detected pause: ${longestPause.toFixed(
+        1
+      )} seconds. Use this as supporting evidence that student think time may be present even when silence is not visible in the transcript text.`;
+    }
+
+    return responses
+      .map((item) => String(item.responseWaitEvidence || "").trim())
+      .find(Boolean) || "";
+  };
+
+  const transcribeAudioChunks = async (chunks: File[]) => {
+    if (chunks.length === 0) {
+      return { transcript: "", waitTimeEvidence: "" };
+    }
+
+    const responses = new Array<{
+      transcript?: string;
+      responseWaitEvidence?: string;
+      promptPauseCount?: number;
+      averagePromptPauseSeconds?: number | null;
+      longestPromptPauseSeconds?: number | null;
+      error?: string;
+    }>(chunks.length);
+    let nextIndex = 0;
+    let completed = 0;
+    const workerCount = Math.min(2, chunks.length);
+
+    const worker = async () => {
+      while (true) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+
+        if (currentIndex >= chunks.length) {
+          return;
+        }
+
+        setProcessingStep(
+          chunks.length > 1
+            ? `Transcribing audio ${currentIndex + 1} of ${chunks.length}...`
+            : "Transcribing audio..."
+        );
+
+        const transcriptionForm = new FormData();
+        transcriptionForm.append("file", chunks[currentIndex]);
+
+        const response = await fetch("/api/transcribe", {
+          method: "POST",
+          body: transcriptionForm,
+          credentials: "include",
+        });
+
+        const data = await parseJsonOrText(response);
+        if (!response.ok) {
+          throw new Error(data?.error || "Audio transcription failed.");
+        }
+
+        responses[currentIndex] = data;
+        completed += 1;
+
+        setProcessingStep(
+          chunks.length > 1
+            ? `Transcribed ${completed} of ${chunks.length} audio chunks...`
+            : "Audio transcription complete."
+        );
+      }
+    };
+
+    await Promise.all(Array.from({ length: workerCount }, () => worker()));
+
+    const transcript = responses
+      .map((item, index) => {
+        const spokenText = String(item?.transcript || "").trim();
+        if (!spokenText) return "";
+        if (chunks.length === 1) return spokenText;
+        return `[Transcript chunk ${index + 1} of ${chunks.length}]\n${spokenText}`;
+      })
+      .filter(Boolean)
+      .join("\n\n");
+
+    return {
+      transcript,
+      waitTimeEvidence: buildCombinedWaitTimeEvidence(responses),
+    };
+  };
+
   const resultSections = parseAnalysisResult(result);
   const parsedResultMetrics = parseAnalysisMetrics(result);
   const resultMetrics = {
@@ -1160,7 +1276,20 @@ export default function AnalysisPage() {
         )
       );
 
-      if (!transcriptText && audioChunksForAnalysis.length === 0) {
+      let combinedTranscriptText = transcriptText;
+      let waitTimeEvidence = "";
+
+      if (audioChunksForAnalysis.length > 0) {
+        const transcriptionResult = await transcribeAudioChunks(audioChunksForAnalysis);
+        if (transcriptionResult.transcript) {
+          combinedTranscriptText = combinedTranscriptText
+            ? `${combinedTranscriptText}\n\nAudio Transcript:\n${transcriptionResult.transcript}`
+            : transcriptionResult.transcript;
+        }
+        waitTimeEvidence = transcriptionResult.waitTimeEvidence;
+      }
+
+      if (!combinedTranscriptText) {
         setError("Please provide lesson notes or upload an audio file for transcription.");
         setLoading(false);
         return;
@@ -1171,24 +1300,20 @@ export default function AnalysisPage() {
       analysisForm.append("subject", subject);
       analysisForm.append("book", book.trim());
       analysisForm.append("chapter", chapter.trim());
-      if (transcriptText) {
-        analysisForm.append("lecture", transcriptText);
+      if (combinedTranscriptText) {
+        analysisForm.append("lecture", combinedTranscriptText);
       }
-      audioChunksForAnalysis.forEach((chunk) => {
-        analysisForm.append("file", chunk);
-      });
-      if (audioChunksForAnalysis.length > 0) {
-        setProcessingStep(
-          audioChunksForAnalysis.length > 1
-            ? `Uploading ${audioChunksForAnalysis.length} audio chunks for transcription...`
-            : "Uploading audio for transcription..."
-        );
+      if (typeof resolvedDuration === "number" && Number.isFinite(resolvedDuration)) {
+        analysisForm.append("audioDuration", String(Math.round(resolvedDuration)));
+      }
+      if (waitTimeEvidence) {
+        analysisForm.append("waitTimeEvidence", waitTimeEvidence);
       }
       if (isAdminObservationMode) {
         analysisForm.append("observedTeacherId", observedTeacherId);
       }
 
-      setProcessingStep("Sending for analysis...");
+      setProcessingStep("Sending transcript for analysis...");
 
       const res = await fetch("/api/analyze", {
         method: "POST",
