@@ -67,15 +67,8 @@ export async function proxy(req: NextRequest) {
       return NextResponse.redirect(new URL('/login', req.url))
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!['admin', 'super_admin'].includes(profile?.role)) {
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    }
+    // Defer role checks to the server layout so proxy only handles session
+    // refresh and unauthenticated redirects on admin routes.
   } catch (error) {
     captureRouteException(error, {
       route: 'proxy',
