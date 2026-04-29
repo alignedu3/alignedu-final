@@ -20,7 +20,7 @@ function createOpenAIClient() {
   return new OpenAI({ apiKey: getOpenAIKey() });
 }
 
-const TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
+const TRANSCRIPTION_MODEL = "whisper-1";
 
 function safeJson<T>(data: T, status = 200) {
   return new Response(JSON.stringify(data), {

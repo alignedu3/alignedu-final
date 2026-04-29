@@ -299,6 +299,8 @@ async function transcribeAudioFiles(
   }
 
   const transcriptionModel = selectTranscriptionModel(audioDurationSeconds, files.length);
+  const responseFormat =
+    transcriptionModel === "whisper-1" ? "verbose_json" : "json";
   const transcripts = new Array<string>(files.length).fill("");
   let nextIndex = 0;
   let completed = 0;
@@ -316,7 +318,7 @@ async function transcribeAudioFiles(
       const transcription = await openai.audio.transcriptions.create({
         file: files[currentIndex],
         model: transcriptionModel,
-        response_format: "verbose_json",
+        response_format: responseFormat,
       });
 
       transcripts[currentIndex] = String(transcription.text || "").trim();
