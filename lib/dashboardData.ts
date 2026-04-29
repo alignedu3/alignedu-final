@@ -691,6 +691,38 @@ function normalizeInsightItems(items: string[]) {
   );
 }
 
+function isPriorGapStillOpenInCurrentLesson(currentReport: AnalysisReport, priorGap: string) {
+  const currentSections = getLessonReportSections(currentReport);
+  const currentSignals = normalizeInsightItems([
+    ...currentSections.contentGaps,
+    ...currentSections.improvements,
+    currentSections.recommendedNextStep || '',
+  ]);
+
+  if (!currentSignals.length) {
+    return false;
+  }
+
+  const normalizedPriorGap = normalizeInsightText(priorGap);
+  const priorGapTokens = new Set(tokenizeTopicText(priorGap));
+
+  return currentSignals.some((signal) => {
+    const normalizedSignal = normalizeInsightText(signal);
+    if (!normalizedSignal) return false;
+    if (
+      normalizedSignal === normalizedPriorGap ||
+      normalizedSignal.includes(normalizedPriorGap) ||
+      normalizedPriorGap.includes(normalizedSignal)
+    ) {
+      return true;
+    }
+
+    const signalTokens = new Set(tokenizeTopicText(signal));
+    const sharedTokens = countSharedValues(priorGapTokens, signalTokens);
+    return sharedTokens >= 2;
+  });
+}
+
 function getCoachingSectionItems(report: AnalysisReport, title: string) {
   const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
   const section = parsed.coaching.find((entry) => entry.title === title);
@@ -1185,6 +1217,7 @@ export function getRelatedPriorLessonGaps(
     sections.contentGaps.forEach((gap) => {
       const normalizedGap = normalizeInsightText(gap);
       if (!normalizedGap || seen.has(normalizedGap)) return;
+      if (!isPriorGapStillOpenInCurrentLesson(currentReport, gap)) return;
       seen.add(normalizedGap);
       items.push({
         reportId: report.id,
