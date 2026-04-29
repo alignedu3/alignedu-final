@@ -729,49 +729,91 @@ export default function AnalysisPage() {
     marginTop: 16,
   };
 
-  const processingCardStyle: React.CSSProperties = {
-    marginTop: 18,
+  const actionClusterStyle: React.CSSProperties = {
+    position: 'relative',
+    width: 'min(100%, 560px)',
+    margin: '0 auto',
+  };
+
+  const analyzeButtonLoadingStyle: React.CSSProperties = {
+    width: '100%',
+    minHeight: 74,
+    padding: '14px 18px 16px',
     borderRadius: 18,
-    border: '1px solid rgba(14,165,233,0.22)',
-    background: 'linear-gradient(180deg, rgba(14,165,233,0.12), rgba(15,23,42,0.06))',
-    padding: 18,
+    alignItems: 'stretch',
+    justifyContent: 'flex-start',
+    background:
+      'linear-gradient(135deg, rgba(249,115,22,0.96), rgba(251,146,60,0.95))',
+    boxShadow: '0 18px 38px rgba(249, 115, 22, 0.22)',
+  };
+
+  const analyzeButtonIdleStyle: React.CSSProperties = {
+    width: '100%',
+    maxWidth: 360,
+  };
+
+  const buttonStatusStackStyle: React.CSSProperties = {
+    width: '100%',
     display: 'grid',
-    gap: 12,
-    boxShadow: 'var(--shadow-soft)',
-  };
-
-  const processingMetaRowStyle: React.CSSProperties = {
-    display: 'flex',
-    flexWrap: 'wrap',
     gap: 10,
-    alignItems: 'center',
+    textAlign: 'left',
   };
 
-  const processingChipStyle: React.CSSProperties = {
-    padding: '7px 10px',
+  const buttonStatusRowStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    minWidth: 0,
+  };
+
+  const buttonPulseStyle: React.CSSProperties = {
+    width: 10,
+    height: 10,
     borderRadius: 999,
-    background: 'rgba(15,23,42,0.12)',
-    border: '1px solid rgba(148,163,184,0.18)',
-    color: 'var(--text-secondary)',
+    background: 'rgba(255,255,255,0.96)',
+    boxShadow: '0 0 0 6px rgba(255,255,255,0.14)',
+    flexShrink: 0,
+  };
+
+  const buttonStatusTextStyle: React.CSSProperties = {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: 800,
+    lineHeight: 1.25,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  };
+
+  const buttonMetaTextStyle: React.CSSProperties = {
+    color: 'rgba(255,255,255,0.86)',
     fontSize: 12,
     fontWeight: 700,
-    letterSpacing: '0.04em',
+    letterSpacing: '0.03em',
     textTransform: 'uppercase',
   };
 
-  const progressTrackStyle: React.CSSProperties = {
+  const buttonProgressTrackStyle: React.CSSProperties = {
     width: '100%',
-    height: 10,
+    height: 8,
     borderRadius: 999,
-    background: 'rgba(148,163,184,0.2)',
+    background: 'rgba(255,255,255,0.22)',
     overflow: 'hidden',
   };
 
-  const progressFillStyle: React.CSSProperties = {
+  const buttonProgressFillStyle: React.CSSProperties = {
     height: '100%',
     borderRadius: 999,
-    background: 'linear-gradient(90deg, #0ea5e9 0%, #22c55e 100%)',
-    transition: 'width 0.6s ease',
+    background: 'linear-gradient(90deg, rgba(255,255,255,0.72) 0%, #fff 100%)',
+    transition: 'width 0.5s ease',
+  };
+
+  const analysisStatusHintStyle: React.CSSProperties = {
+    marginTop: 10,
+    color: 'var(--text-secondary)',
+    fontSize: 12,
+    textAlign: 'center',
+    opacity: 0.82,
   };
 
   const recorderCardStyle: React.CSSProperties = {
@@ -1632,44 +1674,47 @@ export default function AnalysisPage() {
               </div>
 
               <div className="analysis-actions">
-                <button
-                  className="analyze-btn"
-                  onClick={handleSubmit}
-                  disabled={loading || (isAdminObservationMode && (!observerReady || !observedTeacherId || !subject.trim()))}
-                >
-                  {loading ? processingStep || "Analyzing..." : "Analyze Lesson"}
-                </button>
-              </div>
-
-              {loading && (
-                <div style={processingCardStyle}>
-                  <div style={{ color: 'var(--text-primary)', fontSize: 16, fontWeight: 800 }}>
-                    {processingStep || "Analyzing your lesson..."}
-                  </div>
-                  <div style={progressTrackStyle}>
-                    <div
-                      style={{
-                        ...progressFillStyle,
-                        width: `${analysisProgress?.percent ?? 12}%`,
-                      }}
-                    />
-                  </div>
-                  <div style={processingMetaRowStyle}>
-                    <div style={processingChipStyle}>Elapsed {formatDurationLabel(elapsedAnalysisSeconds)}</div>
-                    {analysisProgress && (
-                      <div style={processingChipStyle}>Est. left {formatDurationLabel(analysisProgress.remainingSeconds)}</div>
+                <div style={actionClusterStyle}>
+                  <button
+                    className="analyze-btn"
+                    onClick={handleSubmit}
+                    disabled={loading || (isAdminObservationMode && (!observerReady || !observedTeacherId || !subject.trim()))}
+                    style={loading ? analyzeButtonLoadingStyle : analyzeButtonIdleStyle}
+                  >
+                    {loading ? (
+                      <span style={buttonStatusStackStyle}>
+                        <span style={buttonStatusRowStyle}>
+                          <span style={buttonPulseStyle} />
+                          <span style={buttonStatusTextStyle}>
+                            {processingStep || "Analyzing lesson..."}
+                          </span>
+                        </span>
+                        <span style={buttonProgressTrackStyle}>
+                          <span
+                            style={{
+                              ...buttonProgressFillStyle,
+                              display: 'block',
+                              width: `${analysisProgress?.percent ?? 12}%`,
+                            }}
+                          />
+                        </span>
+                        <span style={buttonMetaTextStyle}>
+                          {analysisProgress
+                            ? `${formatDurationLabel(analysisProgress.remainingSeconds)} left`
+                            : `Elapsed ${formatDurationLabel(elapsedAnalysisSeconds)}`}
+                        </span>
+                      </span>
+                    ) : (
+                      "Analyze Lesson"
                     )}
-                  </div>
-                  <div style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
-                    Long recordings can take several minutes. We’ll keep working while this tab stays open.
-                  </div>
-                  {activeJobId && (
-                    <div style={{ color: 'var(--text-secondary)', fontSize: 12, opacity: 0.78 }}>
-                      Saved job: {activeJobId.slice(0, 8)}
+                  </button>
+                  {loading && activeJobId && (
+                    <div style={analysisStatusHintStyle}>
+                      Saved progress is being tracked in the background.
                     </div>
                   )}
                 </div>
-              )}
+              </div>
 
               {error && <div className="analysis-error">{error}</div>}
             </section>
