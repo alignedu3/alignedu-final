@@ -160,6 +160,44 @@ const BIOLOGY_PRIORITY_TOKENS = new Set([
   "polypeptide",
 ]);
 
+const HIGHER_ED_BIOLOGY_CONCEPT_CHECKS = [
+  {
+    label: "mRNA",
+    aliases: ["mrna", "messenger rna"],
+    support: ["message", "copy", "template", "codon", "transcript", "protein"],
+  },
+  {
+    label: "tRNA",
+    aliases: ["trna", "transfer rna"],
+    support: ["amino", "acid", "anticodon", "ribosome", "carry", "brings", "bring"],
+  },
+  {
+    label: "rRNA",
+    aliases: ["rrna", "ribosomal rna"],
+    support: ["ribosome", "ribosomal", "structure", "component", "peptide", "cataly"],
+  },
+  {
+    label: "coding strand",
+    aliases: ["coding strand"],
+    support: ["template", "dna", "strand"],
+  },
+  {
+    label: "template strand",
+    aliases: ["template strand"],
+    support: ["coding", "dna", "strand"],
+  },
+  {
+    label: "mutations",
+    aliases: ["mutation", "mutations"],
+    support: ["protein", "amino", "change", "effect", "impact", "sequence"],
+  },
+  {
+    label: "start and stop codons",
+    aliases: ["start codon", "stop codon", "start and stop codons", "codons"],
+    support: ["translation", "protein", "amino", "ribosome"],
+  },
+] as const;
+
 function getOpenAIKey() {
   const apiKey = process.env.OPENAI_API_KEY?.trim();
   if (!apiKey) {
@@ -788,6 +826,90 @@ function extractCandidateBiologyPhrases(gapItem: string) {
   return Array.from(new Set(phrases));
 }
 
+function splitTranscriptIntoEvidenceSnippets(transcript: string) {
+  return String(transcript || "")
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((snippet) => snippet.trim())
+    .filter((snippet) => snippet.length >= 25);
+}
+
+function normalizeEvidenceSnippet(snippet: string) {
+  return normalizeBiologyText(snippet);
+}
+
+function parseTranscriptChunks(transcript: string) {
+  const rawTranscript = String(transcript || "");
+  const chunkPattern = /\[Transcript chunk (\d+) of (\d+)\]\n?/gi;
+  const matches = Array.from(rawTranscript.matchAll(chunkPattern));
+
+  if (!matches.length) {
+    const trimmed = rawTranscript.trim();
+    return trimmed
+      ? [{ index: 1, total: 1, content: trimmed }]
+      : [];
+  }
+
+  return matches.map((match, index) => {
+    const start = match.index ?? 0;
+    const contentStart = start + match[0].length;
+    const nextStart = matches[index + 1]?.index ?? rawTranscript.length;
+    return {
+      index: Number(match[1]),
+      total: Number(match[2]),
+      content: rawTranscript.slice(contentStart, nextStart).trim(),
+    };
+  });
+}
+
+function buildTranscriptCoverageDigest(transcript: string) {
+  const chunks = parseTranscriptChunks(transcript);
+  if (chunks.length <= 1) return "";
+
+  return chunks
+    .map((chunk) => {
+      const snippet = chunk.content
+        .replace(/\s+/g, " ")
+        .trim();
+      const leading = snippet.slice(0, 180).trim();
+      const trailing =
+        snippet.length > 220
+          ? snippet.slice(Math.max(0, snippet.length - 120)).trim()
+          : "";
+
+      return trailing
+        ? `Chunk ${chunk.index} of ${chunk.total}: ${leading} ... ${trailing}`
+        : `Chunk ${chunk.index} of ${chunk.total}: ${leading}`;
+    })
+    .join("\n");
+}
+
+function getHigherEdBiologyConceptEvidence(transcript: string) {
+  const snippets = splitTranscriptIntoEvidenceSnippets(transcript);
+
+  return HIGHER_ED_BIOLOGY_CONCEPT_CHECKS.flatMap((concept) => {
+    const matchedSnippet = snippets.find((snippet) => {
+      const normalizedSnippet = normalizeEvidenceSnippet(snippet);
+      const hasAlias = concept.aliases.some((alias) => normalizedSnippet.includes(alias));
+      if (!hasAlias) return false;
+
+      const supportMatches = concept.support.filter((token) =>
+        normalizedSnippet.includes(token)
+      ).length;
+
+      return supportMatches >= 1;
+    });
+
+    if (!matchedSnippet) return [];
+
+    return [
+      {
+        label: concept.label,
+        snippet: matchedSnippet,
+      },
+    ];
+  });
+}
+
 function getContradictedTranscriptGapConcepts(
   result: string,
   transcript: string,
@@ -847,10 +969,35 @@ function getContradictedTranscriptGapConcepts(
 }
 
 function getContradictedHigherEdBiologyGapConcepts(result: string, transcript: string) {
-  return getContradictedTranscriptGapConcepts(result, transcript, {
+  const baselineContradictions = getContradictedTranscriptGapConcepts(result, transcript, {
     priorityTokens: BIOLOGY_PRIORITY_TOKENS,
     minimumTokenLength: 6,
   });
+  const gapItems = getContentGapItems(result);
+  const evidenceByConcept = getHigherEdBiologyConceptEvidence(transcript);
+
+  evidenceByConcept.forEach((evidence) => {
+    gapItems.forEach((gapItem) => {
+      const normalizedGap = normalizeBiologyText(gapItem);
+      const normalizedLabel = normalizeBiologyText(evidence.label);
+      if (!normalizedGap.includes(normalizedLabel)) return;
+
+      const existing = baselineContradictions.find((item) => item.gap === gapItem);
+      if (existing) {
+        if (!existing.matchedTokens.includes(evidence.label)) {
+          existing.matchedTokens.push(evidence.label);
+        }
+        return;
+      }
+
+      baselineContradictions.push({
+        gap: gapItem,
+        matchedTokens: [evidence.label],
+      });
+    });
+  });
+
+  return baselineContradictions;
 }
 
 function getContradictedSchoolGradeGapConcepts(result: string, transcript: string) {
@@ -1025,6 +1172,7 @@ Important writing rules:
 - For CONTENT GAPS TO REINFORCE, only include concepts that are truly absent, inaccurate, or materially underdeveloped across the lesson as a whole. If a concept is clearly taught later in the transcript, do not list it as a gap.
 - If the recording is part one of a multi-part lesson sequence, distinguish between "not yet covered in this recording" and "incorrectly or inadequately taught."
 - For Higher Ed Biology, do not claim mRNA, tRNA, rRNA, codons, transcription, or translation were missing if the transcript explicitly names them and gives their role with basic accuracy. In that case, you may note a need for added depth or precision, but not absence.
+- For Higher Ed Biology, if the transcript explicitly ties tRNA to amino acids or anticodons, or ties rRNA to the ribosome's structure or function, do not keep those as content gaps.
 - Before naming a biology content gap, verify that the concept was not adequately addressed anywhere in the transcript. If it was taught with reasonable introductory accuracy, frame the issue as limited depth, incomplete distinction, or deferred follow-up instead of saying it was not covered.
 - For Higher Ed Biology, anchor missing-content judgments to the selected Campbell Biology chapter and the matched course objective(s), not to every concept that could appear somewhere in a broader biology unit.
 
@@ -1377,6 +1525,101 @@ ${transcript}`;
   }
 
   const hasReportedContentGapClaims = hasSubstantiveContentGapClaims(result);
+  const transcriptCoverageDigest = buildTranscriptCoverageDigest(transcript);
+
+  if (hasReportedContentGapClaims && transcriptCoverageDigest) {
+    const fullLessonCoverageRepairPrompt = `The draft lesson report below may be overweighting one portion of the recording instead of the full lesson. Audit the entire lesson before keeping any content-gap claims.
+
+Transcript coverage digest:
+${transcriptCoverageDigest}
+
+Return only these exact section headings with replacement content:
+
+=== EXECUTIVE SUMMARY ===
+[1 to 2 sentences]
+
+=== WHAT CAN IMPROVE ===
+- [bullet]
+- [bullet]
+- [bullet]
+
+=== CONTENT GAPS TO REINFORCE ===
+1. [gap]
+2. [gap]
+3. [gap]
+
+=== RECOMMENDED NEXT STEP ===
+[1 short paragraph]
+
+Rules:
+- Review beginning, middle, and end chunk coverage before deciding a concept was missing.
+- Do not list a concept as missing if it appears later in the lesson transcript with reasonable introductory accuracy.
+- If a concept appears in the lesson but still needs work, frame it as limited depth, weak connection, incomplete precision, or insufficient evidence of mastery, not absence.
+- Keep only the most defensible content gaps that remain true across the lesson as a whole.
+- Preserve a fair, evidence-based tone.
+
+Grade: ${grade}
+Subject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}
+
+Current Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+    const fullLessonCoverageRepair = await callOpenAISectionRepair(openai, fullLessonCoverageRepairPrompt);
+    const repairedCoverageSections = normalizeStructuredReportText(
+      String(fullLessonCoverageRepair.choices[0]?.message?.content || "")
+        .replace(/\r/g, "")
+        .trim()
+    );
+
+    const repairedExecutiveSummary = extractStructuredSectionBody(repairedCoverageSections, "EXECUTIVE SUMMARY");
+    if (repairedExecutiveSummary) {
+      result = upsertStructuredSection(result, "EXECUTIVE SUMMARY", repairedExecutiveSummary, "WHAT WENT WELL");
+    }
+
+    const repairedImprovements = extractStructuredSectionBody(repairedCoverageSections, "WHAT CAN IMPROVE");
+    if (repairedImprovements) {
+      result = upsertStructuredSection(result, "WHAT CAN IMPROVE", repairedImprovements, "CONTENT GAPS TO REINFORCE");
+    }
+
+    const repairedContentGaps = extractStructuredSectionBody(repairedCoverageSections, "CONTENT GAPS TO REINFORCE");
+    if (repairedContentGaps) {
+      result = upsertStructuredSection(result, "CONTENT GAPS TO REINFORCE", repairedContentGaps, "RECOMMENDED NEXT STEP");
+    }
+
+    const repairedNextStep = extractStructuredSectionBody(repairedCoverageSections, "RECOMMENDED NEXT STEP");
+    if (repairedNextStep) {
+      result = upsertStructuredSection(result, "RECOMMENDED NEXT STEP", repairedNextStep);
+    }
+
+    const existingMetrics = parseOptionalMetricsFromResult(result);
+    const normalizedGapCount = getContentGapItems(result).length;
+    if (
+      existingMetrics.score !== null &&
+      existingMetrics.coverage_score !== null &&
+      existingMetrics.clarity_rating !== null &&
+      existingMetrics.engagement_level !== null &&
+      existingMetrics.assessment_quality !== null
+    ) {
+      result = upsertMetricsBlock(result, {
+        score: calculateOverallScoreFromMetrics({
+          coverage_score: existingMetrics.coverage_score,
+          clarity_rating: existingMetrics.clarity_rating,
+          engagement_level: existingMetrics.engagement_level,
+          assessment_quality: existingMetrics.assessment_quality,
+          gaps_detected: normalizedGapCount,
+        }),
+        coverage_score: existingMetrics.coverage_score,
+        clarity_rating: existingMetrics.clarity_rating,
+        engagement_level: existingMetrics.engagement_level,
+        assessment_quality: existingMetrics.assessment_quality,
+        gaps_detected: normalizedGapCount,
+      });
+    }
+  }
+
   const contradictedBiologyGapConcepts = isHigherEdBiology && hasReportedContentGapClaims
     ? getContradictedHigherEdBiologyGapConcepts(result, transcript)
     : [];
