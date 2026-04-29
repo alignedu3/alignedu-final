@@ -2224,6 +2224,14 @@ export async function legacyPOST(req: Request) {
       );
     }
 
+    const priorLessonTargetContext = await getPriorLessonTargetContext({
+      targetUserId,
+      grade,
+      subject,
+      book,
+      chapter,
+    });
+
     // Load TEKS standards for this grade/subject combination
     const { standards, overview, found: hasStandards } = getTEKSStandards(grade, subject);
 
