@@ -177,8 +177,10 @@ function createOpenAIClient() {
   return new OpenAI({ apiKey: getOpenAIKey() });
 }
 
-const TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
+const DEFAULT_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
+const LONG_AUDIO_TRANSCRIPTION_MODEL = "whisper-1";
 const TRANSCRIPTION_CONCURRENCY = 4;
+const LONG_AUDIO_WHISPER_THRESHOLD_SECONDS = 40 * 60;
 
 type WorkflowProgress = {
   percent: number;
@@ -227,6 +229,17 @@ type TranscriptionProgress = {
   index: number;
   total: number;
 };
+
+function selectTranscriptionModel(audioDurationSeconds?: number, fileCount = 0) {
+  if (
+    (typeof audioDurationSeconds === "number" && audioDurationSeconds >= LONG_AUDIO_WHISPER_THRESHOLD_SECONDS) ||
+    fileCount >= 40
+  ) {
+    return LONG_AUDIO_TRANSCRIPTION_MODEL;
+  }
+
+  return DEFAULT_TRANSCRIPTION_MODEL;
+}
 
 function safeJson<T>(data: T, status = 200) {
   return new Response(JSON.stringify(data), {
@@ -278,12 +291,14 @@ async function callOpenAISectionRepair(openai: OpenAI, prompt: string) {
 async function transcribeAudioFiles(
   openai: OpenAI,
   files: File[],
+  audioDurationSeconds?: number,
   onChunkComplete?: (progress: TranscriptionProgress) => Promise<void> | void
 ) {
   if (files.length === 0) {
     return [];
   }
 
+  const transcriptionModel = selectTranscriptionModel(audioDurationSeconds, files.length);
   const transcripts = new Array<string>(files.length).fill("");
   let nextIndex = 0;
   let completed = 0;
@@ -300,7 +315,7 @@ async function transcribeAudioFiles(
 
       const transcription = await openai.audio.transcriptions.create({
         file: files[currentIndex],
-        model: TRANSCRIPTION_MODEL,
+        model: transcriptionModel,
         response_format: "verbose_json",
       });
 
@@ -552,6 +567,10 @@ function getContentGapItems(result: string) {
   });
 }
 
+function hasSubstantiveContentGapClaims(result: string) {
+  return getContentGapItems(result).length > 0;
+}
+
 function needsHigherEdAlignmentRepair(result: string) {
   const feedbackSections = parseFeedbackSections(result);
   return (feedbackSections.higherEdAlignment?.length ?? 0) === 0;
@@ -767,26 +786,46 @@ function extractCandidateBiologyPhrases(gapItem: string) {
   return Array.from(new Set(phrases));
 }
 
-function getContradictedHigherEdBiologyGapConcepts(result: string, transcript: string) {
+function getContradictedTranscriptGapConcepts(
+  result: string,
+  transcript: string,
+  options?: {
+    priorityTokens?: Set<string>;
+    minimumTokenLength?: number;
+  }
+) {
   const normalizedTranscript = normalizeBiologyText(transcript);
   const transcriptTokens = tokenizeBiologyConcept(transcript);
   const transcriptTokenCounts = buildTokenFrequencyMap(transcriptTokens);
   const transcriptTokenSet = new Set(transcriptTokens);
   const gapItems = getContentGapItems(result);
   const contradictions: Array<{ gap: string; matchedTokens: string[] }> = [];
+  const minimumTokenLength = options?.minimumTokenLength ?? 6;
 
   for (const gapItem of gapItems) {
     const candidatePhrases = extractCandidateBiologyPhrases(gapItem);
-    const exactPhraseMatch = candidatePhrases.find((phrase) => phrase.length >= 12 && normalizedTranscript.includes(phrase));
+    const exactPhraseMatch = candidatePhrases.find(
+      (phrase) => phrase.length >= 12 && normalizedTranscript.includes(phrase)
+    );
 
-    const significantTokens = Array.from(new Set(
-      tokenizeBiologyConcept(gapItem).filter((token) => BIOLOGY_PRIORITY_TOKENS.has(token) || token.length >= 6)
-    ));
+    const significantTokens = Array.from(
+      new Set(
+        tokenizeBiologyConcept(gapItem).filter(
+          (token) =>
+            (options?.priorityTokens?.has(token) ?? false) || token.length >= minimumTokenLength
+        )
+      )
+    );
+
+    if (significantTokens.length === 0) {
+      continue;
+    }
 
     const matchedTokens = significantTokens.filter((token) => transcriptTokenSet.has(token));
     const repeatedSingleTokenMatch =
       significantTokens.length === 1 &&
-      BIOLOGY_PRIORITY_TOKENS.has(significantTokens[0]) &&
+      ((options?.priorityTokens?.has(significantTokens[0]) ?? false) ||
+        significantTokens[0].length >= minimumTokenLength) &&
       (transcriptTokenCounts.get(significantTokens[0]) ?? 0) >= 2;
 
     const multiTokenMatch =
@@ -797,14 +836,25 @@ function getContradictedHigherEdBiologyGapConcepts(result: string, transcript: s
     if (exactPhraseMatch || repeatedSingleTokenMatch || multiTokenMatch) {
       contradictions.push({
         gap: gapItem,
-        matchedTokens: exactPhraseMatch
-          ? [exactPhraseMatch]
-          : matchedTokens,
+        matchedTokens: exactPhraseMatch ? [exactPhraseMatch] : matchedTokens,
       });
     }
   }
 
   return contradictions;
+}
+
+function getContradictedHigherEdBiologyGapConcepts(result: string, transcript: string) {
+  return getContradictedTranscriptGapConcepts(result, transcript, {
+    priorityTokens: BIOLOGY_PRIORITY_TOKENS,
+    minimumTokenLength: 6,
+  });
+}
+
+function getContradictedSchoolGradeGapConcepts(result: string, transcript: string) {
+  return getContradictedTranscriptGapConcepts(result, transcript, {
+    minimumTokenLength: 5,
+  });
 }
 
 function extractStructuredSectionBody(text: string, heading: string) {
@@ -850,6 +900,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
     chapter,
     lectureText,
     waitTimeEvidence,
+    audioDuration,
     files,
     onProgress,
   } = input;
@@ -864,12 +915,21 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
 
   if (files.length > 0) {
     await reportProgress(8, `Transcribing audio chunks (0 of ${files.length})...`);
-    const spokenParts = await transcribeAudioFiles(openai, files, async ({ completed, total }) => {
-      await reportProgress(
-        Math.min(42, 8 + Math.round((completed / total) * 34)),
-        `Transcribing audio chunks (${completed} of ${total})...`
-      );
-    });
+    const spokenParts = await transcribeAudioFiles(
+      openai,
+      files,
+      audioDuration,
+      async ({ completed, total }) => {
+        if (completed !== total && completed !== 1 && completed % 4 !== 0) {
+          return;
+        }
+
+        await reportProgress(
+          Math.min(42, 8 + Math.round((completed / total) * 34)),
+          `Transcribing audio chunks (${completed} of ${total})...`
+        );
+      }
+    );
     const spokenText = spokenParts.join("\n\n");
     if (spokenText) {
       transcript = transcript
@@ -1314,11 +1374,16 @@ ${transcript}`;
     }
   }
 
-  const contradictedBiologyGapConcepts = isHigherEdBiology
+  const hasReportedContentGapClaims = hasSubstantiveContentGapClaims(result);
+  const contradictedBiologyGapConcepts = isHigherEdBiology && hasReportedContentGapClaims
     ? getContradictedHigherEdBiologyGapConcepts(result, transcript)
     : [];
+  const isSchoolGradeLesson = !isHigherEdBiology && !isHigherEdCustomText && hasStandards;
+  const contradictedSchoolGapConcepts = isSchoolGradeLesson && hasReportedContentGapClaims
+    ? getContradictedSchoolGradeGapConcepts(result, transcript)
+    : [];
 
-  if (isHigherEdBiology && contradictedBiologyGapConcepts.length > 0) {
+  if (isHigherEdBiology && hasReportedContentGapClaims && contradictedBiologyGapConcepts.length > 0) {
     const biologyConsistencyRepairPrompt = `The draft lesson report below likely overstates missing content. Some draft content gaps appear to overlap with biology concepts that were explicitly discussed in the transcript.
 
 Potentially contradicted draft gaps:
@@ -1384,6 +1449,105 @@ ${transcript}`;
     }
 
     const repairedNextStep = extractStructuredSectionBody(repairedBiologySections, "RECOMMENDED NEXT STEP");
+    if (repairedNextStep) {
+      result = upsertStructuredSection(result, "RECOMMENDED NEXT STEP", repairedNextStep);
+    }
+
+    const existingMetrics = parseOptionalMetricsFromResult(result);
+    const normalizedGapCount = getContentGapItems(result).length;
+    if (
+      existingMetrics.score !== null &&
+      existingMetrics.coverage_score !== null &&
+      existingMetrics.clarity_rating !== null &&
+      existingMetrics.engagement_level !== null &&
+      existingMetrics.assessment_quality !== null
+    ) {
+      result = upsertMetricsBlock(result, {
+        score: calculateOverallScoreFromMetrics({
+          coverage_score: existingMetrics.coverage_score,
+          clarity_rating: existingMetrics.clarity_rating,
+          engagement_level: existingMetrics.engagement_level,
+          assessment_quality: existingMetrics.assessment_quality,
+          gaps_detected: normalizedGapCount,
+        }),
+        coverage_score: existingMetrics.coverage_score,
+        clarity_rating: existingMetrics.clarity_rating,
+        engagement_level: existingMetrics.engagement_level,
+        assessment_quality: existingMetrics.assessment_quality,
+        gaps_detected: normalizedGapCount,
+      });
+    }
+  }
+
+  if (isSchoolGradeLesson && hasReportedContentGapClaims && contradictedSchoolGapConcepts.length > 0) {
+    const schoolConsistencyRepairPrompt = `The draft lesson report below may overstate missing content. Some draft content gaps appear to overlap with concepts that were explicitly taught in the transcript for this school-grade lesson.
+
+Potentially contradicted draft gaps:
+${contradictedSchoolGapConcepts.map((item, index) => `${index + 1}. Draft gap: ${item.gap}\n   Transcript overlap: ${item.matchedTokens.join(", ")}`).join("\n")}
+
+Return only these exact section headings with replacement content:
+
+=== EXECUTIVE SUMMARY ===
+[1 to 2 sentences]
+
+=== WHAT CAN IMPROVE ===
+- [bullet]
+- [bullet]
+- [bullet]
+
+=== CONTENT GAPS TO REINFORCE ===
+1. [gap]
+2. [gap]
+3. [gap]
+
+=== RECOMMENDED NEXT STEP ===
+[1 short paragraph]
+
+Rules:
+- Do not say a concept was missing or not covered when the transcript shows that concept, phrase, or vocabulary was explicitly taught.
+- If a covered concept still needs work, frame that as limited depth, weak connection, incomplete precision, or weak student mastery evidence, not absence.
+- Keep remaining content gaps anchored to the most relevant primary or related TEKS for this lesson.
+- Prefer concepts that were truly missing, inaccurate, or underdeveloped in this specific recording.
+- Preserve a fair, evidence-based tone.
+
+Grade: ${grade}
+Subject: ${subject}
+
+Primary TEKS Most Directly Connected to This Lesson:
+${primaryPromptStandards.map((standard) => `- ${standard.code}: ${standard.description}`).join("\n") || "- None identified"}
+
+Related Supporting TEKS:
+${relatedPromptStandards.map((standard) => `- ${standard.code}: ${standard.description}`).join("\n") || "- None identified"}
+
+Current Report Draft:
+${result}
+
+Transcript:
+${transcript}`;
+
+    const schoolConsistencyRepair = await callOpenAISectionRepair(openai, schoolConsistencyRepairPrompt);
+    const repairedSchoolSections = normalizeStructuredReportText(
+      String(schoolConsistencyRepair.choices[0]?.message?.content || "")
+        .replace(/\r/g, "")
+        .trim()
+    );
+
+    const repairedExecutiveSummary = extractStructuredSectionBody(repairedSchoolSections, "EXECUTIVE SUMMARY");
+    if (repairedExecutiveSummary) {
+      result = upsertStructuredSection(result, "EXECUTIVE SUMMARY", repairedExecutiveSummary, "WHAT WENT WELL");
+    }
+
+    const repairedImprovements = extractStructuredSectionBody(repairedSchoolSections, "WHAT CAN IMPROVE");
+    if (repairedImprovements) {
+      result = upsertStructuredSection(result, "WHAT CAN IMPROVE", repairedImprovements, "CONTENT GAPS TO REINFORCE");
+    }
+
+    const repairedContentGaps = extractStructuredSectionBody(repairedSchoolSections, "CONTENT GAPS TO REINFORCE");
+    if (repairedContentGaps) {
+      result = upsertStructuredSection(result, "CONTENT GAPS TO REINFORCE", repairedContentGaps, "RECOMMENDED NEXT STEP");
+    }
+
+    const repairedNextStep = extractStructuredSectionBody(repairedSchoolSections, "RECOMMENDED NEXT STEP");
     if (repairedNextStep) {
       result = upsertStructuredSection(result, "RECOMMENDED NEXT STEP", repairedNextStep);
     }
@@ -1706,7 +1870,7 @@ export async function legacyPOST(req: Request) {
     let transcript = lectureText;
 
     if (files.length > 0) {
-      const spokenParts = await transcribeAudioFiles(openai, files);
+      const spokenParts = await transcribeAudioFiles(openai, files, audioDuration);
       const spokenText = spokenParts.join("\n\n");
       if (spokenText) {
         transcript = transcript

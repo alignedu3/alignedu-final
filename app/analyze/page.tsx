@@ -58,6 +58,22 @@ function estimateAnalysisProcessingSeconds(audioSeconds: number | null, chunkCou
   return Math.round(splittingSeconds + uploadAndTranscriptionSeconds + reportSeconds);
 }
 
+function getChunkSecondsForDuration(duration: number) {
+  if (duration >= 40 * 60) {
+    return 10 * 60;
+  }
+
+  if (duration >= 15 * 60) {
+    return 5 * 60;
+  }
+
+  if (duration >= 5 * 60) {
+    return 2 * 60;
+  }
+
+  return 60;
+}
+
 export default function AnalysisPage() {
     const [isNarrowScreen, setIsNarrowScreen] = useState(false);
     // Audio Recorder State
@@ -247,7 +263,6 @@ export default function AnalysisPage() {
   const [analysisStartedAt, setAnalysisStartedAt] = useState<number | null>(null);
   const [elapsedAnalysisSeconds, setElapsedAnalysisSeconds] = useState(0);
   const [estimatedProcessingSeconds, setEstimatedProcessingSeconds] = useState<number | null>(null);
-  const [estimatedChunkCount, setEstimatedChunkCount] = useState<number | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [result, setResult] = useState("");
   const [analysisMetrics, setAnalysisMetrics] = useState<AnalysisMetricsState>(emptyAnalysisMetrics);
@@ -804,7 +819,7 @@ export default function AnalysisPage() {
     const fileData = new Uint8Array(await file.arrayBuffer());
     await ffmpeg.writeFile(inputName, fileData);
 
-    const chunkSeconds = 60;
+    const chunkSeconds = getChunkSecondsForDuration(duration);
     const chunkCount = Math.ceil(duration / chunkSeconds);
     const chunks: File[] = [];
 
@@ -1136,7 +1151,6 @@ export default function AnalysisPage() {
         nextEstimatedChunkCount = audioChunksForAnalysis.length || 1;
       }
 
-      setEstimatedChunkCount(audioFile ? nextEstimatedChunkCount : null);
       setEstimatedProcessingSeconds(
         estimateAnalysisProcessingSeconds(
           resolvedDuration ?? audioDuration ?? null,
@@ -1490,9 +1504,6 @@ export default function AnalysisPage() {
                     <div style={processingChipStyle}>Elapsed {formatDurationLabel(elapsedAnalysisSeconds)}</div>
                     {analysisProgress && (
                       <div style={processingChipStyle}>Est. left {formatDurationLabel(analysisProgress.remainingSeconds)}</div>
-                    )}
-                    {estimatedChunkCount && estimatedChunkCount > 1 && (
-                      <div style={processingChipStyle}>{estimatedChunkCount} chunks</div>
                     )}
                   </div>
                   <div style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
