@@ -10,6 +10,7 @@ import {
   parseFeedbackSections,
 } from "@/lib/analysisReport";
 import { fetchJsonWithTimeout } from "@/lib/fetchJsonWithTimeout";
+import { getHigherEdBiologyObjectivesForChapter } from "@/lib/higherEdBiologyObjectives";
 
 // Simulate premium check (replace with real check if available)
 const isPremium = true;
@@ -273,27 +274,16 @@ export default function AnalysisPage() {
   const isHigherEdCustomText = isHigherEd && Boolean(subject) && subject !== 'Biology';
   const higherEdBiologyChapterOptions = Array.from({ length: 56 }, (_, index) => `Chapter ${index + 1}`);
   const higherEdChapterOptions = Array.from({ length: 40 }, (_, index) => `Chapter ${index + 1}`);
+  const matchedBiologyObjectives = isHigherEdBiology ? getHigherEdBiologyObjectivesForChapter(chapter) : [];
 
   useEffect(() => {
     let isMounted = true;
 
     const loadViewerRole = async () => {
       try {
-        const { data } = await fetchJsonWithTimeout<{
-          profile?: { role?: string | null };
-        }>('/api/auth/me', {
-          credentials: 'include',
-          cache: 'no-store',
-        });
-        const role = data?.profile?.role ?? null;
-
         if (!isMounted) return;
-
-        if (!isAdminObservationMode && role && ['admin', 'super_admin'].includes(role)) {
-          router.replace('/admin/observe');
-        }
       } catch {
-        // Allow teacher flow to continue even if the role prefetch fails.
+        // Allow analysis flow to continue even if the role prefetch fails.
       }
     };
 
@@ -1179,9 +1169,14 @@ export default function AnalysisPage() {
 
                   <p className="analysis-context-note">
                     {isHigherEdBiology
-                      ? 'Compared against your Campbell Biology reference.'
+                      ? 'Compared against your Campbell Biology reference, with course objectives inferred from the selected chapter.'
                       : 'Compared against the selected textbook and chapter.'}
                   </p>
+                  {isHigherEdBiology && matchedBiologyObjectives.length > 0 && (
+                    <div className="analysis-context-note" style={{ marginTop: 10 }}>
+                      <strong>Matched objectives:</strong> {matchedBiologyObjectives.join(' ')}
+                    </div>
+                  )}
                 </>
               )}
 

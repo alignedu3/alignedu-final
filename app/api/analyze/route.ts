@@ -5,6 +5,7 @@ import type { TranscriptionVerbose } from "openai/resources/audio/transcriptions
 import { formatTEKSForPrompt, getRelatedTEKSStandards, getTEKSStandards } from "@/lib/teksStandards";
 import { STAAR_SUBJECTS } from "@/lib/staarSubjects";
 import { getAdminVisibility } from "@/lib/adminVisibility";
+import { getHigherEdBiologyObjectivesForChapter } from "@/lib/higherEdBiologyObjectives";
 import { normalizeStructuredReportText, parseFeedbackSections } from "@/lib/analysisReport";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { getErrorMessage } from "@/lib/errorHandling";
@@ -599,6 +600,7 @@ export async function POST(req: Request) {
       grade.trim().toLowerCase() === 'higher ed' &&
       subject.trim().length > 0 &&
       subject.trim().toLowerCase() !== 'biology';
+    const matchedBiologyObjectives = isHigherEdBiology ? getHigherEdBiologyObjectivesForChapter(chapter) : [];
     const lessonContextTitle = chapter
       ? isHigherEdBiology
         ? `Campbell Biology ${chapter}`
@@ -616,7 +618,7 @@ Use varied wording across sections. Do not repeat the same sentence frame in mul
 Score the lesson with professional calibration. The scores do not need to match each other. Let strengths and weaknesses land where the evidence supports them. Only use the same number across multiple categories if the transcript truly supports that level across all of them.`;
 
     if (isHigherEdBiology) {
-      systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.`;
+      systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''}`;
     } else if (isHigherEdCustomText && book) {
       systemPrompt += `\n\nFor this Higher Ed lesson, compare the instruction to the expectations of the provided textbook and chapter. Evaluate whether the lesson reflects accurate terminology, concept depth, prerequisite logic, and chapter-level expectations for that course text.`;
     }
@@ -681,7 +683,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 
     if (hasStandards) {
       systemPrompt += '\nProvide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.';
-      userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}\n\n${teksContext}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}`;
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${teksContext}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}`;
 
       if (isSTAAR) {
         userPrompt += `\n\n=== STAAR TEKS COVERAGE ===\nSummarize how well the lesson covered the most important TEKS for this STAAR-tested subject and grade. Use labeled bullets for:\n- Readiness Summary: ...\n- Standards Reinforced:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- Standards That Need Stronger Assessment Evidence:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- STAAR Readiness Recommendation: ...\nFor Standards Reinforced and Standards That Need Stronger Assessment Evidence, list only actual TEKS codes with their matching descriptions from the standards reference above. Do not use generic prose in those two fields. For the weaker-assessment field, choose TEKS that are directly related to the lesson topic and concept focus.`;
@@ -702,7 +704,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 For the three standards lists above, use only actual TEKS codes with their matching descriptions from the standards reference. Do not use generic prose in those list fields.
 \nTranscript:\n${transcript}\n`;
     } else {
-      userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}\n\nTranscript:\n${transcript}\n`;
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}\n\nTranscript:\n${transcript}\n`;
     }
 
     const completion = await callOpenAI(openai, [
