@@ -48,12 +48,12 @@ function formatDurationLabel(totalSeconds: number | null) {
 
 function estimateAnalysisProcessingSeconds(audioSeconds: number | null, chunkCount: number) {
   if (!audioSeconds || audioSeconds <= 0) {
-    return 90;
+    return 150;
   }
 
-  const splittingSeconds = audioSeconds > 60 ? Math.min(150, Math.max(12, chunkCount * 1.8)) : 0;
-  const uploadAndTranscriptionSeconds = Math.max(40, chunkCount * 5.5);
-  const reportSeconds = Math.min(150, Math.max(45, audioSeconds / 50));
+  const splittingSeconds = audioSeconds > 60 ? Math.min(210, Math.max(20, chunkCount * 3)) : 0;
+  const uploadAndTranscriptionSeconds = Math.max(75, chunkCount * 10);
+  const reportSeconds = Math.min(240, Math.max(75, audioSeconds / 32));
 
   return Math.round(splittingSeconds + uploadAndTranscriptionSeconds + reportSeconds);
 }
@@ -477,10 +477,12 @@ export default function AnalysisPage() {
     if (!loading || !estimatedProcessingSeconds) return null;
     const percent = Math.min(96, Math.max(8, Math.round((elapsedAnalysisSeconds / estimatedProcessingSeconds) * 100)));
     const remainingSeconds = Math.max(0, estimatedProcessingSeconds - elapsedAnalysisSeconds);
+    const isPastEstimate = elapsedAnalysisSeconds >= estimatedProcessingSeconds;
 
     return {
       percent,
       remainingSeconds,
+      isPastEstimate,
     };
   }, [elapsedAnalysisSeconds, estimatedProcessingSeconds, loading]);
 
@@ -1704,7 +1706,9 @@ export default function AnalysisPage() {
                         </span>
                         <span style={buttonMetaTextStyle}>
                           {analysisProgress
-                            ? `${formatDurationLabel(analysisProgress.remainingSeconds)} left`
+                            ? analysisProgress.isPastEstimate
+                              ? 'Wrapping up...'
+                              : `${formatDurationLabel(analysisProgress.remainingSeconds)} left`
                             : `Elapsed ${formatDurationLabel(elapsedAnalysisSeconds)}`}
                         </span>
                       </span>
