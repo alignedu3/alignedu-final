@@ -2224,8 +2224,14 @@ export async function legacyPOST(req: Request) {
       );
     }
 
+    if (!targetUserId) {
+      return safeJson({ result: null, error: "Sign in is required to analyze and save lessons." }, 401);
+    }
+
+    const resolvedTargetUserId = targetUserId;
+
     const priorLessonTargetContext = await getPriorLessonTargetContext({
-      targetUserId,
+      targetUserId: resolvedTargetUserId,
       grade,
       subject,
       book,
