@@ -236,6 +236,7 @@ type AnalysisWorkflowInput = {
   chapter: string;
   lectureText: string;
   waitTimeEvidence: string;
+  priorSameChapterContext?: string;
   audioDuration?: number;
   files: File[];
   onProgress?: (progress: WorkflowProgress) => Promise<void> | void;
@@ -1067,6 +1068,86 @@ function createServiceSupabaseClient() {
   );
 }
 
+function extractPriorCoverageSignalsFromResult(result: string) {
+  const parsed = parseFeedbackSections(String(result || ""));
+  const candidates = [
+    ...parsed.whatWentWell,
+    ...parsed.higherEdAlignment
+      .filter((section) => ["Textbook Alignment", "Summary"].includes(section.title))
+      .flatMap((section) => {
+        if (section.bullets.length > 0) return section.bullets;
+        return section.content
+          .split(/\n+/)
+          .flatMap((line) => line.split(/(?<=[.!?])\s+/))
+          .map((item) => item.trim())
+          .filter(Boolean);
+      }),
+  ];
+
+  const seen = new Set<string>();
+  return candidates
+    .map((item) => item.replace(/\s+/g, " ").trim())
+    .filter((item) => item.length >= 24)
+    .filter((item) => {
+      const normalized = item.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+      if (!normalized || seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    })
+    .slice(0, 4);
+}
+
+async function getPriorSameChapterContext(params: {
+  targetUserId: string;
+  grade: string;
+  subject: string;
+  chapter: string;
+}) {
+  const isHigherEdBiology =
+    params.grade.trim().toLowerCase() === "higher ed" &&
+    params.subject.trim().toLowerCase() === "biology" &&
+    params.chapter.trim().length > 0;
+
+  if (!isHigherEdBiology) {
+    return "";
+  }
+
+  const serviceSupabase = createServiceSupabaseClient();
+  const lessonTitle = `Campbell Biology ${params.chapter.trim()}`;
+  const { data, error } = await serviceSupabase
+    .from("analyses")
+    .select("result, created_at")
+    .eq("user_id", params.targetUserId)
+    .eq("grade", params.grade)
+    .eq("subject", params.subject)
+    .eq("title", lessonTitle)
+    .order("created_at", { ascending: false })
+    .limit(4);
+
+  if (error) {
+    console.error("PRIOR SAME-CHAPTER CONTEXT LOAD ERROR:", error);
+    return "";
+  }
+
+  const priorReports = (data || []).filter((row) => String(row.result || "").trim().length > 0);
+  if (!priorReports.length) {
+    return "";
+  }
+
+  const priorSignals = priorReports.flatMap((row) =>
+    extractPriorCoverageSignalsFromResult(String(row.result || ""))
+  );
+  const dedupedSignals = Array.from(new Set(priorSignals)).slice(0, 4);
+
+  const signalBlock = dedupedSignals.length
+    ? `\nPreviously covered same-chapter content from earlier saved lessons may include:\n${dedupedSignals
+        .map((item) => `- ${item}`)
+        .join("\n")}`
+    : "";
+
+  return `There ${priorReports.length === 1 ? "is 1 earlier saved lesson" : `are ${priorReports.length} earlier saved lessons`} for this same teacher and Campbell Biology chapter. Treat this recording as one part of an ongoing same-chapter sequence. Do not mark previously covered chapter objectives or concepts as missing simply because they are not repeated in this recording.${signalBlock}\nOnly flag a same-chapter objective as a gap if this recording was clearly expected to reteach or deepen it and the transcript shows that did not happen.`;
+}
+
 async function updateAnalysisJob(
   jobId: string,
   patch: Record<string, unknown>
@@ -1097,6 +1178,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
     chapter,
     lectureText,
     waitTimeEvidence,
+    priorSameChapterContext,
     audioDuration,
     files,
     onProgress,
@@ -1201,7 +1283,7 @@ Use varied wording across sections. Do not repeat the same sentence frame in mul
 Score the lesson with professional calibration. The scores do not need to match each other. Let strengths and weaknesses land where the evidence supports them. Only use the same number across multiple categories if the transcript truly supports that level across all of them.`;
 
   if (isHigherEdBiology) {
-    systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson.`;
+    systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson. Do not penalize the lesson for failing to repeat chapter content or objectives that were already covered in earlier same-chapter lessons unless this specific recording was clearly expected to reteach or extend that content.${priorSameChapterContext ? `\n\nSame-chapter prior context:\n${priorSameChapterContext}` : ''}`;
   } else if (isHigherEdCustomText && book) {
     systemPrompt += `\n\nFor this Higher Ed lesson, compare the instruction to the expectations of the provided textbook and chapter. Evaluate whether the lesson reflects accurate terminology, concept depth, prerequisite logic, and chapter-level expectations for that course text.`;
   }
@@ -1234,6 +1316,7 @@ Important writing rules:
 - INSTRUCTIONAL COACHING FEEDBACK should summarize patterns and implications, not restate earlier bullets verbatim.
 - For CONTENT GAPS TO REINFORCE, only include concepts that are truly absent, inaccurate, or materially underdeveloped across the lesson as a whole. If a concept is clearly taught later in the transcript, do not list it as a gap.
 - If the recording is part one of a multi-part lesson sequence, distinguish between "not yet covered in this recording" and "incorrectly or inadequately taught."
+- For Higher Ed Biology, do not treat previously covered same-chapter objectives as newly missing just because this recording focused on a different part of the chapter sequence.
 - For Higher Ed Biology, do not claim mRNA, tRNA, rRNA, codons, transcription, or translation were missing if the transcript explicitly names them and gives their role with basic accuracy. In that case, you may note a need for added depth or precision, but not absence.
 - For Higher Ed Biology, if the transcript explicitly ties tRNA to amino acids or anticodons, or ties rRNA to the ribosome's structure or function, do not keep those as content gaps.
 - Before naming a biology content gap, verify that the concept was not adequately addressed anywhere in the transcript. If it was taught with reasonable introductory accuracy, frame the issue as limited depth, incomplete distinction, or deferred follow-up instead of saying it was not covered.
@@ -2160,7 +2243,7 @@ Use varied wording across sections. Do not repeat the same sentence frame in mul
 Score the lesson with professional calibration. The scores do not need to match each other. Let strengths and weaknesses land where the evidence supports them. Only use the same number across multiple categories if the transcript truly supports that level across all of them.`;
 
     if (isHigherEdBiology) {
-      systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson.`;
+      systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson. Do not penalize the lesson for failing to repeat chapter content or objectives that were already covered in earlier same-chapter lessons unless this specific recording was clearly expected to reteach or extend that content.`;
     } else if (isHigherEdCustomText && book) {
       systemPrompt += `\n\nFor this Higher Ed lesson, compare the instruction to the expectations of the provided textbook and chapter. Evaluate whether the lesson reflects accurate terminology, concept depth, prerequisite logic, and chapter-level expectations for that course text.`;
     }
@@ -2192,6 +2275,7 @@ Important writing rules:
 - INSTRUCTIONAL COACHING FEEDBACK should summarize patterns and implications, not restate earlier bullets verbatim.
 - For CONTENT GAPS TO REINFORCE, only include concepts that are truly absent, inaccurate, or materially underdeveloped across the lesson as a whole. If a concept is clearly taught later in the transcript, do not list it as a gap.
 - If the recording is part one of a multi-part lesson sequence, distinguish between "not yet covered in this recording" and "incorrectly or inadequately taught."
+- For Higher Ed Biology, do not treat previously covered same-chapter objectives as newly missing just because this recording focused on a different part of the chapter sequence.
 - For Higher Ed Biology, do not claim mRNA, tRNA, rRNA, codons, transcription, or translation were missing if the transcript explicitly names them and gives their role with basic accuracy. In that case, you may note a need for added depth or precision, but not absence.
 - Before naming a biology content gap, verify that the concept was not adequately addressed anywhere in the transcript. If it was taught with reasonable introductory accuracy, frame the issue as limited depth, incomplete distinction, or deferred follow-up instead of saying it was not covered.
 - For Higher Ed Biology, anchor missing-content judgments to the selected Campbell Biology chapter and the matched course objective(s), not to every concept that could appear somewhere in a broader biology unit.
@@ -2915,6 +2999,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const priorSameChapterContext = await getPriorSameChapterContext({
+      targetUserId,
+      grade,
+      subject,
+      chapter,
+    });
+
     const serviceSupabase = createServiceSupabaseClient();
     const { data: insertedJob, error: jobInsertError } = await serviceSupabase
       .from("analysis_jobs")
@@ -2951,6 +3042,7 @@ export async function POST(req: Request) {
         chapter,
         lectureText,
         waitTimeEvidence,
+        priorSameChapterContext,
         audioDuration,
         files,
       });
@@ -2983,6 +3075,7 @@ export async function POST(req: Request) {
         chapter,
         lectureText,
         waitTimeEvidence,
+        priorSameChapterContext,
         audioDuration,
         files,
       });
