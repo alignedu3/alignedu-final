@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import type { TranscriptionVerbose } from "openai/resources/audio/transcriptions";
-import { formatTEKSForPrompt, getRelatedTEKSStandards, getTEKSStandards } from "@/lib/teksStandards";
+import { formatTEKSForPrompt, getPrimaryTEKSStandards, getRelatedTEKSStandards, getTEKSStandards } from "@/lib/teksStandards";
 import { STAAR_SUBJECTS } from "@/lib/staarSubjects";
 import { getAdminVisibility } from "@/lib/adminVisibility";
 import { getHigherEdBiologyObjectivesForChapter } from "@/lib/higherEdBiologyObjectives";
@@ -853,13 +853,20 @@ export async function POST(req: Request) {
     const isSTAAR = STAAR_SUBJECTS.some(
       (s) => s.grade.toLowerCase() === grade.toLowerCase() && s.subject.toLowerCase() === subject.toLowerCase()
     );
-    const promptStandards = hasStandards
-      ? getRelatedTEKSStandards(grade, subject, transcript, {
-          limit: isSTAAR ? 24 : 18,
+    const primaryPromptStandards = hasStandards
+      ? getPrimaryTEKSStandards(grade, subject, transcript, {
+          limit: isSTAAR ? 10 : 8,
         })
       : [];
-    const teksContext = formatTEKSForPrompt(promptStandards, overview, {
+    const relatedPromptStandards = hasStandards
+      ? getRelatedTEKSStandards(grade, subject, transcript, {
+          limit: isSTAAR ? 10 : 8,
+          excludeCodes: primaryPromptStandards.map((standard) => standard.code),
+        })
+      : [];
+    const teksContext = formatTEKSForPrompt(primaryPromptStandards, overview, {
       totalCount: standards.length,
+      relatedStandards: relatedPromptStandards,
     });
 
     const isHigherEdBiology =
@@ -977,7 +984,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
   - CODE: exact TEKS description
 - Standards Mastery Notes: observations about depth and quality of standards instruction.
 - Recommended Standards Follow-Up: how to better integrate missing or partially developed standards with concrete instructional moves.
-For the three standards lists above, use only actual TEKS codes with their matching descriptions from the standards reference. Do not use generic prose in those list fields.
+For the three standards lists above, use the provided Primary TEKS first, then use the Related Supporting TEKS when they genuinely connect to the lesson. Do not invent codes outside the provided standards reference, and do not use generic prose in those list fields.
 \nTranscript:\n${transcript}\n`;
     } else {
       userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}\n\nTranscript:\n${transcript}\n`;

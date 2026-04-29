@@ -91,6 +91,39 @@ function getKeywordTokens(value: string): string[] {
     .filter((token) => token.length > 2);
 }
 
+function scoreTEKSStandards(
+  grade: string,
+  subject: string,
+  contextText: string,
+  options?: { excludeCodes?: string[] }
+) {
+  const { standards } = getTEKSStandards(grade, subject);
+  if (!standards.length) return [];
+
+  const excludeCodes = new Set(options?.excludeCodes || []);
+  const normalizedContext = normalizeText(contextText);
+  const contextTokens = new Set(getKeywordTokens(contextText));
+
+  return standards
+    .filter((standard) => !excludeCodes.has(standard.code))
+    .map((standard) => {
+      const descriptionTokens = getKeywordTokens(`${standard.category} ${standard.description}`);
+      const overlap = descriptionTokens.reduce(
+        (score, token) => score + (contextTokens.has(token) ? 1 : 0),
+        0
+      );
+
+      const exactCategoryBonus = normalizedContext.includes(normalizeText(standard.category)) ? 2 : 0;
+      const exactDescriptionBonus = normalizedContext.includes(normalizeText(standard.description)) ? 3 : 0;
+
+      return {
+        standard,
+        score: overlap + exactCategoryBonus + exactDescriptionBonus,
+      };
+    })
+    .sort((a, b) => b.score - a.score || a.standard.code.localeCompare(b.standard.code));
+}
+
 export function getTEKSStandards(
   grade: string,
   subject: string
@@ -128,39 +161,30 @@ export function getRelatedTEKSStandards(
   contextText: string,
   options?: { limit?: number; excludeCodes?: string[] }
 ): TEKSStandard[] {
-  const { standards } = getTEKSStandards(grade, subject);
-  if (!standards.length) return [];
-
   const limit = options?.limit ?? 8;
-  const excludeCodes = new Set(options?.excludeCodes || []);
-  const contextTokens = new Set(getKeywordTokens(contextText));
-
-  const scored = standards
-    .filter((standard) => !excludeCodes.has(standard.code))
-    .map((standard) => {
-      const descriptionTokens = getKeywordTokens(`${standard.category} ${standard.description}`);
-      const overlap = descriptionTokens.reduce(
-        (score, token) => score + (contextTokens.has(token) ? 1 : 0),
-        0
-      );
-
-      const exactCategoryBonus = normalizeText(contextText).includes(normalizeText(standard.category)) ? 2 : 0;
-      const exactDescriptionBonus = normalizeText(contextText).includes(normalizeText(standard.description)) ? 3 : 0;
-
-      return {
-        standard,
-        score: overlap + exactCategoryBonus + exactDescriptionBonus,
-      };
-    })
-    .sort((a, b) => b.score - a.score || a.standard.code.localeCompare(b.standard.code));
+  const scored = scoreTEKSStandards(grade, subject, contextText, {
+    excludeCodes: options?.excludeCodes,
+  });
 
   return scored.slice(0, limit).map((entry) => entry.standard);
+}
+
+export function getPrimaryTEKSStandards(
+  grade: string,
+  subject: string,
+  contextText: string,
+  options?: { limit?: number }
+): TEKSStandard[] {
+  const limit = options?.limit ?? 8;
+  return scoreTEKSStandards(grade, subject, contextText)
+    .slice(0, limit)
+    .map((entry) => entry.standard);
 }
 
 export function formatTEKSForPrompt(
   standards: TEKSStandard[],
   overview: string,
-  options?: { totalCount?: number }
+  options?: { totalCount?: number; relatedStandards?: TEKSStandard[] }
 ): string {
   if (standards.length === 0) {
     return `Standards reference: ${overview}`;
@@ -169,6 +193,13 @@ export function formatTEKSForPrompt(
   const standardsText = standards
     .map((standard) => `  • ${standard.code}: ${standard.description}`)
     .join('\n');
+
+  const relatedStandards = options?.relatedStandards ?? [];
+  const relatedStandardsText = relatedStandards.length
+    ? `\n\nRelated Supporting TEKS Connected to This Lesson:\n${relatedStandards
+        .map((standard) => `  • ${standard.code}: ${standard.description}`)
+        .join('\n')}`
+    : '';
 
   const totalLine =
     options?.totalCount && options.totalCount > standards.length
@@ -179,7 +210,7 @@ export function formatTEKSForPrompt(
 TEXAS TEKS STANDARDS FOR THIS GRADE & SUBJECT:
 ${overview}${totalLine}
 
-Most Relevant Standards for This Lesson:
-${standardsText}
+Primary TEKS Most Directly Connected to This Lesson:
+${standardsText}${relatedStandardsText}
 `;
 }
