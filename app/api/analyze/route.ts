@@ -2717,13 +2717,35 @@ export async function POST(req: Request) {
       .single();
 
     if (jobInsertError || !insertedJob?.id) {
-      return safeJson(
-        {
-          result: null,
-          error: jobInsertError?.message || "Unable to create analysis job.",
-        },
-        500
-      );
+      console.error("ANALYSIS JOB INSERT FAILED, FALLING BACK TO DIRECT ANALYSIS:", jobInsertError);
+
+      const fallbackOutput = await runAnalysisWorkflow({
+        targetUserId,
+        observedTeacherId,
+        observedTeacherName,
+        callerProfileName: callerProfile?.name || "",
+        grade,
+        subject,
+        book,
+        chapter,
+        lectureText,
+        waitTimeEvidence,
+        audioDuration,
+        files,
+      });
+
+      return safeJson({
+        queued: false,
+        jobId: null,
+        result: fallbackOutput.result,
+        transcript: fallbackOutput.transcript,
+        score: fallbackOutput.score,
+        metrics: fallbackOutput.metrics,
+        saved: fallbackOutput.saved,
+        warning:
+          "Background analysis was unavailable, so the report was completed inline for this request.",
+        error: null,
+      });
     }
 
     const jobId = insertedJob.id as string;

@@ -1332,6 +1332,33 @@ export default function AnalysisPage() {
         return;
       }
 
+      if (data?.result) {
+        const returnedResult = data.result || "No result returned";
+        const returnedMetrics = parseAnalysisMetrics(returnedResult);
+        setResult(returnedResult);
+        setAnalysisMetrics({
+          score:
+            typeof data?.metrics?.score === 'number'
+              ? data.metrics.score
+              : typeof data?.score === 'number'
+                ? data.score
+                : returnedMetrics.score,
+          coverage: typeof data?.metrics?.coverage === 'number' ? data.metrics.coverage : returnedMetrics.coverage,
+          clarity: typeof data?.metrics?.clarity === 'number' ? data.metrics.clarity : returnedMetrics.clarity,
+          engagement: typeof data?.metrics?.engagement === 'number' ? data.metrics.engagement : returnedMetrics.engagement,
+          assessment: typeof data?.metrics?.assessment === 'number' ? data.metrics.assessment : returnedMetrics.assessment,
+          gaps: typeof data?.metrics?.gaps === 'number' ? data.metrics.gaps : returnedMetrics.gaps,
+        });
+        if (data?.saved) {
+          setSaveNotice(
+            isAdminObservationMode
+              ? "Observation saved. Review the report below and return to the admin dashboard when you are ready."
+              : "Analysis saved. Review the report below and return to your dashboard when you are ready."
+          );
+        }
+        return;
+      }
+
       if (!data?.jobId) {
         throw new Error("Analysis job was created without an id.");
       }
