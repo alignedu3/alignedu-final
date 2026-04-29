@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { buildTeacherDashboardSampleReports, getDashboardSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
+import { buildTeacherDashboardSampleReports, getDashboardSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getRelatedPriorLessonGaps, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
 import { extractSectionText, extractStandardEntries } from '@/lib/analysisReport';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
@@ -161,9 +161,14 @@ export default function TeacherDashboard() {
     () => (reports[0] ? getLessonReportSections(reports[0]) : null),
     [reports]
   );
+  const latestRelatedPriorGaps = useMemo(
+    () => (reports[0] ? getRelatedPriorLessonGaps(reports[0], reports, { limitLessons: 3, limitItems: 1 }) : null),
+    [reports]
+  );
 
   const nextActions = useMemo(() => {
     const lessonDrivenActions = [
+      ...(latestRelatedPriorGaps?.items.map((item) => item.gap) || []),
       ...(latestReportSections?.improvements || []),
       ...(latestReportSections?.contentGaps.length ? [latestReportSections.contentGaps[0]] : []),
       latestReportSections?.recommendedNextStep || '',
@@ -190,7 +195,7 @@ export default function TeacherDashboard() {
           'Keep your current pacing and clarity moves consistent.',
           'Add one deeper check-for-understanding prompt in the final 10 minutes.',
         ];
-  }, [latestReportSections, summary.totalGaps]);
+  }, [latestRelatedPriorGaps, latestReportSections, summary.totalGaps]);
 
   const activeKeyFindingsReport = useMemo(() => {
     if (!reports.length) return null;
@@ -204,6 +209,10 @@ export default function TeacherDashboard() {
   const selectedLessonSections = useMemo(
     () => (selectedReport ? getLessonReportSections(selectedReport) : null),
     [selectedReport]
+  );
+  const selectedRelatedPriorGaps = useMemo(
+    () => (selectedReport ? getRelatedPriorLessonGaps(selectedReport, reports) : null),
+    [reports, selectedReport]
   );
   const selectedSubmissionContext = useMemo(() => {
     if (!selectedLessonSections) return '';
@@ -817,6 +826,23 @@ export default function TeacherDashboard() {
                     <ul style={reportList}>
                       {selectedLessonSections.contentGaps.map((item, index) => (
                         <li key={`content-gap-${index}`} style={reportListItem}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {selectedRelatedPriorGaps && (
+                  <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
+                    <div style={reportSectionTitle}>Related Prior Lesson Gaps</div>
+                    <p style={reportBodyText}>
+                      Showing gaps from {selectedRelatedPriorGaps.matchedLessonCount} earlier related lesson{selectedRelatedPriorGaps.matchedLessonCount === 1 ? '' : 's'} only when the topic or standards overlap with this lesson.
+                    </p>
+                    <ul style={reportList}>
+                      {selectedRelatedPriorGaps.items.map((item, index) => (
+                        <li key={`${item.reportId}-${index}`} style={reportListItem}>
+                          <strong>{item.lessonLabel}</strong>
+                          {item.createdAt ? ` · ${new Date(item.createdAt).toLocaleDateString()}` : ''}: {item.gap}
+                        </li>
                       ))}
                     </ul>
                   </div>

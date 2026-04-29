@@ -1,5 +1,5 @@
 import { STAAR_SUBJECTS } from '@/lib/staarSubjects';
-import { parseAnalysisMetrics, parseFeedbackSections, type ReportSection } from '@/lib/analysisReport';
+import { extractStandardEntries, parseAnalysisMetrics, parseFeedbackSections, type ReportSection } from '@/lib/analysisReport';
 import { getRelatedTEKSStandards, getTEKSStandards, type TEKSStandard } from '@/lib/teksStandards';
 
 export type LessonReport = {
@@ -88,6 +88,160 @@ function normalizeGradeLabel(value: string) {
 function normalizeSubjectLabel(value: string) {
   return value.trim().toLowerCase();
 }
+
+const TOPIC_STOP_WORDS = new Set([
+  'about',
+  'after',
+  'again',
+  'aligned',
+  'analysis',
+  'and',
+  'before',
+  'biology',
+  'brief',
+  'check',
+  'class',
+  'concept',
+  'content',
+  'course',
+  'evidence',
+  'focus',
+  'for',
+  'from',
+  'grade',
+  'in',
+  'into',
+  'intro',
+  'introduction',
+  'lab',
+  'lesson',
+  'model',
+  'next',
+  'notes',
+  'of',
+  'on',
+  'overview',
+  'practice',
+  'review',
+  'science',
+  'seminar',
+  'skill',
+  'skills',
+  'student',
+  'students',
+  'subject',
+  'teacher',
+  'test',
+  'the',
+  'their',
+  'this',
+  'topic',
+  'unit',
+  'with',
+]);
+
+function normalizeTopicToken(token: string) {
+  const cleaned = token.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (cleaned.length <= 3) return '';
+  if (TOPIC_STOP_WORDS.has(cleaned)) return '';
+  if (cleaned.endsWith('ies') && cleaned.length > 5) return `${cleaned.slice(0, -3)}y`;
+  if (cleaned.endsWith('es') && cleaned.length > 4) return cleaned.slice(0, -2);
+  if (cleaned.endsWith('s') && cleaned.length > 4) return cleaned.slice(0, -1);
+  return cleaned;
+}
+
+function tokenizeTopicText(value: string) {
+  return Array.from(
+    new Set(
+      String(value || '')
+        .split(/[^a-z0-9]+/i)
+        .map(normalizeTopicToken)
+        .filter(Boolean)
+    )
+  );
+}
+
+function getRelatedStandardCodes(report: AnalysisReport) {
+  const sections = getLessonReportSections(report);
+  return new Set(
+    extractStandardEntries(
+      [...sections.staar, ...sections.teks],
+      [
+        'Standards Reinforced',
+        'Standards Addressed',
+        'Covered in the Lesson',
+        'Standards That Need Stronger Assessment Evidence',
+        'Needs Reinforcement',
+        'Standards Not Observed',
+        'Not Covered in the Lesson',
+      ]
+    ).map((entry) => entry.code.toLowerCase())
+  );
+}
+
+function getTopicProfile(report: AnalysisReport) {
+  const subject = normalizeSubjectLabel(String(report.subject || ''));
+  const subjectTokens = tokenizeTopicText(subject);
+  const titleTokens = tokenizeTopicText(String(report.title || ''));
+  const transcriptTokens = tokenizeTopicText(String(report.transcript || '')).slice(0, 12);
+  const allTokens = new Set([...subjectTokens, ...titleTokens, ...transcriptTokens]);
+
+  return {
+    subject,
+    subjectTokens: new Set(subjectTokens),
+    titleTokens: new Set(titleTokens),
+    allTokens,
+    standardCodes: getRelatedStandardCodes(report),
+  };
+}
+
+function countSharedValues(left: Set<string>, right: Set<string>) {
+  let count = 0;
+  left.forEach((value) => {
+    if (right.has(value)) count += 1;
+  });
+  return count;
+}
+
+function areLessonsTopicRelated(currentReport: AnalysisReport, previousReport: AnalysisReport) {
+  const currentProfile = getTopicProfile(currentReport);
+  const previousProfile = getTopicProfile(previousReport);
+
+  if (currentProfile.subject && previousProfile.subject && currentProfile.subject !== previousProfile.subject) {
+    return false;
+  }
+
+  const sharedStandards = countSharedValues(currentProfile.standardCodes, previousProfile.standardCodes);
+  if (sharedStandards > 0) {
+    return true;
+  }
+
+  const sharedTitleTokens = countSharedValues(currentProfile.titleTokens, previousProfile.titleTokens);
+  if (sharedTitleTokens >= 2) {
+    return true;
+  }
+
+  const currentNonSubjectTokens = new Set(
+    [...currentProfile.allTokens].filter((token) => !currentProfile.subjectTokens.has(token))
+  );
+  const previousNonSubjectTokens = new Set(
+    [...previousProfile.allTokens].filter((token) => !previousProfile.subjectTokens.has(token))
+  );
+
+  return countSharedValues(currentNonSubjectTokens, previousNonSubjectTokens) >= 2;
+}
+
+export type RelatedPriorLessonGap = {
+  reportId: string;
+  lessonLabel: string;
+  createdAt?: string | null;
+  gap: string;
+};
+
+export type RelatedPriorLessonGapSummary = {
+  matchedLessonCount: number;
+  items: RelatedPriorLessonGap[];
+};
 
 export function isSTAARTestedLesson(report: AnalysisReport | LessonReport) {
   const reportGrade = normalizeGradeLabel(String(report.grade || ''));
@@ -195,8 +349,7 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     report.coverage * 0.35 +
     report.clarity * 0.3 +
     report.engagement * 0.2 +
-    report.assessment * 0.15 -
-    report.gaps * 2;
+    report.assessment * 0.15;
 
   const strengths: string[] = [];
   const improvements: string[] = [];
@@ -475,8 +628,7 @@ function calculateLessonScoreFromMetrics(metrics: {
     metrics.engagement * 0.25 +
     metrics.assessment * 0.20;
 
-  const gapPenalty = metrics.gaps * 0.75;
-  const finalScore = Math.max(0, Math.min(100, Math.round(weighted - gapPenalty)));
+  const finalScore = Math.max(0, Math.min(100, Math.round(weighted)));
 
   return finalScore;
 }
@@ -819,6 +971,58 @@ export function getTrendData(reports: AnalysisReport[]) {
       assessment: metrics.assessment,
     };
     });
+}
+
+export function getRelatedPriorLessonGaps(
+  currentReport: AnalysisReport,
+  reports: AnalysisReport[],
+  options: {
+    limitLessons?: number;
+    limitItems?: number;
+  } = {}
+): RelatedPriorLessonGapSummary | null {
+  const currentReportDate = Date.parse(String(currentReport.date || currentReport.created_at || ''));
+  const sortedPreviousReports = sortReportsNewestFirst(reports).filter((report) => {
+    if (!report?.id || report.id === currentReport.id) return false;
+
+    const reportDate = Date.parse(String(report.date || report.created_at || ''));
+    if (Number.isFinite(currentReportDate) && Number.isFinite(reportDate) && reportDate >= currentReportDate) {
+      return false;
+    }
+
+    return areLessonsTopicRelated(currentReport, report);
+  });
+
+  const relatedReports = sortedPreviousReports.slice(0, options.limitLessons ?? 4);
+  const seen = new Set<string>();
+  const items: RelatedPriorLessonGap[] = [];
+
+  relatedReports.forEach((report) => {
+    const sections = getLessonReportSections(report);
+    const lessonLabel = [report.grade || null, report.subject || 'Lesson', report.title || null]
+      .filter(Boolean)
+      .join(' · ');
+
+    sections.contentGaps.forEach((gap) => {
+      const normalizedGap = normalizeInsightText(gap);
+      if (!normalizedGap || seen.has(normalizedGap)) return;
+      seen.add(normalizedGap);
+      items.push({
+        reportId: report.id,
+        lessonLabel: lessonLabel || 'Previous lesson',
+        createdAt: report.created_at || report.date || null,
+        gap: cleanInsightText(gap),
+      });
+    });
+  });
+
+  const limitedItems = items.slice(0, options.limitItems ?? 3);
+  if (!limitedItems.length) return null;
+
+  return {
+    matchedLessonCount: relatedReports.length,
+    items: limitedItems,
+  };
 }
 
 export function sortReportsNewestFirst(reports: AnalysisReport[]) {
