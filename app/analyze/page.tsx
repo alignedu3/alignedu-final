@@ -951,7 +951,9 @@ export default function AnalysisPage() {
         // If duration is unknown or short, transcribe directly as one chunk.
         if (!resolvedDuration || resolvedDuration <= 60) {
           const chunkResult = await transcribeChunk(audioFile, 0, 1);
-          if (chunkResult.transcript) spokenParts.push(chunkResult.transcript);
+          if (chunkResult.transcript) {
+            spokenParts.push(`[Transcript chunk 1 of 1]\n${chunkResult.transcript}`);
+          }
           if (chunkResult.responseWaitEvidence) responseWaitNotes.push(chunkResult.responseWaitEvidence);
         } else {
           setProcessingStep("Splitting audio into chunks...");
@@ -959,7 +961,9 @@ export default function AnalysisPage() {
 
           for (let index = 0; index < chunks.length; index += 1) {
             const chunkResult = await transcribeChunk(chunks[index], index, chunks.length);
-            if (chunkResult.transcript) spokenParts.push(chunkResult.transcript);
+            if (chunkResult.transcript) {
+              spokenParts.push(`[Transcript chunk ${index + 1} of ${chunks.length}]\n${chunkResult.transcript}`);
+            }
             if (chunkResult.responseWaitEvidence) responseWaitNotes.push(chunkResult.responseWaitEvidence);
           }
         }

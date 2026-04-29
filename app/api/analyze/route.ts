@@ -45,7 +45,7 @@ async function callOpenAI(openai: OpenAI, messages: ChatMessage[]) {
   return await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages,
-    temperature: 0.55,
+    temperature: 0.2,
   });
 }
 
@@ -556,7 +556,9 @@ export async function POST(req: Request) {
         });
 
         const spokenText = String(transcription.text || "").trim();
-        if (spokenText) spokenParts.push(spokenText);
+        if (spokenText) {
+          spokenParts.push(`[Transcript chunk ${spokenParts.length + 1} of ${files.length}]\n${spokenText}`);
+        }
       }
 
       const spokenText = spokenParts.join("\n\n");
@@ -618,7 +620,7 @@ Use varied wording across sections. Do not repeat the same sentence frame in mul
 Score the lesson with professional calibration. The scores do not need to match each other. Let strengths and weaknesses land where the evidence supports them. Only use the same number across multiple categories if the transcript truly supports that level across all of them.`;
 
     if (isHigherEdBiology) {
-      systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''}`;
+      systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson.`;
     } else if (isHigherEdCustomText && book) {
       systemPrompt += `\n\nFor this Higher Ed lesson, compare the instruction to the expectations of the provided textbook and chapter. Evaluate whether the lesson reflects accurate terminology, concept depth, prerequisite logic, and chapter-level expectations for that course text.`;
     }
@@ -639,6 +641,8 @@ Important writing rules:
 - In each bullet, point to a concrete observed move, student behavior, question type, task design choice, or missed opportunity from this lesson.
 - Avoid repeating the same praise or critique in multiple sections.
 - If evidence is limited, say what was observable instead of inventing detail.
+- Review the full transcript before judging coverage. Do not overweight the opening explanation or analogy if later chunks show broader content coverage.
+- Treat the transcript as a full sequence. Check beginning, middle, and end before deciding a concept was omitted or underdeveloped.
 - Prioritize the most distinctive strengths and weaknesses from this lesson, not the most common teacher coaching advice.
 - Gaps Flagged must match the number of substantive bullets listed in CONTENT GAPS TO REINFORCE. If no meaningful gaps are visible, set Gaps Flagged to 0 and say so plainly.
 - Calibrate each metric separately. Coverage, Clarity, Engagement, Assessment Quality, and the overall score should reflect different aspects of the lesson and should not default to the same number unless the evidence clearly supports that.
@@ -646,6 +650,8 @@ Important writing rules:
 - WHAT WENT WELL and WHAT CAN IMPROVE should contain the clearest distinct evidence, not generic coaching language.
 - RECOMMENDED NEXT STEP should build directly from the top improvement need without repeating the same wording already used above.
 - INSTRUCTIONAL COACHING FEEDBACK should summarize patterns and implications, not restate earlier bullets verbatim.
+- For CONTENT GAPS TO REINFORCE, only include concepts that are truly absent, inaccurate, or materially underdeveloped across the lesson as a whole. If a concept is clearly taught later in the transcript, do not list it as a gap.
+- If the recording is part one of a multi-part lesson sequence, distinguish between "not yet covered in this recording" and "incorrectly or inadequately taught."
 
 Metrics:
 Instructional Score (0-100): [number]
