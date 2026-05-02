@@ -300,7 +300,9 @@ export default function ResetPassword() {
           {loading ? 'Saving…' : 'Set New Password'}
         </button>
 
-        <a href="/login" style={backLink}>Back to Login</a>
+        <a href={isRecoverySession ? '/' : '/dashboard'} style={backLink}>
+          {isRecoverySession ? 'Back to Home' : 'Back to Dashboard'}
+        </a>
       </section>
     </main>
   );
