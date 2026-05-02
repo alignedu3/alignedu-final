@@ -145,7 +145,7 @@ export default function ResetPassword() {
 
     const updatePayload = isRecoverySession
       ? { password }
-      : { password, current_password: currentPassword };
+      : { password, currentPassword };
 
     const { error: updateError } = await supabase.auth.updateUser(updatePayload);
 
