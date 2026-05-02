@@ -37,6 +37,7 @@ export default function ResetPassword() {
   const router = useRouter();
   const [sessionReady, setSessionReady] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [isRecoverySession, setIsRecoverySession] = useState(false);
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -63,7 +64,8 @@ export default function ResetPassword() {
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
       const accessToken = hashParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token');
-      const isRecoveryFlow = window.sessionStorage.getItem(recoveryMarkerKey) === '1';
+      const hasRecoveryMarker = window.sessionStorage.getItem(recoveryMarkerKey) === '1';
+      const recoveryFlowActive = Boolean(code || (accessToken && refreshToken) || hasRecoveryMarker);
 
       if (code) {
         await supabase.auth.signOut({ scope: 'local' });
@@ -81,12 +83,13 @@ export default function ResetPassword() {
 
       const session = await waitForSession();
 
-      if (!session || (!code && !(accessToken && refreshToken) && !isRecoveryFlow)) {
+      if (!session) {
         window.sessionStorage.removeItem(recoveryMarkerKey);
         router.replace('/login');
         return;
       }
 
+      setIsRecoverySession(recoveryFlowActive);
       setSessionReady(true);
       setCheckingSession(false);
     };
@@ -142,7 +145,7 @@ export default function ResetPassword() {
         await supabase.auth.signOut({ scope: 'global' });
         window.sessionStorage.removeItem('alignedu-password-recovery');
         setError('Your session expired. Please log in again, then change your password.');
-      } else if (updateError.message.toLowerCase().includes('current password required')) {
+      } else if (isRecoverySession && updateError.message.toLowerCase().includes('current password required')) {
         setError('This reset link was not opened in a recovery session. Please use the password reset link from your email again.');
       } else {
         setError(updateError.message);
@@ -190,7 +193,9 @@ export default function ResetPassword() {
     <main style={mainContainer}>
       <section style={card}>
         <h1 style={heading}>Set Your Password</h1>
-        <p style={subheading}>Create a secure password for your account.</p>
+        <p style={subheading}>
+          {isRecoverySession ? 'Create a secure password for your account.' : 'Choose a new password for your signed-in account.'}
+        </p>
         <div style={requirementsCard}>
           <div style={requirementsHeader}>
             <p style={requirementsEyebrow}>Password requirements</p>
