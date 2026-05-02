@@ -46,6 +46,7 @@ export default function ResetPassword() {
   // Verify session is valid before showing the form
   useEffect(() => {
     const supabase = createClient();
+    const recoveryMarkerKey = 'alignedu-password-recovery';
 
     const waitForSession = async (attempts = 10, delayMs = 250) => {
       for (let i = 0; i < attempts; i += 1) {
@@ -62,13 +63,16 @@ export default function ResetPassword() {
       const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
       const accessToken = hashParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token');
+      const isRecoveryFlow = window.sessionStorage.getItem(recoveryMarkerKey) === '1';
 
       if (code) {
+        await supabase.auth.signOut({ scope: 'local' });
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         if (exchangeError) {
           console.error('Reset code exchange error:', exchangeError);
         }
       } else if (accessToken && refreshToken) {
+        await supabase.auth.signOut({ scope: 'local' });
         const { error: setError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
         if (setError) {
           console.error('Reset session set error:', setError);
@@ -77,7 +81,8 @@ export default function ResetPassword() {
 
       const session = await waitForSession();
 
-      if (!session) {
+      if (!session || (!code && !(accessToken && refreshToken) && !isRecoveryFlow)) {
+        window.sessionStorage.removeItem(recoveryMarkerKey);
         router.replace('/login');
         return;
       }
@@ -135,7 +140,10 @@ export default function ResetPassword() {
     if (updateError) {
       if (isRefreshTokenError(updateError.message)) {
         await supabase.auth.signOut({ scope: 'global' });
+        window.sessionStorage.removeItem('alignedu-password-recovery');
         setError('Your session expired. Please log in again, then change your password.');
+      } else if (updateError.message.toLowerCase().includes('current password required')) {
+        setError('This reset link was not opened in a recovery session. Please use the password reset link from your email again.');
       } else {
         setError(updateError.message);
       }
@@ -143,6 +151,7 @@ export default function ResetPassword() {
       return;
     }
 
+    window.sessionStorage.removeItem('alignedu-password-recovery');
     setSuccess('Password updated! Redirecting…');
 
     // Redirect to the correct dashboard based on role

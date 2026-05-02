@@ -54,6 +54,7 @@ export default function AuthCallback() {
       if (session) {
         const shouldGoToReset = next === '/reset-password' || authType === 'invite' || authType === 'recovery';
         if (shouldGoToReset) {
+          window.sessionStorage.setItem('alignedu-password-recovery', '1');
           router.replace('/reset-password');
           return;
         }
