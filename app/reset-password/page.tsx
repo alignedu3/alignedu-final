@@ -205,43 +205,6 @@ export default function ResetPassword() {
         <p style={subheading}>
           {isRecoverySession ? 'Create a secure password for your account.' : 'Choose a new password for your signed-in account.'}
         </p>
-        <div style={requirementsCard}>
-          <div style={requirementsHeader}>
-            <p style={requirementsEyebrow}>Password requirements</p>
-            <p style={requirementsTitle}>Use a strong password that meets all five checks.</p>
-          </div>
-          <div style={checklistGrid}>
-            {passwordChecklist.map((item) => (
-              <div
-                key={item.label}
-                style={{
-                  ...checklistItem,
-                  borderColor: item.met ? 'rgba(34, 197, 94, 0.28)' : 'rgba(148, 163, 184, 0.18)',
-                  background: item.met ? 'rgba(34, 197, 94, 0.10)' : 'rgba(255, 255, 255, 0.02)',
-                }}
-              >
-                <span
-                  style={{
-                    ...checkIcon,
-                    background: item.met ? 'rgba(34, 197, 94, 0.18)' : 'rgba(148, 163, 184, 0.14)',
-                    color: item.met ? '#86efac' : 'var(--text-secondary)',
-                  }}
-                >
-                  {item.met ? '✓' : '•'}
-                </span>
-                <span
-                  style={{
-                    ...checklistLabel,
-                    color: item.met ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  }}
-                >
-                  {item.label}
-                </span>
-              </div>
-            ))}
-          </div>
-          <p style={requirementsHint}>Your confirmation password must match exactly before you can continue.</p>
-        </div>
 
         {!isRecoverySession ? (
           <div style={formGroup}>
@@ -279,6 +242,44 @@ export default function ResetPassword() {
                     : '0 0 0 4px rgba(249, 115, 22, 0.08)',
             }}
           />
+        </div>
+
+        <div style={requirementsCard}>
+          <div style={requirementsHeader}>
+            <p style={requirementsEyebrow}>Password requirements</p>
+            <p style={requirementsTitle}>At least 8 characters, uppercase, lowercase, number, and symbol.</p>
+          </div>
+          <div style={checklistGrid}>
+            {passwordChecklist.map((item) => (
+              <div
+                key={item.label}
+                style={{
+                  ...checklistItem,
+                  borderColor: item.met ? 'rgba(34, 197, 94, 0.22)' : 'rgba(148, 163, 184, 0.14)',
+                  background: item.met ? 'rgba(34, 197, 94, 0.08)' : 'rgba(255, 255, 255, 0.02)',
+                }}
+              >
+                <span
+                  style={{
+                    ...checkIcon,
+                    background: item.met ? 'rgba(34, 197, 94, 0.16)' : 'rgba(148, 163, 184, 0.12)',
+                    color: item.met ? '#86efac' : 'var(--text-secondary)',
+                  }}
+                >
+                  {item.met ? '✓' : '•'}
+                </span>
+                <span
+                  style={{
+                    ...checklistLabel,
+                    color: item.met ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  }}
+                >
+                  {item.label}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p style={requirementsHint}>Confirmation must match exactly.</p>
         </div>
 
         <div style={formGroup}>
@@ -321,11 +322,11 @@ const subheading: React.CSSProperties = { fontSize: '15px', color: 'var(--text-s
 const requirementsCard: React.CSSProperties = {
   background: 'linear-gradient(180deg, rgba(125, 211, 252, 0.10), rgba(15, 23, 42, 0.04))',
   border: '1px solid rgba(125, 211, 252, 0.16)',
-  borderRadius: '18px',
-  padding: '16px',
+  borderRadius: '16px',
+  padding: '12px 14px',
   display: 'flex',
   flexDirection: 'column',
-  gap: '12px',
+  gap: '10px',
   boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
 };
 const requirementsHeader: React.CSSProperties = {
@@ -343,40 +344,41 @@ const requirementsEyebrow: React.CSSProperties = {
 };
 const requirementsTitle: React.CSSProperties = {
   margin: 0,
-  fontSize: '14px',
-  fontWeight: 700,
-  color: 'var(--text-primary)',
+  fontSize: '12px',
+  lineHeight: 1.5,
+  fontWeight: 600,
+  color: 'var(--text-secondary)',
 };
 const checklistGrid: React.CSSProperties = {
   display: 'grid',
-  gap: '8px',
+  gap: '6px',
 };
 const checklistItem: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
-  gap: '10px',
-  padding: '10px 12px',
-  borderRadius: '12px',
+  gap: '8px',
+  padding: '8px 10px',
+  borderRadius: '10px',
   border: '1px solid transparent',
 };
 const checkIcon: React.CSSProperties = {
-  width: '22px',
-  height: '22px',
+  width: '18px',
+  height: '18px',
   borderRadius: '999px',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontSize: '12px',
+  fontSize: '10px',
   fontWeight: 800,
   flexShrink: 0,
 };
 const checklistLabel: React.CSSProperties = {
-  fontSize: '13px',
+  fontSize: '12px',
   lineHeight: 1.4,
 };
 const requirementsHint: React.CSSProperties = {
   margin: 0,
-  fontSize: '12px',
+  fontSize: '11px',
   color: 'var(--text-secondary)',
   lineHeight: 1.5,
 };
