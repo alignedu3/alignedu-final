@@ -313,8 +313,8 @@ function buildCoverageCalibrationContext(params: {
 
   const rubric = `Coverage scoring rubric:
 - 95-100: Nearly all priority lesson targets for this chapter/objective set or TEKS set were taught accurately and with strong completeness.
-- 85-94: Most priority targets were covered well, with only minor omissions or thin spots.
-- 70-84: The lesson covered the core target, but multiple important subtopics, distinctions, or standard elements remained partial, thin, or deferred.
+- 80-94: The core lesson target was taught well, with generally solid alignment and only limited omissions, thin spots, or deferred details.
+- 70-79: The lesson addressed part of the target effectively, but multiple important subtopics, distinctions, or standard elements remained partial or uneven.
 - 50-69: Only part of the intended target set was covered; several key concepts or required elements were not developed enough.
 - 30-49: Limited coverage of what was supposed to be taught.
 - 0-29: The lesson was largely off-target from the intended chapter/objective or standards set.`;
@@ -363,21 +363,27 @@ function buildMetricCalibrationContext(params: {
 Additional metric calibration:
 - Clarity:
   - 90-100: Explanations, modeling, and distinctions were consistently precise and easy to follow.
-  - 75-89: Mostly clear, with a few rushed, thin, or less precise moments.
-  - 60-74: Understandable in parts, but several explanations or distinctions were incomplete or confusing.
+  - 80-89: Clear, coherent instruction with only minor rushed, thin, or less precise moments.
+  - 70-79: Generally understandable, but multiple explanations or distinctions were incomplete, rushed, or uneven.
+  - 60-69: Understandable in parts, but several explanations or distinctions were incomplete or confusing.
   - Below 60: Students would likely struggle to follow the lesson due to major imprecision or confusion.
 - Engagement:
   - 90-100: Students were consistently prompted to think, respond, discuss, or demonstrate understanding.
-  - 75-89: Good participation and interaction, though not constant.
-  - 60-74: Some engagement was present, but much of the lesson was passive or uneven.
+  - 80-89: Good participation and interaction were clearly visible through much of the lesson.
+  - 70-79: Some engagement was present, but participation was inconsistent or too teacher-led for parts of the lesson.
+  - 60-69: Limited engagement was visible, and much of the lesson was passive or uneven.
   - Below 60: Little evidence of active student participation.
 - Assessment Quality:
   - 90-100: Checks for understanding gave strong evidence of actual mastery.
-  - 75-89: Useful checks were present, but not consistently deep or precise.
-  - 60-74: Limited or surface-level checks for understanding.
+  - 80-89: Useful checks were present and gave reasonable evidence of understanding, even if not deeply diagnostic throughout.
+  - 70-79: Checks for understanding were present but inconsistent, surface-level, or only moderately informative.
+  - 60-69: Limited or mostly surface-level checks for understanding.
   - Below 60: Little reliable evidence that student understanding was checked.
 - Instructional Score:
   - This should reflect the weighted quality of the lesson as a whole, based on Coverage, Clarity, Engagement, and Assessment Quality.
+  - Effective, on-target teaching with solid execution will usually land in the 80-88 range.
+  - Use the 70s for lessons that show clear strengths but also notable inconsistency, thin spots, or multiple refinement areas.
+  - Reserve 90+ for truly exceptional execution and reserve below 65 for clearly weak lessons.
   - Do not anchor Instructional Score or Coverage to the number of gap bullets alone.
   - Use the full 0-100 range when justified by the evidence.`;
 }
@@ -741,8 +747,25 @@ function calculateOverallScoreFromMetrics(metrics: {
     metrics.clarity_rating * 0.25 +
     metrics.engagement_level * 0.25 +
     metrics.assessment_quality * 0.20;
+  const weakestMetric = Math.min(
+    metrics.coverage_score,
+    metrics.clarity_rating,
+    metrics.engagement_level,
+    metrics.assessment_quality
+  );
 
-  return Math.max(0, Math.min(100, Math.round(weighted)));
+  let adjustment = 0;
+  if (weakestMetric >= 75 && weighted >= 78) {
+    adjustment = 6;
+  } else if (weakestMetric >= 70 && weighted >= 72) {
+    adjustment = 5;
+  } else if (weakestMetric >= 65 && weighted >= 68) {
+    adjustment = 3;
+  } else if (weakestMetric >= 60 && weighted >= 64) {
+    adjustment = 1;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(weighted + adjustment)));
 }
 
 function shouldNormalizeReportedScore(metrics: {

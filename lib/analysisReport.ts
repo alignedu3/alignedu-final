@@ -288,8 +288,8 @@ export function extractStandardEntries(
 
 export function getScoreBand(score: number | null) {
   if (score === null) return { label: "Report Ready", tone: "#64748b" };
-  if (score >= 85) return { label: "Strong Practice", tone: "#15803d" };
-  if (score >= 68) return { label: "Solid With Refinements", tone: "#b45309" };
+  if (score >= 80) return { label: "Strong Practice", tone: "#15803d" };
+  if (score >= 65) return { label: "Solid With Refinements", tone: "#b45309" };
   if (score >= 55) return { label: "Developing Practice", tone: "#b45309" };
   return { label: "Priority Support Area", tone: "#b91c1c" };
 }

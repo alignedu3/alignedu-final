@@ -746,8 +746,25 @@ function calculateLessonScoreFromMetrics(metrics: {
     metrics.clarity * 0.25 +
     metrics.engagement * 0.25 +
     metrics.assessment * 0.20;
+  const weakestMetric = Math.min(
+    metrics.coverage,
+    metrics.clarity,
+    metrics.engagement,
+    metrics.assessment
+  );
 
-  const finalScore = Math.max(0, Math.min(100, Math.round(weighted)));
+  let adjustment = 0;
+  if (weakestMetric >= 75 && weighted >= 78) {
+    adjustment = 6;
+  } else if (weakestMetric >= 70 && weighted >= 72) {
+    adjustment = 5;
+  } else if (weakestMetric >= 65 && weighted >= 68) {
+    adjustment = 3;
+  } else if (weakestMetric >= 60 && weighted >= 64) {
+    adjustment = 1;
+  }
+
+  const finalScore = Math.max(0, Math.min(100, Math.round(weighted + adjustment)));
 
   return finalScore;
 }
@@ -825,10 +842,10 @@ export function getLessonInsights(report: AnalysisReport) {
   const strengths: string[] = [];
   const improvements: string[] = [];
 
-  if (metrics.score >= 82) {
+  if (metrics.score >= 80) {
     findings.push('Overall lesson quality is strong with consistent instructional delivery.');
     strengths.push('The lesson shows solid overall instructional quality with evidence of coherent delivery.');
-  } else if (metrics.score >= 68) {
+  } else if (metrics.score >= 65) {
     findings.push('Overall lesson quality is solid, with a few specific refinements needed to strengthen consistency.');
     strengths.push('The lesson shows a workable instructional foundation with clear strengths to build on.');
   } else {
