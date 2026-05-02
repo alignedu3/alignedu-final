@@ -236,7 +236,6 @@ type AnalysisWorkflowInput = {
   chapter: string;
   lectureText: string;
   waitTimeEvidence: string;
-  priorLessonTargetContext?: string;
   audioDuration?: number;
   files: File[];
   onProgress?: (progress: WorkflowProgress) => Promise<void> | void;
@@ -1068,109 +1067,6 @@ function createServiceSupabaseClient() {
   );
 }
 
-function extractPriorCoverageSignalsFromResult(result: string) {
-  const parsed = parseFeedbackSections(String(result || ""));
-  const candidates = [
-    ...parsed.whatWentWell,
-    ...parsed.higherEdAlignment
-      .filter((section) => ["Textbook Alignment", "Summary"].includes(section.title))
-      .flatMap((section) => {
-        if (section.bullets.length > 0) return section.bullets;
-        return section.content
-          .split(/\n+/)
-          .flatMap((line) => line.split(/(?<=[.!?])\s+/))
-          .map((item) => item.trim())
-          .filter(Boolean);
-      }),
-  ];
-
-  const seen = new Set<string>();
-  return candidates
-    .map((item) => item.replace(/\s+/g, " ").trim())
-    .filter((item) => item.length >= 24)
-    .filter((item) => {
-      const normalized = item.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
-      if (!normalized || seen.has(normalized)) return false;
-      seen.add(normalized);
-      return true;
-    })
-    .slice(0, 4);
-}
-
-function buildLessonTargetTitle(params: {
-  grade: string;
-  subject: string;
-  book: string;
-  chapter: string;
-}) {
-  const trimmedChapter = params.chapter.trim();
-  const trimmedBook = params.book.trim();
-  const isHigherEdBiology =
-    params.grade.trim().toLowerCase() === "higher ed" &&
-    params.subject.trim().toLowerCase() === "biology";
-
-  if (!trimmedChapter) {
-    return "";
-  }
-
-  if (isHigherEdBiology) {
-    return `Campbell Biology ${trimmedChapter}`;
-  }
-
-  if (trimmedBook) {
-    return `${trimmedBook} ${trimmedChapter}`;
-  }
-
-  return trimmedChapter;
-}
-
-async function getPriorLessonTargetContext(params: {
-  targetUserId: string;
-  grade: string;
-  subject: string;
-  book: string;
-  chapter: string;
-}) {
-  const lessonTitle = buildLessonTargetTitle(params);
-  if (!lessonTitle) {
-    return "";
-  }
-
-  const serviceSupabase = createServiceSupabaseClient();
-  const { data, error } = await serviceSupabase
-    .from("analyses")
-    .select("result, created_at")
-    .eq("user_id", params.targetUserId)
-    .eq("grade", params.grade)
-    .eq("subject", params.subject)
-    .eq("title", lessonTitle)
-    .order("created_at", { ascending: false })
-    .limit(4);
-
-  if (error) {
-    console.error("PRIOR LESSON TARGET CONTEXT LOAD ERROR:", error);
-    return "";
-  }
-
-  const priorReports = (data || []).filter((row) => String(row.result || "").trim().length > 0);
-  if (!priorReports.length) {
-    return "";
-  }
-
-  const priorSignals = priorReports.flatMap((row) =>
-    extractPriorCoverageSignalsFromResult(String(row.result || ""))
-  );
-  const dedupedSignals = Array.from(new Set(priorSignals)).slice(0, 4);
-
-  const signalBlock = dedupedSignals.length
-    ? `\nPreviously covered content from earlier lessons on this same target may include:\n${dedupedSignals
-        .map((item) => `- ${item}`)
-        .join("\n")}`
-    : "";
-
-  return `There ${priorReports.length === 1 ? "is 1 earlier saved lesson" : `are ${priorReports.length} earlier saved lessons`} for this same teacher and lesson target (${lessonTitle}). Treat this recording as one part of an ongoing same-target sequence. Do not mark previously covered objectives, standards, or core concepts as missing simply because they are not repeated in this recording.${signalBlock}\nOnly flag a same-target objective, standard, or concept as a gap if this recording was clearly expected to reteach, assess, or deepen it and the transcript shows that did not happen.`;
-}
-
 async function updateAnalysisJob(
   jobId: string,
   patch: Record<string, unknown>
@@ -1201,7 +1097,6 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
     chapter,
     lectureText,
     waitTimeEvidence,
-    priorLessonTargetContext,
     audioDuration,
     files,
     onProgress,
@@ -1309,10 +1204,6 @@ Score the lesson with professional calibration. The scores do not need to match 
     systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson.`;
   } else if (isHigherEdCustomText && book) {
     systemPrompt += `\n\nFor this Higher Ed lesson, compare the instruction to the expectations of the provided textbook and chapter. Evaluate whether the lesson reflects accurate terminology, concept depth, prerequisite logic, and chapter-level expectations for that course text.`;
-  }
-
-  if (priorLessonTargetContext) {
-    systemPrompt += `\n\nPrior same-target context:\n${priorLessonTargetContext}`;
   }
 
   const waitTimeGuidance = `Important wait-time rule: once the lesson is underway, assume the teacher typically allows about 8 to 10 seconds for student response after questions unless the transcript gives clear evidence that the teacher rushed, answered their own questions, cut students off, or rapidly moved on without space for thinking. Audio transcription often removes silence, pauses, and think time, so do not criticize wait time based only on the absence of transcribed silence. Only flag weak wait time when there is explicit evidence of it in the lesson record.`;
@@ -1599,7 +1490,7 @@ ${transcript}`;
     const contentGapsRepairPrompt = `Return only the numbered list for the "CONTENT GAPS TO REINFORCE" section of this lesson report.
 
 Requirements:
-- Provide exactly ${isHigherEdBiology || isHigherEdCustomText ? '3' : '2 to 3'} specific content gaps if meaningful gaps are present.
+- Provide 0 to 3 specific content gaps, and only include items that are clearly justified by the lesson evidence.
 - Each item must name a concrete missing concept, misconception, weak conceptual link, or underdeveloped idea from this lesson.
 - Ground the list in the actual lesson content.
 - If there are no meaningful content gaps, return exactly: 1. No major content gaps identified.
@@ -2228,16 +2119,6 @@ export async function legacyPOST(req: Request) {
       return safeJson({ result: null, error: "Sign in is required to analyze and save lessons." }, 401);
     }
 
-    const resolvedTargetUserId = targetUserId;
-
-    const priorLessonTargetContext = await getPriorLessonTargetContext({
-      targetUserId: resolvedTargetUserId,
-      grade,
-      subject,
-      book,
-      chapter,
-    });
-
     // Load TEKS standards for this grade/subject combination
     const { standards, overview, found: hasStandards } = getTEKSStandards(grade, subject);
 
@@ -2291,9 +2172,6 @@ Score the lesson with professional calibration. The scores do not need to match 
       systemPrompt += `\n\nFor this Higher Ed lesson, compare the instruction to the expectations of the provided textbook and chapter. Evaluate whether the lesson reflects accurate terminology, concept depth, prerequisite logic, and chapter-level expectations for that course text.`;
     }
 
-    if (priorLessonTargetContext) {
-      systemPrompt += `\n\nPrior same-target context:\n${priorLessonTargetContext}`;
-    }
     const waitTimeGuidance = `Important wait-time rule: once the lesson is underway, assume the teacher typically allows about 8 to 10 seconds for student response after questions unless the transcript gives clear evidence that the teacher rushed, answered their own questions, cut students off, or rapidly moved on without space for thinking. Audio transcription often removes silence, pauses, and think time, so do not criticize wait time based only on the absence of transcribed silence. Only flag weak wait time when there is explicit evidence of it in the lesson record.`;
     let userPrompt = '';
 
@@ -2567,7 +2445,7 @@ ${transcript}`;
       const contentGapsRepairPrompt = `Return only the numbered list for the "CONTENT GAPS TO REINFORCE" section of this lesson report.
 
 Requirements:
-- Provide exactly ${isHigherEdBiology || isHigherEdCustomText ? '3' : '2 to 3'} specific content gaps if meaningful gaps are present.
+- Provide 0 to 3 specific content gaps, and only include items that are clearly justified by the lesson evidence.
 - Each item must name a concrete missing concept, misconception, weak conceptual link, or underdeveloped idea from this lesson.
 - Ground the list in the actual lesson content.
 - If there are no meaningful content gaps, return exactly: 1. No major content gaps identified.
@@ -3048,14 +2926,6 @@ export async function POST(req: Request) {
       );
     }
 
-    const priorLessonTargetContext = await getPriorLessonTargetContext({
-      targetUserId,
-      grade,
-      subject,
-      book,
-      chapter,
-    });
-
     const serviceSupabase = createServiceSupabaseClient();
     const { data: insertedJob, error: jobInsertError } = await serviceSupabase
       .from("analysis_jobs")
@@ -3092,7 +2962,6 @@ export async function POST(req: Request) {
         chapter,
         lectureText,
         waitTimeEvidence,
-        priorLessonTargetContext,
         audioDuration,
         files,
       });
@@ -3125,7 +2994,6 @@ export async function POST(req: Request) {
         chapter,
         lectureText,
         waitTimeEvidence,
-        priorLessonTargetContext,
         audioDuration,
         files,
       });
