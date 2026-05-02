@@ -1207,6 +1207,9 @@ Score the lesson with professional calibration. The scores do not need to match 
   }
 
   const waitTimeGuidance = `Important wait-time rule: once the lesson is underway, assume the teacher typically allows about 8 to 10 seconds for student response after questions unless the transcript gives clear evidence that the teacher rushed, answered their own questions, cut students off, or rapidly moved on without space for thinking. Audio transcription often removes silence, pauses, and think time, so do not criticize wait time based only on the absence of transcribed silence. Only flag weak wait time when there is explicit evidence of it in the lesson record.`;
+  const transcriptOnlyGuidance = waitTimeEvidence
+    ? ''
+    : `This lesson was submitted as transcript or notes without audio timing evidence. Do not score pacing, wait time, engagement, or assessment more harshly just because the written transcript is concise, omits pauses, or captures fewer student responses than a full audio transcription would. Judge those areas only from clear positive or negative evidence that appears in the submitted text.`;
   let userPrompt = '';
 
   const higherEdBiologyFormat = isHigherEdBiology
@@ -1234,9 +1237,6 @@ Important writing rules:
 - INSTRUCTIONAL COACHING FEEDBACK should summarize patterns and implications, not restate earlier bullets verbatim.
 - For CONTENT GAPS TO REINFORCE, only include concepts that are truly absent, inaccurate, or materially underdeveloped across the lesson as a whole. If a concept is clearly taught later in the transcript, do not list it as a gap.
 - If the recording is part one of a multi-part lesson sequence, distinguish between "not yet covered in this recording" and "incorrectly or inadequately taught."
-- If earlier lessons already covered the same chapter, unit, or lesson target, do not mark that prior-covered information as missing just because it is not repeated here.
-- Only flag previously taught content as a gap when this specific recording was clearly expected to reteach, assess, or deepen it and the transcript shows that did not happen.
-- For Higher Ed Biology, do not treat previously covered same-chapter objectives as newly missing just because this recording focused on a different part of the chapter sequence.
 - For Higher Ed Biology, do not claim mRNA, tRNA, rRNA, codons, transcription, or translation were missing if the transcript explicitly names them and gives their role with basic accuracy. In that case, you may note a need for added depth or precision, but not absence.
 - For Higher Ed Biology, if the transcript explicitly ties tRNA to amino acids or anticodons, or ties rRNA to the ribosome's structure or function, do not keep those as content gaps.
 - Before naming a biology content gap, verify that the concept was not adequately addressed anywhere in the transcript. If it was taught with reasonable introductory accuracy, frame the issue as limited depth, incomplete distinction, or deferred follow-up instead of saying it was not covered.
@@ -1281,7 +1281,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 
   if (hasStandards) {
     systemPrompt += '\nProvide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.';
-    userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${teksContext}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}`;
+    userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${teksContext}\n\n${waitTimeGuidance}${transcriptOnlyGuidance ? `\n\n${transcriptOnlyGuidance}` : ''}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}`;
 
     if (isSTAAR) {
       userPrompt += `\n\n=== STAAR TEKS COVERAGE ===\nSummarize how well the lesson covered the most important TEKS for this STAAR-tested subject and grade. Use labeled bullets for:\n- Readiness Summary: ...\n- Standards Reinforced:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- Standards That Need Stronger Assessment Evidence:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- STAAR Readiness Recommendation: ...\nFor Standards Reinforced and Standards That Need Stronger Assessment Evidence, list only actual TEKS codes with their matching descriptions from the standards reference above. Do not use generic prose in those two fields. For the weaker-assessment field, choose TEKS that are directly related to the lesson topic and concept focus.`;
@@ -1302,7 +1302,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 For the three standards lists above, use the provided Primary TEKS first, then use the Related Supporting TEKS when they genuinely connect to the lesson. Do not invent codes outside the provided standards reference, and do not use generic prose in those list fields.
 \nTranscript:\n${transcript}\n`;
   } else {
-    userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}\n\nTranscript:\n${transcript}\n`;
+    userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${waitTimeGuidance}${transcriptOnlyGuidance ? `\n\n${transcriptOnlyGuidance}` : ''}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}\n\nTranscript:\n${transcript}\n`;
   }
 
   await reportProgress(55, "Analyzing lesson content...");
@@ -2173,6 +2173,9 @@ Score the lesson with professional calibration. The scores do not need to match 
     }
 
     const waitTimeGuidance = `Important wait-time rule: once the lesson is underway, assume the teacher typically allows about 8 to 10 seconds for student response after questions unless the transcript gives clear evidence that the teacher rushed, answered their own questions, cut students off, or rapidly moved on without space for thinking. Audio transcription often removes silence, pauses, and think time, so do not criticize wait time based only on the absence of transcribed silence. Only flag weak wait time when there is explicit evidence of it in the lesson record.`;
+    const transcriptOnlyGuidance = waitTimeEvidence
+      ? ''
+      : `This lesson was submitted as transcript or notes without audio timing evidence. Do not score pacing, wait time, engagement, or assessment more harshly just because the written transcript is concise, omits pauses, or captures fewer student responses than a full audio transcription would. Judge those areas only from clear positive or negative evidence that appears in the submitted text.`;
     let userPrompt = '';
 
     const higherEdBiologyFormat = isHigherEdBiology
@@ -2200,9 +2203,6 @@ Important writing rules:
 - INSTRUCTIONAL COACHING FEEDBACK should summarize patterns and implications, not restate earlier bullets verbatim.
 - For CONTENT GAPS TO REINFORCE, only include concepts that are truly absent, inaccurate, or materially underdeveloped across the lesson as a whole. If a concept is clearly taught later in the transcript, do not list it as a gap.
 - If the recording is part one of a multi-part lesson sequence, distinguish between "not yet covered in this recording" and "incorrectly or inadequately taught."
-- If earlier lessons already covered the same chapter, unit, or lesson target, do not mark that prior-covered information as missing just because it is not repeated here.
-- Only flag previously taught content as a gap when this specific recording was clearly expected to reteach, assess, or deepen it and the transcript shows that did not happen.
-- For Higher Ed Biology, do not treat previously covered same-chapter objectives as newly missing just because this recording focused on a different part of the chapter sequence.
 - For Higher Ed Biology, do not claim mRNA, tRNA, rRNA, codons, transcription, or translation were missing if the transcript explicitly names them and gives their role with basic accuracy. In that case, you may note a need for added depth or precision, but not absence.
 - Before naming a biology content gap, verify that the concept was not adequately addressed anywhere in the transcript. If it was taught with reasonable introductory accuracy, frame the issue as limited depth, incomplete distinction, or deferred follow-up instead of saying it was not covered.
 - For Higher Ed Biology, anchor missing-content judgments to the selected Campbell Biology chapter and the matched course objective(s), not to every concept that could appear somewhere in a broader biology unit.
@@ -2243,7 +2243,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 
     if (hasStandards) {
       systemPrompt += '\nProvide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.';
-      userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${teksContext}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}`;
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${teksContext}\n\n${waitTimeGuidance}${transcriptOnlyGuidance ? `\n\n${transcriptOnlyGuidance}` : ''}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}`;
 
       if (isSTAAR) {
         userPrompt += `\n\n=== STAAR TEKS COVERAGE ===\nSummarize how well the lesson covered the most important TEKS for this STAAR-tested subject and grade. Use labeled bullets for:\n- Readiness Summary: ...\n- Standards Reinforced:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- Standards That Need Stronger Assessment Evidence:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- STAAR Readiness Recommendation: ...\nFor Standards Reinforced and Standards That Need Stronger Assessment Evidence, list only actual TEKS codes with their matching descriptions from the standards reference above. Do not use generic prose in those two fields. For the weaker-assessment field, choose TEKS that are directly related to the lesson topic and concept focus.`;
@@ -2264,7 +2264,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 For the three standards lists above, use the provided Primary TEKS first, then use the Related Supporting TEKS when they genuinely connect to the lesson. Do not invent codes outside the provided standards reference, and do not use generic prose in those list fields.
 \nTranscript:\n${transcript}\n`;
     } else {
-      userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${waitTimeGuidance}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}\n\nTranscript:\n${transcript}\n`;
+      userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${waitTimeGuidance}${transcriptOnlyGuidance ? `\n\n${transcriptOnlyGuidance}` : ''}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}\n\nTranscript:\n${transcript}\n`;
     }
 
     const completion = await callOpenAI(openai, [
