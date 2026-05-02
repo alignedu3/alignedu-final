@@ -38,6 +38,7 @@ export default function ResetPassword() {
   const [sessionReady, setSessionReady] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [isRecoverySession, setIsRecoverySession] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
@@ -103,6 +104,10 @@ export default function ResetPassword() {
   };
 
   const getPasswordValidationMessage = () => {
+    if (!isRecoverySession && !currentPassword.trim()) {
+      return 'Enter your current password to change it while signed in.';
+    }
+
     const requirementErrors = getPasswordRequirementErrors(password);
 
     if (requirementErrors.length > 0) {
@@ -138,7 +143,11 @@ export default function ResetPassword() {
     setLoading(true);
     const supabase = createClient();
 
-    const { error: updateError } = await supabase.auth.updateUser({ password });
+    const updatePayload = isRecoverySession
+      ? { password }
+      : { password, current_password: currentPassword };
+
+    const { error: updateError } = await supabase.auth.updateUser(updatePayload);
 
     if (updateError) {
       if (isRefreshTokenError(updateError.message)) {
@@ -233,6 +242,19 @@ export default function ResetPassword() {
           </div>
           <p style={requirementsHint}>Your confirmation password must match exactly before you can continue.</p>
         </div>
+
+        {!isRecoverySession ? (
+          <div style={formGroup}>
+            <label style={labelStyle}>Current Password</label>
+            <input
+              type="password"
+              placeholder="Enter your current password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              style={input}
+            />
+          </div>
+        ) : null}
 
         <div style={formGroup}>
           <label style={labelStyle}>New Password</label>
