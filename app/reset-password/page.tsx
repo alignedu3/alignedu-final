@@ -211,7 +211,7 @@ export default function ResetPassword() {
             <label style={labelStyle}>Current Password</label>
             <input
               type="password"
-              placeholder="Enter your current password"
+              placeholder="Current password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               style={input}
@@ -223,7 +223,7 @@ export default function ResetPassword() {
           <label style={labelStyle}>New Password</label>
           <input
             type="password"
-            placeholder="Use 8+ characters, upper/lowercase, a number, and a symbol"
+            placeholder="Create a new password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             style={{
@@ -286,7 +286,7 @@ export default function ResetPassword() {
           <label style={labelStyle}>Confirm Password</label>
           <input
             type="password"
-            placeholder="Repeat your new password"
+            placeholder="Confirm new password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             style={input}
