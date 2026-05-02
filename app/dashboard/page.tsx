@@ -200,6 +200,18 @@ export default function TeacherDashboard() {
     const toActionStep = (item: string) => {
       const cleaned = item.trim().replace(/\s+/g, ' ');
       if (!cleaned) return '';
+      const [focusLabelRaw, detailRaw = ''] = cleaned.split(/:\s+/, 2);
+      const focusLabel = focusLabelRaw.trim();
+      const detail = detailRaw.trim();
+
+      const withoutLead = (value: string) =>
+        value
+          .replace(/^(the lesson|the teacher|teacher|students?)\s+/i, '')
+          .replace(/\.$/, '')
+          .trim();
+
+      const lowerFocus = focusLabel.toLowerCase();
+      const lowerDetail = detail.toLowerCase();
 
       if (/^(add|use|plan|reteach|model|review|check|clarify|have|ask|revisit|anchor|include|tighten|connect|provide|incorporate|focus|build|end|start)\b/i.test(cleaned)) {
         return cleaned.replace(/\.$/, '') + '.';
@@ -234,7 +246,34 @@ export default function TeacherDashboard() {
         return cleaned.replace(/.*focus on /i, 'Focus on ').replace(/\.$/, '') + '.';
       }
 
-      return `Plan a short reteach or check-for-understanding move around ${cleaned.replace(/\.$/, '').toLowerCase()}.`;
+      if (lowerFocus.includes('pacing')) {
+        const transitionMatch = detail.match(/during\s+the\s+transition\s+from\s+(.+?)\s+to\s+(.+?)(?:,| which| so|$)/i);
+        if (transitionMatch) {
+          return `Slow the transition from ${transitionMatch[1].trim()} to ${transitionMatch[2].trim()}, then pause for a quick check before moving on.`;
+        }
+        return `Slow the pacing at the most concept-heavy part of the lesson and pause for a brief check before introducing the next idea.`;
+      }
+
+      if (lowerFocus.includes('question')) {
+        if (lowerDetail.includes('answered questions immediately') || lowerDetail.includes('wait time')) {
+          return 'Add 5 to 8 seconds of wait time after key questions, then call on students to explain their thinking before you step in.';
+        }
+        return 'Use one deeper follow-up question and give students time to think before taking responses.';
+      }
+
+      if (lowerFocus.includes('conceptual connection') || lowerFocus.includes('connection')) {
+        const betweenMatch = detail.match(/between\s+(.+?)\s+and\s+(.+?)(?:,| which| to|$)/i);
+        if (betweenMatch) {
+          return `Make the connection between ${betweenMatch[1].trim()} and ${betweenMatch[2].trim()} explicit with one brief example and a follow-up question.`;
+        }
+        return 'Make the key concept connection explicit with a short real-world example and a quick student explanation check.';
+      }
+
+      if (lowerDetail.includes('students appeared confused') || lowerDetail.includes('students seemed confused')) {
+        return `Reteach ${withoutLead(focusLabel).toLowerCase()} with one clearer model, then check that students can explain the distinction in their own words.`;
+      }
+
+      return `Revisit ${withoutLead(focusLabel).toLowerCase()} with one short model and a quick check for understanding before moving on.`;
     };
 
     const lessonDrivenActions = [
