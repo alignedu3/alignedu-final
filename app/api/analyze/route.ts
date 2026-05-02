@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { after } from "next/server";
+import { createHash } from "node:crypto";
 import { formatTEKSForPrompt, getPrimaryTEKSStandards, getRelatedTEKSStandards, getTEKSStandards } from "@/lib/teksStandards";
 import { STAAR_SUBJECTS } from "@/lib/staarSubjects";
 import { getAdminVisibility } from "@/lib/adminVisibility";
@@ -1090,6 +1091,136 @@ function createServiceSupabaseClient() {
   );
 }
 
+function normalizeTranscriptForConsistency(transcript: string) {
+  return transcript
+    .replace(/\[transcript chunk\s+\d+\s+of\s+\d+\]/gi, " ")
+    .replace(/audio transcript:/gi, " ")
+    .replace(/[^a-z0-9\s]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function fingerprintTranscript(transcript: string) {
+  const normalized = normalizeTranscriptForConsistency(transcript);
+  if (normalized.length < 200) {
+    return null;
+  }
+
+  return createHash("sha256").update(normalized).digest("hex");
+}
+
+function stripSubmissionContextSection(result: string) {
+  return normalizeStructuredReportText(
+    result.replace(/\n*===\s*SUBMISSION CONTEXT\s*===[\s\S]*$/i, "").trim()
+  );
+}
+
+async function findReusableAnalysis(params: {
+  grade: string;
+  subject: string;
+  lessonContextTitle: string;
+  transcript: string;
+}) {
+  const { grade, subject, lessonContextTitle, transcript } = params;
+  const fingerprint = fingerprintTranscript(transcript);
+
+  if (!lessonContextTitle || !fingerprint) {
+    return null;
+  }
+
+  const serviceSupabase = createServiceSupabaseClient();
+  const { data, error } = await serviceSupabase
+    .from("analyses")
+    .select("id, result, transcript")
+    .eq("grade", grade)
+    .eq("subject", subject)
+    .eq("title", lessonContextTitle)
+    .order("created_at", { ascending: false })
+    .limit(25);
+
+  if (error) {
+    console.error("REUSABLE ANALYSIS LOOKUP ERROR:", error);
+    return null;
+  }
+
+  const match = (data || []).find((analysis) => {
+    const candidateTranscript = typeof analysis.transcript === "string" ? analysis.transcript : "";
+    return fingerprintTranscript(candidateTranscript) === fingerprint;
+  });
+
+  if (!match || typeof match.result !== "string" || !match.result.trim()) {
+    return null;
+  }
+
+  return {
+    id: String(match.id),
+    result: stripSubmissionContextSection(match.result),
+  };
+}
+
+async function saveAnalysisRecord(params: {
+  targetUserId: string;
+  lessonContextTitle: string;
+  grade: string;
+  subject: string;
+  transcript: string;
+  finalResult: string;
+}) {
+  const { targetUserId, lessonContextTitle, grade, subject, transcript, finalResult } = params;
+  const metrics = extractMetricsFromResult(finalResult);
+  const serviceSupabase = createServiceSupabaseClient();
+
+  let dbSaved = false;
+  let analysisId: string | null = null;
+
+  const analysisRecord = {
+    user_id: targetUserId,
+    title: lessonContextTitle || null,
+    grade,
+    subject,
+    coverage_score: metrics.coverage_score,
+    clarity_rating: metrics.clarity_rating,
+    engagement_level: metrics.engagement_level,
+    assessment_quality: metrics.assessment_quality,
+    gaps_detected: metrics.gaps_detected,
+    transcript,
+    result: finalResult,
+    created_at: new Date().toISOString(),
+  };
+
+  let { data: insertedData, error: dbError } = await serviceSupabase
+    .from("analyses")
+    .insert([analysisRecord])
+    .select()
+    .single();
+
+  if (dbError && /assessment_quality/i.test(dbError.message || "")) {
+    const legacyRecord = Object.fromEntries(
+      Object.entries(analysisRecord).filter(([key]) => key !== "assessment_quality")
+    ) as Omit<typeof analysisRecord, "assessment_quality">;
+    ({ data: insertedData, error: dbError } = await serviceSupabase
+      .from("analyses")
+      .insert([legacyRecord])
+      .select()
+      .single());
+  }
+
+  if (dbError) {
+    console.error("DB SAVE ERROR:", dbError);
+    console.error("Record being saved:", analysisRecord);
+  } else if (insertedData) {
+    dbSaved = true;
+    analysisId = String(insertedData.id);
+  }
+
+  return {
+    saved: dbSaved,
+    analysisId,
+    metrics,
+  };
+}
+
 async function updateAnalysisJob(
   jobId: string,
   patch: Record<string, unknown>
@@ -1213,9 +1344,53 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
       : book
         ? `${book} ${chapter}`
         : chapter
-    : '';
+      : '';
 
-  let systemPrompt = `You are an elite instructional coach analyzing classroom teaching. Be specific, evidence-based, and actionable. Organize the report with clear sections, bullet points, and concise language so it is easy to follow.
+  const reusableAnalysis = await findReusableAnalysis({
+    grade,
+    subject,
+    lessonContextTitle,
+    transcript,
+  });
+
+  if (reusableAnalysis) {
+    await reportProgress(88, "Matching saved lesson found. Reusing consistent analysis...");
+
+    const submissionContext =
+      observedTeacherId
+        ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfileName || 'Admin').trim()} (Admin Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
+        : "";
+    const finalResult = normalizeStructuredReportText(`${reusableAnalysis.result}${submissionContext}`);
+    const score = extractScoreFromResult(finalResult);
+    const saveOutcome = await saveAnalysisRecord({
+      targetUserId,
+      lessonContextTitle,
+      grade,
+      subject,
+      transcript,
+      finalResult,
+    });
+
+    await reportProgress(100, "Analysis complete.");
+
+    return {
+      result: finalResult,
+      transcript,
+      score,
+      metrics: {
+        score,
+        coverage: saveOutcome.metrics.coverage_score,
+        clarity: saveOutcome.metrics.clarity_rating,
+        engagement: saveOutcome.metrics.engagement_level,
+        assessment: saveOutcome.metrics.assessment_quality,
+        gaps: saveOutcome.metrics.gaps_detected,
+      },
+      analysisId: saveOutcome.analysisId,
+      saved: saveOutcome.saved,
+    };
+  }
+
+    let systemPrompt = `You are an elite instructional coach analyzing classroom teaching. Be specific, evidence-based, and actionable. Organize the report with clear sections, bullet points, and concise language so it is easy to follow.
 
 Every report must feel unique to the lesson in front of you, not like a reusable template. Anchor feedback to concrete evidence from this specific lesson: teacher moves, student responses, task structure, checks for understanding, pacing, and standards alignment. Avoid generic praise or generic coaching phrases unless they are tied to an explicit lesson detail.
 
@@ -1899,56 +2074,16 @@ ${transcript}`;
   }
 
   const score = extractScoreFromResult(finalResult);
-  const metrics = extractMetricsFromResult(finalResult);
 
   await reportProgress(92, "Saving analysis...");
-
-  const serviceSupabase = createServiceSupabaseClient();
-
-  let dbSaved = false;
-  let analysisId: string | null = null;
-
-  const analysisRecord = {
-    user_id: targetUserId,
-    title: lessonContextTitle || null,
+  const saveOutcome = await saveAnalysisRecord({
+    targetUserId,
+    lessonContextTitle,
     grade,
     subject,
-    coverage_score: metrics.coverage_score,
-    clarity_rating: metrics.clarity_rating,
-    engagement_level: metrics.engagement_level,
-    assessment_quality: metrics.assessment_quality,
-    gaps_detected: metrics.gaps_detected,
     transcript,
-    result: finalResult,
-    created_at: new Date().toISOString(),
-  };
-
-  const insertQuery = serviceSupabase
-    .from("analyses")
-    .insert([analysisRecord])
-    .select()
-    .single();
-
-  let { data: insertedData, error: dbError } = await insertQuery;
-
-  if (dbError && /assessment_quality/i.test(dbError.message || "")) {
-    const legacyRecord = Object.fromEntries(
-      Object.entries(analysisRecord).filter(([key]) => key !== "assessment_quality")
-    ) as Omit<typeof analysisRecord, "assessment_quality">;
-    ({ data: insertedData, error: dbError } = await serviceSupabase
-      .from("analyses")
-      .insert([legacyRecord])
-      .select()
-      .single());
-  }
-
-  if (dbError) {
-    console.error("DB SAVE ERROR:", dbError);
-    console.error("Record being saved:", analysisRecord);
-  } else if (insertedData) {
-    dbSaved = true;
-    analysisId = insertedData.id;
-  }
+    finalResult,
+  });
 
   await reportProgress(100, "Analysis complete.");
 
@@ -1958,14 +2093,14 @@ ${transcript}`;
     score,
     metrics: {
       score,
-      coverage: metrics.coverage_score,
-      clarity: metrics.clarity_rating,
-      engagement: metrics.engagement_level,
-      assessment: metrics.assessment_quality,
-      gaps: metrics.gaps_detected,
+      coverage: saveOutcome.metrics.coverage_score,
+      clarity: saveOutcome.metrics.clarity_rating,
+      engagement: saveOutcome.metrics.engagement_level,
+      assessment: saveOutcome.metrics.assessment_quality,
+      gaps: saveOutcome.metrics.gaps_detected,
     },
-    analysisId,
-    saved: dbSaved,
+    analysisId: saveOutcome.analysisId,
+    saved: saveOutcome.saved,
   };
 }
 
