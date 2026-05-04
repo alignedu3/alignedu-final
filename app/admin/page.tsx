@@ -6,7 +6,7 @@ const AdminDashboard = dynamic(() => import('./dashboard'), {
   ssr: false,
   loading: () => (
     <div style={{ padding: '2rem', textAlign: 'center' }}>
-      Loading admin dashboard...
+      Loading administrator dashboard...
     </div>
   ),
 });

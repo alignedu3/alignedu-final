@@ -411,7 +411,7 @@ export default function AnalysisPage() {
         applyCompletedJob(data.job);
         setSaveNotice(
           isAdminObservationMode
-            ? "Observation saved. Review the report below and return to the admin dashboard when you are ready."
+            ? "Observation saved. Review the report below and return to the administrator dashboard when you are ready."
             : "Analysis saved. Review the report below and return to your dashboard when you are ready."
         );
         setActiveJobId(null);
@@ -1419,7 +1419,7 @@ export default function AnalysisPage() {
         if (data?.saved) {
           setSaveNotice(
             isAdminObservationMode
-              ? "Observation saved. Review the report below and return to the admin dashboard when you are ready."
+              ? "Observation saved. Review the report below and return to the administrator dashboard when you are ready."
               : "Analysis saved. Review the report below and return to your dashboard when you are ready."
           );
         }
@@ -1449,7 +1449,7 @@ export default function AnalysisPage() {
     <main className="analysis-wrapper">
       <div className="analysis-container">
         <div className="analysis-header">
-          <span className="analysis-badge">{isAdminObservationMode ? 'Admin Observation' : 'Lesson Review'}</span>
+          <span className="analysis-badge">{isAdminObservationMode ? 'Administrator Observation' : 'Lesson Review'}</span>
           <h1 className="analysis-title">{isAdminObservationMode ? 'Observation Report Builder' : 'Instructional Review'}</h1>
           <p className="analysis-subtitle">
             {isAdminObservationMode

@@ -1358,7 +1358,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
 
     const submissionContext =
       observedTeacherId
-        ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfileName || 'Admin').trim()} (Admin Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
+        ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfileName || 'Administrator').trim()} (Administrator Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
         : "";
     const finalResult = normalizeStructuredReportText(`${reusableAnalysis.result}${submissionContext}`);
     const score = extractScoreFromResult(finalResult);
@@ -2001,7 +2001,7 @@ ${transcript}`;
 
   const submissionContext =
     observedTeacherId
-      ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfileName || 'Admin').trim()} (Admin Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
+      ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfileName || 'Administrator').trim()} (Administrator Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
       : "";
   let finalResult = normalizeStructuredReportText(`${result}${submissionContext}`);
 
@@ -2190,7 +2190,7 @@ export async function legacyPOST(req: Request) {
       return safeJson(
         {
           result: null,
-          error: 'Admins must select a teacher from the observation flow so reports save to the correct teacher profile.',
+          error: 'Administrators must select a teacher from the observation flow so reports save to the correct teacher profile.',
         },
         400
       );
@@ -2198,7 +2198,7 @@ export async function legacyPOST(req: Request) {
 
     if (observedTeacherId) {
       if (!user?.id) {
-        return safeJson({ result: null, error: 'Sign in is required for admin observation mode.' }, 401);
+        return safeJson({ result: null, error: 'Sign in is required for administrator observation mode.' }, 401);
       }
       if (!isAdminCaller) {
         return safeJson({ result: null, error: 'Forbidden' }, 403);
@@ -2816,7 +2816,7 @@ ${transcript}`;
 
     const submissionContext =
       observedTeacherId
-        ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfile?.name || 'Admin').trim()} (Admin Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
+        ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfile?.name || 'Administrator').trim()} (Administrator Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
         : "";
     let finalResult = normalizeStructuredReportText(`${result}${submissionContext}`);
 
@@ -3010,7 +3010,7 @@ export async function POST(req: Request) {
       return safeJson(
         {
           result: null,
-          error: "Admins must select a teacher from the observation flow so reports save to the correct teacher profile.",
+          error: "Administrators must select a teacher from the observation flow so reports save to the correct teacher profile.",
         },
         400
       );
@@ -3018,7 +3018,7 @@ export async function POST(req: Request) {
 
     if (observedTeacherId) {
       if (!user?.id) {
-        return safeJson({ result: null, error: "Sign in is required for admin observation mode." }, 401);
+        return safeJson({ result: null, error: "Sign in is required for administrator observation mode." }, 401);
       }
       if (!isAdminCaller) {
         return safeJson({ result: null, error: "Forbidden" }, 403);

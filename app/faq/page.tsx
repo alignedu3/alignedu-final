@@ -29,7 +29,7 @@ const faqItems = [
   {
     question: 'Can admins see teacher-level data?',
     answer:
-      'Admins can access the dashboards and reports they are authorized to manage based on account role and configured access controls.',
+      'Administrators can access the dashboards and reports they are authorized to manage based on account role and configured access controls.',
   },
   {
     question: 'Does AlignEDU replace instructional judgment?',

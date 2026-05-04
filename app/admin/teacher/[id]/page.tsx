@@ -159,7 +159,7 @@ export default function AdminTeacherPage() {
         title="Unable to load teacher details"
         message={loadError}
         actionHref={backHref}
-        actionLabel="Back to Admin Dashboard"
+        actionLabel="Back to Administrator Dashboard"
       />
     );
   }
@@ -177,7 +177,7 @@ export default function AdminTeacherPage() {
             <p style={subheading}>{reports.length} lessons analyzed</p>
           </div>
           <div style={headerMeta}>
-            <div style={metaLabel}>Admin Drill-Down</div>
+            <div style={metaLabel}>Administrator Drill-Down</div>
             <div style={metaValue}>Teacher Results</div>
           </div>
         </div>
@@ -222,7 +222,7 @@ export default function AdminTeacherPage() {
               </div>
             </div>
             <div style={overviewPanel}>
-              <div style={label}>Admin Readout</div>
+              <div style={label}>Administrator Readout</div>
               <div style={text}>
                 {overview.summary
                   ? overview.summary

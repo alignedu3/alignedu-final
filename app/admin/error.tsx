@@ -19,10 +19,10 @@ export default function AdminError({
     <div style={{ padding: '20px' }}>
       <ProtectedPageState
         mode="error"
-        title="Admin workspace unavailable"
+        title="Administrator workspace unavailable"
         message="An unexpected error interrupted this admin view. You can retry the page or return to the dashboard."
         actionHref="/admin"
-        actionLabel="Return to Admin Dashboard"
+        actionLabel="Return to Administrator Dashboard"
       />
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: -120 }}>
         <button onClick={reset} style={button}>

@@ -57,8 +57,8 @@ function formatTrendAxisLabel(value: string | number) {
 }
 
 function formatRoleLabel(role?: string | null) {
-  if (!role) return 'Admin';
-  if (role === 'super_admin') return 'Super Admin';
+  if (!role) return 'Administrator';
+  if (role === 'super_admin') return 'Super Administrator';
   return role
     .split('_')
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
@@ -213,7 +213,7 @@ export default function AdminDashboard() {
   const activeAdminName =
     activeAdminProfile?.name ||
     activeAdminProfile?.email ||
-    (currentUserRole === 'super_admin' && selectedAdminId ? 'Selected Admin' : 'Admin');
+    (currentUserRole === 'super_admin' && selectedAdminId ? 'Selected Administrator' : 'Administrator');
   const isViewingAnotherAdmin =
     currentUserRole === 'super_admin' &&
     !!selectedAdminId &&
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
 
   const sampleProfiles = useMemo<ProfileRecord[]>(() => {
     const rootAdminId = activeAdminId || 'sample-root-admin';
-    const rootAdminName = activeAdminName || 'Admin';
+    const rootAdminName = activeAdminName || 'Administrator';
 
     return [
       { id: rootAdminId, name: rootAdminName, role: currentUserRole || 'admin' },
@@ -501,12 +501,12 @@ export default function AdminDashboard() {
 
         return {
           id: adminId,
-          name: adminProfile?.name || adminProfile?.email || 'Admin',
+          name: adminProfile?.name || adminProfile?.email || 'Administrator',
           role: adminProfile?.role || 'admin',
           childAdmins: childAdminIds
             .map((id) => dashboardProfileById.get(id))
             .filter((p): p is ProfileRecord => Boolean(p))
-            .map((p) => ({ id: p.id, name: p.name || p.email || 'Admin', role: p.role })),
+            .map((p) => ({ id: p.id, name: p.name || p.email || 'Administrator', role: p.role })),
           teachers: teacherIds
             .map((id) => dashboardProfileById.get(id))
             .filter((p): p is ProfileRecord => Boolean(p))
@@ -615,7 +615,7 @@ export default function AdminDashboard() {
     return (
       <ProtectedPageState
         mode="loading"
-        title="Loading admin dashboard"
+        title="Loading administrator dashboard"
         message="Gathering visibility, team performance, and lesson trends for your current scope."
       />
     );
@@ -1059,7 +1059,7 @@ export default function AdminDashboard() {
                   }}
                 >
                   <div style={hierarchyGroupCard}>
-                    <div style={hierarchyLabel}>Admins Under This Admin</div>
+                    <div style={hierarchyLabel}>Administrators Under This Administrator</div>
                     {row.childAdmins.length ? (
                       <div style={pillWrap}>
                         {row.childAdmins.map((child) => (
@@ -1075,12 +1075,12 @@ export default function AdminDashboard() {
                         ))}
                       </div>
                     ) : (
-                      <div style={hierarchyEmptyState}>No nested admins assigned in this scope.</div>
+                      <div style={hierarchyEmptyState}>No nested administrators assigned in this scope.</div>
                     )}
                   </div>
 
                   <div style={hierarchyGroupCard}>
-                    <div style={hierarchyLabel}>Teachers Under This Admin</div>
+                    <div style={hierarchyLabel}>Teachers Under This Administrator</div>
                     {row.teachers.length ? (
                       <div style={pillWrap}>
                         {row.teachers.map((teacher) => (

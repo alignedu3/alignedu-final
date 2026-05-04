@@ -62,7 +62,7 @@ export async function DELETE(
 
   if (callerRole === 'admin') {
     if (targetProfile.role !== 'teacher') {
-      return NextResponse.json({ error: 'Admins can only delete teacher accounts.' }, { status: 403 });
+      return NextResponse.json({ error: 'Administrators can only delete teacher accounts.' }, { status: 403 });
     }
 
     const { data: managedLink } = await supabase

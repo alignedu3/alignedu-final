@@ -182,7 +182,7 @@ export default function DistrictDashboard() {
             </p>
           </div>
           <button onClick={() => router.push('/admin')} style={btn}>
-            Back to Admin Dashboard
+            Back to Administrator Dashboard
           </button>
         </div>
 

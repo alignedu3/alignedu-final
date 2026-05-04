@@ -311,7 +311,7 @@ export default function Header() {
                         style={dropdownItem}
                         onClick={handleHeaderNavigation('/admin')}
                       >
-                        Admin Dashboard
+                        Administrator Dashboard
                       </Link>
 
                       <Link
@@ -428,7 +428,7 @@ export default function Header() {
                 {isAdminUser && (
                   <>
                     <Link href="/admin" className="mobile-nav-link" onClick={handleHeaderNavigation('/admin')}>
-                      Admin Dashboard
+                      Administrator Dashboard
                     </Link>
                     <Link href="/admin/observe" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                       Observe Lesson

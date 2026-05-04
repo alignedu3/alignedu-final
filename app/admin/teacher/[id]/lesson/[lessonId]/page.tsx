@@ -74,7 +74,7 @@ export default function LessonReportPage() {
         title="Unable to load lesson report"
         message={loadError}
         actionHref={teacherId ? `/admin/teacher/${teacherId}` : '/admin'}
-        actionLabel={teacherId ? 'Back to Teacher' : 'Back to Admin Dashboard'}
+        actionLabel={teacherId ? 'Back to Teacher' : 'Back to Administrator Dashboard'}
       />
     );
   }
@@ -85,7 +85,7 @@ export default function LessonReportPage() {
         title="Lesson not found"
         message="This lesson may have been removed or is no longer available in your current admin scope."
         actionHref={teacherId ? `/admin/teacher/${teacherId}` : '/admin'}
-        actionLabel={teacherId ? 'Back to Teacher' : 'Back to Admin Dashboard'}
+        actionLabel={teacherId ? 'Back to Teacher' : 'Back to Administrator Dashboard'}
       />
     );
   }
@@ -139,7 +139,7 @@ export default function LessonReportPage() {
         <div style={heroCard}>
           <div style={heroTop}>
             <div>
-              <div style={eyebrow}>Admin Lesson Report</div>
+              <div style={eyebrow}>Administrator Lesson Report</div>
               <h1 style={heading}>{titleText}</h1>
               <p style={subheading}>{teacher?.name || 'Unknown'} · {lessonDate}</p>
             </div>

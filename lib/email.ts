@@ -124,12 +124,12 @@ export async function sendInviteEmail(
   role: 'teacher' | 'admin',
   acceptLink: string
 ) {
-  const subject = `You're invited to join AlignEDU${role === 'admin' ? ' as an Admin' : ''}`;
+  const subject = `You're invited to join AlignEDU${role === 'admin' ? ' as an Administrator' : ''}`;
   const htmlContent = buildBrandedEmailHtml({
     title: 'Welcome to AlignEDU',
     bodyHtml: `
       <p>Hi ${name},</p>
-      <p>You've been invited to join AlignEDU as a <strong>${role === 'admin' ? 'Admin' : 'Teacher'}</strong>.</p>
+      <p>You've been invited to join AlignEDU as a <strong>${role === 'admin' ? 'Administrator' : 'Teacher'}</strong>.</p>
       <p>AlignEDU helps teachers and leaders turn lesson analysis into measurable instructional improvement through AI-powered feedback on curriculum alignment, clarity, and effectiveness.</p>
       <p>Click the button below to accept your invitation and set up your account:</p>
       <p style="margin-top: 30px; font-size: 14px; color: #888;">If you did not expect this invitation, you can safely ignore this email.</p>

@@ -342,7 +342,7 @@ export default function MonitoringDashboard() {
         title="Unable to load monitoring"
         message={loadError}
         actionHref="/admin"
-        actionLabel="Back to Admin Dashboard"
+        actionLabel="Back to Administrator Dashboard"
       />
     );
   }
@@ -393,7 +393,7 @@ export default function MonitoringDashboard() {
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
             <button type="button" onClick={() => router.push('/admin')} style={backBtn}>
-              Back to Admin
+              Back to Administrator
             </button>
             <div>
               <div style={updatedText}>

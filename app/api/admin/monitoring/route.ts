@@ -2329,7 +2329,7 @@ export async function GET(request: NextRequest) {
       const source = isAnonymous
         ? 'Try It Now'
         : isAdminObservation(report)
-          ? 'Admin Observation'
+          ? 'Administrator Observation'
           : 'Logged-in Lesson';
 
       return {
