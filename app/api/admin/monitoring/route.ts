@@ -9,7 +9,6 @@ import { captureRouteException } from '@/lib/sentryRoute';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const MONITORING_OWNER_EMAIL = 'ryan@alignedu.net';
 const DEFAULT_PUBLIC_SITE_URL = 'https://www.alignedu.net';
 
 type MonitoringReadiness = {
@@ -2214,10 +2213,6 @@ export async function GET(request: NextRequest) {
     }
 
     sentryUser.role = callerProfile?.role || null;
-
-    if ((user.email || '').toLowerCase() !== MONITORING_OWNER_EMAIL) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
-    }
 
     const serviceSupabase = getServiceSupabase();
 
