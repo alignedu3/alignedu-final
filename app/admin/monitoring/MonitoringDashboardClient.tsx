@@ -227,14 +227,25 @@ type MonitoringPayload = {
 const WINDOW_OPTIONS = [7, 14, 30] as const;
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
 
-function formatUtcClock(parsed: Date, includeSeconds = false) {
-  const hours = parsed.getUTCHours();
-  const displayHour = hours % 12 || 12;
-  const minutes = String(parsed.getUTCMinutes()).padStart(2, '0');
-  const seconds = String(parsed.getUTCSeconds()).padStart(2, '0');
-  const meridiem = hours >= 12 ? 'PM' : 'AM';
-  const time = includeSeconds ? `${displayHour}:${minutes}:${seconds}` : `${displayHour}:${minutes}`;
-  return `${time} ${meridiem} UTC`;
+function formatCentralClock(parsed: Date, includeSeconds = false) {
+  const formatted = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    hour: 'numeric',
+    minute: '2-digit',
+    ...(includeSeconds ? { second: '2-digit' as const } : {}),
+    hour12: true,
+    timeZoneName: 'short',
+  }).formatToParts(parsed);
+
+  const hour = formatted.find((part) => part.type === 'hour')?.value || '';
+  const minute = formatted.find((part) => part.type === 'minute')?.value || '';
+  const second = formatted.find((part) => part.type === 'second')?.value || '';
+  const dayPeriod = formatted.find((part) => part.type === 'dayPeriod')?.value?.toUpperCase() || '';
+  const zoneName = formatted.find((part) => part.type === 'timeZoneName')?.value || 'CT';
+  if (includeSeconds) {
+    return `${hour}:${minute}:${second} ${dayPeriod} ${zoneName}`;
+  }
+  return `${hour}:${minute} ${dayPeriod} ${zoneName}`;
 }
 
 export default function MonitoringDashboard() {
@@ -973,15 +984,15 @@ export default function MonitoringDashboard() {
             </div>
           </div>
           {userRoster.length ? (
-            <div style={statusList} className="monitoring-status-list">
+            <div style={compactRosterGrid}>
               {userRoster.map((member) => (
-                <div key={member.id} style={issueRow} className="monitoring-issue-row">
+                <div key={member.id} style={compactRosterRow}>
                   <div style={{ minWidth: 0 }}>
                     <div style={issueTitle}>{member.name}</div>
                     <div style={issueMeta}>{formatRoleLabel(member.role)}</div>
                   </div>
-                  <div style={lessonLedgerMeta}>
-                    <div style={issueMeta}>Last sign-in</div>
+                  <div style={compactRosterMeta}>
+                    <div style={compactRosterLabel}>Last sign-in</div>
                     <div style={lessonLedgerTime}>{formatDateTime(member.lastSignInAt)}</div>
                   </div>
                 </div>
@@ -1031,13 +1042,20 @@ function formatDateTime(value: string | null) {
   if (!value) return '—';
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
-  return `${MONTH_LABELS[parsed.getUTCMonth()]} ${parsed.getUTCDate()}, ${formatUtcClock(parsed)}`;
+  const centralParts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Chicago',
+    month: 'short',
+    day: 'numeric',
+  }).formatToParts(parsed);
+  const month = centralParts.find((part) => part.type === 'month')?.value || MONTH_LABELS[parsed.getUTCMonth()];
+  const day = centralParts.find((part) => part.type === 'day')?.value || String(parsed.getUTCDate());
+  return `${month} ${day}, ${formatCentralClock(parsed)}`;
 }
 
 function formatTime(value: string) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
-  return formatUtcClock(parsed, true);
+  return formatCentralClock(parsed, true);
 }
 
 function formatRoleLabel(role: string | null | undefined) {
@@ -1440,6 +1458,38 @@ const lessonLedgerTime: React.CSSProperties = {
   color: 'var(--text-secondary)',
   fontSize: 13,
   textAlign: 'right',
+};
+
+const compactRosterGrid: React.CSSProperties = {
+  display: 'grid',
+  gap: 10,
+};
+
+const compactRosterRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 14,
+  padding: '10px 12px',
+  borderRadius: 14,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-chip)',
+};
+
+const compactRosterMeta: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-end',
+  gap: 4,
+  flexShrink: 0,
+};
+
+const compactRosterLabel: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
 };
 
 const readinessGrid: React.CSSProperties = {
