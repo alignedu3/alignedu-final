@@ -77,7 +77,6 @@ export default function AdminDashboard() {
   const [loadError, setLoadError] = useState('');
   const [modalType, setModalType] = useState<null | 'quality' | 'lessons' | 'strong' | 'atrisk'>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [openActionsForId, setOpenActionsForId] = useState<string | null>(null);
@@ -155,7 +154,6 @@ export default function AdminDashboard() {
       }
 
       setCurrentUserId(data.caller?.id ?? null);
-      setCurrentUserEmail(data.caller?.email ?? null);
       setCurrentUserRole(data.caller?.role ?? null);
       setVisibleAdminIds((data.visibility?.adminIds || []) as string[]);
       setProfiles((data.profiles || []) as ProfileRecord[]);
@@ -206,7 +204,7 @@ export default function AdminDashboard() {
   }, []);
 
   const reports = dbReports;
-  const canAccessMonitoring = currentUserRole === 'super_admin' && currentUserEmail === 'ryan@alignedu.net';
+  const canAccessSuperAdminTools = currentUserRole === 'super_admin';
   const profileById = useMemo(() => new Map(profiles.map((p) => [p.id, p])), [profiles]);
   const activeAdminId = selectedAdminId || currentUserId;
   const activeAdminProfile = activeAdminId ? profileById.get(activeAdminId) : undefined;
@@ -640,12 +638,12 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div style={actions}>
-            {canAccessMonitoring && (
+            {canAccessSuperAdminTools && (
               <button onClick={handleOpenMonitoringDashboard} style={headerActionBtnAlt}>
                 Monitoring Dashboard
               </button>
             )}
-            {currentUserRole === 'super_admin' && (
+            {canAccessSuperAdminTools && (
               <button onClick={handleOpenDistrictDashboard} style={headerActionBtnAlt}>
                 District Dashboard
               </button>
