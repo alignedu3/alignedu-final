@@ -49,6 +49,14 @@ type MonitoringLessonLedgerRow = {
   executiveSummary: string;
 };
 
+type MonitoringUserRosterRow = {
+  id: string;
+  name: string;
+  email: string | null;
+  role: string;
+  lastSignInAt: string | null;
+};
+
 type ConnectionState = {
   key: string;
   label: string;
@@ -366,6 +374,44 @@ function buildMonitoringLessonSummary(report: AnalysisReport) {
   const fallback = cleanDisplayText(report.result || report.analysis_result || '');
   if (!fallback) return 'No executive summary was saved for this lesson report.';
   return fallback.length > 260 ? `${fallback.slice(0, 257).trimEnd()}...` : fallback;
+}
+
+async function listAllAuthUsers(serviceSupabase: ReturnType<typeof getServiceSupabase>) {
+  const users: Array<{
+    id: string;
+    email?: string | null;
+    last_sign_in_at?: string | null;
+  }> = [];
+  let page = 1;
+  const perPage = 200;
+
+  while (true) {
+    const { data, error } = await serviceSupabase.auth.admin.listUsers({
+      page,
+      perPage,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    const batch = data?.users || [];
+    users.push(
+      ...batch.map((user) => ({
+        id: user.id,
+        email: user.email ?? null,
+        last_sign_in_at: user.last_sign_in_at ?? null,
+      }))
+    );
+
+    if (batch.length < perPage) {
+      break;
+    }
+
+    page += 1;
+  }
+
+  return users;
 }
 
 function getTotalFromStatsGroups(payload: StatsPayload | null | undefined, field: string) {
@@ -2216,7 +2262,7 @@ export async function GET(request: NextRequest) {
 
     const serviceSupabase = getServiceSupabase();
 
-    const [{ data: profiles, error: profilesError }, analysesResult] = await Promise.all([
+    const [{ data: profiles, error: profilesError }, analysesResult, authUsersResult] = await Promise.all([
       serviceSupabase
         .from('profiles')
         .select('id, name, email, role'),
@@ -2224,6 +2270,7 @@ export async function GET(request: NextRequest) {
         .from('analyses')
         .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result')
         .order('created_at', { ascending: false }),
+      listAllAuthUsers(serviceSupabase),
     ]);
 
     const { data: analyses, error: analysesError } = analysesResult;
@@ -2238,6 +2285,7 @@ export async function GET(request: NextRequest) {
     const profileList = (profiles || []) as ProfileRecord[];
     const reportList = (analyses || []) as AnalysisReport[];
     const profileById = new Map(profileList.map((profile) => [profile.id, profile]));
+    const authUserById = new Map(authUsersResult.map((authUser) => [authUser.id, authUser]));
     const windowKeys = buildDateKeys(days);
     const windowKeySet = new Set(windowKeys);
     const reportsInWindow = reportList.filter((report) => {
@@ -2339,6 +2387,38 @@ export async function GET(request: NextRequest) {
         executiveSummary: buildMonitoringLessonSummary(report),
       };
     });
+
+    const userRoster: MonitoringUserRosterRow[] = profileList
+      .map((profile) => {
+        const authUser = authUserById.get(profile.id);
+        return {
+          id: profile.id,
+          name: profile.name || profile.email || authUser?.email || 'User',
+          email: profile.email || authUser?.email || null,
+          role: profile.role || 'user',
+          lastSignInAt: authUser?.last_sign_in_at || null,
+        };
+      })
+      .sort((a, b) => {
+        const roleRank = (role: string) => {
+          if (role === 'super_admin') return 0;
+          if (role === 'admin') return 1;
+          if (role === 'teacher') return 2;
+          return 3;
+        };
+
+        if (roleRank(a.role) !== roleRank(b.role)) {
+          return roleRank(a.role) - roleRank(b.role);
+        }
+
+        const aTime = a.lastSignInAt ? new Date(a.lastSignInAt).getTime() : 0;
+        const bTime = b.lastSignInAt ? new Date(b.lastSignInAt).getTime() : 0;
+        if (bTime !== aTime) {
+          return bTime - aTime;
+        }
+
+        return a.name.localeCompare(b.name);
+      });
 
     const readiness = buildReadiness();
     const connectionState = buildConnections();
@@ -2532,6 +2612,7 @@ export async function GET(request: NextRequest) {
         series,
         recentActivity,
         lessonUploads,
+        userRoster,
         readiness,
         alerts,
         uptime,

@@ -54,6 +54,13 @@ type MonitoringLessonLedgerRow = {
   executiveSummary: string;
 };
 
+type MonitoringUserRosterRow = {
+  id: string;
+  name: string;
+  role: string;
+  lastSignInAt: string | null;
+};
+
 type ConnectionState = {
   key: string;
   label: string;
@@ -187,6 +194,7 @@ type MonitoringPayload = {
   alerts?: MonitoringAlert[];
   recentActivity?: MonitoringActivityRow[];
   lessonUploads?: MonitoringLessonLedgerRow[];
+  userRoster?: MonitoringUserRosterRow[];
   uptime?: {
     summaryCards?: OpsSummaryCard[];
     checks?: UptimeCheck[];
@@ -293,6 +301,7 @@ export default function MonitoringDashboard() {
 
   const readiness = payload?.readiness || [];
   const lessonUploads = payload?.lessonUploads || [];
+  const userRoster = payload?.userRoster || [];
   const alerts = payload?.alerts || [];
   const uptimeCards = payload?.uptime?.summaryCards || [];
   const uptimeChecks = payload?.uptime?.checks || [];
@@ -959,6 +968,33 @@ export default function MonitoringDashboard() {
         <section style={sectionCard}>
           <div style={sectionHeader}>
             <div>
+              <div style={sectionEyebrow}>User Access</div>
+              <h2 style={sectionTitle}>All Users and Last Sign-In</h2>
+            </div>
+          </div>
+          {userRoster.length ? (
+            <div style={statusList} className="monitoring-status-list">
+              {userRoster.map((member) => (
+                <div key={member.id} style={issueRow} className="monitoring-issue-row">
+                  <div style={{ minWidth: 0 }}>
+                    <div style={issueTitle}>{member.name}</div>
+                    <div style={issueMeta}>{formatRoleLabel(member.role)}</div>
+                  </div>
+                  <div style={lessonLedgerMeta}>
+                    <div style={issueMetaLabel}>Last sign-in</div>
+                    <div style={lessonLedgerTime}>{formatDateTime(member.lastSignInAt)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p style={bodyText}>No users were returned for this monitoring view.</p>
+          )}
+        </section>
+
+        <section style={sectionCard}>
+          <div style={sectionHeader}>
+            <div>
               <div style={sectionEyebrow}>Lesson Ledger</div>
               <h2 style={sectionTitle}>All Lessons Uploaded</h2>
             </div>
@@ -1002,6 +1038,17 @@ function formatTime(value: string) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return formatUtcClock(parsed, true);
+}
+
+function formatRoleLabel(role: string | null | undefined) {
+  const normalized = String(role || '').trim().toLowerCase();
+  if (!normalized) return 'User';
+  if (normalized === 'super_admin') return 'Super Administrator';
+  if (normalized === 'admin') return 'Administrator';
+  return normalized
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
 }
 
 function formatCheckTarget(value: string) {
