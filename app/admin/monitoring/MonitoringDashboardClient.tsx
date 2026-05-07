@@ -981,7 +981,7 @@ export default function MonitoringDashboard() {
                     <div style={issueMeta}>{formatRoleLabel(member.role)}</div>
                   </div>
                   <div style={lessonLedgerMeta}>
-                    <div style={issueMetaLabel}>Last sign-in</div>
+                    <div style={issueMeta}>Last sign-in</div>
                     <div style={lessonLedgerTime}>{formatDateTime(member.lastSignInAt)}</div>
                   </div>
                 </div>
