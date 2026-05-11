@@ -2219,8 +2219,36 @@ function buildEmptyTrafficSeries(windowKeys: string[]): TrafficSeriesPoint[] {
   }));
 }
 
+function buildEmptyUptimeSummary(): UptimeResult {
+  return {
+    summaryCards: [
+      {
+        key: 'uptime-availability',
+        label: 'Checks Passing',
+        value: null,
+        displayValue: '—',
+        status: 'warning',
+        statusLabel: 'Loading',
+        detail: 'Uptime checks will populate after the page finishes loading provider data.',
+      },
+      {
+        key: 'uptime-average-response',
+        label: 'Average Response',
+        value: null,
+        displayValue: '—',
+        status: 'warning',
+        statusLabel: 'Loading',
+        detail: 'Average response time will populate after the provider refresh completes.',
+      },
+    ],
+    checks: [],
+  };
+}
+
 export async function GET(request: NextRequest) {
   const days = parseWindowDays(request.nextUrl.searchParams.get('days'));
+  const includeProviders = request.nextUrl.searchParams.get('includeProviders') !== '0';
+  const providersOnly = request.nextUrl.searchParams.get('providersOnly') === '1';
   let sentryUser: { id?: string | null; email?: string | null; role?: string | null } | null = null;
 
   try {
@@ -2260,169 +2288,183 @@ export async function GET(request: NextRequest) {
 
     sentryUser.role = callerProfile?.role || null;
 
-    const serviceSupabase = getServiceSupabase();
-
-    const [{ data: profiles, error: profilesError }, analysesResult, authUsersResult] = await Promise.all([
-      serviceSupabase
-        .from('profiles')
-        .select('id, name, email, role'),
-      serviceSupabase
-        .from('analyses')
-        .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result')
-        .order('created_at', { ascending: false }),
-      listAllAuthUsers(serviceSupabase),
-    ]);
-
-    const { data: analyses, error: analysesError } = analysesResult;
-
-    if (profilesError) {
-      return NextResponse.json({ success: false, error: profilesError.message }, { status: 500 });
-    }
-    if (analysesError) {
-      return NextResponse.json({ success: false, error: analysesError.message }, { status: 500 });
-    }
-
-    const profileList = (profiles || []) as ProfileRecord[];
-    const reportList = (analyses || []) as AnalysisReport[];
-    const profileById = new Map(profileList.map((profile) => [profile.id, profile]));
-    const authUserById = new Map(authUsersResult.map((authUser) => [authUser.id, authUser]));
     const windowKeys = buildDateKeys(days);
-    const windowKeySet = new Set(windowKeys);
-    const reportsInWindow = reportList.filter((report) => {
-      if (!report.created_at) return false;
-      return windowKeySet.has(report.created_at.slice(0, 10));
-    });
-
-    const totalLessons = reportList.length;
-    const totalTeachers = profileList.filter((profile) => profile.role === 'teacher').length;
-    const totalAdmins = profileList.filter((profile) => profile.role === 'admin' || profile.role === 'super_admin').length;
-    const activeTeachers = new Set(
-      reportsInWindow
-        .map((report) => report.user_id)
-        .filter((value): value is string => Boolean(value && profileById.get(value)?.role === 'teacher'))
-    ).size;
-    const observationCount = reportsInWindow.filter(isAdminObservation).length;
-    const averageScore = average(reportsInWindow.map((report) => calculateLessonScore(report)));
-
-    const seriesMap = new Map<string, { lessons: number; observations: number; scores: number[] }>();
-    windowKeys.forEach((key) => {
-      seriesMap.set(key, { lessons: 0, observations: 0, scores: [] });
-    });
-
-    reportsInWindow.forEach((report) => {
-      if (!report.created_at) return;
-      const key = report.created_at.slice(0, 10);
-      const bucket = seriesMap.get(key);
-      if (!bucket) return;
-      bucket.lessons += 1;
-      bucket.scores.push(calculateLessonScore(report));
-      if (isAdminObservation(report)) {
-        bucket.observations += 1;
-      }
-    });
-
-    const series: MonitoringSeriesPoint[] = windowKeys.map((key) => {
-      const bucket = seriesMap.get(key)!;
-      return {
-        date: key,
-        label: formatCompactDate(key),
-        lessons: bucket.lessons,
-        observations: bucket.observations,
-        averageScore: average(bucket.scores),
-      };
-    });
-
-    const activityByUser = new Map<string, AnalysisReport[]>();
-    reportList.forEach((report) => {
-      if (!report.user_id) return;
-      const existing = activityByUser.get(report.user_id) || [];
-      existing.push(report);
-      activityByUser.set(report.user_id, existing);
-    });
-
-    const recentActivity: MonitoringActivityRow[] = Array.from(activityByUser.entries())
-      .map(([userId, userReports]) => {
-        const recentReports = userReports.filter((report) => {
-          if (!report.created_at) return false;
-          return windowKeySet.has(report.created_at.slice(0, 10));
-        });
-        const latestSubmittedAt = userReports[0]?.created_at ?? null;
-
-        return {
-          id: userId,
-          name: profileById.get(userId)?.name || profileById.get(userId)?.email || 'User',
-          role: profileById.get(userId)?.role || 'teacher',
-          lessons: recentReports.length,
-          adminObservations: recentReports.filter(isAdminObservation).length,
-          averageScore: average(recentReports.map((report) => calculateLessonScore(report))),
-          trend: getLatestLessonTrend(userReports),
-          latestSubmittedAt,
-        };
-      })
-      .filter((row) => row.lessons > 0)
-      .sort((a, b) => {
-        if (b.lessons !== a.lessons) return b.lessons - a.lessons;
-        return (b.latestSubmittedAt || '').localeCompare(a.latestSubmittedAt || '');
-      })
-      .slice(0, 8);
-
-    const lessonUploads: MonitoringLessonLedgerRow[] = reportList.map((report) => {
-      const profile = report.user_id ? profileById.get(report.user_id) : null;
-      const isAnonymous = !report.user_id;
-      const source = isAnonymous
-        ? 'Try It Now'
-        : isAdminObservation(report)
-          ? 'Administrator Observation'
-          : 'Logged-in Lesson';
-
-      return {
-        id: report.id,
-        title: String(report.title || 'Untitled Lesson'),
-        context: buildMonitoringLessonContext(report) || 'Lesson context was not saved.',
-        submittedBy: isAnonymous ? 'Guest User' : profile?.name || profile?.email || 'User',
-        submitterRole: isAnonymous ? 'guest' : profile?.role || 'teacher',
-        source,
-        createdAt: report.created_at || null,
-        score: calculateLessonScore(report),
-        executiveSummary: buildMonitoringLessonSummary(report),
-      };
-    });
-
-    const userRoster: MonitoringUserRosterRow[] = profileList
-      .map((profile) => {
-        const authUser = authUserById.get(profile.id);
-        return {
-          id: profile.id,
-          name: profile.name || profile.email || authUser?.email || 'User',
-          email: profile.email || authUser?.email || null,
-          role: profile.role || 'user',
-          lastSignInAt: authUser?.last_sign_in_at || null,
-        };
-      })
-      .sort((a, b) => {
-        const roleRank = (role: string) => {
-          if (role === 'super_admin') return 0;
-          if (role === 'admin') return 1;
-          if (role === 'teacher') return 2;
-          return 3;
-        };
-
-        if (roleRank(a.role) !== roleRank(b.role)) {
-          return roleRank(a.role) - roleRank(b.role);
-        }
-
-        const aTime = a.lastSignInAt ? new Date(a.lastSignInAt).getTime() : 0;
-        const bTime = b.lastSignInAt ? new Date(b.lastSignInAt).getTime() : 0;
-        if (bTime !== aTime) {
-          return bTime - aTime;
-        }
-
-        return a.name.localeCompare(b.name);
-      });
-
+    const serviceSupabase = getServiceSupabase();
     const readiness = buildReadiness();
     const connectionState = buildConnections();
-    const uptime = await fetchUptimeSummary(request);
+    let profileList: ProfileRecord[] = [];
+    let reportList: AnalysisReport[] = [];
+    let series: MonitoringSeriesPoint[] = [];
+    let recentActivity: MonitoringActivityRow[] = [];
+    let lessonUploads: MonitoringLessonLedgerRow[] = [];
+    let userRoster: MonitoringUserRosterRow[] = [];
+    let totalLessons = 0;
+    let totalTeachers = 0;
+    let totalAdmins = 0;
+    let activeTeachers = 0;
+    let observationCount = 0;
+    let averageScore = 0;
+
+    if (!providersOnly) {
+      const [{ data: profiles, error: profilesError }, analysesResult, authUsersResult] = await Promise.all([
+        serviceSupabase
+          .from('profiles')
+          .select('id, name, email, role'),
+        serviceSupabase
+          .from('analyses')
+          .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result')
+          .order('created_at', { ascending: false }),
+        listAllAuthUsers(serviceSupabase),
+      ]);
+
+      const { data: analyses, error: analysesError } = analysesResult;
+
+      if (profilesError) {
+        return NextResponse.json({ success: false, error: profilesError.message }, { status: 500 });
+      }
+      if (analysesError) {
+        return NextResponse.json({ success: false, error: analysesError.message }, { status: 500 });
+      }
+
+      profileList = (profiles || []) as ProfileRecord[];
+      reportList = (analyses || []) as AnalysisReport[];
+      const profileById = new Map(profileList.map((profile) => [profile.id, profile]));
+      const authUserById = new Map(authUsersResult.map((authUser) => [authUser.id, authUser]));
+      const windowKeySet = new Set(windowKeys);
+      const reportsInWindow = reportList.filter((report) => {
+        if (!report.created_at) return false;
+        return windowKeySet.has(report.created_at.slice(0, 10));
+      });
+
+      totalLessons = reportList.length;
+      totalTeachers = profileList.filter((profile) => profile.role === 'teacher').length;
+      totalAdmins = profileList.filter((profile) => profile.role === 'admin' || profile.role === 'super_admin').length;
+      activeTeachers = new Set(
+        reportsInWindow
+          .map((report) => report.user_id)
+          .filter((value): value is string => Boolean(value && profileById.get(value)?.role === 'teacher'))
+      ).size;
+      observationCount = reportsInWindow.filter(isAdminObservation).length;
+      averageScore = average(reportsInWindow.map((report) => calculateLessonScore(report)));
+
+      const seriesMap = new Map<string, { lessons: number; observations: number; scores: number[] }>();
+      windowKeys.forEach((key) => {
+        seriesMap.set(key, { lessons: 0, observations: 0, scores: [] });
+      });
+
+      reportsInWindow.forEach((report) => {
+        if (!report.created_at) return;
+        const key = report.created_at.slice(0, 10);
+        const bucket = seriesMap.get(key);
+        if (!bucket) return;
+        bucket.lessons += 1;
+        bucket.scores.push(calculateLessonScore(report));
+        if (isAdminObservation(report)) {
+          bucket.observations += 1;
+        }
+      });
+
+      series = windowKeys.map((key) => {
+        const bucket = seriesMap.get(key)!;
+        return {
+          date: key,
+          label: formatCompactDate(key),
+          lessons: bucket.lessons,
+          observations: bucket.observations,
+          averageScore: average(bucket.scores),
+        };
+      });
+
+      const activityByUser = new Map<string, AnalysisReport[]>();
+      reportList.forEach((report) => {
+        if (!report.user_id) return;
+        const existing = activityByUser.get(report.user_id) || [];
+        existing.push(report);
+        activityByUser.set(report.user_id, existing);
+      });
+
+      recentActivity = Array.from(activityByUser.entries())
+        .map(([userId, userReports]) => {
+          const recentReports = userReports.filter((report) => {
+            if (!report.created_at) return false;
+            return windowKeySet.has(report.created_at.slice(0, 10));
+          });
+          const latestSubmittedAt = userReports[0]?.created_at ?? null;
+
+          return {
+            id: userId,
+            name: profileById.get(userId)?.name || profileById.get(userId)?.email || 'User',
+            role: profileById.get(userId)?.role || 'teacher',
+            lessons: recentReports.length,
+            adminObservations: recentReports.filter(isAdminObservation).length,
+            averageScore: average(recentReports.map((report) => calculateLessonScore(report))),
+            trend: getLatestLessonTrend(userReports),
+            latestSubmittedAt,
+          };
+        })
+        .filter((row) => row.lessons > 0)
+        .sort((a, b) => {
+          if (b.lessons !== a.lessons) return b.lessons - a.lessons;
+          return (b.latestSubmittedAt || '').localeCompare(a.latestSubmittedAt || '');
+        })
+        .slice(0, 8);
+
+      lessonUploads = reportList.map((report) => {
+        const profile = report.user_id ? profileById.get(report.user_id) : null;
+        const isAnonymous = !report.user_id;
+        const source = isAnonymous
+          ? 'Try It Now'
+          : isAdminObservation(report)
+            ? 'Administrator Observation'
+            : 'Logged-in Lesson';
+
+        return {
+          id: report.id,
+          title: String(report.title || 'Untitled Lesson'),
+          context: buildMonitoringLessonContext(report) || 'Lesson context was not saved.',
+          submittedBy: isAnonymous ? 'Guest User' : profile?.name || profile?.email || 'User',
+          submitterRole: isAnonymous ? 'guest' : profile?.role || 'teacher',
+          source,
+          createdAt: report.created_at || null,
+          score: calculateLessonScore(report),
+          executiveSummary: buildMonitoringLessonSummary(report),
+        };
+      });
+
+      userRoster = profileList
+        .map((profile) => {
+          const authUser = authUserById.get(profile.id);
+          return {
+            id: profile.id,
+            name: profile.name || profile.email || authUser?.email || 'User',
+            email: profile.email || authUser?.email || null,
+            role: profile.role || 'user',
+            lastSignInAt: authUser?.last_sign_in_at || null,
+          };
+        })
+        .sort((a, b) => {
+          const roleRank = (role: string) => {
+            if (role === 'super_admin') return 0;
+            if (role === 'admin') return 1;
+            if (role === 'teacher') return 2;
+            return 3;
+          };
+
+          if (roleRank(a.role) !== roleRank(b.role)) {
+            return roleRank(a.role) - roleRank(b.role);
+          }
+
+          const aTime = a.lastSignInAt ? new Date(a.lastSignInAt).getTime() : 0;
+          const bTime = b.lastSignInAt ? new Date(b.lastSignInAt).getTime() : 0;
+          if (bTime !== aTime) {
+            return bTime - aTime;
+          }
+
+          return a.name.localeCompare(b.name);
+        });
+    }
+
+    const uptime = includeProviders ? await fetchUptimeSummary(request) : buildEmptyUptimeSummary();
 
     let cloudflareTraffic = {
       connected: false,
@@ -2471,89 +2513,91 @@ export async function GET(request: NextRequest) {
       },
     } as SupabaseAdvisorResult;
 
-    await Promise.all([
-      (async () => {
-        try {
-          cloudflareTraffic = await fetchCloudflareTraffic(windowKeys);
-        } catch (cloudflareError) {
-          console.error('Cloudflare monitoring fetch error:', cloudflareError);
-          const errorMessage = getErrorMessage(cloudflareError, 'Cloudflare analytics could not be loaded.');
-          cloudflareTraffic = {
-            connected: false,
-            detail: errorMessage,
-            summaryCards: buildTrafficCards().map((card) =>
-              card.key === 'total-requests'
-                ? { ...card, detail: errorMessage }
-                : card
-            ),
-            topErrorRoutes: [],
-            requestSeries: buildEmptyTrafficSeries(windowKeys),
-            bandwidthSeries: buildEmptyTrafficSeries(windowKeys),
-            diagnostics: {
-              apiTokenConfigured: Boolean(process.env.CLOUDFLARE_API_TOKEN),
-              zoneIdConfigured: Boolean(process.env.CLOUDFLARE_ZONE_ID),
-              status: 'error',
-              errorMessage,
-              hint: buildCloudflareErrorHint(errorMessage),
-            },
-          };
-        }
-      })(),
-      (async () => {
-        try {
-          sentryHealth = await fetchSentryHealth();
-        } catch (sentryError) {
-          console.error('Sentry monitoring fetch error:', sentryError);
-          const errorMessage = getErrorMessage(sentryError, 'Sentry metrics could not be loaded.');
-          const config = getSentryConfig();
-          sentryHealth = {
-            connected: false,
-            detail: errorMessage,
-            summaryCards: buildEmptySentryCards().map((card) =>
-              card.key === 'errors-24h' || card.key === 'unresolved-issues'
-                ? { ...card, detail: errorMessage }
-                : card
-            ),
-            recentIssues: [],
-            crashFreeSessionsPercent: null,
-            diagnostics: {
-              tokenConfigured: config.tokenConfigured,
-              orgConfigured: config.orgConfigured,
-              projectConfigured: config.projectConfigured,
-              status: 'error',
-              errorMessage,
-              hint: buildSentryErrorHint(errorMessage),
-            },
-          };
-        }
-      })(),
-      (async () => {
-        try {
-          supabaseAdvisors = await fetchSupabaseAdvisors();
-        } catch (supabaseAdvisorError) {
-          console.error('Supabase advisor monitoring fetch error:', supabaseAdvisorError);
-          const errorMessage = getErrorMessage(supabaseAdvisorError, 'Supabase advisor findings could not be loaded.');
-          const config = getSupabaseAdvisorConfig();
-          supabaseAdvisors = {
-            connected: false,
-            detail: errorMessage,
-            summaryCards: buildEmptySupabaseAdvisorCards().map((card) =>
-              card.key === 'supabase-open-findings' || card.key === 'supabase-critical-findings'
-                ? { ...card, detail: errorMessage }
-                : card
-            ),
-            findings: [],
-            diagnostics: {
-              tokenConfigured: config.tokenConfigured,
-              projectRefConfigured: config.projectRefConfigured,
-              status: 'error',
-              errorMessage,
-              hint: buildSupabaseAdvisorErrorHint(errorMessage),
-            },
-          };
-        }
-      })(),
-    ]);
+    if (includeProviders) {
+      await Promise.all([
+        (async () => {
+          try {
+            cloudflareTraffic = await fetchCloudflareTraffic(windowKeys);
+          } catch (cloudflareError) {
+            console.error('Cloudflare monitoring fetch error:', cloudflareError);
+            const errorMessage = getErrorMessage(cloudflareError, 'Cloudflare analytics could not be loaded.');
+            cloudflareTraffic = {
+              connected: false,
+              detail: errorMessage,
+              summaryCards: buildTrafficCards().map((card) =>
+                card.key === 'total-requests'
+                  ? { ...card, detail: errorMessage }
+                  : card
+              ),
+              topErrorRoutes: [],
+              requestSeries: buildEmptyTrafficSeries(windowKeys),
+              bandwidthSeries: buildEmptyTrafficSeries(windowKeys),
+              diagnostics: {
+                apiTokenConfigured: Boolean(process.env.CLOUDFLARE_API_TOKEN),
+                zoneIdConfigured: Boolean(process.env.CLOUDFLARE_ZONE_ID),
+                status: 'error',
+                errorMessage,
+                hint: buildCloudflareErrorHint(errorMessage),
+              },
+            };
+          }
+        })(),
+        (async () => {
+          try {
+            sentryHealth = await fetchSentryHealth();
+          } catch (sentryError) {
+            console.error('Sentry monitoring fetch error:', sentryError);
+            const errorMessage = getErrorMessage(sentryError, 'Sentry metrics could not be loaded.');
+            const config = getSentryConfig();
+            sentryHealth = {
+              connected: false,
+              detail: errorMessage,
+              summaryCards: buildEmptySentryCards().map((card) =>
+                card.key === 'errors-24h' || card.key === 'unresolved-issues'
+                  ? { ...card, detail: errorMessage }
+                  : card
+              ),
+              recentIssues: [],
+              crashFreeSessionsPercent: null,
+              diagnostics: {
+                tokenConfigured: config.tokenConfigured,
+                orgConfigured: config.orgConfigured,
+                projectConfigured: config.projectConfigured,
+                status: 'error',
+                errorMessage,
+                hint: buildSentryErrorHint(errorMessage),
+              },
+            };
+          }
+        })(),
+        (async () => {
+          try {
+            supabaseAdvisors = await fetchSupabaseAdvisors();
+          } catch (supabaseAdvisorError) {
+            console.error('Supabase advisor monitoring fetch error:', supabaseAdvisorError);
+            const errorMessage = getErrorMessage(supabaseAdvisorError, 'Supabase advisor findings could not be loaded.');
+            const config = getSupabaseAdvisorConfig();
+            supabaseAdvisors = {
+              connected: false,
+              detail: errorMessage,
+              summaryCards: buildEmptySupabaseAdvisorCards().map((card) =>
+                card.key === 'supabase-open-findings' || card.key === 'supabase-critical-findings'
+                  ? { ...card, detail: errorMessage }
+                  : card
+              ),
+              findings: [],
+              diagnostics: {
+                tokenConfigured: config.tokenConfigured,
+                projectRefConfigured: config.projectRefConfigured,
+                status: 'error',
+                errorMessage,
+                hint: buildSupabaseAdvisorErrorHint(errorMessage),
+              },
+            };
+          }
+        })(),
+      ]);
+    }
 
     const alerts = buildMonitoringAlerts({
       cloudflareTraffic,
@@ -2588,6 +2632,44 @@ export async function GET(request: NextRequest) {
     const connectedProviders = hydratedConnections.filter((item) => item.connected).length;
     const strongTeachers = recentActivity.filter((row) => row.role === 'teacher' && row.averageScore >= 85).length;
     const atRiskTeachers = recentActivity.filter((row) => row.role === 'teacher' && row.averageScore > 0 && row.averageScore < 75).length;
+
+    if (providersOnly) {
+      return NextResponse.json(
+        {
+          success: true,
+          alerts,
+          uptime,
+          sentry: {
+            summaryCards: sentryHealth.summaryCards,
+            recentIssues: sentryHealth.recentIssues,
+            diagnostics: sentryHealth.diagnostics,
+          },
+          supabaseAdvisors: {
+            summaryCards: supabaseAdvisors.summaryCards,
+            findings: supabaseAdvisors.findings,
+            diagnostics: supabaseAdvisors.diagnostics,
+          },
+          connections: hydratedConnections,
+          sync: {
+            generatedAt: new Date().toISOString(),
+            connectedProviders,
+            totalProviders: hydratedConnections.length,
+          },
+          httpTraffic: {
+            summaryCards: cloudflareTraffic.summaryCards,
+            topErrorRoutes: cloudflareTraffic.topErrorRoutes,
+            requestSeries: cloudflareTraffic.requestSeries,
+            bandwidthSeries: cloudflareTraffic.bandwidthSeries,
+            diagnostics: cloudflareTraffic.diagnostics,
+          },
+        },
+        {
+          headers: {
+            'Cache-Control': 'no-store, max-age=0',
+          },
+        }
+      );
+    }
 
     return NextResponse.json(
       {

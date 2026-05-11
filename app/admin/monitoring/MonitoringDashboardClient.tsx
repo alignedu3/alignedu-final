@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ResponsiveContainer,
@@ -256,23 +256,59 @@ export default function MonitoringDashboard() {
   const [payload, setPayload] = useState<MonitoringPayload | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
+  const requestSequenceRef = useRef(0);
 
   useEffect(() => {
     setChartReady(true);
   }, []);
 
-  const loadMonitoring = async (selectedDays: (typeof WINDOW_OPTIONS)[number], silent = false) => {
+  const loadMonitoringProviders = useCallback(async (
+    selectedDays: (typeof WINDOW_OPTIONS)[number],
+    requestSequence: number
+  ) => {
+    try {
+      const { response, data } = await fetchJsonWithTimeout<MonitoringPayload>(
+        `/api/admin/monitoring?days=${selectedDays}&providersOnly=1`,
+        {
+          credentials: 'include',
+          cache: 'no-store',
+          timeoutMs: 12000,
+        }
+      );
+
+      if (requestSequenceRef.current !== requestSequence) {
+        return;
+      }
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || 'Unable to hydrate monitoring providers.');
+      }
+
+      setPayload((current) => (current ? { ...current, ...data } : current));
+    } catch (error) {
+      console.error('Monitoring provider hydration error:', error);
+    }
+  }, []);
+
+  const loadMonitoring = useCallback(async (selectedDays: (typeof WINDOW_OPTIONS)[number], silent = false) => {
+    const requestSequence = requestSequenceRef.current + 1;
+    requestSequenceRef.current = requestSequence;
+
     try {
       if (!silent) {
         setIsRefreshing(true);
       }
       setLoadError('');
 
-      const { response, data } = await fetchJsonWithTimeout<MonitoringPayload>(`/api/admin/monitoring?days=${selectedDays}`, {
+      const { response, data } = await fetchJsonWithTimeout<MonitoringPayload>(`/api/admin/monitoring?days=${selectedDays}&includeProviders=0`, {
         credentials: 'include',
         cache: 'no-store',
         timeoutMs: 12000,
       });
+
+      if (requestSequenceRef.current !== requestSequence) {
+        return;
+      }
 
       if (response.status === 401) {
         window.location.replace('/login');
@@ -289,16 +325,21 @@ export default function MonitoringDashboard() {
       }
 
       setPayload(data);
+      void loadMonitoringProviders(selectedDays, requestSequence);
     } catch (error) {
       console.error('Monitoring dashboard load error:', error);
-      setLoadError(error instanceof Error ? error.message : 'Unable to load monitoring dashboard.');
+      if (requestSequenceRef.current === requestSequence) {
+        setLoadError(error instanceof Error ? error.message : 'Unable to load monitoring dashboard.');
+      }
     } finally {
-      setReady(true);
-      if (!silent) {
+      if (requestSequenceRef.current === requestSequence) {
+        setReady(true);
+      }
+      if (!silent && requestSequenceRef.current === requestSequence) {
         setIsRefreshing(false);
       }
     }
-  };
+  }, [loadMonitoringProviders]);
 
   useEffect(() => {
     loadMonitoring(days);
@@ -308,7 +349,7 @@ export default function MonitoringDashboard() {
     }, 60000);
 
     return () => window.clearInterval(refreshId);
-  }, [days]);
+  }, [days, loadMonitoring]);
 
   const readiness = payload?.readiness || [];
   const lessonUploads = payload?.lessonUploads || [];
