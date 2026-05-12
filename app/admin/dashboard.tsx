@@ -431,7 +431,7 @@ export default function AdminDashboard() {
       .sort((a, b) => b.date.localeCompare(a.date)),
   [dashboardProfileById, dashboardReports]);
 
-  const teacherStats = useMemo(() => {
+  const teacherStatsBase = useMemo(() => {
     const map: Record<string, AnalysisReport[]> = {};
 
     teacherPerformanceReports.forEach((r) => {
@@ -470,15 +470,9 @@ export default function AdminDashboard() {
         avgScore,
         count: reps.length,
         trend: Math.round(trend),
-        needsAttention: avgScore < 75,
       };
     });
   }, [dashboardProfileById, teacherPerformanceReports]);
-
-  const atRiskTeachers = teacherStats
-    .filter(t => t.needsAttention)
-    .sort((a, b) => a.avgScore - b.avgScore)
-    .slice(0, 3);
 
   const hierarchyRows = useMemo(() => {
     const adminIds = dashboardVisibleAdminIds.filter((id) => {
@@ -520,19 +514,6 @@ export default function AdminDashboard() {
       });
   }, [currentUserId, dashboardManagedAdmins, dashboardManagedTeachers, dashboardProfileById, dashboardVisibleAdminIds]);
 
-  const strongCount = teacherStats.filter(t => !t.needsAttention).length;
-  const supportCount = teacherStats.filter(t => t.needsAttention).length;
-
-  // Average of each teacher's average — every teacher contributes equally
-  const adminQualityScore = teacherStats.length
-    ? Math.round(teacherStats.reduce((sum, t) => sum + t.avgScore, 0) / teacherStats.length)
-    : summary.averageScore;
-
-  const systemInsight =
-    adminQualityScore < 75
-      ? "System performance is declining due to gaps in lesson closure and concept reinforcement."
-      : "Instructional quality is strong with consistent standards alignment.";
-
   const adminSupportPlans = useMemo(() => {
     const reportsByTeacher = new Map<string, AnalysisReport[]>();
     dashboardReports.forEach((report) => {
@@ -542,7 +523,7 @@ export default function AdminDashboard() {
       reportsByTeacher.set(report.user_id, existing);
     });
 
-    return teacherStats
+    return teacherStatsBase
       .map((teacher) => {
         const plan = buildAdminSupportPlanForTeacher(
           teacher.name,
@@ -554,7 +535,6 @@ export default function AdminDashboard() {
           ...plan,
           avgScore: teacher.avgScore,
           trend: teacher.trend,
-          needsAttention: teacher.needsAttention,
         };
       })
       .filter((plan): plan is NonNullable<typeof plan> => Boolean(plan))
@@ -567,7 +547,49 @@ export default function AdminDashboard() {
         if (aSeverity !== bSeverity) return bSeverity - aSeverity;
         return a.avgScore - b.avgScore;
       });
-  }, [dashboardReports, teacherStats]);
+  }, [dashboardReports, teacherStatsBase]);
+
+  const supportPlanByTeacherId = useMemo(
+    () => new Map(adminSupportPlans.map((plan) => [plan.teacherId, plan])),
+    [adminSupportPlans]
+  );
+
+  const teacherStats = useMemo(
+    () =>
+      teacherStatsBase.map((teacher) => {
+        const linkedPlan = supportPlanByTeacherId.get(teacher.id);
+        const needsAttention = Boolean(linkedPlan?.requiresPrioritySupport || teacher.avgScore < 75);
+
+        return {
+          ...teacher,
+          needsAttention,
+          supportPriorityScore: linkedPlan?.supportPriorityScore ?? 0,
+        };
+      }),
+    [supportPlanByTeacherId, teacherStatsBase]
+  );
+
+  const atRiskTeachers = teacherStats
+    .filter(t => t.needsAttention)
+    .sort((a, b) => {
+      const severityDiff = (b.supportPriorityScore ?? 0) - (a.supportPriorityScore ?? 0);
+      if (severityDiff !== 0) return severityDiff;
+      return a.avgScore - b.avgScore;
+    })
+    .slice(0, 3);
+
+  const strongCount = teacherStats.filter(t => !t.needsAttention).length;
+  const supportCount = teacherStats.filter(t => t.needsAttention).length;
+
+  // Average of each teacher's average — every teacher contributes equally
+  const adminQualityScore = teacherStats.length
+    ? Math.round(teacherStats.reduce((sum, t) => sum + t.avgScore, 0) / teacherStats.length)
+    : summary.averageScore;
+
+  const systemInsight =
+    adminQualityScore < 75
+      ? "System performance is declining due to gaps in lesson closure and concept reinforcement."
+      : "Instructional quality is strong with consistent standards alignment.";
 
   const recommendedSupportPlan = useMemo(() => {
     const primary = adminSupportPlans.find((plan) => plan.requiresPrioritySupport);
