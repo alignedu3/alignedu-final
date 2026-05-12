@@ -30,6 +30,10 @@ export default function Header() {
   const isAdminUser = role === 'admin' || role === 'super_admin';
   const isSuperAdmin = role === 'super_admin';
 
+  const hardNavigate = (href: string) => {
+    window.location.assign(href);
+  };
+
   useEffect(() => {
     let isMounted = true;
     const canUseBrowserAuth = hasSupabaseBrowserEnv();
@@ -194,16 +198,15 @@ export default function Header() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
-      router.push('/', { scroll: true });
+      hardNavigate('/');
       return;
     }
-    const userRole = (profile?.role || '').toLowerCase();
-    const destination = userRole === 'admin' || userRole === 'super_admin' ? '/admin' : '/dashboard';
+    const destination = '/dashboard';
     if (pathname === destination) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
-    router.push(destination, { scroll: true });
+    hardNavigate(destination);
   };
 
   const handleHeaderNavigation = (href: string, closeMenus = true) => (event?: ReactMouseEvent) => {
@@ -219,7 +222,7 @@ export default function Header() {
     }
 
     event?.preventDefault();
-    router.push(href, { scroll: true });
+    hardNavigate(href);
   };
 
   const handleGuestHomeClick = () => {
@@ -230,7 +233,7 @@ export default function Header() {
       return;
     }
 
-    router.push('/', { scroll: true });
+    hardNavigate('/');
   };
 
   return (

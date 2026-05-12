@@ -8,7 +8,6 @@ import {
   getDashboardSummary,
   calculateLessonScore,
   getLatestLessonTrend,
-  SAMPLE_PREVIEW_TEACHER_ID,
   type AnalysisReport,
   type ProfileRecord,
 } from '@/lib/dashboardData';
@@ -109,7 +108,7 @@ export default function AdminDashboard() {
   };
 
   const navigateToUserDashboard = (userId: string, role?: string | null, returnSection?: 'team' | 'performance') => {
-    if (userId.startsWith('sample-') && !canOpenSampleTeacher(userId)) return;
+    if (userId.startsWith('sample-') && !canOpenSampleEntity(userId)) return;
     const queryParts = [
       ...(returnSection ? [`from=${returnSection}`] : []),
       ...(selectedAdminId ? [`adminId=${selectedAdminId}`] : []),
@@ -217,7 +216,7 @@ export default function AdminDashboard() {
     !!selectedAdminId &&
     selectedAdminId !== currentUserId;
   const isSampleEntityId = (id: string | null | undefined) => Boolean(id && id.startsWith('sample-'));
-  const canOpenSampleTeacher = (id: string | null | undefined) => id === SAMPLE_PREVIEW_TEACHER_ID;
+  const canOpenSampleEntity = (id: string | null | undefined) => Boolean(id && id.startsWith('sample-'));
   const isSampleMode = managedTeachers.length === 0 && managedAdmins.length === 0 && reports.length === 0;
 
   const sampleProfiles = useMemo<ProfileRecord[]>(() => {
@@ -245,8 +244,8 @@ export default function AdminDashboard() {
         ? [
             { admin_id: activeAdminId, teacher_id: 'sample-teacher-1' },
             { admin_id: activeAdminId, teacher_id: 'sample-teacher-2' },
+            { admin_id: activeAdminId, teacher_id: 'sample-teacher-4' },
             { admin_id: 'sample-admin-1', teacher_id: 'sample-teacher-3' },
-            { admin_id: 'sample-admin-1', teacher_id: 'sample-teacher-4' },
           ]
         : []
     ),
@@ -961,12 +960,12 @@ export default function AdminDashboard() {
                       <button
                         style={{ ...actionButton, padding: isNarrowScreen ? '3px 7px' : actionButton.padding, fontSize: isNarrowScreen ? 11 : undefined }}
                         onClick={() => {
-                          if (isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)) return;
+                          if (isSampleEntityId(t.id) && !canOpenSampleEntity(t.id)) return;
                           navigateToUserDashboard(t.id, 'teacher', 'performance');
                         }}
-                        disabled={isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)}
+                        disabled={isSampleEntityId(t.id) && !canOpenSampleEntity(t.id)}
                       >
-                        {canOpenSampleTeacher(t.id) ? 'Open Sample' : isSampleEntityId(t.id) ? 'Preview' : 'View'}
+                        {canOpenSampleEntity(t.id) ? 'Open Sample' : isSampleEntityId(t.id) ? 'Preview' : 'View'}
                       </button>
                     </td>
                   </tr>
@@ -1066,7 +1065,7 @@ export default function AdminDashboard() {
                           <div key={child.id} style={pillBtn}>
                             <button
                               onClick={() => navigateToUserDashboard(child.id, child.role, 'team')}
-                              style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(child.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(child.id) ? 0.72 : 1 }}
+                              style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(child.id) && !canOpenSampleEntity(child.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(child.id) && !canOpenSampleEntity(child.id) ? 0.72 : 1, textDecoration: canOpenSampleEntity(child.id) ? 'underline' : 'none', textUnderlineOffset: 2 }}
                             >
                               {child.name}
                             </button>
@@ -1087,10 +1086,10 @@ export default function AdminDashboard() {
                           <div key={teacher.id} style={pillBtn}>
                             <button
                               onClick={() => {
-                                if (isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id)) return;
+                                if (isSampleEntityId(teacher.id) && !canOpenSampleEntity(teacher.id)) return;
                                 router.push(`/admin/teacher/${teacher.id}`);
                               }}
-                              style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(teacher.id) && !canOpenSampleTeacher(teacher.id) ? 0.72 : 1, textDecoration: canOpenSampleTeacher(teacher.id) ? 'underline' : 'none', textUnderlineOffset: 2 }}
+                              style={{ background: 'none', border: 'none', padding: 0, cursor: isSampleEntityId(teacher.id) && !canOpenSampleEntity(teacher.id) ? 'default' : 'pointer', color: 'inherit', fontSize: 'inherit', opacity: isSampleEntityId(teacher.id) && !canOpenSampleEntity(teacher.id) ? 0.72 : 1, textDecoration: canOpenSampleEntity(teacher.id) ? 'underline' : 'none', textUnderlineOffset: 2 }}
                             >
                               {teacher.name}
                             </button>
@@ -1200,9 +1199,9 @@ export default function AdminDashboard() {
                       {(rows as typeof teacherStats).map((t, i) => (
                         <tr
                           key={i}
-                          style={{ borderBottom: '1px solid var(--border)', cursor: isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id) ? 'default' : 'pointer' }}
+                          style={{ borderBottom: '1px solid var(--border)', cursor: isSampleEntityId(t.id) && !canOpenSampleEntity(t.id) ? 'default' : 'pointer' }}
                           onClick={() => {
-                            if (isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)) return;
+                            if (isSampleEntityId(t.id) && !canOpenSampleEntity(t.id)) return;
                             setModalType(null);
                             navigateToUserDashboard(t.id, 'teacher', 'performance');
                           }}
@@ -1210,12 +1209,12 @@ export default function AdminDashboard() {
                           <td style={{ padding: '8px 8px' }}>
                             <button
                               onClick={(e) => {
-                                if (isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id)) return;
+                                if (isSampleEntityId(t.id) && !canOpenSampleEntity(t.id)) return;
                                 e.stopPropagation();
                                 setModalType(null);
                                 navigateToUserDashboard(t.id, 'teacher', 'performance');
                               }}
-                              style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id) ? 'default' : 'pointer', textDecoration: isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id) ? 'none' : 'underline', textUnderlineOffset: 2, opacity: isSampleEntityId(t.id) && !canOpenSampleTeacher(t.id) ? 0.72 : 1 }}
+                              style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: isSampleEntityId(t.id) && !canOpenSampleEntity(t.id) ? 'default' : 'pointer', textDecoration: isSampleEntityId(t.id) && !canOpenSampleEntity(t.id) ? 'none' : 'underline', textUnderlineOffset: 2, opacity: isSampleEntityId(t.id) && !canOpenSampleEntity(t.id) ? 0.72 : 1 }}
                             >
                               {t.name}
                             </button>
@@ -1242,9 +1241,9 @@ export default function AdminDashboard() {
                       {(rows as typeof lessonRows).map((r, i) => (
                         <tr
                           key={i}
-                          style={{ borderBottom: '1px solid var(--border)', cursor: r.teacherId && r.id && (!isSampleEntityId(r.teacherId) || canOpenSampleTeacher(r.teacherId)) ? 'pointer' : 'default' }}
+                          style={{ borderBottom: '1px solid var(--border)', cursor: r.teacherId && r.id && (!isSampleEntityId(r.teacherId) || canOpenSampleEntity(r.teacherId)) ? 'pointer' : 'default' }}
                           onClick={() => {
-                            if (!r.teacherId || !r.id || (isSampleEntityId(r.teacherId) && !canOpenSampleTeacher(r.teacherId))) return;
+                            if (!r.teacherId || !r.id || (isSampleEntityId(r.teacherId) && !canOpenSampleEntity(r.teacherId))) return;
                             setModalType(null);
                             router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
                           }}
@@ -1253,11 +1252,11 @@ export default function AdminDashboard() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (!r.teacherId || !r.id || (isSampleEntityId(r.teacherId) && !canOpenSampleTeacher(r.teacherId))) return;
+                                if (!r.teacherId || !r.id || (isSampleEntityId(r.teacherId) && !canOpenSampleEntity(r.teacherId))) return;
                                 setModalType(null);
                                 router.push(`/admin/teacher/${r.teacherId}/lesson/${r.id}`);
                               }}
-                              style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: r.teacherId && r.id && (!isSampleEntityId(r.teacherId) || canOpenSampleTeacher(r.teacherId)) ? 'pointer' : 'default', textDecoration: r.teacherId && r.id && (!isSampleEntityId(r.teacherId) || canOpenSampleTeacher(r.teacherId)) ? 'underline' : 'none', textUnderlineOffset: 2, opacity: r.teacherId && isSampleEntityId(r.teacherId) && !canOpenSampleTeacher(r.teacherId) ? 0.72 : 1 }}
+                              style={{ border: 'none', background: 'none', padding: 0, color: 'var(--text-primary)', cursor: r.teacherId && r.id && (!isSampleEntityId(r.teacherId) || canOpenSampleEntity(r.teacherId)) ? 'pointer' : 'default', textDecoration: r.teacherId && r.id && (!isSampleEntityId(r.teacherId) || canOpenSampleEntity(r.teacherId)) ? 'underline' : 'none', textUnderlineOffset: 2, opacity: r.teacherId && isSampleEntityId(r.teacherId) && !canOpenSampleEntity(r.teacherId) ? 0.72 : 1 }}
                             >
                               {r.teacher}
                             </button>
