@@ -1981,6 +1981,12 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   const top4xxEntries = Array.isArray(zone.top4xxPaths) ? zone.top4xxPaths : [];
   const expected4xxEntries = top4xxEntries.filter((entry: CloudflareRouteEntry) => isExpectedClientErrorRoute(formatRoutePath(entry)));
   const unexpected4xxEntries = top4xxEntries.filter((entry: CloudflareRouteEntry) => !isExpectedClientErrorRoute(formatRoutePath(entry)));
+  const topExpected4xxRoute = expected4xxEntries[0] || null;
+  const topUnexpected4xxRoute = unexpected4xxEntries[0] || null;
+  const top5xxRoute = Array.isArray(zone.top5xxPaths) ? zone.top5xxPaths[0] : null;
+  const topExpected4xxRouteRequests = Number(topExpected4xxRoute?.count || 0);
+  const topUnexpected4xxRouteRequests = Number(topUnexpected4xxRoute?.count || 0);
+  const top5xxRouteRequests = Number(top5xxRoute?.count || 0);
   const expectedClientErrors = expected4xxEntries.reduce((sum: number, entry: CloudflareRouteEntry) => sum + Number(entry?.count || 0), 0);
   const unexpectedClientErrors = Math.max(totals.clientErrors - expectedClientErrors, 0);
   const expectedClientErrorRate = totals.requests > 0 ? roundTo((expectedClientErrors / totals.requests) * 100, 1) : 0;
@@ -2039,13 +2045,9 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
         ? { status: 'healthy' as const, statusLabel: 'Needs Work', detail: 'Some requests are being cached, but there is room to improve edge hit rate.' }
         : { status: 'healthy' as const, statusLabel: 'Low Cache', detail: 'Only a small share of requests is being served from Cloudflare cache.' };
   const threatsStatus =
-    totals.threats >= 50
-      ? { status: 'critical' as const, statusLabel: 'Threats Blocked at Edge', detail: 'Cloudflare is blocking a high level of threat traffic in this window.' }
-      : totals.threats >= 10
-        ? { status: 'warning' as const, statusLabel: 'Threats Blocked at Edge', detail: 'Cloudflare is blocking repeated threat traffic in this window.' }
-        : totals.threats > 0
-          ? { status: 'healthy' as const, statusLabel: 'Blocked at Edge', detail: 'Cloudflare blocked a small number of threat requests in this window.' }
-          : { status: 'healthy' as const, statusLabel: 'No Threats', detail: 'No blocked threats were reported in the selected window.' };
+    totals.threats > 0
+      ? { status: 'healthy' as const, statusLabel: 'Blocked at Edge', detail: 'Cloudflare is blocking threat traffic at the edge in this window.' }
+      : { status: 'healthy' as const, statusLabel: 'No Threats', detail: 'No blocked threats were reported in the selected window.' };
   const expectedClientErrorsStatus =
     expectedClientErrors === 0
       ? { status: 'healthy' as const, statusLabel: 'None', detail: 'No expected or scanner-driven 4xx responses were reported in the selected window.' }
@@ -2053,17 +2055,19 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   const unexpectedClientErrorsStatus =
     unexpectedClientErrors === 0
       ? { status: 'healthy' as const, statusLabel: 'Clean', detail: 'No unexpected client-side 4xx responses were reported in the selected window.' }
-      : unexpectedClientErrorRate >= 10
+      : unexpectedClientErrorRate >= 10 && topUnexpected4xxRouteRequests >= 100
         ? { status: 'critical' as const, statusLabel: 'High 4xx', detail: `Unexpected client-side 4xx responses are ${formatNumber(unexpectedClientErrorRate)}% of requests in this window.` }
-        : unexpectedClientErrorRate >= 5
+        : unexpectedClientErrorRate >= 5 && topUnexpected4xxRouteRequests >= 50
         ? { status: 'warning' as const, statusLabel: 'High 4xx', detail: `Unexpected client-side 4xx responses are ${formatNumber(unexpectedClientErrorRate)}% of requests in this window.` }
         : { status: 'healthy' as const, statusLabel: 'Some 4xx', detail: `A small number of unexpected 4xx responses were reported (${formatNumber(unexpectedClientErrorRate)}% of requests).` };
   const serverErrorsStatus =
     totals.serverErrors === 0
       ? { status: 'healthy' as const, statusLabel: 'No 5xx', detail: 'No server-side 5xx responses were reported in the selected window.' }
-    : serverErrorRate >= 1 || totals.serverErrors >= 10
+    : (serverErrorRate >= 1 && top5xxRouteRequests >= 10) || top5xxRouteRequests >= 25
         ? { status: 'critical' as const, statusLabel: 'Origin Errors', detail: `Server-side 5xx responses are ${formatNumber(serverErrorRate)}% of requests in this window.` }
-        : { status: 'healthy' as const, statusLabel: 'Some 5xx', detail: `A small number of server-side 5xx responses were reported (${formatNumber(serverErrorRate)}% of requests).` };
+        : (serverErrorRate >= 0.5 && top5xxRouteRequests >= 10)
+          ? { status: 'warning' as const, statusLabel: 'Some 5xx', detail: `A small number of server-side 5xx responses were reported (${formatNumber(serverErrorRate)}% of requests).` }
+          : { status: 'healthy' as const, statusLabel: 'Some 5xx', detail: `A small number of server-side 5xx responses were reported (${formatNumber(serverErrorRate)}% of requests).` };
   const bandwidthStatus =
     totalBandwidthMb === 0
       ? { status: 'healthy' as const, statusLabel: 'Quiet Window', detail: 'No meaningful response bandwidth was recorded in the selected window.' }
@@ -2078,12 +2082,6 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
     : cachedBandwidthRatio >= 30
         ? { status: 'healthy' as const, statusLabel: 'Moderate Cache', detail: 'A meaningful share of response bytes is being delivered from the edge cache.' }
         : { status: 'healthy' as const, statusLabel: 'Low Edge Cache', detail: 'Only a limited share of response bytes is being served from Cloudflare cache.' };
-  const topExpected4xxRoute = expected4xxEntries[0] || null;
-  const topUnexpected4xxRoute = unexpected4xxEntries[0] || null;
-  const top5xxRoute = Array.isArray(zone.top5xxPaths) ? zone.top5xxPaths[0] : null;
-  const topExpected4xxRouteRequests = Number(topExpected4xxRoute?.count || 0);
-  const topUnexpected4xxRouteRequests = Number(topUnexpected4xxRoute?.count || 0);
-  const top5xxRouteRequests = Number(top5xxRoute?.count || 0);
   const topErrorRoutes = [
     {
       key: 'top-expected-4xx-route',
