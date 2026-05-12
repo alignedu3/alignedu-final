@@ -697,8 +697,8 @@ export default function MonitoringDashboard() {
         <section style={sectionCard}>
           <div style={sectionHeader}>
             <div>
-              <div style={sectionEyebrow}>Provider Connections</div>
-              <h2 style={sectionTitle}>Infrastructure Feeds</h2>
+              <div style={sectionEyebrow}>System Readiness</div>
+              <h2 style={sectionTitle}>Provider Connections and Monitoring Stack</h2>
             </div>
           </div>
           <p style={{ ...bodyText, marginTop: 0 }}>{connectionHeadline}</p>
@@ -728,127 +728,37 @@ export default function MonitoringDashboard() {
               </div>
             ))}
           </div>
-        </section>
-
-        <section style={sectionCard}>
-          <div style={sectionHeader}>
+          <div style={{ ...sectionHeader, marginTop: 28 }}>
             <div>
-              <div style={sectionEyebrow}>Database Advisors</div>
-              <h2 style={sectionTitle}>Supabase Security and Performance</h2>
+              <div style={sectionEyebrow}>Application Readiness</div>
+              <h3 style={subChartTitle}>Runtime and Observability</h3>
             </div>
           </div>
-          <div style={sectionContentStack}>
-            {!hasLiveSupabaseAdvisors ? (
-              <div style={warningBanner}>
-                <div style={warningTitle}>Supabase advisor monitoring is not live yet.</div>
-                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
-                  {supabaseAdvisorConnection?.detail || 'Add Supabase management credentials so the monitoring API can pull live advisor findings.'}
-                </p>
-                {supabaseAdvisorDiagnostics ? (
-                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
-                    Token: {supabaseAdvisorDiagnostics.tokenConfigured ? 'configured' : 'missing'} | Project Ref: {supabaseAdvisorDiagnostics.projectRefConfigured ? 'configured' : 'missing'}
-                  </p>
-                ) : null}
-                {supabaseAdvisorDiagnostics?.errorMessage ? (
-                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
-                    Last Supabase advisor error: <strong>{supabaseAdvisorDiagnostics.errorMessage}</strong>
-                  </p>
-                ) : null}
-                {supabaseAdvisorDiagnostics?.hint ? (
-                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{supabaseAdvisorDiagnostics.hint}</p>
-                ) : null}
-              </div>
-            ) : null}
-            <div style={statsGrid}>
-              {supabaseAdvisorCards.map((card) => (
-                <div key={card.key} style={statCard}>
-                  <div style={statLabel}>{card.label}</div>
-                  <div style={statValue}>{card.displayValue}</div>
+          <div style={readinessGrid}>
+            {readiness.map((item) => (
+              <div key={item.key} style={readinessCard}>
+                <div style={readinessTopRow}>
+                  <div style={readinessLabel}>{item.label}</div>
                   <div
                     style={{
-                      ...miniStatusPill,
-                      background:
-                        card.status === 'healthy'
-                          ? 'rgba(22,163,74,0.16)'
-                          : card.status === 'warning'
-                            ? 'rgba(245,158,11,0.16)'
-                            : card.status === 'critical'
-                              ? 'rgba(220,38,38,0.14)'
-                              : 'rgba(59,130,246,0.12)',
-                      color:
-                        card.status === 'healthy'
-                          ? '#16a34a'
-                          : card.status === 'warning'
-                            ? '#b45309'
-                            : card.status === 'critical'
-                              ? '#dc2626'
-                              : '#2563eb',
+                      ...readinessPill,
+                      background: item.healthy ? 'rgba(22,163,74,0.16)' : 'rgba(220,38,38,0.14)',
+                      color: item.healthy ? '#16a34a' : '#dc2626',
                     }}
                   >
-                    {card.status === 'healthy'
-                      ? 'Healthy'
-                      : card.status === 'warning'
-                        ? 'Watch'
-                        : card.status === 'critical'
-                          ? 'Urgent'
-                          : 'Connect'}
+                    {item.healthy ? 'Healthy' : 'Review'}
                   </div>
-                  <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
                 </div>
-              ))}
-            </div>
-            {supabaseAdvisorFindings.length ? (
-              <div style={statusList} className="monitoring-status-list">
-                {supabaseAdvisorFindings.map((finding) => (
-                  <div key={finding.key} style={issueRow} className="monitoring-issue-row">
-                    <div style={{ minWidth: 0 }}>
-                      <div style={issueTitle}>{finding.title}</div>
-                      <div style={issueMeta}>
-                        {finding.category === 'security' ? 'Security' : 'Performance'} | {finding.entity || 'Project-wide'}
-                      </div>
-                      <div style={issueCulprit}>{finding.detail}</div>
-                      {finding.remediation ? (
-                        <div style={{ ...issueCulprit, marginTop: 8 }}>
-                          Recommended fix: {finding.remediation}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div
-                      style={{
-                        ...miniStatusPill,
-                        background:
-                          finding.severity === 'critical'
-                            ? 'rgba(220,38,38,0.14)'
-                            : finding.severity === 'warning'
-                              ? 'rgba(245,158,11,0.16)'
-                              : 'rgba(22,163,74,0.16)',
-                        color:
-                          finding.severity === 'critical'
-                            ? '#dc2626'
-                            : finding.severity === 'warning'
-                              ? '#b45309'
-                              : '#16a34a',
-                      }}
-                    >
-                      {finding.severity === 'critical' ? 'Urgent' : finding.severity === 'warning' ? 'Watch' : 'Clear'}
-                    </div>
-                  </div>
-                ))}
+                <p style={readinessText}>{item.detail}</p>
               </div>
-            ) : (
-              <p style={bodyText}>
-                {hasLiveSupabaseAdvisors
-                  ? 'No active Supabase advisor findings are being surfaced right now.'
-                  : 'Supabase advisor findings will appear here once the management credentials are connected.'}
-              </p>
-            )}
+            ))}
           </div>
         </section>
 
         <section style={sectionCard}>
           <div style={sectionHeader}>
             <div>
-              <div style={sectionEyebrow}>HTTP Traffic</div>
+              <div style={sectionEyebrow}>Traffic and Usage</div>
               <h2 style={sectionTitle}>Requests, Caching, Visitors, and Bandwidth</h2>
             </div>
           </div>
@@ -1039,87 +949,176 @@ export default function MonitoringDashboard() {
         <section style={sectionCard}>
           <div style={sectionHeader}>
             <div>
-              <div style={sectionEyebrow}>Monitoring Stack</div>
-              <h2 style={sectionTitle}>Runtime and Observability Readiness</h2>
+              <div style={sectionEyebrow}>Database Advisors</div>
+              <h2 style={sectionTitle}>Supabase Security and Performance</h2>
             </div>
           </div>
-          <div style={readinessGrid}>
-            {readiness.map((item) => (
-              <div key={item.key} style={readinessCard}>
-                <div style={readinessTopRow}>
-                  <div style={readinessLabel}>{item.label}</div>
+          <div style={sectionContentStack}>
+            {!hasLiveSupabaseAdvisors ? (
+              <div style={warningBanner}>
+                <div style={warningTitle}>Supabase advisor monitoring is not live yet.</div>
+                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                  {supabaseAdvisorConnection?.detail || 'Add Supabase management credentials so the monitoring API can pull live advisor findings.'}
+                </p>
+                {supabaseAdvisorDiagnostics ? (
+                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                    Token: {supabaseAdvisorDiagnostics.tokenConfigured ? 'configured' : 'missing'} | Project Ref: {supabaseAdvisorDiagnostics.projectRefConfigured ? 'configured' : 'missing'}
+                  </p>
+                ) : null}
+                {supabaseAdvisorDiagnostics?.errorMessage ? (
+                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                    Last Supabase advisor error: <strong>{supabaseAdvisorDiagnostics.errorMessage}</strong>
+                  </p>
+                ) : null}
+                {supabaseAdvisorDiagnostics?.hint ? (
+                  <p style={{ ...bodyText, margin: '6px 0 0 0' }}>{supabaseAdvisorDiagnostics.hint}</p>
+                ) : null}
+              </div>
+            ) : null}
+            <div style={statsGrid}>
+              {supabaseAdvisorCards.map((card) => (
+                <div key={card.key} style={statCard}>
+                  <div style={statLabel}>{card.label}</div>
+                  <div style={statValue}>{card.displayValue}</div>
                   <div
                     style={{
-                      ...readinessPill,
-                      background: item.healthy ? 'rgba(22,163,74,0.16)' : 'rgba(220,38,38,0.14)',
-                      color: item.healthy ? '#16a34a' : '#dc2626',
+                      ...miniStatusPill,
+                      background:
+                        card.status === 'healthy'
+                          ? 'rgba(22,163,74,0.16)'
+                          : card.status === 'warning'
+                            ? 'rgba(245,158,11,0.16)'
+                            : card.status === 'critical'
+                              ? 'rgba(220,38,38,0.14)'
+                              : 'rgba(59,130,246,0.12)',
+                      color:
+                        card.status === 'healthy'
+                          ? '#16a34a'
+                          : card.status === 'warning'
+                            ? '#b45309'
+                            : card.status === 'critical'
+                              ? '#dc2626'
+                              : '#2563eb',
                     }}
                   >
-                    {item.healthy ? 'Healthy' : 'Review'}
+                    {card.status === 'healthy'
+                      ? 'Healthy'
+                      : card.status === 'warning'
+                        ? 'Watch'
+                        : card.status === 'critical'
+                          ? 'Urgent'
+                          : 'Connect'}
                   </div>
-                </div>
-                <p style={readinessText}>{item.detail}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section style={sectionCard}>
-          <div style={sectionHeader}>
-            <div>
-              <div style={sectionEyebrow}>User Access</div>
-              <h2 style={sectionTitle}>All Users and Last Sign-In</h2>
-            </div>
-          </div>
-          {userRoster.length ? (
-            <div style={compactRosterGrid}>
-              {userRoster.map((member) => (
-                <div key={member.id} style={compactRosterRow}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={issueTitle}>{member.name}</div>
-                    <div style={issueMeta}>{formatRoleLabel(member.role)}</div>
-                  </div>
-                  <div style={compactRosterMeta}>
-                    <div style={compactRosterLabel}>Last sign-in</div>
-                    <div style={lessonLedgerTime}>{formatDateTime(member.lastSignInAt)}</div>
-                  </div>
+                  <div style={{ ...statSub, marginTop: 10 }}>{card.detail}</div>
                 </div>
               ))}
             </div>
-          ) : (
-            <p style={bodyText}>No users were returned for this monitoring view.</p>
-          )}
-        </section>
-
-        <section style={sectionCard}>
-          <div style={sectionHeader}>
-            <div>
-              <div style={sectionEyebrow}>Lesson Ledger</div>
-              <h2 style={sectionTitle}>All Lessons Uploaded</h2>
-            </div>
-          </div>
-          {lessonUploads.length ? (
-            <div style={statusList} className="monitoring-status-list">
-              {lessonUploads.map((lesson) => (
-                <div key={lesson.id} style={issueRow} className="monitoring-issue-row">
-                  <div style={{ minWidth: 0 }}>
-                    <div style={issueTitle}>{lesson.title}</div>
-                    <div style={issueMeta}>
-                      {lesson.context} | {lesson.submittedBy} | {lesson.source}
+            {supabaseAdvisorFindings.length ? (
+              <div style={statusList} className="monitoring-status-list">
+                {supabaseAdvisorFindings.map((finding) => (
+                  <div key={finding.key} style={issueRow} className="monitoring-issue-row">
+                    <div style={{ minWidth: 0 }}>
+                      <div style={issueTitle}>{finding.title}</div>
+                      <div style={issueMeta}>
+                        {finding.category === 'security' ? 'Security' : 'Performance'} | {finding.entity || 'Project-wide'}
+                      </div>
+                      <div style={issueCulprit}>{finding.detail}</div>
+                      {finding.remediation ? (
+                        <div style={{ ...issueCulprit, marginTop: 8 }}>
+                          Recommended fix: {finding.remediation}
+                        </div>
+                      ) : null}
                     </div>
-                    <div style={issueCulprit}>{lesson.executiveSummary}</div>
+                    <div
+                      style={{
+                        ...miniStatusPill,
+                        background:
+                          finding.severity === 'critical'
+                            ? 'rgba(220,38,38,0.14)'
+                            : finding.severity === 'warning'
+                              ? 'rgba(245,158,11,0.16)'
+                              : 'rgba(22,163,74,0.16)',
+                        color:
+                          finding.severity === 'critical'
+                            ? '#dc2626'
+                            : finding.severity === 'warning'
+                              ? '#b45309'
+                              : '#16a34a',
+                      }}
+                    >
+                      {finding.severity === 'critical' ? 'Urgent' : finding.severity === 'warning' ? 'Watch' : 'Clear'}
+                    </div>
                   </div>
-                  <div style={lessonLedgerMeta}>
-                    <div style={lessonLedgerScore}>{lesson.score}/100</div>
-                    <div style={lessonLedgerTime}>{formatDateTime(lesson.createdAt)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p style={bodyText}>No saved lesson analyses are available yet.</p>
-          )}
+                ))}
+              </div>
+            ) : (
+              <p style={bodyText}>
+                {hasLiveSupabaseAdvisors
+                  ? 'No active Supabase advisor findings are being surfaced right now.'
+                  : 'Supabase advisor findings will appear here once the management credentials are connected.'}
+              </p>
+            )}
+          </div>
         </section>
+
+        <div style={twoColumn} className="monitoring-two-column">
+          <section style={sectionCard}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={sectionEyebrow}>User Access</div>
+                <h2 style={sectionTitle}>All Users and Last Sign-In</h2>
+              </div>
+            </div>
+            {userRoster.length ? (
+              <div style={compactRosterGrid}>
+                {userRoster.map((member) => (
+                  <div key={member.id} style={compactRosterRow}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={issueTitle}>{member.name}</div>
+                      <div style={issueMeta}>{formatRoleLabel(member.role)}</div>
+                    </div>
+                    <div style={compactRosterMeta}>
+                      <div style={compactRosterLabel}>Last sign-in</div>
+                      <div style={lessonLedgerTime}>{formatDateTime(member.lastSignInAt)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={bodyText}>No users were returned for this monitoring view.</p>
+            )}
+          </section>
+
+          <section style={sectionCard}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={sectionEyebrow}>Lesson Activity</div>
+                <h2 style={sectionTitle}>Recent Lesson Uploads</h2>
+              </div>
+            </div>
+            {lessonUploads.length ? (
+              <div style={statusList} className="monitoring-status-list">
+                {lessonUploads.map((lesson) => (
+                  <div key={lesson.id} style={issueRow} className="monitoring-issue-row">
+                    <div style={{ minWidth: 0 }}>
+                      <div style={issueTitle}>{lesson.title}</div>
+                      <div style={issueMeta}>
+                        {lesson.context} | {lesson.submittedBy} | {lesson.source}
+                      </div>
+                      <div style={issueCulprit}>{lesson.executiveSummary}</div>
+                    </div>
+                    <div style={lessonLedgerMeta}>
+                      <div style={lessonLedgerScore}>{lesson.score}/100</div>
+                      <div style={lessonLedgerTime}>{formatDateTime(lesson.createdAt)}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p style={bodyText}>No saved lesson analyses are available yet.</p>
+            )}
+          </section>
+        </div>
         </div>
       </div>
     </main>
