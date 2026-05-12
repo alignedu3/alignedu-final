@@ -4,8 +4,21 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { buildSampleAnalysisReports, calculateLessonScoreFromMetrics, getLessonInsights, getLessonMetrics, getLessonReportSections, getReportNarrative, getTEKSCoverageInsights, SAMPLE_TEACHER_IDS, type AnalysisReport, type ProfileRecord } from "@/lib/dashboardData";
-import { extractSectionText, extractStandardEntries } from "@/lib/analysisReport";
+import { cleanDisplayText, extractSectionText, extractStandardEntries, normalizeStructuredReportText } from "@/lib/analysisReport";
 import ProtectedPageState from "@/components/ProtectedPageState";
+
+function buildEditableAnalysisText(report: AnalysisReport) {
+  const narrative = getReportNarrative(report);
+  if (!narrative) return '';
+
+  return cleanDisplayText(
+    normalizeStructuredReportText(narrative)
+      .replace(/^Metrics:\s*[\s\S]*?(?=\n(?:===|[A-Z][A-Za-z\s]+:)|$)/i, '')
+      .replace(/^===\s*(.*?)\s*===$/gm, (_match, title: string) => `${title}\n`)
+  )
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 export default function LessonReportPage() {
   const params = useParams<{ id: string; lessonId: string }>();
@@ -71,7 +84,7 @@ export default function LessonReportPage() {
 
   useEffect(() => {
     setAdminFeedbackDraft(lesson?.admin_feedback || '');
-    setEditedAnalysisDraft(lesson ? getReportNarrative(lesson) : '');
+    setEditedAnalysisDraft(lesson ? buildEditableAnalysisText(lesson) : '');
     const metrics = lesson ? getLessonMetrics(lesson) : null;
     setMetricDraft({
       coverage: metrics?.coverage ?? 75,
@@ -533,10 +546,13 @@ export default function LessonReportPage() {
             </div>
             <div style={editorCard}>
               <div style={subsectionTitle}>Editable Analysis Text</div>
+              <div style={helperText}>
+                Keep this in plain language. No markdown, extra symbols, or formatting shortcuts are needed here.
+              </div>
               <textarea
                 value={editedAnalysisDraft}
                 onChange={(event) => setEditedAnalysisDraft(event.target.value)}
-                placeholder="Refine the saved analysis text if you want to clean up wording or adjust the final coaching write-up."
+                placeholder="Refine the saved analysis in clean plain language for the final coaching write-up."
                 style={{ ...editorTextarea, minHeight: 320 }}
                 disabled={!canSaveAdminAdjustments || savingAdminUpdate}
               />
