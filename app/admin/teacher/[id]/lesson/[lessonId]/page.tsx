@@ -217,10 +217,10 @@ export default function LessonReportPage() {
   };
 
   return (
-    <main style={page}>
-      <div style={container}>
+    <main style={page} className="dashboard-page">
+      <div style={container} className="dashboard-container">
         <div style={heroCard}>
-          <div style={heroTop}>
+          <div style={heroTop} className="admin-lesson-hero-top">
             <div>
               <div style={eyebrow}>Administrator Lesson Report</div>
               <h1 style={heading}>{titleText}</h1>
@@ -454,7 +454,7 @@ export default function LessonReportPage() {
           <p style={bodyText}>
             Use this to note what the analysis missed and refine the saved write-up when you need a cleaner final version for coaching conversations.
           </p>
-          <div style={editorGrid} className="lesson-report-two-column-grid">
+          <div style={editorGrid} className="lesson-report-two-column-grid admin-lesson-editor-grid">
             <div style={editorCard}>
               <div style={subsectionTitle}>Administrator Notes</div>
               <textarea
@@ -478,7 +478,7 @@ export default function LessonReportPage() {
               <p style={bodyText}>
                 If you observed something the analysis missed, you can correct the lesson write-up and refresh the saved scoring here.
               </p>
-              <div style={metricEditorGrid}>
+              <div style={metricEditorGrid} className="admin-lesson-metric-editor-grid">
                 <label style={metricEditorField}>
                   <span style={metricEditorLabel}>Coverage</span>
                   <input
@@ -539,7 +539,7 @@ export default function LessonReportPage() {
                   />
                 </label>
               </div>
-              <div style={metricPreviewRow}>
+              <div style={metricPreviewRow} className="admin-lesson-metric-preview-row">
                 <div style={metricPreviewLabel}>Updated instructional score</div>
                 <div style={metricPreviewValue}>{adjustedScorePreview}/100</div>
               </div>
@@ -566,7 +566,7 @@ export default function LessonReportPage() {
               ) : null}
             </div>
           </div>
-          <div style={editorActions}>
+          <div style={editorActions} className="admin-lesson-editor-actions">
             <div style={helperText}>
               {saveMessage || (canSaveAdminAdjustments ? 'Saved edits will become the displayed analysis for this lesson.' : 'Sample lesson reports cannot be edited.')}
             </div>
@@ -579,6 +579,7 @@ export default function LessonReportPage() {
                 opacity: !canSaveAdminAdjustments || savingAdminUpdate ? 0.6 : 1,
                 cursor: !canSaveAdminAdjustments || savingAdminUpdate ? 'not-allowed' : 'pointer',
               }}
+              className="admin-lesson-save-button"
             >
               {savingAdminUpdate ? 'Saving...' : 'Save Administrator Update'}
             </button>

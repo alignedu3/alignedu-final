@@ -42,12 +42,17 @@ export default function AdminTeacherPage() {
   const [name, setName] = useState('');
   const [activeReportId, setActiveReportId] = useState<string | null>(null);
   const [chartReady, setChartReady] = useState(false);
+  const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [backHref, setBackHref] = useState('/admin');
 
   useEffect(() => {
     setChartReady(true);
+    const checkScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
+    return () => window.removeEventListener('resize', checkScreen);
   }, []);
 
   useEffect(() => {
@@ -168,7 +173,7 @@ export default function AdminTeacherPage() {
     <main style={page} className="dashboard-page">
       <div style={container} className="dashboard-container">
 
-        <div style={header}>
+        <div style={header} className="admin-teacher-header">
           <div>
             <Link href={backHref} style={backLink}>
               Back to Dashboard
@@ -176,13 +181,13 @@ export default function AdminTeacherPage() {
             <h1 style={heading}>{name}</h1>
             <p style={subheading}>{reports.length} lessons analyzed</p>
           </div>
-          <div style={headerMeta}>
+          <div style={headerMeta} className="admin-teacher-header-meta">
             <div style={metaLabel}>Administrator Drill-Down</div>
             <div style={metaValue}>Teacher Results</div>
           </div>
         </div>
 
-        <div style={grid}>
+        <div style={grid} className="admin-teacher-stat-grid">
           <div style={statCard}>
             <div style={statLabel}>Lesson Analysis</div>
             <div style={statValue}>{summary.averageScore}/100</div>
@@ -214,7 +219,7 @@ export default function AdminTeacherPage() {
           <h2 style={title}>Performance Overview</h2>
           <p style={text}>{overview.summary}</p>
 
-          <div style={overviewRow}>
+          <div style={overviewRow} className="admin-teacher-overview-grid">
             <div style={overviewPanel}>
               <div style={label}>Current Status</div>
               <div style={{ ...valueLarge, color: overview.risk === 'Strong' ? '#22c55e' : overview.risk === 'Moderate Risk' ? '#f59e0b' : '#ef4444' }}>
@@ -278,7 +283,7 @@ export default function AdminTeacherPage() {
             }}
           >
             {chartReady ? (
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={isNarrowScreen ? 220 : 280}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis dataKey="date" stroke="var(--text-secondary)" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} />
@@ -300,7 +305,7 @@ export default function AdminTeacherPage() {
             <p style={text}>No lesson findings available yet.</p>
           ) : (
             <>
-              <div style={findingsHeader}>
+              <div style={findingsHeader} className="admin-teacher-findings-header">
                 <div>
                   <div style={label}>Showing Results For</div>
                   <div style={findingsTitle}>{latestLessonLabel}</div>
@@ -324,7 +329,7 @@ export default function AdminTeacherPage() {
               {previousReports.length > 0 && (
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(148,163,184,0.15)' }}>
                   <div style={{ ...label, marginBottom: 8 }}>Previous Lesson Findings</div>
-                  <div style={chipWrap}>
+                  <div style={chipWrap} className="admin-teacher-chip-wrap">
                     {previousReports.map((report, index) => {
                       const lessonDate = formatStableDate(report.created_at);
                       const chipLabel = `${report.grade || 'Grade'} ${report.subject || 'Lesson'}${lessonDate !== 'No date' ? ` · ${lessonDate}` : ''}`;
@@ -357,7 +362,7 @@ export default function AdminTeacherPage() {
           {reports.length === 0 ? (
             <p style={text}>No lessons analyzed yet.</p>
           ) : (
-            <div style={historyGrid}>
+            <div style={historyGrid} className="admin-teacher-history-grid">
               {reports.map((report, index) => {
                 const lessonDate = formatStableDate(report.created_at);
                 return (

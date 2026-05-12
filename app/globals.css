@@ -1700,6 +1700,44 @@ h1, h2, h3 {
   .lesson-report-two-column-grid {
     grid-template-columns: 1fr !important;
   }
+
+  .admin-teacher-header {
+    gap: 12px !important;
+  }
+
+  .admin-teacher-header-meta {
+    max-width: none !important;
+  }
+
+  .admin-teacher-stat-grid,
+  .admin-teacher-overview-grid,
+  .admin-teacher-history-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-teacher-findings-header {
+    align-items: stretch !important;
+  }
+
+  .admin-teacher-chip-wrap button {
+    white-space: normal !important;
+    text-align: left !important;
+    line-height: 1.4 !important;
+  }
+
+  .admin-lesson-hero-top {
+    gap: 10px !important;
+  }
+
+  .admin-lesson-editor-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .admin-lesson-save-button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
 }
 
 .monitoring-traffic-grid {
@@ -1751,6 +1789,19 @@ h1, h2, h3 {
 @media (max-width: 480px) {
   .monitoring-traffic-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  .lesson-report-metric-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-lesson-metric-editor-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .admin-lesson-metric-preview-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
   }
 }
 
