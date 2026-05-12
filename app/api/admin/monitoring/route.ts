@@ -2304,6 +2304,7 @@ export async function GET(request: NextRequest) {
     let activeTeachers = 0;
     let observationCount = 0;
     let averageScore = 0;
+    let lessonsInWindow = 0;
 
     if (!providersOnly) {
       const [{ data: profiles, error: profilesError }, analysesResult, authUsersResult] = await Promise.all([
@@ -2337,6 +2338,7 @@ export async function GET(request: NextRequest) {
       });
 
       totalLessons = reportList.length;
+      lessonsInWindow = reportsInWindow.length;
       totalTeachers = profileList.filter((profile) => profile.role === 'teacher').length;
       totalAdmins = profileList.filter((profile) => profile.role === 'admin' || profile.role === 'super_admin').length;
       activeTeachers = new Set(
@@ -2682,7 +2684,7 @@ export async function GET(request: NextRequest) {
         summary: {
           days,
           totalLessons,
-          lessonsInWindow: reportsInWindow.length,
+          lessonsInWindow,
           totalTeachers,
           totalAdmins,
           activeTeachers,
