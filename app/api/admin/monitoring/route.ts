@@ -2099,9 +2099,14 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
       label: 'Top Unexpected 4xx Route',
       path: formatRoutePath(topUnexpected4xxRoute),
       requests: topUnexpected4xxRouteRequests,
-      status: topUnexpected4xxRouteRequests >= 3 ? ('warning' as const) : ('healthy' as const),
+      status:
+        topUnexpected4xxRouteRequests >= 100
+          ? ('critical' as const)
+          : topUnexpected4xxRouteRequests >= 50
+            ? ('warning' as const)
+            : ('healthy' as const),
       detail:
-        topUnexpected4xxRouteRequests >= 3
+        topUnexpected4xxRouteRequests >= 50
           ? `${formatNumber(topUnexpected4xxRouteRequests)} unexpected 4xx responses were reported on this route in the latest day.`
           : topUnexpected4xxRouteRequests > 0
             ? `${formatNumber(topUnexpected4xxRouteRequests)} low-volume unexpected 4xx responses were reported on this route in the latest day.`
