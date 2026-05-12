@@ -365,6 +365,16 @@ export default function MonitoringDashboard() {
   const supabaseAdvisorDiagnostics = payload?.supabaseAdvisors?.diagnostics;
   const connections = payload?.connections || [];
   const trafficCards = payload?.httpTraffic?.summaryCards || [];
+  const primaryTrafficCardKeys = new Set([
+    'total-requests',
+    'page-views',
+    'unique-visitors',
+    'cache-hit-ratio',
+    'unexpected-client-errors',
+    'server-errors',
+  ]);
+  const primaryTrafficCards = trafficCards.filter((card) => primaryTrafficCardKeys.has(card.key));
+  const secondaryTrafficCards = trafficCards.filter((card) => !primaryTrafficCardKeys.has(card.key));
   const trafficErrorRoutes = (payload?.httpTraffic?.topErrorRoutes || []).filter((route) => route.requests > 0);
   const requestSeries = payload?.httpTraffic?.requestSeries || [];
   const bandwidthSeries = payload?.httpTraffic?.bandwidthSeries || [];
@@ -860,7 +870,7 @@ export default function MonitoringDashboard() {
               </div>
             ) : null}
             <div style={trafficStatsGrid} className="monitoring-traffic-grid">
-              {trafficCards.map((card) => (
+              {primaryTrafficCards.map((card) => (
                 <div key={card.key} style={statCard}>
                   <div style={statLabel}>{card.label}</div>
                   <div style={statValue}>{card.displayValue}</div>
@@ -891,6 +901,43 @@ export default function MonitoringDashboard() {
                 </div>
               ))}
             </div>
+            {secondaryTrafficCards.length ? (
+              <div style={trafficRouteGrid} className="monitoring-traffic-route-grid">
+                {secondaryTrafficCards.map((card) => (
+                  <div key={card.key} style={trafficRouteCard}>
+                    <div style={uptimeCheckTopRow}>
+                      <div style={statusTitle}>{card.label}</div>
+                      <div
+                        style={{
+                          ...miniStatusPill,
+                          flexShrink: 0,
+                          background:
+                            card.status === 'healthy'
+                              ? 'rgba(22,163,74,0.16)'
+                              : card.status === 'warning'
+                                ? 'rgba(245,158,11,0.16)'
+                                : card.status === 'critical'
+                                  ? 'rgba(220,38,38,0.14)'
+                                  : 'rgba(59,130,246,0.12)',
+                          color:
+                            card.status === 'healthy'
+                              ? '#16a34a'
+                              : card.status === 'warning'
+                                ? '#b45309'
+                                : card.status === 'critical'
+                                  ? '#dc2626'
+                                  : '#3b82f6',
+                        }}
+                      >
+                        {card.statusLabel}
+                      </div>
+                    </div>
+                    <div style={{ ...statValue, fontSize: 24, marginTop: 6 }}>{card.displayValue}</div>
+                    <div style={{ ...statSub, fontSize: 12, marginTop: 6 }}>{card.detail}</div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
             {trafficErrorRoutes.length ? (
               <div style={trafficRouteGrid} className="monitoring-traffic-route-grid">
                 {trafficErrorRoutes.map((route) => (
