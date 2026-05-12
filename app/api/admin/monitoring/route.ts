@@ -1178,17 +1178,17 @@ function buildMonitoringAlerts(args: {
     }
 
     const threatCount = threatsCard?.value || 0;
-    const hasCorrelatedEdgeStress =
-      (serverErrorsCard?.value || 0) >= 5 || (unexpectedClientErrorsCard?.value || 0) >= 100;
+    const hasRealOriginImpact =
+      threatCount >= 1000 &&
+      (serverErrorsCard?.value || 0) >= 10 &&
+      (top5xxRoute?.requests || 0) >= 5;
 
-    if (threatCount >= 250 || (threatCount >= 100 && hasCorrelatedEdgeStress)) {
+    if (hasRealOriginImpact) {
       alerts.push({
         key: 'threats-blocked',
-        severity: threatCount >= 1000 && hasCorrelatedEdgeStress ? 'critical' : 'warning',
+        severity: 'critical',
         title: 'Threat traffic is being blocked',
-        detail: hasCorrelatedEdgeStress
-          ? `${threatsCard?.displayValue || '0'} threats were blocked in the selected window alongside elevated 4xx/5xx activity.`
-          : `${threatsCard?.displayValue || '0'} threats were blocked in the selected window.`,
+        detail: `${threatsCard?.displayValue || '0'} threats were blocked in the selected window alongside meaningful origin-side 5xx activity.`,
         source: 'Cloudflare',
       });
     }
