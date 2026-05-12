@@ -2008,9 +2008,9 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   const bandwidthTrend = getTrendDirection(dailyPoints.map((point) => point.bytes / (1024 * 1024)));
   const requestsStatus =
     totals.requests === 0
-      ? { status: 'warning' as const, statusLabel: 'No Traffic', detail: 'No Cloudflare requests were recorded in the selected window.' }
+      ? { status: 'healthy' as const, statusLabel: 'No Traffic', detail: 'No Cloudflare requests were recorded in the selected window.' }
       : requestTrend === 'down' && totals.requests >= 100
-        ? { status: 'warning' as const, statusLabel: 'Below Baseline', detail: 'Request volume is lower than the recent daily baseline for this window.' }
+        ? { status: 'healthy' as const, statusLabel: 'Below Baseline', detail: 'Request volume is lower than the recent daily baseline for this window.' }
         : requestTrend === 'up'
           ? { status: 'healthy' as const, statusLabel: 'Above Baseline', detail: 'Request volume is running above the recent daily baseline for this window.' }
           : requestTrend === 'quiet'
@@ -2018,26 +2018,26 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
             : { status: 'healthy' as const, statusLabel: 'On Track', detail: 'Request volume is in line with the recent daily baseline for this window.' };
   const pageViewsStatus =
     totals.pageViews === 0
-      ? { status: 'warning' as const, statusLabel: 'No Page Views', detail: 'No successful HTML page views were reported in the selected window.' }
+      ? { status: 'healthy' as const, statusLabel: 'No Page Views', detail: 'No successful HTML page views were reported in the selected window.' }
       : pageViewTrend === 'up'
         ? { status: 'healthy' as const, statusLabel: 'More Viewing', detail: 'HTML page views are up versus the recent daily baseline.' }
         : pageViewTrend === 'down' && totals.pageViews >= 20
-          ? { status: 'warning' as const, statusLabel: 'Views Down', detail: 'HTML page views are below the recent daily baseline for this window.' }
+          ? { status: 'healthy' as const, statusLabel: 'Views Down', detail: 'HTML page views are below the recent daily baseline for this window.' }
           : { status: 'healthy' as const, statusLabel: 'Steady', detail: 'Successful HTML page views are stable for the selected window.' };
   const uniquesStatus =
     totals.uniques === 0
-      ? { status: 'warning' as const, statusLabel: 'No Visitors', detail: 'No unique visitors were reported in the selected window.' }
+      ? { status: 'healthy' as const, statusLabel: 'No Visitors', detail: 'No unique visitors were reported in the selected window.' }
       : uniqueTrend === 'up'
         ? { status: 'healthy' as const, statusLabel: 'More Visitors', detail: 'Unique visitors are running above the recent daily baseline.' }
         : uniqueTrend === 'down' && totals.uniques >= 20
-          ? { status: 'warning' as const, statusLabel: 'Visitors Down', detail: 'Unique visitors are below the recent daily baseline for this window.' }
+          ? { status: 'healthy' as const, statusLabel: 'Visitors Down', detail: 'Unique visitors are below the recent daily baseline for this window.' }
           : { status: 'healthy' as const, statusLabel: 'Steady', detail: 'Unique visitor volume is steady for the selected window.' };
   const cacheStatus =
     cacheHitRatio >= 40
       ? { status: 'healthy' as const, statusLabel: 'Cache Healthy', detail: 'A solid share of requests is being served from Cloudflare cache.' }
-      : cacheHitRatio >= 20
-        ? { status: 'warning' as const, statusLabel: 'Needs Work', detail: 'Some requests are being cached, but there is room to improve edge hit rate.' }
-        : { status: 'warning' as const, statusLabel: 'Low Cache', detail: 'Only a small share of requests is being served from Cloudflare cache.' };
+    : cacheHitRatio >= 20
+        ? { status: 'healthy' as const, statusLabel: 'Needs Work', detail: 'Some requests are being cached, but there is room to improve edge hit rate.' }
+        : { status: 'healthy' as const, statusLabel: 'Low Cache', detail: 'Only a small share of requests is being served from Cloudflare cache.' };
   const threatsStatus =
     totals.threats >= 50
       ? { status: 'critical' as const, statusLabel: 'Threats Blocked at Edge', detail: 'Cloudflare is blocking a high level of threat traffic in this window.' }
@@ -2053,29 +2053,31 @@ async function fetchCloudflareTraffic(windowKeys: string[]): Promise<CloudflareT
   const unexpectedClientErrorsStatus =
     unexpectedClientErrors === 0
       ? { status: 'healthy' as const, statusLabel: 'Clean', detail: 'No unexpected client-side 4xx responses were reported in the selected window.' }
-      : unexpectedClientErrorRate >= 5
+      : unexpectedClientErrorRate >= 10
+        ? { status: 'critical' as const, statusLabel: 'High 4xx', detail: `Unexpected client-side 4xx responses are ${formatNumber(unexpectedClientErrorRate)}% of requests in this window.` }
+        : unexpectedClientErrorRate >= 5
         ? { status: 'warning' as const, statusLabel: 'High 4xx', detail: `Unexpected client-side 4xx responses are ${formatNumber(unexpectedClientErrorRate)}% of requests in this window.` }
-        : { status: 'warning' as const, statusLabel: 'Some 4xx', detail: `A small number of unexpected 4xx responses were reported (${formatNumber(unexpectedClientErrorRate)}% of requests).` };
+        : { status: 'healthy' as const, statusLabel: 'Some 4xx', detail: `A small number of unexpected 4xx responses were reported (${formatNumber(unexpectedClientErrorRate)}% of requests).` };
   const serverErrorsStatus =
     totals.serverErrors === 0
       ? { status: 'healthy' as const, statusLabel: 'No 5xx', detail: 'No server-side 5xx responses were reported in the selected window.' }
-      : serverErrorRate >= 1 || totals.serverErrors >= 10
+    : serverErrorRate >= 1 || totals.serverErrors >= 10
         ? { status: 'critical' as const, statusLabel: 'Origin Errors', detail: `Server-side 5xx responses are ${formatNumber(serverErrorRate)}% of requests in this window.` }
-        : { status: 'warning' as const, statusLabel: 'Some 5xx', detail: `A small number of server-side 5xx responses were reported (${formatNumber(serverErrorRate)}% of requests).` };
+        : { status: 'healthy' as const, statusLabel: 'Some 5xx', detail: `A small number of server-side 5xx responses were reported (${formatNumber(serverErrorRate)}% of requests).` };
   const bandwidthStatus =
     totalBandwidthMb === 0
       ? { status: 'healthy' as const, statusLabel: 'Quiet Window', detail: 'No meaningful response bandwidth was recorded in the selected window.' }
-      : bandwidthTrend === 'up'
+    : bandwidthTrend === 'up'
         ? { status: 'healthy' as const, statusLabel: 'Higher Load', detail: 'Served bandwidth is running above the recent daily baseline.' }
         : bandwidthTrend === 'down' && totalBandwidthMb >= 5
-          ? { status: 'warning' as const, statusLabel: 'Load Down', detail: 'Served bandwidth is below the recent daily baseline for this window.' }
+          ? { status: 'healthy' as const, statusLabel: 'Load Down', detail: 'Served bandwidth is below the recent daily baseline for this window.' }
           : { status: 'healthy' as const, statusLabel: 'Stable Load', detail: 'Served bandwidth is steady for the selected window.' };
   const cachedBandwidthStatus =
     cachedBandwidthRatio >= 50
       ? { status: 'healthy' as const, statusLabel: 'Edge Efficient', detail: 'A strong share of response bytes is being delivered from Cloudflare cache.' }
-      : cachedBandwidthRatio >= 30
+    : cachedBandwidthRatio >= 30
         ? { status: 'healthy' as const, statusLabel: 'Moderate Cache', detail: 'A meaningful share of response bytes is being delivered from the edge cache.' }
-        : { status: 'warning' as const, statusLabel: 'Low Edge Cache', detail: 'Only a limited share of response bytes is being served from Cloudflare cache.' };
+        : { status: 'healthy' as const, statusLabel: 'Low Edge Cache', detail: 'Only a limited share of response bytes is being served from Cloudflare cache.' };
   const topExpected4xxRoute = expected4xxEntries[0] || null;
   const topUnexpected4xxRoute = unexpected4xxEntries[0] || null;
   const top5xxRoute = Array.isArray(zone.top5xxPaths) ? zone.top5xxPaths[0] : null;
