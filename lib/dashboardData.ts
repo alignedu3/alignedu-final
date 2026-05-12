@@ -1003,6 +1003,7 @@ export function buildAdminSupportPlanForTeacher(
   const recentMetrics = recentReports.map(getLessonMetrics);
   const recentAverageScore = average(recentMetrics.map((metric) => metric.score));
   const trend = getLatestLessonTrend(sortedReports);
+  const overallTrend = getOverallLessonTrend(sortedReports);
   const reportSections = getLessonReportSections(latestReport);
   const openGapSummary = getOpenGapSummary(sortedReports);
   const topOpenGap =
@@ -1029,12 +1030,17 @@ export function buildAdminSupportPlanForTeacher(
   })[0];
 
   const trendMagnitude = Math.abs(trend);
+  const overallTrendMagnitude = Math.abs(overallTrend);
   const trendText =
-    trend < 0
-      ? `the latest lesson declined by ${trendMagnitude} point${trendMagnitude === 1 ? '' : 's'} from the previous lesson`
-      : trend > 0
-        ? `the latest lesson improved by ${trendMagnitude} point${trendMagnitude === 1 ? '' : 's'} from the previous lesson`
-        : 'the latest lesson held steady compared with the previous lesson';
+    overallTrend <= -8
+      ? `Across the lesson trend shown here, performance has declined by ${overallTrendMagnitude} point${overallTrendMagnitude === 1 ? '' : 's'} from the earliest lesson to the latest lesson`
+      : overallTrend >= 8
+        ? `Across the lesson trend shown here, performance has improved by ${overallTrendMagnitude} point${overallTrendMagnitude === 1 ? '' : 's'} from the earliest lesson to the latest lesson`
+        : trend < 0
+          ? `The latest lesson declined by ${trendMagnitude} point${trendMagnitude === 1 ? '' : 's'} from the previous lesson`
+          : trend > 0
+            ? `The latest lesson improved by ${trendMagnitude} point${trendMagnitude === 1 ? '' : 's'} from the previous lesson`
+            : 'The latest lesson held steady compared with the previous lesson';
 
   const supportPriorityScore =
     Math.max(0, 78 - latestMetrics.score) +
@@ -1043,7 +1049,8 @@ export function buildAdminSupportPlanForTeacher(
     weakestDomain.belowTargetCount * 5 +
     openGapSummary.total * 4 +
     latestMetrics.gaps * 6 +
-    (trend < 0 ? Math.min(12, trendMagnitude * 2) : 0);
+    (trend < 0 ? Math.min(12, trendMagnitude * 2) : 0) +
+    (overallTrend < 0 ? Math.min(16, overallTrendMagnitude) : 0);
 
   const requiresPrioritySupport =
     latestMetrics.score < 75 ||
@@ -1053,6 +1060,7 @@ export function buildAdminSupportPlanForTeacher(
     latestMetrics.gaps >= 2 ||
     openGapSummary.total >= 2 ||
     trend <= -4 ||
+    overallTrend <= -8 ||
     (latestMetrics.score < 78 && latestMetrics.gaps > 0 && weakestDomain.value < 74);
 
   const priorityReasonParts = [
@@ -1088,7 +1096,7 @@ export function buildAdminSupportPlanForTeacher(
     topOpenGap
       ? `The lesson revisits this priority content gap with explicit reteach and mastery evidence: ${topOpenGap}`
       : 'Students can demonstrate understanding before the lesson ends.',
-    trend < 0
+    overallTrend < 0 || trend < 0
       ? 'The teacher follows the agreed coaching move consistently from the start of the lesson.'
       : weakestDomain.belowTargetCount >= 2
         ? 'The targeted support move is visible early and stays consistent across the lesson, not just at the end.'
