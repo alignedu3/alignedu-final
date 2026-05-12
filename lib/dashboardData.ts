@@ -1006,11 +1006,14 @@ export function buildAdminSupportPlanForTeacher(
   const overallTrend = getOverallLessonTrend(sortedReports);
   const reportSections = getLessonReportSections(latestReport);
   const openGapSummary = getOpenGapSummary(sortedReports);
+  const cleanSentenceFragment = (value: string) => String(value || '').trim().replace(/[.?!\s]+$/, '');
   const topOpenGap =
-    openGapSummary.items[0]?.gap ||
-    reportSections.contentGaps[0] ||
-    reportSections.improvements[0] ||
-    '';
+    cleanSentenceFragment(
+      openGapSummary.items[0]?.gap ||
+      reportSections.contentGaps[0] ||
+      reportSections.improvements[0] ||
+      ''
+    );
 
   const domainSnapshots = [
     { key: 'coverage', label: 'standards alignment', value: latestMetrics.coverage, values: recentMetrics.map((metric) => metric.coverage) },
@@ -1033,9 +1036,9 @@ export function buildAdminSupportPlanForTeacher(
   const overallTrendMagnitude = Math.abs(overallTrend);
   const trendText =
     overallTrend <= -8
-      ? `Across the lesson trend shown here, performance has declined by ${overallTrendMagnitude} point${overallTrendMagnitude === 1 ? '' : 's'} from the earliest lesson to the latest lesson`
+      ? `Across this lesson sequence, performance declined by ${overallTrendMagnitude} point${overallTrendMagnitude === 1 ? '' : 's'} from the earliest lesson to the latest lesson`
       : overallTrend >= 8
-        ? `Across the lesson trend shown here, performance has improved by ${overallTrendMagnitude} point${overallTrendMagnitude === 1 ? '' : 's'} from the earliest lesson to the latest lesson`
+        ? `Across this lesson sequence, performance improved by ${overallTrendMagnitude} point${overallTrendMagnitude === 1 ? '' : 's'} from the earliest lesson to the latest lesson`
         : trend < 0
           ? `The latest lesson declined by ${trendMagnitude} point${trendMagnitude === 1 ? '' : 's'} from the previous lesson`
           : trend > 0
@@ -1077,10 +1080,10 @@ export function buildAdminSupportPlanForTeacher(
   const adminActionParts = [
     `Use the next planning touchpoint to coach ${teacherName} on ${weakestDomain.label}.`,
     reportSections.recommendedNextStep
-      ? `Anchor the follow-up observation to this next move: ${reportSections.recommendedNextStep}`
+      ? `Anchor the follow-up observation to this next move: ${cleanSentenceFragment(reportSections.recommendedNextStep)}.`
       : `Preview one concrete teacher move that should be visible in the next lesson.`,
     topOpenGap
-      ? `Make sure the plan explicitly addresses this still-open content need: ${topOpenGap}`
+      ? `Make sure the plan explicitly addresses this still-open content need: ${topOpenGap}.`
       : null,
   ].filter(Boolean);
   const adminAction = adminActionParts.join(' ');
@@ -1115,7 +1118,7 @@ export function buildAdminSupportPlanForTeacher(
       ? `Across the last ${recentReports.length} lessons, the average score is ${recentAverageScore}/100 and ${weakestDomain.label} averaged ${weakestDomain.average}/100.`
       : null,
     openGapSummary.total > 0
-      ? `${openGapSummary.total} open gap${openGapSummary.total === 1 ? '' : 's'} remain across current lesson topics${topOpenGap ? `, led by: ${topOpenGap}` : ''}.`
+      ? `${openGapSummary.total} open gap${openGapSummary.total === 1 ? '' : 's'} remain across current lesson topics${topOpenGap ? `. A leading open gap is: ${topOpenGap}` : ''}.`
       : null,
     `${trendText}.`,
   ].filter(Boolean);
