@@ -1193,7 +1193,12 @@ function buildMonitoringAlerts(args: {
       });
     }
 
-    if ((unexpectedClientErrorsCard?.value || 0) >= 100 && (top4xxRoute?.requests || 0) >= 50) {
+    const hasActionableUnexpected4xxIssue =
+      unexpectedClientErrorsCard?.status === 'critical' ||
+      (unexpectedClientErrorsCard?.status === 'warning' &&
+        ((top4xxRoute?.status === 'critical') || (serverErrorsCard?.status !== 'healthy')));
+
+    if (hasActionableUnexpected4xxIssue) {
       alerts.push({
         key: 'client-errors',
         severity: 'warning',
