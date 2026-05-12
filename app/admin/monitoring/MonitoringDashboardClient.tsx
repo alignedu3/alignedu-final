@@ -708,7 +708,7 @@ export default function MonitoringDashboard() {
                   </div>
                 </div>
                 <p style={readinessText}>{item.detail}</p>
-                {item.envKeys && item.envKeys.length > 0 ? (
+                {!item.connected && item.envKeys && item.envKeys.length > 0 ? (
                   <div style={envKeyRow}>
                     {item.envKeys.map((envKey) => (
                       <span key={envKey} style={envKeyChip}>{envKey}</span>

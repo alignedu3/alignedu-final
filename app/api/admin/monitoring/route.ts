@@ -690,11 +690,12 @@ async function fetchSupabaseAdvisors(): Promise<SupabaseAdvisorResult> {
       return a.title.localeCompare(b.title);
     });
 
-  const securityCount = findings.filter((item) => item.category === 'security').length;
-  const performanceCount = findings.filter((item) => item.category === 'performance').length;
-  const criticalCount = findings.filter((item) => item.severity === 'critical').length;
-  const warningCount = findings.filter((item) => item.severity === 'warning').length;
-  const openCount = findings.filter((item) => item.severity !== 'healthy').length;
+  const openFindings = findings.filter((item) => item.severity !== 'healthy');
+  const securityCount = openFindings.filter((item) => item.category === 'security').length;
+  const performanceCount = openFindings.filter((item) => item.category === 'performance').length;
+  const criticalCount = openFindings.filter((item) => item.severity === 'critical').length;
+  const warningCount = openFindings.filter((item) => item.severity === 'warning').length;
+  const openCount = openFindings.length;
 
   return {
     connected: true,
@@ -750,7 +751,7 @@ async function fetchSupabaseAdvisors(): Promise<SupabaseAdvisorResult> {
               : 'No critical Supabase advisor findings are open.',
       },
     ],
-    findings: findings.filter((item) => item.severity !== 'healthy').slice(0, 8),
+    findings: openFindings.slice(0, 8),
     diagnostics: {
       tokenConfigured: true,
       projectRefConfigured: true,
@@ -839,8 +840,8 @@ async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
         ok: true,
         detail:
           check.key === 'auth-api'
-            ? `${check.label} responded through an edge-protected host and is still reachable.`
-            : `${check.label} is being blocked by edge/deployment protection for this server-side probe, but the host is reachable.`,
+            ? `${check.label} is reachable through the edge-protected host.`
+            : `${check.label} is reachable, but this server-side probe is being challenged by edge protection.`,
       }))
     : rawChecks;
 
@@ -860,10 +861,10 @@ async function fetchUptimeSummary(request: NextRequest): Promise<UptimeResult> {
         label: 'Checks Passing',
         value: passingChecks.length,
         displayValue: `${passingChecks.length}/${checks.length}`,
-        status: edgeProtectedChecks ? 'warning' : availabilityStatus,
-        statusLabel: edgeProtectedChecks ? 'Protected' : availabilityStatus === 'healthy' ? 'Healthy' : availabilityStatus === 'warning' ? 'Reachable' : 'Down',
+        status: edgeProtectedChecks ? 'healthy' : availabilityStatus,
+        statusLabel: edgeProtectedChecks ? 'Reachable' : availabilityStatus === 'healthy' ? 'Healthy' : availabilityStatus === 'warning' ? 'Reachable' : 'Down',
         detail: edgeProtectedChecks
-          ? 'The current host is protected from server-side uptime probes, so these checks are being treated as reachable instead of down.'
+          ? 'The current host is edge-protected, so server-side probes are being treated as reachable when the host answers with a protection challenge.'
           : allHealthy
           ? 'All uptime probes are returning healthy responses right now.'
           : `${failingChecks} uptime ${failingChecks === 1 ? 'check is' : 'checks are'} failing in the latest pass.`,
@@ -1170,8 +1171,8 @@ function buildMonitoringAlerts(args: {
     if (threatCount >= 250 || (threatCount >= 100 && hasCorrelatedEdgeStress)) {
       alerts.push({
         key: 'threats-blocked',
-        severity: threatCount >= 250 ? 'critical' : 'warning',
-        title: 'Threat traffic detected',
+        severity: threatCount >= 1000 && hasCorrelatedEdgeStress ? 'critical' : 'warning',
+        title: 'Threat traffic is being blocked',
         detail: hasCorrelatedEdgeStress
           ? `${threatsCard?.displayValue || '0'} threats were blocked in the selected window alongside elevated 4xx/5xx activity.`
           : `${threatsCard?.displayValue || '0'} threats were blocked in the selected window.`,
@@ -1199,7 +1200,7 @@ function buildMonitoringAlerts(args: {
       });
     }
 
-    if (hasMaterialTrafficDrop(requests)) {
+    if (hasMaterialTrafficDrop(requests, args.cloudflareTraffic.requestSeries.map((point) => point.date))) {
       alerts.push({
         key: 'traffic-drop',
         severity: 'warning',
@@ -1423,8 +1424,14 @@ function getMedian(values: number[]) {
   return sorted[middle];
 }
 
-function hasMaterialTrafficDrop(values: number[]) {
+function hasMaterialTrafficDrop(values: number[], dateKeys: string[]) {
   if (values.length < 5) {
+    return false;
+  }
+
+  const latestKey = dateKeys.at(-1) || null;
+  const todayKey = new Date().toISOString().slice(0, 10);
+  if (latestKey === todayKey) {
     return false;
   }
 
@@ -1627,6 +1634,11 @@ function isExpectedClientErrorRoute(path: string | null) {
     '/dashboard',
     '/admin',
     '/login',
+    '/analyze',
+    '/forgot-password',
+    '/reset-access',
+    '/accept-invite',
+    '/reset-password',
     '/favicon.ico',
     '/robots.txt',
     '/_environment',
