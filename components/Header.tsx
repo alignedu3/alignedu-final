@@ -201,7 +201,7 @@ export default function Header() {
       hardNavigate('/');
       return;
     }
-    const destination = '/dashboard';
+    const destination = isAdminUser ? '/admin' : '/dashboard';
     if (pathname === destination) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
