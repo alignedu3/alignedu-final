@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
-import { calculateLessonScore, getLatestLessonTrend, type AnalysisReport, type ProfileRecord } from '@/lib/dashboardData';
+import { calculateLessonScore, getLatestLessonTrend, getReportNarrative, type AnalysisReport, type ProfileRecord } from '@/lib/dashboardData';
 import { cleanDisplayText, parseFeedbackSections } from '@/lib/analysisReport';
 import { getErrorMessage } from '@/lib/errorHandling';
 import { captureRouteException } from '@/lib/sentryRoute';
@@ -338,7 +338,7 @@ function buildDateKeys(days: number) {
 }
 
 function isAdminObservation(report: AnalysisReport) {
-  const text = `${report.result || ''}\n${report.analysis_result || ''}`.toLowerCase();
+  const text = `${getReportNarrative(report)}`.toLowerCase();
   return text.includes('admin observation') || text.includes('submitted by:');
 }
 
@@ -366,12 +366,12 @@ function buildMonitoringLessonContext(report: AnalysisReport) {
 }
 
 function buildMonitoringLessonSummary(report: AnalysisReport) {
-  const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
+  const parsed = parseFeedbackSections(getReportNarrative(report));
   if (parsed.executiveSummary) {
     return parsed.executiveSummary;
   }
 
-  const fallback = cleanDisplayText(report.result || report.analysis_result || '');
+  const fallback = cleanDisplayText(getReportNarrative(report));
   if (!fallback) return 'No executive summary was saved for this lesson report.';
   return fallback.length > 260 ? `${fallback.slice(0, 257).trimEnd()}...` : fallback;
 }

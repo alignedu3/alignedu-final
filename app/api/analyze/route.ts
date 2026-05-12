@@ -1159,6 +1159,54 @@ async function findReusableAnalysis(params: {
   };
 }
 
+function truncateHumanFeedback(value: string, maxLength = 220) {
+  const cleaned = value.replace(/\s+/g, ' ').trim();
+  if (cleaned.length <= maxLength) return cleaned;
+  return `${cleaned.slice(0, maxLength).trimEnd()}...`;
+}
+
+async function getAnalysisFeedbackContext(params: {
+  targetUserId: string;
+  grade: string;
+  subject: string;
+}) {
+  const serviceSupabase = createServiceSupabaseClient();
+  const { data, error } = await serviceSupabase
+    .from("analyses")
+    .select("title, teacher_feedback, admin_feedback")
+    .eq("user_id", params.targetUserId)
+    .eq("grade", params.grade)
+    .eq("subject", params.subject)
+    .or("teacher_feedback.not.is.null,admin_feedback.not.is.null")
+    .order("created_at", { ascending: false })
+    .limit(4);
+
+  if (error) {
+    console.error("ANALYSIS FEEDBACK CONTEXT LOOKUP ERROR:", error);
+    return "";
+  }
+
+  const items = (data || [])
+    .flatMap((analysis) => {
+      const title = typeof analysis.title === "string" && analysis.title.trim() ? analysis.title.trim() : "Recent lesson";
+      const feedbackItems: string[] = [];
+
+      if (typeof analysis.teacher_feedback === "string" && analysis.teacher_feedback.trim()) {
+        feedbackItems.push(`Teacher noted: ${truncateHumanFeedback(analysis.teacher_feedback)}`);
+      }
+
+      if (typeof analysis.admin_feedback === "string" && analysis.admin_feedback.trim()) {
+        feedbackItems.push(`Administrator noted: ${truncateHumanFeedback(analysis.admin_feedback)}`);
+      }
+
+      if (!feedbackItems.length) return [];
+      return `- ${title}: ${feedbackItems.join(" | ")}`;
+    })
+    .slice(0, 4);
+
+  return items.join("\n");
+}
+
 async function saveAnalysisRecord(params: {
   targetUserId: string;
   lessonContextTitle: string;
@@ -1345,6 +1393,11 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
         ? `${book} ${chapter}`
         : chapter
       : '';
+  const analysisFeedbackContext = await getAnalysisFeedbackContext({
+    targetUserId,
+    grade,
+    subject,
+  });
 
   const reusableAnalysis = await findReusableAnalysis({
     grade,
@@ -1397,6 +1450,10 @@ Every report must feel unique to the lesson in front of you, not like a reusable
 Use varied wording across sections. Do not repeat the same sentence frame in multiple sections. When possible, reference 3 or more distinct lesson moments across the report. You may quote short phrases from the transcript when it helps ground the feedback, but keep quotes brief.
 
 Score the lesson with professional calibration. The scores do not need to match each other. Let strengths and weaknesses land where the evidence supports them. Only use the same number across multiple categories if the transcript truly supports that level across all of them.`;
+
+  if (analysisFeedbackContext) {
+    systemPrompt += `\n\nHuman feedback on prior analyses for this same teacher and course context:\n${analysisFeedbackContext}\nUse this to improve specificity, avoid repeating previously noted misses, and make future feedback more helpful. Do not let prior feedback override the evidence in the current lesson, and do not adjust scores unless the current transcript supports it.`;
+  }
 
   if (isHigherEdBiology) {
     systemPrompt += `\n\nFor Higher Ed Biology lessons, compare the instruction to a strong introductory undergraduate biology sequence using Campbell Biology as the reference frame. Evaluate whether the lesson reflects accurate biological terminology, concept depth, prerequisite logic, and textbook-level expectations for a college introductory biology course.${matchedBiologyObjectives.length ? ` Also evaluate whether the lesson advances these course objectives inferred from the selected chapter: ${matchedBiologyObjectives.join(' ')}` : ''} If the lesson appears to be one part of a larger sequence, evaluate the submitted recording on its own terms and avoid treating clearly deferred chapter content as missing unless the transcript shows that concept should already have been taught in this lesson.`;

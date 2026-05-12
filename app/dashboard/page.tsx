@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { buildTeacherDashboardSampleReports, getDashboardSummary, getOpenGapSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getRelatedPriorLessonGaps, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
+import { buildTeacherDashboardSampleReports, getDashboardSummary, getOpenGapSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getRelatedPriorLessonGaps, getReportNarrative, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
 import { extractSectionText, extractStandardEntries } from '@/lib/analysisReport';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
@@ -23,6 +23,8 @@ export default function TeacherDashboard() {
   const [showOpenGaps, setShowOpenGaps] = useState(false);
   const [lessonsPage, setLessonsPage] = useState(1);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [teacherFeedbackDraft, setTeacherFeedbackDraft] = useState('');
+  const [savingTeacherFeedbackId, setSavingTeacherFeedbackId] = useState<string | null>(null);
   const selectedLessonRef = useRef<HTMLDivElement | null>(null);
 
   const pushToast = useCallback((message: string, tone: ToastItem['tone'] = 'info') => {
@@ -63,6 +65,13 @@ export default function TeacherDashboard() {
     } finally {
       setReady(true);
     }
+  }, []);
+
+  const applyUpdatedReport = useCallback((updatedAnalysis: AnalysisReport) => {
+    setDbReports((current) =>
+      current.map((report) => (report.id === updatedAnalysis.id ? { ...report, ...updatedAnalysis } : report))
+    );
+    setSelectedReport((current) => (current?.id === updatedAnalysis.id ? { ...current, ...updatedAnalysis } : current));
   }, []);
 
   useEffect(() => {
@@ -129,6 +138,10 @@ export default function TeacherDashboard() {
   }, [selectedReport]);
 
   useEffect(() => {
+    setTeacherFeedbackDraft(selectedReport?.teacher_feedback || '');
+  }, [selectedReport]);
+
+  useEffect(() => {
     setLessonsPage((current) => Math.min(current, lessonsPageCount));
   }, [lessonsPageCount]);
 
@@ -176,6 +189,33 @@ export default function TeacherDashboard() {
       pushToast('Unable to delete the lesson. Please try again.', 'error');
     } finally {
       setDeletingReportId(null);
+    }
+  };
+
+  const handleSaveTeacherFeedback = async () => {
+    if (!selectedReport || isSampleMode) return;
+
+    setSavingTeacherFeedbackId(selectedReport.id);
+    try {
+      const response = await fetch(`/api/analyses/${selectedReport.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teacherFeedback: teacherFeedbackDraft }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success || !data.analysis) {
+        pushToast(data.error || 'Unable to save your feedback right now.', 'error');
+        return;
+      }
+
+      applyUpdatedReport(data.analysis);
+      pushToast('Your feedback was saved and will help improve future analysis.', 'success');
+    } catch (error) {
+      console.error(error);
+      pushToast('Unable to save your feedback right now.', 'error');
+    } finally {
+      setSavingTeacherFeedbackId(null);
     }
   };
   const scoreDiff = getLatestLessonTrend(reports);
@@ -1069,11 +1109,64 @@ export default function TeacherDashboard() {
                   <p style={reportBodyText}>{selectedLessonSections.recommendedNextStep}</p>
                 </div>
 
+                {selectedReport.admin_feedback && (
+                  <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
+                    <div style={reportSectionTitle}>Administrator Notes</div>
+                    <p style={reportBodyText}>{selectedReport.admin_feedback}</p>
+                    {selectedReport.admin_feedback_author_name || selectedReport.admin_feedback_updated_at ? (
+                      <div style={reportMetaFootnote}>
+                        {selectedReport.admin_feedback_author_name || 'Administrator'}
+                        {selectedReport.admin_feedback_updated_at
+                          ? ` · Updated ${new Date(selectedReport.admin_feedback_updated_at).toLocaleDateString()}`
+                          : ''}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+
+                <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
+                  <div style={reportSectionTitle}>Your Feedback On This Analysis</div>
+                  <p style={reportBodyText}>
+                    Share what this analysis missed, what felt unfair, or what was especially accurate. This helps future feedback get sharper.
+                  </p>
+                  <textarea
+                    value={teacherFeedbackDraft}
+                    onChange={(event) => setTeacherFeedbackDraft(event.target.value)}
+                    placeholder="Example: The analysis missed that I checked for understanding during partner talk and revisited the misconception before closure."
+                    style={analysisFeedbackInput}
+                    disabled={isSampleMode || Boolean(savingTeacherFeedbackId)}
+                  />
+                  <div style={analysisFeedbackActions}>
+                    {selectedReport.teacher_feedback_updated_at ? (
+                      <div style={reportMetaFootnote}>
+                        Last saved {new Date(selectedReport.teacher_feedback_updated_at).toLocaleDateString()}
+                      </div>
+                    ) : (
+                      <div style={reportMetaFootnote}>No teacher feedback saved yet.</div>
+                    )}
+                    <button
+                      type="button"
+                      style={{
+                        ...secondaryButton,
+                        opacity: isSampleMode || Boolean(savingTeacherFeedbackId) ? 0.6 : 1,
+                        cursor: isSampleMode || Boolean(savingTeacherFeedbackId) ? 'not-allowed' : 'pointer',
+                      }}
+                      onClick={handleSaveTeacherFeedback}
+                      disabled={isSampleMode || Boolean(savingTeacherFeedbackId)}
+                    >
+                      {savingTeacherFeedbackId ? 'Saving...' : 'Save Feedback'}
+                    </button>
+                  </div>
+                </div>
+
                 {!hasStructuredSelectedLesson && (
                   <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
                     <div style={reportSectionTitle}>Full Analysis Notes</div>
+                    {selectedReport.admin_edited_result ? (
+                      <div style={reportMetaNote}>Administrator-edited analysis is currently shown below.</div>
+                    ) : null}
                     <div style={reportLongformText}>
-                      {selectedReport.result || 'No saved analysis text available.'}
+                      {getReportNarrative(selectedReport) || 'No saved analysis text available.'}
                     </div>
                   </div>
                 )}
@@ -1458,6 +1551,35 @@ const reportLongformText: React.CSSProperties = {
   lineHeight: 1.7,
   maxHeight: 420,
   overflowY: 'auto',
+};
+
+const reportMetaFootnote: React.CSSProperties = {
+  color: 'var(--text-muted)',
+  fontSize: 12,
+  lineHeight: 1.5,
+};
+
+const analysisFeedbackInput: React.CSSProperties = {
+  width: '100%',
+  minHeight: 132,
+  marginTop: 12,
+  padding: '14px 16px',
+  borderRadius: 14,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-input)',
+  color: 'var(--text-primary)',
+  fontSize: 14,
+  lineHeight: 1.6,
+  resize: 'vertical',
+};
+
+const analysisFeedbackActions: React.CSSProperties = {
+  marginTop: 12,
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 12,
+  flexWrap: 'wrap',
 };
 
 const coverageMetricCard: React.CSSProperties = {

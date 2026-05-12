@@ -29,9 +29,21 @@ export type AnalysisReport = Partial<LessonReport> & {
   gaps_detected?: number | string | null;
   result?: string | null;
   analysis_result?: string | null;
+  admin_edited_result?: string | null;
+  admin_edited_result_updated_at?: string | null;
+  admin_edited_result_editor_name?: string | null;
+  teacher_feedback?: string | null;
+  teacher_feedback_updated_at?: string | null;
+  admin_feedback?: string | null;
+  admin_feedback_updated_at?: string | null;
+  admin_feedback_author_name?: string | null;
   transcript?: string | null;
   score?: number | string | null;
 };
+
+export function getReportNarrative(report: AnalysisReport) {
+  return report.admin_edited_result || report.result || report.analysis_result || '';
+}
 
 export type ProfileRecord = {
   id: string;
@@ -350,7 +362,7 @@ export function getTEKSCoverageInsights(report: AnalysisReport) {
     ? getRelatedTEKSStandards(
         String(report.grade || ''),
         String(report.subject || ''),
-        `${report.title || ''} ${report.result || report.analysis_result || ''}`,
+        `${report.title || ''} ${getReportNarrative(report)}`,
         { limit: 3 }
       )
     : [];
@@ -724,7 +736,7 @@ function isPriorGapStillOpenInCurrentLesson(currentReport: AnalysisReport, prior
 }
 
 function getCoachingSectionItems(report: AnalysisReport, title: string) {
-  const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
+  const parsed = parseFeedbackSections(getReportNarrative(report));
   const section = parsed.coaching.find((entry) => entry.title === title);
   if (!section) return [];
 
@@ -734,7 +746,7 @@ function getCoachingSectionItems(report: AnalysisReport, title: string) {
   ]);
 }
 
-function calculateLessonScoreFromMetrics(metrics: {
+export function calculateLessonScoreFromMetrics(metrics: {
   coverage: number;
   clarity: number;
   engagement: number;
@@ -779,7 +791,7 @@ export function average(values: number[]): number {
 }
 
 export function getLessonMetrics(report: AnalysisReport) {
-  const parsedMetrics = parseAnalysisMetrics(report.result || report.analysis_result || '');
+  const parsedMetrics = parseAnalysisMetrics(getReportNarrative(report));
   const storedCoverage = toNumberMetric(report.coverage ?? report.coverage_score, parsedMetrics.coverage ?? 75);
   const storedClarity = toNumberMetric(report.clarity ?? report.clarity_rating, parsedMetrics.clarity ?? 75);
   const storedEngagement = toNumberMetric(report.engagement ?? report.engagement_level, parsedMetrics.engagement ?? 75);
@@ -822,7 +834,7 @@ export function getLessonMetrics(report: AnalysisReport) {
 
 export function getLessonInsights(report: AnalysisReport) {
   const metrics = getLessonMetrics(report);
-  const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
+  const parsed = parseFeedbackSections(getReportNarrative(report));
   const aiKeyFindingsSection = parsed.coaching.find((section) => section.title === 'Key Findings');
   const aiFindings = dedupeInsightList([
     ...(aiKeyFindingsSection?.bullets || []),
@@ -938,7 +950,7 @@ export function getLessonReportSections(report: AnalysisReport): {
   higherEdAlignment: ReportSection[];
   submissionContext: ReportSection[];
 } {
-  const parsed = parseFeedbackSections(report.result || report.analysis_result || '');
+  const parsed = parseFeedbackSections(getReportNarrative(report));
   const insights = getLessonInsights(report);
   const parsedStrengths = normalizeInsightItems(parsed.whatWentWell);
   const parsedImprovements = normalizeInsightItems(parsed.whatCanImprove);

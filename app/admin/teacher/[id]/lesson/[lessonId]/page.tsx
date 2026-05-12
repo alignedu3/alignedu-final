@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { buildSampleAnalysisReports, getLessonInsights, getLessonReportSections, getTEKSCoverageInsights, SAMPLE_TEACHER_IDS, type AnalysisReport, type ProfileRecord } from "@/lib/dashboardData";
+import { buildSampleAnalysisReports, calculateLessonScoreFromMetrics, getLessonInsights, getLessonMetrics, getLessonReportSections, getReportNarrative, getTEKSCoverageInsights, SAMPLE_TEACHER_IDS, type AnalysisReport, type ProfileRecord } from "@/lib/dashboardData";
 import { extractSectionText, extractStandardEntries } from "@/lib/analysisReport";
 import ProtectedPageState from "@/components/ProtectedPageState";
 
@@ -16,6 +16,17 @@ export default function LessonReportPage() {
   const [teacher, setTeacher] = useState<ProfileRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [adminFeedbackDraft, setAdminFeedbackDraft] = useState('');
+  const [editedAnalysisDraft, setEditedAnalysisDraft] = useState('');
+  const [metricDraft, setMetricDraft] = useState({
+    coverage: 75,
+    clarity: 75,
+    engagement: 75,
+    assessment: 75,
+    gaps: 0,
+  });
+  const [savingAdminUpdate, setSavingAdminUpdate] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
 
   useEffect(() => {
     async function load() {
@@ -57,6 +68,20 @@ export default function LessonReportPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [lessonId, teacherId]);
+
+  useEffect(() => {
+    setAdminFeedbackDraft(lesson?.admin_feedback || '');
+    setEditedAnalysisDraft(lesson ? getReportNarrative(lesson) : '');
+    const metrics = lesson ? getLessonMetrics(lesson) : null;
+    setMetricDraft({
+      coverage: metrics?.coverage ?? 75,
+      clarity: metrics?.clarity ?? 75,
+      engagement: metrics?.engagement ?? 75,
+      assessment: metrics?.assessment ?? 75,
+      gaps: metrics?.gaps ?? 0,
+    });
+    setSaveMessage('');
+  }, [lesson]);
 
   if (loading) {
     return (
@@ -132,6 +157,51 @@ export default function LessonReportPage() {
   );
   const lessonDate = lesson.created_at ? new Date(lesson.created_at).toLocaleString() : '—';
   const titleText = lesson.title || `${lesson.grade || 'Grade'} ${lesson.subject || 'Lesson'}`;
+  const canSaveAdminAdjustments = !String(lesson.id || '').startsWith('sample-report-');
+  const adjustedScorePreview = calculateLessonScoreFromMetrics(metricDraft);
+
+  const handleMetricChange = (field: keyof typeof metricDraft, rawValue: string) => {
+    const parsed = Number(rawValue);
+
+    setMetricDraft((current) => ({
+      ...current,
+      [field]: field === 'gaps'
+        ? (Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : current.gaps)
+        : (Number.isFinite(parsed) ? Math.max(0, Math.min(100, Math.round(parsed))) : current[field]),
+    }));
+  };
+
+  const handleSaveAdminUpdate = async () => {
+    if (!canSaveAdminAdjustments) return;
+
+    setSavingAdminUpdate(true);
+    setSaveMessage('');
+    try {
+      const response = await fetch(`/api/analyses/${lesson.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminFeedback: adminFeedbackDraft,
+          editedResult: editedAnalysisDraft,
+          metricOverrides: metricDraft,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success || !data.analysis) {
+        setSaveMessage(data.error || 'Unable to save administrator updates.');
+        return;
+      }
+
+      setLesson(data.analysis);
+      setSaveMessage('Administrator updates saved.');
+    } catch (error) {
+      console.error(error);
+      setSaveMessage('Unable to save administrator updates.');
+    } finally {
+      setSavingAdminUpdate(false);
+    }
+  };
 
   return (
     <main style={page}>
@@ -356,10 +426,156 @@ export default function LessonReportPage() {
           <p style={bodyText}>{reportSections.recommendedNextStep}</p>
         </div>
 
+        {lesson.teacher_feedback && (
+          <div style={{ ...sectionCard, ...analysisSectionCard }}>
+            <h2 style={sectionTitle}>Teacher Feedback On This Analysis</h2>
+            <p style={bodyText}>{lesson.teacher_feedback}</p>
+            {lesson.teacher_feedback_updated_at ? (
+              <div style={helperText}>Last updated {new Date(lesson.teacher_feedback_updated_at).toLocaleDateString()}</div>
+            ) : null}
+          </div>
+        )}
+
+        <div style={{ ...sectionCard, ...analysisSectionCard }}>
+          <h2 style={sectionTitle}>Administrator Feedback and Adjustments</h2>
+          <p style={bodyText}>
+            Use this to note what the analysis missed and refine the saved write-up when you need a cleaner final version for coaching conversations.
+          </p>
+          <div style={editorGrid} className="lesson-report-two-column-grid">
+            <div style={editorCard}>
+              <div style={subsectionTitle}>Administrator Notes</div>
+              <textarea
+                value={adminFeedbackDraft}
+                onChange={(event) => setAdminFeedbackDraft(event.target.value)}
+                placeholder="Add coaching notes about what the analysis got right, missed, or should handle better next time."
+                style={editorTextarea}
+                disabled={!canSaveAdminAdjustments || savingAdminUpdate}
+              />
+              {lesson.admin_feedback_updated_at || lesson.admin_feedback_author_name ? (
+                <div style={helperText}>
+                  {lesson.admin_feedback_author_name || 'Administrator'}
+                  {lesson.admin_feedback_updated_at
+                    ? ` · Updated ${new Date(lesson.admin_feedback_updated_at).toLocaleDateString()}`
+                    : ''}
+                </div>
+              ) : null}
+            </div>
+            <div style={editorCard}>
+              <div style={subsectionTitle}>Adjusted Metrics</div>
+              <p style={bodyText}>
+                If you observed something the analysis missed, you can correct the lesson write-up and refresh the saved scoring here.
+              </p>
+              <div style={metricEditorGrid}>
+                <label style={metricEditorField}>
+                  <span style={metricEditorLabel}>Coverage</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={metricDraft.coverage}
+                    onChange={(event) => handleMetricChange('coverage', event.target.value)}
+                    style={metricEditorInput}
+                    disabled={!canSaveAdminAdjustments || savingAdminUpdate}
+                  />
+                </label>
+                <label style={metricEditorField}>
+                  <span style={metricEditorLabel}>Clarity</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={metricDraft.clarity}
+                    onChange={(event) => handleMetricChange('clarity', event.target.value)}
+                    style={metricEditorInput}
+                    disabled={!canSaveAdminAdjustments || savingAdminUpdate}
+                  />
+                </label>
+                <label style={metricEditorField}>
+                  <span style={metricEditorLabel}>Engagement</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={metricDraft.engagement}
+                    onChange={(event) => handleMetricChange('engagement', event.target.value)}
+                    style={metricEditorInput}
+                    disabled={!canSaveAdminAdjustments || savingAdminUpdate}
+                  />
+                </label>
+                <label style={metricEditorField}>
+                  <span style={metricEditorLabel}>Assessment</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={metricDraft.assessment}
+                    onChange={(event) => handleMetricChange('assessment', event.target.value)}
+                    style={metricEditorInput}
+                    disabled={!canSaveAdminAdjustments || savingAdminUpdate}
+                  />
+                </label>
+                <label style={metricEditorField}>
+                  <span style={metricEditorLabel}>Gaps</span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={metricDraft.gaps}
+                    onChange={(event) => handleMetricChange('gaps', event.target.value)}
+                    style={metricEditorInput}
+                    disabled={!canSaveAdminAdjustments || savingAdminUpdate}
+                  />
+                </label>
+              </div>
+              <div style={metricPreviewRow}>
+                <div style={metricPreviewLabel}>Updated instructional score</div>
+                <div style={metricPreviewValue}>{adjustedScorePreview}/100</div>
+              </div>
+            </div>
+            <div style={editorCard}>
+              <div style={subsectionTitle}>Editable Analysis Text</div>
+              <textarea
+                value={editedAnalysisDraft}
+                onChange={(event) => setEditedAnalysisDraft(event.target.value)}
+                placeholder="Refine the saved analysis text if you want to clean up wording or adjust the final coaching write-up."
+                style={{ ...editorTextarea, minHeight: 320 }}
+                disabled={!canSaveAdminAdjustments || savingAdminUpdate}
+              />
+              {lesson.admin_edited_result_updated_at || lesson.admin_edited_result_editor_name ? (
+                <div style={helperText}>
+                  {lesson.admin_edited_result_editor_name || 'Administrator'}
+                  {lesson.admin_edited_result_updated_at
+                    ? ` · Edited ${new Date(lesson.admin_edited_result_updated_at).toLocaleDateString()}`
+                    : ''}
+                </div>
+              ) : null}
+            </div>
+          </div>
+          <div style={editorActions}>
+            <div style={helperText}>
+              {saveMessage || (canSaveAdminAdjustments ? 'Saved edits will become the displayed analysis for this lesson.' : 'Sample lesson reports cannot be edited.')}
+            </div>
+            <button
+              type="button"
+              onClick={handleSaveAdminUpdate}
+              disabled={!canSaveAdminAdjustments || savingAdminUpdate}
+              style={{
+                ...saveButton,
+                opacity: !canSaveAdminAdjustments || savingAdminUpdate ? 0.6 : 1,
+                cursor: !canSaveAdminAdjustments || savingAdminUpdate ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {savingAdminUpdate ? 'Saving...' : 'Save Administrator Update'}
+            </button>
+          </div>
+        </div>
+
         {!hasStructuredReport && (
           <div style={{ ...sectionCard, ...analysisSectionCard }}>
             <h2 style={sectionTitle}>AI Analysis</h2>
-            <div style={longformText}>{lesson.result || lesson.analysis_result || 'No saved analysis text available.'}</div>
+            {lesson.admin_edited_result ? (
+              <div style={submissionNote}>Administrator-edited analysis is currently shown below.</div>
+            ) : null}
+            <div style={longformText}>{getReportNarrative(lesson) || 'No saved analysis text available.'}</div>
           </div>
         )}
       </div>
@@ -580,6 +796,116 @@ const longformText: React.CSSProperties = {
   fontSize: 15,
   lineHeight: 1.75,
   whiteSpace: 'pre-wrap',
+};
+
+const helperText: React.CSSProperties = {
+  color: 'var(--text-muted)',
+  fontSize: 12,
+  lineHeight: 1.5,
+  marginTop: 10,
+};
+
+const editorGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+  gap: 14,
+  marginTop: 16,
+};
+
+const editorCard: React.CSSProperties = {
+  borderRadius: 14,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-chip)',
+  padding: 14,
+};
+
+const metricEditorGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+  gap: 12,
+  marginTop: 14,
+};
+
+const metricEditorField: React.CSSProperties = {
+  display: 'grid',
+  gap: 8,
+};
+
+const metricEditorLabel: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  fontWeight: 700,
+  textTransform: 'uppercase',
+  letterSpacing: 0.5,
+};
+
+const metricEditorInput: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  borderRadius: 10,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-input)',
+  color: 'var(--text-primary)',
+  fontSize: 14,
+  fontWeight: 600,
+};
+
+const metricPreviewRow: React.CSSProperties = {
+  marginTop: 14,
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 12,
+  padding: '12px 14px',
+  borderRadius: 12,
+  border: '1px solid rgba(249,115,22,0.14)',
+  background: 'rgba(249,115,22,0.07)',
+};
+
+const metricPreviewLabel: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 13,
+  fontWeight: 600,
+};
+
+const metricPreviewValue: React.CSSProperties = {
+  color: '#c2410c',
+  fontSize: 22,
+  fontWeight: 800,
+  whiteSpace: 'nowrap',
+};
+
+const editorTextarea: React.CSSProperties = {
+  width: '100%',
+  minHeight: 180,
+  marginTop: 10,
+  padding: '14px 16px',
+  borderRadius: 12,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-input)',
+  color: 'var(--text-primary)',
+  fontSize: 14,
+  lineHeight: 1.6,
+  resize: 'vertical',
+};
+
+const editorActions: React.CSSProperties = {
+  marginTop: 14,
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 12,
+  flexWrap: 'wrap',
+};
+
+const saveButton: React.CSSProperties = {
+  border: '1px solid rgba(249,115,22,0.2)',
+  background: 'linear-gradient(135deg, #fb923c, #f97316)',
+  color: '#fff',
+  borderRadius: 999,
+  padding: '10px 18px',
+  fontWeight: 700,
+  boxShadow: '0 10px 18px rgba(249,115,22,0.22)',
 };
 
 const twoColumnGrid: React.CSSProperties = {
