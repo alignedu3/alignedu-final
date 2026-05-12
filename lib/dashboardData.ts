@@ -1286,3 +1286,9 @@ export function getLatestLessonTrend(reports: AnalysisReport[]) {
   if (sortedReports.length < 2) return 0;
   return getLessonMetrics(sortedReports[0]).score - getLessonMetrics(sortedReports[1]).score;
 }
+
+export function getOverallLessonTrend(reports: AnalysisReport[]) {
+  const sortedReports = [...reports].sort((a, b) => (a.date ?? a.created_at ?? '').localeCompare(b.date ?? b.created_at ?? ''));
+  if (sortedReports.length < 2) return 0;
+  return getLessonMetrics(sortedReports[sortedReports.length - 1]).score - getLessonMetrics(sortedReports[0]).score;
+}

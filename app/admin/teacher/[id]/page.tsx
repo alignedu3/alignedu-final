@@ -13,7 +13,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
-import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
+import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getOverallLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
 import ProtectedPageState from '@/components/ProtectedPageState';
 
 const stableDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -106,7 +106,7 @@ export default function AdminTeacherPage() {
     }
 
     const avg = summary.averageScore;
-    const trend = getLatestLessonTrend(reports);
+    const trend = getOverallLessonTrend(reports);
     const risk = avg < 70 ? 'High Risk' : avg < 80 ? 'Moderate Risk' : 'Strong';
     const summaryText =
       avg >= 85

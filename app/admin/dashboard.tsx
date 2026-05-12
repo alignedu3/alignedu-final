@@ -7,7 +7,7 @@ import {
   buildSampleAnalysisReports,
   getDashboardSummary,
   calculateLessonScore,
-  getLatestLessonTrend,
+  getOverallLessonTrend,
   type AnalysisReport,
   type ProfileRecord,
 } from '@/lib/dashboardData';
@@ -452,7 +452,8 @@ export default function AdminDashboard() {
       const orderedReports = [...reps].sort((a, b) => getReportTimestamp(b) - getReportTimestamp(a));
       const scores = orderedReports.map(r => calculateLessonScore(r));
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-      const trend = getLatestLessonTrend(orderedReports);
+      const avgScore = Math.round(avg);
+      const trend = getOverallLessonTrend(orderedReports);
 
       let teacherName = 'Unknown Teacher';
       if (profile?.name) {
@@ -466,10 +467,10 @@ export default function AdminDashboard() {
       return {
         id,
         name: teacherName,
-        avgScore: Math.round(avg),
+        avgScore,
         count: reps.length,
         trend: Math.round(trend),
-        needsAttention: avg < 75,
+        needsAttention: avgScore < 75,
       };
     });
   }, [dashboardProfileById, teacherPerformanceReports]);
