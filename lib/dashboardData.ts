@@ -69,6 +69,7 @@ export const SAMPLE_TEACHER_IDS = {
   'Ms. Carter': 'sample-teacher-1',
   'Mr. Evans': 'sample-teacher-2',
   'Dr. Lee': 'sample-teacher-3',
+  'Ms. Ramirez': 'sample-teacher-4',
 } as const;
 
 function normalizeGradeLabel(value: string) {
@@ -604,6 +605,16 @@ export const sampleReports: LessonReport[] = [
   buildSampleReport('28', 'Dr. Lee', 'Scientific Argumentation', '2026-04-18', { coverage: 92, clarity: 90, engagement: 88, assessment: 84, gaps: 1 }),
   buildSampleReport('29', 'Dr. Lee', 'Population Dynamics', '2026-05-02', { coverage: 94, clarity: 92, engagement: 90, assessment: 86, gaps: 1 }),
   buildSampleReport('30', 'Dr. Lee', 'Biology Review Seminar', '2026-05-16', { coverage: 93, clarity: 91, engagement: 89, assessment: 85, gaps: 1 }),
+  buildSampleReport('31', 'Ms. Ramirez', 'Cell Structure and Function', '2026-01-12', { coverage: 88, clarity: 84, engagement: 82, assessment: 79, gaps: 1 }),
+  buildSampleReport('32', 'Ms. Ramirez', 'Photosynthesis', '2026-01-26', { coverage: 86, clarity: 82, engagement: 80, assessment: 77, gaps: 1 }),
+  buildSampleReport('33', 'Ms. Ramirez', 'Genetics Basics', '2026-02-09', { coverage: 83, clarity: 79, engagement: 77, assessment: 74, gaps: 2 }),
+  buildSampleReport('34', 'Ms. Ramirez', 'Mitosis and Meiosis', '2026-02-23', { coverage: 80, clarity: 76, engagement: 74, assessment: 71, gaps: 2 }),
+  buildSampleReport('35', 'Ms. Ramirez', 'Enzymes', '2026-03-09', { coverage: 77, clarity: 73, engagement: 71, assessment: 68, gaps: 3 }),
+  buildSampleReport('36', 'Ms. Ramirez', 'Cellular Respiration', '2026-03-23', { coverage: 74, clarity: 70, engagement: 68, assessment: 65, gaps: 3 }),
+  buildSampleReport('37', 'Ms. Ramirez', 'Introduction to Ecosystems', '2026-04-06', { coverage: 71, clarity: 67, engagement: 65, assessment: 62, gaps: 4 }),
+  buildSampleReport('38', 'Ms. Ramirez', 'Food Webs and Energy Flow', '2026-04-20', { coverage: 68, clarity: 64, engagement: 62, assessment: 59, gaps: 4 }),
+  buildSampleReport('39', 'Ms. Ramirez', 'Adaptation and Survival', '2026-05-04', { coverage: 66, clarity: 62, engagement: 60, assessment: 57, gaps: 4 }),
+  buildSampleReport('40', 'Ms. Ramirez', 'Scientific Argumentation', '2026-05-18', { coverage: 64, clarity: 60, engagement: 58, assessment: 55, gaps: 5 }),
 ];
 
 export function buildSampleAnalysisReports() {

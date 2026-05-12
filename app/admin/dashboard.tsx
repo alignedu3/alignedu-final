@@ -230,6 +230,7 @@ export default function AdminDashboard() {
       { id: 'sample-teacher-1', name: 'Ms. Carter', role: 'teacher' },
       { id: 'sample-teacher-2', name: 'Mr. Evans', role: 'teacher' },
       { id: 'sample-teacher-3', name: 'Dr. Lee', role: 'teacher' },
+      { id: 'sample-teacher-4', name: 'Ms. Ramirez', role: 'teacher' },
     ];
   }, [activeAdminId, activeAdminName, currentUserRole]);
 
@@ -245,6 +246,7 @@ export default function AdminDashboard() {
             { admin_id: activeAdminId, teacher_id: 'sample-teacher-1' },
             { admin_id: activeAdminId, teacher_id: 'sample-teacher-2' },
             { admin_id: 'sample-admin-1', teacher_id: 'sample-teacher-3' },
+            { admin_id: 'sample-admin-1', teacher_id: 'sample-teacher-4' },
           ]
         : []
     ),
