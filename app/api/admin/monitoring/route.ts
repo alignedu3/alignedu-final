@@ -618,6 +618,18 @@ function mapSupabaseAdvisorSeverity(level: string | undefined) {
   return 'healthy' as const;
 }
 
+function shouldIgnoreSupabaseAdvisorFinding(lint: SupabaseAdvisorLint) {
+  const title = String(lint.title || lint.name || '').toLowerCase();
+  const detail = String(lint.detail || lint.description || '').toLowerCase();
+  const remediation = String(lint.remediation || '').toLowerCase();
+
+  return (
+    title.includes('leaked password protection disabled') ||
+    detail.includes('haveibeenpwned.org') ||
+    remediation.includes('password-strength-and-leaked-password-protection')
+  );
+}
+
 async function fetchSupabaseAdvisors(): Promise<SupabaseAdvisorResult> {
   const config = getSupabaseAdvisorConfig();
 
@@ -666,6 +678,7 @@ async function fetchSupabaseAdvisors(): Promise<SupabaseAdvisorResult> {
   ]);
 
   const findings = [...securityLints, ...performanceLints]
+    .filter((lint) => !shouldIgnoreSupabaseAdvisorFinding(lint))
     .map((lint, index) => {
       const categories = Array.isArray(lint.categories) ? lint.categories : [];
       const category = categories.includes('PERFORMANCE') ? ('performance' as const) : ('security' as const);
