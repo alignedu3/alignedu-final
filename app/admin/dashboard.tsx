@@ -23,7 +23,6 @@ import {
 } from 'recharts';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
-import ProtectedPageState from '@/components/ProtectedPageState';
 
 type TrendTerm = 'full_year' | 'fall' | 'spring';
 
@@ -634,13 +633,7 @@ export default function AdminDashboard() {
   };
 
   if (!ready) {
-    return (
-      <ProtectedPageState
-        mode="loading"
-        title="Loading administrator dashboard"
-        message="Gathering visibility, team performance, and lesson trends for your current scope."
-      />
-    );
+    return <AdminDashboardSkeleton />;
   }
 
   return (
@@ -1338,6 +1331,112 @@ export default function AdminDashboard() {
   );
 }
 
+function AdminDashboardSkeleton() {
+  return (
+    <main style={page} className="dashboard-page">
+      <div style={container} className="dashboard-container">
+        <div style={header}>
+          <div style={{ flex: '1 1 420px', minWidth: 0 }}>
+            <div style={{ ...skeletonBlock, width: 'min(340px, 72%)', height: 34, marginBottom: 10 }} />
+            <div style={{ ...skeletonBlock, width: 'min(420px, 86%)', height: 16 }} />
+          </div>
+          <div style={actions}>
+            <div style={{ ...skeletonButton, minWidth: 168 }} />
+            <div style={{ ...skeletonButton, minWidth: 168 }} />
+            <div style={{ ...skeletonButtonPrimary, minWidth: 168 }} />
+          </div>
+        </div>
+
+        <section style={card}>
+          <div style={{ ...skeletonBlock, width: 124, height: 14, marginBottom: 14 }} />
+          {[0, 1, 2].map((item) => (
+            <div key={`risk-${item}`} style={{ marginBottom: item === 2 ? 0 : 10 }}>
+              <div style={{ ...skeletonBlock, width: `${78 - item * 8}%`, height: 14 }} />
+            </div>
+          ))}
+        </section>
+
+        <div style={grid}>
+          {[0, 1, 2, 3].map((cardIndex) => (
+            <div key={`stat-${cardIndex}`} style={cardSmall}>
+              <div style={{ ...skeletonBlock, width: '56%', height: 13, marginBottom: 10 }} />
+              <div style={{ ...skeletonBlock, width: '62%', height: 30, marginBottom: 10 }} />
+              <div style={{ ...skeletonBlock, width: '88%', height: 12 }} />
+            </div>
+          ))}
+        </div>
+
+        <section style={card}>
+          <div style={trendHeader}>
+            <div>
+              <div style={{ ...skeletonBlock, width: 180, height: 24, marginBottom: 10 }} />
+              <div style={{ ...skeletonBlock, width: 260, height: 13 }} />
+            </div>
+            <div style={trendControls}>
+              <div style={trendFilterField}>
+                <div style={{ ...skeletonBlock, width: 92, height: 11, marginBottom: 6 }} />
+                <div style={{ ...skeletonBlock, width: 170, height: 42, borderRadius: 10 }} />
+              </div>
+              <div style={trendFilterField}>
+                <div style={{ ...skeletonBlock, width: 64, height: 11, marginBottom: 6 }} />
+                <div style={{ ...skeletonBlock, width: 170, height: 42, borderRadius: 10 }} />
+              </div>
+            </div>
+          </div>
+          <div style={trendSummaryBar}>
+            {[0, 1, 2].map((item) => (
+              <div key={`summary-${item}`} style={trendSummaryPill}>
+                <div style={{ ...skeletonBlock, width: 32, height: 16 }} />
+                <div style={{ ...skeletonBlock, width: 74, height: 12 }} />
+              </div>
+            ))}
+          </div>
+          <div style={{ ...skeletonBlock, width: '100%', height: 280, borderRadius: 14, marginTop: 16 }} />
+        </section>
+
+        <section style={card}>
+          <div style={{ ...skeletonBlock, width: 152, height: 24, marginBottom: 14 }} />
+          <div style={{ display: 'grid', gap: 14 }}>
+            {[0, 1].map((row) => (
+              <div key={`team-${row}`} style={hierarchyCard}>
+                <div style={hierarchyHeader}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ ...skeletonBlock, width: '38%', height: 16, marginBottom: 10 }} />
+                    <div style={hierarchyMetaRow}>
+                      <div style={{ ...skeletonChip, width: 110 }} />
+                      <div style={{ ...skeletonChip, width: 82 }} />
+                    </div>
+                  </div>
+                  <div style={hierarchyHeaderActions}>
+                    <div style={hierarchyMetrics}>
+                      <div style={{ ...skeletonChip, width: 92 }} />
+                      <div style={{ ...skeletonChip, width: 102 }} />
+                    </div>
+                  </div>
+                </div>
+                <div style={hierarchyGroupsGrid}>
+                  {[0, 1].map((group) => (
+                    <div key={`group-${row}-${group}`} style={hierarchyGroupCard}>
+                      <div style={{ ...skeletonBlock, width: '66%', height: 11, marginBottom: 12 }} />
+                      <div style={pillWrap}>
+                        {[0, 1, 2].map((pill) => (
+                          <div key={`pill-${row}-${group}-${pill}`} style={{ ...pillBtn, cursor: 'default' }}>
+                            <div style={{ ...skeletonBlock, width: 72, height: 12 }} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
 /* ========================= STYLES ========================= */
 
 const page: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-primary)' };
@@ -1416,3 +1515,10 @@ const trendSummaryBar: React.CSSProperties = { display: 'flex', gap: 10, flexWra
 const trendSummaryPill: React.CSSProperties = { display: 'inline-flex', alignItems: 'baseline', gap: 8, padding: '8px 12px', borderRadius: 999, background: 'var(--surface-chip)', border: '1px solid var(--border)' };
 const trendSummaryValue: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 15, fontWeight: 800 };
 const trendSummaryLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12 };
+const skeletonBlock: React.CSSProperties = {
+  borderRadius: 10,
+  background: 'linear-gradient(90deg, rgba(148,163,184,0.12) 0%, rgba(148,163,184,0.22) 50%, rgba(148,163,184,0.12) 100%)',
+};
+const skeletonButton: React.CSSProperties = { ...skeletonBlock, height: 40, borderRadius: 8 };
+const skeletonButtonPrimary: React.CSSProperties = { ...skeletonButton };
+const skeletonChip: React.CSSProperties = { ...skeletonBlock, height: 26, borderRadius: 999 };

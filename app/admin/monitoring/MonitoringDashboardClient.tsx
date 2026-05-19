@@ -397,13 +397,7 @@ export default function MonitoringDashboard() {
   }, [payload?.sync?.connectedProviders, payload?.sync?.totalProviders]);
 
   if (!ready) {
-    return (
-      <ProtectedPageState
-        mode="loading"
-        title="Loading platform monitoring"
-        message="Building your app-wide activity, readiness, and operational trend view."
-      />
-    );
+    return <MonitoringDashboardSkeleton />;
   }
 
   if (loadError && !payload) {
@@ -538,7 +532,7 @@ export default function MonitoringDashboard() {
           </div>
         </section>
 
-        <div style={twoColumn} className="monitoring-two-column">
+        <div style={primaryTwoColumn} className="monitoring-two-column">
           <section style={sectionCard}>
             <div style={sectionHeader}>
               <div>
@@ -1165,6 +1159,244 @@ function formatCheckTarget(value: string) {
   }
 }
 
+function MonitoringDashboardSkeleton() {
+  return (
+    <main style={page} className="dashboard-page">
+      <div style={container} className="dashboard-container">
+        <div style={header}>
+          <div style={{ flex: '1 1 560px', minWidth: 0 }}>
+            <div style={{ ...skeletonBlock, width: 140, height: 12, marginBottom: 12 }} />
+            <div style={{ ...skeletonBlock, width: 'min(440px, 78%)', height: 34, marginBottom: 12 }} />
+            <div style={{ ...skeletonBlock, width: 'min(760px, 100%)', height: 16, marginBottom: 8 }} />
+            <div style={{ ...skeletonBlock, width: 'min(680px, 92%)', height: 16 }} />
+          </div>
+          <div style={{ ...headerControls, alignItems: 'stretch' }}>
+            <div style={{ ...toggleWrap, minWidth: 150 }}>
+              <div style={{ ...skeletonChip, width: 42 }} />
+              <div style={{ ...skeletonChip, width: 42 }} />
+              <div style={{ ...skeletonChip, width: 42 }} />
+            </div>
+            <div style={{ ...skeletonButton, minWidth: 122 }} />
+            <div style={{ ...skeletonButton, minWidth: 170 }} />
+            <div style={{ width: 176 }}>
+              <div style={{ ...skeletonBlock, width: 130, height: 12, marginBottom: 8 }} />
+              <div style={{ ...skeletonBlock, width: 150, height: 11 }} />
+            </div>
+          </div>
+        </div>
+
+        <div style={contentStack}>
+          <section style={sectionCard}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={{ ...skeletonBlock, width: 96, height: 12, marginBottom: 10 }} />
+                <div style={{ ...skeletonBlock, width: 260, height: 26 }} />
+              </div>
+            </div>
+            <div style={alertGrid}>
+              {[0, 1, 2].map((item) => (
+                <div key={`alert-${item}`} style={alertCard}>
+                  <div style={{ ...skeletonHeaderRow, marginBottom: 12 }}>
+                    <div style={{ ...skeletonBlock, width: '68%', height: 16 }} />
+                    <div style={{ ...skeletonChip, width: 66 }} />
+                  </div>
+                  <div style={{ ...skeletonBlock, width: '100%', height: 14, marginBottom: 8 }} />
+                  <div style={{ ...skeletonBlock, width: '88%', height: 14, marginBottom: 12 }} />
+                  <div style={{ ...skeletonBlock, width: 110, height: 12 }} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div style={primaryTwoColumn} className="monitoring-two-column">
+            {[0, 1].map((column) => (
+              <section key={`ops-${column}`} style={sectionCard}>
+                <div style={sectionHeader}>
+                  <div>
+                    <div style={{ ...skeletonBlock, width: 88, height: 12, marginBottom: 10 }} />
+                    <div style={{ ...skeletonBlock, width: 250, height: 24 }} />
+                  </div>
+                </div>
+                <div style={sectionContentStack}>
+                  <div style={statsGrid}>
+                    {[0, 1, 2].map((card) => (
+                      <div key={`ops-${column}-card-${card}`} style={statCard}>
+                        <div style={{ ...skeletonBlock, width: '45%', height: 12, marginBottom: 12 }} />
+                        <div style={{ ...skeletonBlock, width: '58%', height: 30, marginBottom: 14 }} />
+                        <div style={{ ...skeletonChip, width: 74, marginBottom: 14 }} />
+                        <div style={{ ...skeletonBlock, width: '100%', height: 12, marginBottom: 8 }} />
+                        <div style={{ ...skeletonBlock, width: '82%', height: 12 }} />
+                      </div>
+                    ))}
+                  </div>
+                  <div style={statusList}>
+                    {[0, 1, 2].map((row) => (
+                      <div key={`ops-${column}-row-${row}`} style={issueRow}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ ...skeletonBlock, width: '48%', height: 15, marginBottom: 8 }} />
+                          <div style={{ ...skeletonBlock, width: '36%', height: 12, marginBottom: 8 }} />
+                          <div style={{ ...skeletonBlock, width: '74%', height: 12 }} />
+                        </div>
+                        <div style={{ ...skeletonBlock, width: 84, height: 12, flexShrink: 0 }} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            ))}
+          </div>
+
+          <section style={sectionCard}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={{ ...skeletonBlock, width: 128, height: 12, marginBottom: 10 }} />
+                <div style={{ ...skeletonBlock, width: 320, height: 24 }} />
+              </div>
+            </div>
+            <div style={{ ...skeletonBlock, width: '72%', height: 14, marginBottom: 18 }} />
+            <div style={readinessGrid}>
+              {[0, 1, 2, 3].map((item) => (
+                <div key={`provider-${item}`} style={readinessCard}>
+                  <div style={{ ...skeletonHeaderRow, marginBottom: 14 }}>
+                    <div style={{ ...skeletonBlock, width: '52%', height: 15 }} />
+                    <div style={{ ...skeletonChip, width: 104 }} />
+                  </div>
+                  <div style={{ ...skeletonBlock, width: '100%', height: 12, marginBottom: 8 }} />
+                  <div style={{ ...skeletonBlock, width: '84%', height: 12 }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ ...sectionHeader, marginTop: 28 }}>
+              <div>
+                <div style={{ ...skeletonBlock, width: 140, height: 12, marginBottom: 10 }} />
+                <div style={{ ...skeletonBlock, width: 240, height: 22 }} />
+              </div>
+            </div>
+            <div style={readinessGrid}>
+              {[0, 1, 2].map((item) => (
+                <div key={`runtime-${item}`} style={readinessCard}>
+                  <div style={{ ...skeletonHeaderRow, marginBottom: 14 }}>
+                    <div style={{ ...skeletonBlock, width: '46%', height: 15 }} />
+                    <div style={{ ...skeletonChip, width: 70 }} />
+                  </div>
+                  <div style={{ ...skeletonBlock, width: '100%', height: 12, marginBottom: 8 }} />
+                  <div style={{ ...skeletonBlock, width: '76%', height: 12 }} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section style={sectionCard}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={{ ...skeletonBlock, width: 110, height: 12, marginBottom: 10 }} />
+                <div style={{ ...skeletonBlock, width: 360, height: 24 }} />
+              </div>
+            </div>
+            <div style={trafficStatsGrid} className="monitoring-traffic-grid">
+              {[0, 1, 2, 3, 4, 5].map((card) => (
+                <div key={`traffic-${card}`} style={statCard}>
+                  <div style={{ ...skeletonBlock, width: '56%', height: 12, marginBottom: 12 }} />
+                  <div style={{ ...skeletonBlock, width: '68%', height: 28, marginBottom: 14 }} />
+                  <div style={{ ...skeletonChip, width: 78, marginBottom: 12 }} />
+                  <div style={{ ...skeletonBlock, width: '100%', height: 12, marginBottom: 8 }} />
+                  <div style={{ ...skeletonBlock, width: '78%', height: 12 }} />
+                </div>
+              ))}
+            </div>
+            <div style={trafficRouteGrid} className="monitoring-traffic-route-grid">
+              {[0, 1].map((item) => (
+                <div key={`route-${item}`} style={trafficRouteCard}>
+                  <div style={skeletonHeaderRow}>
+                    <div style={{ ...skeletonBlock, width: '46%', height: 14 }} />
+                    <div style={{ ...skeletonChip, width: 64 }} />
+                  </div>
+                  <div style={{ ...skeletonBlock, width: '70%', height: 12, marginTop: 6 }} />
+                  <div style={{ ...skeletonBlock, width: '92%', height: 12, marginTop: 6 }} />
+                </div>
+              ))}
+            </div>
+            <div style={twoColumn} className="monitoring-two-column">
+              {[0, 1].map((chart) => (
+                <section key={`chart-${chart}`} style={sectionCard}>
+                  <div style={sectionHeader}>
+                    <div>
+                      <div style={{ ...skeletonBlock, width: 92, height: 12, marginBottom: 10 }} />
+                      <div style={{ ...skeletonBlock, width: 220, height: 22 }} />
+                    </div>
+                  </div>
+                  <div style={chartShell}>
+                    <div style={{ ...skeletonBlock, width: '100%', height: 300, borderRadius: 14 }} />
+                  </div>
+                  <div style={{ ...skeletonBlock, width: '92%', height: 12, marginTop: 12 }} />
+                </section>
+              ))}
+            </div>
+          </section>
+
+          <section style={sectionCard}>
+            <div style={sectionHeader}>
+              <div>
+                <div style={{ ...skeletonBlock, width: 118, height: 12, marginBottom: 10 }} />
+                <div style={{ ...skeletonBlock, width: 300, height: 24 }} />
+              </div>
+            </div>
+            <div style={statsGrid}>
+              {[0, 1, 2].map((card) => (
+                <div key={`advisor-${card}`} style={statCard}>
+                  <div style={{ ...skeletonBlock, width: '48%', height: 12, marginBottom: 12 }} />
+                  <div style={{ ...skeletonBlock, width: '64%', height: 28, marginBottom: 14 }} />
+                  <div style={{ ...skeletonChip, width: 78, marginBottom: 12 }} />
+                  <div style={{ ...skeletonBlock, width: '100%', height: 12, marginBottom: 8 }} />
+                  <div style={{ ...skeletonBlock, width: '74%', height: 12 }} />
+                </div>
+              ))}
+            </div>
+            <div style={statusList}>
+              {[0, 1].map((row) => (
+                <div key={`advisor-row-${row}`} style={issueRow}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ ...skeletonBlock, width: '42%', height: 15, marginBottom: 8 }} />
+                    <div style={{ ...skeletonBlock, width: '38%', height: 12, marginBottom: 8 }} />
+                    <div style={{ ...skeletonBlock, width: '86%', height: 12, marginBottom: 8 }} />
+                    <div style={{ ...skeletonBlock, width: '78%', height: 12 }} />
+                  </div>
+                  <div style={{ ...skeletonChip, width: 64, flexShrink: 0 }} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div style={twoColumn} className="monitoring-two-column">
+            {[0, 1].map((column) => (
+              <section key={`footer-${column}`} style={sectionCard}>
+                <div style={sectionHeader}>
+                  <div>
+                    <div style={{ ...skeletonBlock, width: 90, height: 12, marginBottom: 10 }} />
+                    <div style={{ ...skeletonBlock, width: 250, height: 24 }} />
+                  </div>
+                </div>
+                <div style={statusList}>
+                  {[0, 1, 2].map((row) => (
+                    <div key={`footer-${column}-row-${row}`} style={issueRow}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ ...skeletonBlock, width: '44%', height: 15, marginBottom: 8 }} />
+                        <div style={{ ...skeletonBlock, width: '62%', height: 12, marginBottom: 8 }} />
+                        <div style={{ ...skeletonBlock, width: '76%', height: 12 }} />
+                      </div>
+                      <div style={{ ...skeletonBlock, width: 86, height: 12, flexShrink: 0 }} />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 const tooltipStyle = {
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
@@ -1364,6 +1596,12 @@ const twoColumn: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
   gap: 18,
+};
+
+const primaryTwoColumn: React.CSSProperties = {
+  ...twoColumn,
+  minHeight: 670,
+  alignContent: 'start',
 };
 
 const sectionCard: React.CSSProperties = {
@@ -1654,4 +1892,28 @@ const emptyChartNote: React.CSSProperties = {
   color: 'var(--text-secondary)',
   fontSize: 13,
   lineHeight: 1.55,
+};
+
+const skeletonBlock: React.CSSProperties = {
+  borderRadius: 10,
+  background: 'linear-gradient(90deg, rgba(148,163,184,0.12) 0%, rgba(148,163,184,0.22) 50%, rgba(148,163,184,0.12) 100%)',
+};
+
+const skeletonChip: React.CSSProperties = {
+  ...skeletonBlock,
+  height: 30,
+  borderRadius: 999,
+};
+
+const skeletonButton: React.CSSProperties = {
+  ...skeletonBlock,
+  height: 42,
+  borderRadius: 12,
+};
+
+const skeletonHeaderRow: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  gap: 12,
 };

@@ -1,10 +1,4 @@
-'use client';
-
-import dynamic from 'next/dynamic';
-
-const MonitoringDashboardClient = dynamic(() => import('./MonitoringDashboardClient'), {
-  ssr: false,
-});
+import MonitoringDashboardClient from './MonitoringDashboardClient';
 
 export default function MonitoringPage() {
   return <MonitoringDashboardClient />;
