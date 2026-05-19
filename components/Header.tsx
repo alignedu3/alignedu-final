@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { createClient, hasSupabaseBrowserEnv } from '@/lib/supabase/client';
 import { useTheme } from '@/app/context/ThemeContext';
@@ -23,6 +23,7 @@ export default function Header() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { theme, toggleTheme } = useTheme();
 
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -33,6 +34,8 @@ export default function Header() {
   const hardNavigate = (href: string) => {
     window.location.assign(href);
   };
+
+  const hasRouteState = () => Boolean(searchParams?.toString()) || Boolean(window.location.hash);
 
   useEffect(() => {
     let isMounted = true;
@@ -194,7 +197,7 @@ export default function Header() {
 
   const handleLogoClick = async () => {
     if (!user) {
-      if (pathname === '/') {
+      if (pathname === '/' && !hasRouteState()) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         return;
       }
@@ -202,7 +205,7 @@ export default function Header() {
       return;
     }
     const destination = isAdminUser ? '/admin' : '/dashboard';
-    if (pathname === destination) {
+    if (pathname === destination && !hasRouteState()) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -215,7 +218,7 @@ export default function Header() {
       setMobileOpen(false);
     }
 
-    if (pathname === href) {
+    if (pathname === href && !hasRouteState()) {
       event?.preventDefault();
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -228,7 +231,7 @@ export default function Header() {
   const handleGuestHomeClick = () => {
     setMobileOpen(false);
 
-    if (pathname === '/') {
+    if (pathname === '/' && !hasRouteState()) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
