@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { createClient, hasSupabaseBrowserEnv } from '@/lib/supabase/client';
 import { useTheme } from '@/app/context/ThemeContext';
@@ -23,7 +23,6 @@ export default function Header() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { theme, toggleTheme } = useTheme();
 
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -35,7 +34,8 @@ export default function Header() {
     window.location.assign(href);
   };
 
-  const hasRouteState = () => Boolean(searchParams?.toString()) || Boolean(window.location.hash);
+  const hasRouteState = () =>
+    Boolean(window.location.search) || Boolean(window.location.hash);
 
   useEffect(() => {
     let isMounted = true;
