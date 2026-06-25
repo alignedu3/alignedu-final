@@ -245,7 +245,6 @@ export default function AnalysisPage() {
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
     const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
     const [recorderStatus, setRecorderStatus] = useState("");
-    const audioPlayerRef = useRef<HTMLAudioElement>(null);
     const uploadInputRef = useRef<HTMLInputElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordingStreamRef = useRef<MediaStream | null>(null);
@@ -259,11 +258,7 @@ export default function AnalysisPage() {
         URL.revokeObjectURL(previewUrlRef.current);
       }
 
-      const previewUrl = URL.createObjectURL(blob);
-      previewUrlRef.current = previewUrl;
-      if (audioPlayerRef.current) {
-        audioPlayerRef.current.src = previewUrl;
-      }
+      previewUrlRef.current = URL.createObjectURL(blob);
     };
 
     const finalizeRecordedChunks = (chunks: Blob[]) => {
@@ -714,6 +709,9 @@ export default function AnalysisPage() {
     color: 'var(--text-primary)',
     fontSize: 16,
     lineHeight: 1.5,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   };
 
   const fileMetaStyle: React.CSSProperties = {
@@ -1891,16 +1889,6 @@ export default function AnalysisPage() {
                     <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginBottom: 8, opacity: 0.85 }}>
                       If your phone locks or app goes to background, recording auto-stops and saves to prevent data loss.
                     </div>
-                    <audio
-                      ref={audioPlayerRef}
-                      controls
-                      style={{
-                        width: '100%',
-                        borderRadius: 8,
-                        marginTop: 8,
-                        display: recordedChunks.length > 0 && !isRecording ? 'block' : 'none',
-                      }}
-                    />
                   </div>
                 )}
                 <div
