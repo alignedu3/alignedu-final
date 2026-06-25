@@ -64,6 +64,31 @@ function buildRecordingFilename(extension: string) {
   return `recording-${year}-${month}-${day}_${hours}-${minutes}-${seconds}.${extension}`;
 }
 
+function formatSelectedAudioLabel(fileName: string) {
+  const recordedFileMatch = /^recording-(\d{4})-(\d{2})-(\d{2})_(\d{2})-(\d{2})-(\d{2})\.[^.]+$/i.exec(fileName);
+  if (!recordedFileMatch) {
+    return fileName;
+  }
+
+  const [, year, month, day, hours, minutes, seconds] = recordedFileMatch;
+  const recordedAt = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hours),
+    Number(minutes),
+    Number(seconds)
+  );
+
+  return `Recording from ${recordedAt.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })}`;
+}
+
 function estimateAnalysisProcessingSeconds(audioSeconds: number | null, chunkCount: number) {
   if (!audioSeconds || audioSeconds <= 0) {
     return 110;
@@ -1913,7 +1938,7 @@ export default function AnalysisPage() {
                   <div style={filePreviewCardStyle}>
                     <div style={filePreviewHeaderStyle}>Selected audio file</div>
                     <div style={filePreviewBodyStyle}>
-                      <div style={fileTextStyle}>{audioFile.name}</div>
+                      <div style={fileTextStyle}>{formatSelectedAudioLabel(audioFile.name)}</div>
                       <div style={fileMetaStyle}>
                         {audioDuration ? `${Math.round(audioDuration)}s` : 'Loading duration...'}
                       </div>
