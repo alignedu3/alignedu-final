@@ -53,6 +53,17 @@ function formatRecordingTimer(totalSeconds: number) {
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
+function buildRecordingFilename(extension: string) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  return `recording-${year}-${month}-${day}_${hours}-${minutes}-${seconds}.${extension}`;
+}
+
 function estimateAnalysisProcessingSeconds(audioSeconds: number | null, chunkCount: number) {
   if (!audioSeconds || audioSeconds <= 0) {
     return 110;
@@ -240,7 +251,7 @@ export default function AnalysisPage() {
         "audio/webm";
       const extension = getRecordingExtension(mimeType);
       const blob = new Blob(chunks, { type: mimeType });
-      const file = new File([blob], `recording-${Date.now()}.${extension}`, { type: mimeType });
+      const file = new File([blob], buildRecordingFilename(extension), { type: mimeType });
       handleAudioChange(file);
       attachPreviewUrl(blob);
       recordedChunksRef.current = [];
