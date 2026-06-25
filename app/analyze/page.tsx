@@ -46,6 +46,13 @@ function formatDurationLabel(totalSeconds: number | null) {
   return `${minutes}m ${seconds}s`;
 }
 
+function formatRecordingTimer(totalSeconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const seconds = safeSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 function estimateAnalysisProcessingSeconds(audioSeconds: number | null, chunkCount: number) {
   if (!audioSeconds || audioSeconds <= 0) {
     return 110;
@@ -198,6 +205,7 @@ export default function AnalysisPage() {
     // Audio Recorder State
     const [isRecording, setIsRecording] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
+    const [recordingElapsedSeconds, setRecordingElapsedSeconds] = useState(0);
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
     const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
     const [recorderStatus, setRecorderStatus] = useState("");
@@ -245,6 +253,7 @@ export default function AnalysisPage() {
       setRecorderStatus("");
       setRecordedChunks([]);
       recordedChunksRef.current = [];
+      setRecordingElapsedSeconds(0);
       try {
         if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
           setError("Recording is not supported on this device or browser. Please upload audio instead.");
@@ -272,6 +281,7 @@ export default function AnalysisPage() {
           setMediaRecorder(null);
           setIsRecording(false);
           setIsPaused(false);
+          setRecordingElapsedSeconds(0);
 
           if (shouldAutoSaveOnStopRef.current) {
             const chunks = [...recordedChunksRef.current];
@@ -339,6 +349,18 @@ export default function AnalysisPage() {
       finalizeRecordedChunks(chunks);
       setRecorderStatus("Recording saved to audio upload.");
     };
+
+    useEffect(() => {
+      if (!isRecording || isPaused) {
+        return;
+      }
+
+      const timer = window.setInterval(() => {
+        setRecordingElapsedSeconds((current) => current + 1);
+      }, 1000);
+
+      return () => window.clearInterval(timer);
+    }, [isPaused, isRecording]);
 
     useEffect(() => {
       const autoStopAndSave = () => {
@@ -1801,6 +1823,34 @@ export default function AnalysisPage() {
 
                     <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 6 }}>
                       {recorderStatus || (isRecording ? (isPaused ? 'Paused' : 'Recording...') : recordedChunks.length > 0 ? 'Ready to save or re-record.' : 'Click Record to begin.')}
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 12,
+                        padding: '10px 12px',
+                        borderRadius: 12,
+                        marginBottom: 8,
+                        background: isRecording ? 'rgba(239, 68, 68, 0.08)' : 'rgba(148, 163, 184, 0.08)',
+                        border: isRecording ? '1px solid rgba(239, 68, 68, 0.22)' : '1px solid rgba(148, 163, 184, 0.16)',
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>
+                        {isRecording ? (isPaused ? 'Recording paused' : 'Recording live') : 'Recorder idle'}
+                      </span>
+                      <span
+                        style={{
+                          color: isRecording ? '#ef4444' : 'var(--text-primary)',
+                          fontSize: 22,
+                          fontWeight: 800,
+                          letterSpacing: '0.08em',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {formatRecordingTimer(recordingElapsedSeconds)}
+                      </span>
                     </div>
                     <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginBottom: 8, opacity: 0.85 }}>
                       If your phone locks or app goes to background, recording auto-stops and saves to prevent data loss.
