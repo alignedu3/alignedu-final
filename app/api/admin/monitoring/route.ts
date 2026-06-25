@@ -307,6 +307,33 @@ type MonitoringAlert = {
   source: string;
 };
 
+type AnalysisJobTelemetryRow = {
+  created_at?: string | null;
+  status?: string | null;
+  openai_api_path?: string | null;
+  openai_model?: string | null;
+  openai_fallback_used?: boolean | null;
+};
+
+type OpenAIAnalysisMonitoring = {
+  summary: {
+    totalJobs: number;
+    jobsLast7Days: number;
+    completedJobs: number;
+    failedJobs: number;
+    responsesRuns: number;
+    chatFallbackRuns: number;
+    fallbackRuns: number;
+  };
+  topModels: Array<{ model: string; count: number }>;
+  diagnostics: {
+    configured: boolean;
+    configuredModel: string | null;
+    detail: string;
+    error: string | null;
+  };
+};
+
 function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -431,6 +458,7 @@ function roundTo(value: number, decimals = 1) {
 function buildReadiness(): MonitoringReadiness[] {
   const sentryConfigured = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN);
   const openAiConfigured = Boolean(process.env.OPENAI_API_KEY);
+  const configuredModel = process.env.OPENAI_ANALYSIS_MODEL?.trim() || 'gpt-5.5 -> gpt-5.4-mini -> gpt-4o-mini';
   const publicSupabaseConfigured = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
@@ -449,7 +477,9 @@ function buildReadiness(): MonitoringReadiness[] {
       key: 'openai',
       label: 'OpenAI Runtime',
       healthy: openAiConfigured,
-      detail: openAiConfigured ? 'Lesson analysis runtime is configured.' : 'OPENAI_API_KEY is missing.',
+      detail: openAiConfigured
+        ? `Lesson analysis runtime is configured. Analysis model preference: ${configuredModel}.`
+        : 'OPENAI_API_KEY is missing.',
     },
     {
       key: 'supabase-public',
@@ -464,6 +494,48 @@ function buildReadiness(): MonitoringReadiness[] {
       detail: serviceSupabaseConfigured ? 'Protected dashboard routes can query secure app data.' : 'SUPABASE_SERVICE_ROLE_KEY is missing.',
     },
   ];
+}
+
+function buildOpenAIAnalysisMonitoring(rows: AnalysisJobTelemetryRow[], error: string | null = null): OpenAIAnalysisMonitoring {
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const jobsLast7Days = rows.filter((row) => {
+    const timestamp = row.created_at ? new Date(row.created_at).getTime() : 0;
+    return Number.isFinite(timestamp) && timestamp >= sevenDaysAgo;
+  });
+
+  const topModelMap = new Map<string, number>();
+  for (const row of rows) {
+    const model = typeof row.openai_model === 'string' && row.openai_model.trim()
+      ? row.openai_model.trim()
+      : 'unknown';
+    topModelMap.set(model, (topModelMap.get(model) || 0) + 1);
+  }
+
+  return {
+    summary: {
+      totalJobs: rows.length,
+      jobsLast7Days: jobsLast7Days.length,
+      completedJobs: rows.filter((row) => row.status === 'completed').length,
+      failedJobs: rows.filter((row) => row.status === 'failed').length,
+      responsesRuns: rows.filter((row) => row.openai_api_path === 'responses').length,
+      chatFallbackRuns: rows.filter((row) => row.openai_api_path === 'chat_completions').length,
+      fallbackRuns: rows.filter((row) => Boolean(row.openai_fallback_used)).length,
+    },
+    topModels: Array.from(topModelMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([model, count]) => ({ model, count })),
+    diagnostics: {
+      configured: Boolean(process.env.OPENAI_API_KEY),
+      configuredModel: process.env.OPENAI_ANALYSIS_MODEL?.trim() || null,
+      detail: error
+        ? 'OpenAI analysis telemetry could not be loaded from analysis jobs.'
+        : rows.length
+          ? 'OpenAI analysis telemetry is available from recent analysis jobs.'
+          : 'No analysis jobs have been recorded yet.',
+      error,
+    },
+  };
 }
 
 function buildConnections() {
@@ -2340,9 +2412,15 @@ export async function GET(request: NextRequest) {
     let observationCount = 0;
     let averageScore = 0;
     let lessonsInWindow = 0;
+    let openaiAnalysis = buildOpenAIAnalysisMonitoring([]);
 
     if (!providersOnly) {
-      const [{ data: profiles, error: profilesError }, analysesResult, authUsersResult] = await Promise.all([
+      const [
+        { data: profiles, error: profilesError },
+        analysesResult,
+        authUsersResult,
+        analysisJobsResult,
+      ] = await Promise.all([
         serviceSupabase
           .from('profiles')
           .select('id, name, email, role'),
@@ -2351,9 +2429,15 @@ export async function GET(request: NextRequest) {
           .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result')
           .order('created_at', { ascending: false }),
         listAllAuthUsers(serviceSupabase),
+        serviceSupabase
+          .from('analysis_jobs')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(200),
       ]);
 
       const { data: analyses, error: analysesError } = analysesResult;
+      const { data: analysisJobs, error: analysisJobsError } = analysisJobsResult;
 
       if (profilesError) {
         return NextResponse.json({ success: false, error: profilesError.message }, { status: 500 });
@@ -2361,6 +2445,10 @@ export async function GET(request: NextRequest) {
       if (analysesError) {
         return NextResponse.json({ success: false, error: analysesError.message }, { status: 500 });
       }
+
+      openaiAnalysis = analysisJobsError
+        ? buildOpenAIAnalysisMonitoring([], analysisJobsError.message)
+        : buildOpenAIAnalysisMonitoring((analysisJobs || []) as AnalysisJobTelemetryRow[]);
 
       profileList = (profiles || []) as ProfileRecord[];
       reportList = (analyses || []) as AnalysisReport[];
@@ -2692,6 +2780,7 @@ export async function GET(request: NextRequest) {
             connectedProviders,
             totalProviders: hydratedConnections.length,
           },
+          openaiAnalysis,
           httpTraffic: {
             summaryCards: cloudflareTraffic.summaryCards,
             topErrorRoutes: cloudflareTraffic.topErrorRoutes,
@@ -2734,6 +2823,7 @@ export async function GET(request: NextRequest) {
         userRoster,
         readiness,
         alerts,
+        openaiAnalysis,
         uptime,
         sentry: {
           summaryCards: sentryHealth.summaryCards,

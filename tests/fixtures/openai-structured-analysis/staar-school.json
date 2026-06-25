@@ -1,0 +1,99 @@
+{
+  "name": "staar-school",
+  "higherEdAlignmentTitle": null,
+  "payload": {
+    "metrics": {
+      "instructionalScore": 88,
+      "coverage": 91,
+      "clarity": 86,
+      "engagement": 84,
+      "assessmentQuality": 81,
+      "gapsFlagged": 2
+    },
+    "executiveSummary": "The teacher clearly modeled proportional reasoning with unit-rate examples, but the strongest next move is tightening the check for understanding before independent practice.",
+    "whatWentWell": [
+      "The worked example connected the ratio table to a real classroom scenario.",
+      "Students were prompted to explain why the unit rate stayed constant across examples.",
+      "The teacher revisited academic vocabulary before moving into guided practice."
+    ],
+    "whatCanImprove": [
+      "The transition into independent work came before every student demonstrated the conversion process.",
+      "The teacher could require more full-sentence student explanations after each ratio comparison.",
+      "Exit-check evidence stayed mostly verbal instead of showing who could solve independently."
+    ],
+    "contentGapsToReinforce": [
+      "Students need one more explicit bridge from equivalent ratios to the unit-rate shortcut.",
+      "The lesson would benefit from a clearer misconception check around dividing both quantities by the same factor."
+    ],
+    "recommendedNextStep": "Before the next lesson segment, add a two-problem mastery check that requires every student to compute and justify a unit rate independently.",
+    "instructionalCoachingFeedback": [
+      {
+        "label": "Key Findings",
+        "content": "Modeling was strong, but independent evidence of mastery stayed thin.",
+        "bullets": [
+          "The teacher used a consistent ratio table structure.",
+          "Students had limited written accountability before release."
+        ]
+      },
+      {
+        "label": "Missed Opportunities",
+        "content": "The strongest missed move was a sharper misconception check before independent practice.",
+        "bullets": []
+      },
+      {
+        "label": "Student Engagement Signals",
+        "content": "Students were verbally responsive during guided examples.",
+        "bullets": [
+          "Several students answered when asked to compare ratios aloud."
+        ]
+      },
+      {
+        "label": "Suggested Next Steps",
+        "content": "Use a visible mini-check before release.",
+        "bullets": [
+          "Have every student solve one ratio conversion and justify it in writing."
+        ]
+      }
+    ],
+    "teksStandardsAlignment": [
+      {
+        "label": "Covered in the Lesson",
+        "content": "The core ratio/unit-rate expectation was clearly addressed.",
+        "bullets": [
+          "6.4H: convert units within a measurement system",
+          "6.4E: represent ratios and rates with tables and verbal descriptions"
+        ]
+      },
+      {
+        "label": "Needs Reinforcement",
+        "content": "Independent assessment evidence needs to be stronger.",
+        "bullets": [
+          "6.4E: students still need stronger evidence of independent reasoning"
+        ]
+      }
+    ],
+    "staarTeksCoverage": [
+      {
+        "label": "Readiness Summary",
+        "content": "Readiness coverage was solid but not fully verified independently.",
+        "bullets": []
+      }
+    ],
+    "higherEdAlignment": null
+  },
+  "expectedIncludes": [
+    "Metrics:",
+    "=== EXECUTIVE SUMMARY ===",
+    "=== WHAT WENT WELL ===",
+    "=== WHAT CAN IMPROVE ===",
+    "=== CONTENT GAPS TO REINFORCE ===",
+    "=== RECOMMENDED NEXT STEP ===",
+    "=== INSTRUCTIONAL COACHING FEEDBACK ===",
+    "=== TEXAS TEKS STANDARDS ALIGNMENT ===",
+    "=== STAAR TEKS COVERAGE ==="
+  ],
+  "expectedNotIncludes": [
+    "=== HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT ===",
+    "=== HIGHER ED TEXTBOOK ALIGNMENT ==="
+  ]
+}

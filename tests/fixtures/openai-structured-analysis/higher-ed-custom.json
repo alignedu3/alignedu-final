@@ -1,0 +1,89 @@
+{
+  "name": "higher-ed-custom",
+  "higherEdAlignmentTitle": "HIGHER ED TEXTBOOK ALIGNMENT",
+  "payload": {
+    "metrics": {
+      "instructionalScore": 83,
+      "coverage": 79,
+      "clarity": 85,
+      "engagement": 77,
+      "assessmentQuality": 74,
+      "gapsFlagged": 0
+    },
+    "executiveSummary": "The lecture framed the chapter accurately and used precise terminology, but students needed a stronger checkpoint to show they could apply the concept without additional prompting.",
+    "whatWentWell": [
+      "The instructor tied the chapter language back to the assigned text.",
+      "Examples stayed aligned to the textbook framing instead of drifting into unrelated review.",
+      "Terminology was defined before the more abstract comparison task."
+    ],
+    "whatCanImprove": [
+      "The lecture needed a stronger student-facing check before moving on.",
+      "A misconception contrast would have helped clarify the key distinction in the chapter.",
+      "The close of the lesson did not confirm which students could explain the idea independently."
+    ],
+    "contentGapsToReinforce": [],
+    "recommendedNextStep": "Add a short written checkpoint tied directly to the textbook prompt so the instructor can separate passive recognition from real conceptual understanding.",
+    "instructionalCoachingFeedback": [
+      {
+        "label": "Key Findings",
+        "content": "Textbook alignment was visible throughout the lesson.",
+        "bullets": [
+          "Examples stayed inside the selected chapter frame."
+        ]
+      },
+      {
+        "label": "Missed Opportunities",
+        "content": "Students needed a more concrete application check.",
+        "bullets": []
+      },
+      {
+        "label": "Student Engagement Signals",
+        "content": "Student thinking was mostly inferred from instructor prompts.",
+        "bullets": []
+      },
+      {
+        "label": "Suggested Next Steps",
+        "content": "Pair the next explanation with a short applied writing task.",
+        "bullets": []
+      }
+    ],
+    "teksStandardsAlignment": null,
+    "staarTeksCoverage": null,
+    "higherEdAlignment": [
+      {
+        "label": "Textbook Alignment",
+        "content": "The lesson stayed connected to the assigned textbook chapter.",
+        "bullets": []
+      },
+      {
+        "label": "Missing Conceptual Depth",
+        "content": "Students needed a stronger application checkpoint before moving on.",
+        "bullets": []
+      },
+      {
+        "label": "Terminology Precision",
+        "content": "Terminology stayed accurate and appropriately framed for the course level.",
+        "bullets": []
+      },
+      {
+        "label": "College-Level Recommendation",
+        "content": "Ask students to defend the concept using the chapter language in writing.",
+        "bullets": []
+      }
+    ]
+  },
+  "expectedIncludes": [
+    "Metrics:",
+    "=== EXECUTIVE SUMMARY ===",
+    "=== WHAT WENT WELL ===",
+    "=== WHAT CAN IMPROVE ===",
+    "=== CONTENT GAPS TO REINFORCE ===",
+    "1. No major content gaps identified.",
+    "=== HIGHER ED TEXTBOOK ALIGNMENT ==="
+  ],
+  "expectedNotIncludes": [
+    "=== TEXAS TEKS STANDARDS ALIGNMENT ===",
+    "=== STAAR TEKS COVERAGE ===",
+    "=== HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT ==="
+  ]
+}

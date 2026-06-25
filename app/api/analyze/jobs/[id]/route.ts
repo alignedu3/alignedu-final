@@ -89,6 +89,13 @@ export async function GET(
           assessment: job.assessment_quality,
           gaps: job.gaps_detected,
         },
+        diagnostics: {
+          openaiApiPath: job.openai_api_path || null,
+          openaiModel: job.openai_model || null,
+          openaiAttemptCount: typeof job.openai_attempt_count === "number" ? job.openai_attempt_count : 0,
+          usedFallback: Boolean(job.openai_fallback_used),
+          fallbackReason: job.openai_fallback_reason || null,
+        },
       },
     });
   } catch (error) {
