@@ -194,6 +194,7 @@ async function resolveAudioDurationFromFile(file: File): Promise<number | null> 
 
 export default function AnalysisPage() {
     const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+    const [isDragActive, setIsDragActive] = useState(false);
     // Audio Recorder State
     const [isRecording, setIsRecording] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
@@ -409,6 +410,7 @@ export default function AnalysisPage() {
   const [observerReady, setObserverReady] = useState(!isAdminObservationMode);
   const [observedTeacherId, setObservedTeacherId] = useState("");
   const [observedTeachers, setObservedTeachers] = useState<Array<{ id: string; name: string }>>([]);
+  const dragCounterRef = useRef(0);
 
   const gradeOptions = [
     '3rd Grade',
@@ -1312,6 +1314,11 @@ export default function AnalysisPage() {
       return;
     }
 
+    if (!file.type.startsWith("audio/")) {
+      setError("Please drop or upload an audio file.");
+      return;
+    }
+
     if (selectedFileUrl) {
       URL.revokeObjectURL(selectedFileUrl);
     }
@@ -1332,6 +1339,39 @@ export default function AnalysisPage() {
       setError("Unable to read audio duration. Please try again.");
       setSelectedFileUrl(null);
     })();
+  };
+
+  const handleAudioDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragActive(false);
+    handleAudioChange(event.dataTransfer.files?.[0] || null);
+  };
+
+  const handleAudioDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current += 1;
+    setIsDragActive(true);
+  };
+
+  const handleAudioDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!isDragActive) {
+      setIsDragActive(true);
+    }
+    event.dataTransfer.dropEffect = "copy";
+  };
+
+  const handleAudioDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragCounterRef.current = Math.max(0, dragCounterRef.current - 1);
+    if (dragCounterRef.current === 0) {
+      setIsDragActive(false);
+    }
   };
 
   const openAudioPicker = () => {
@@ -1769,10 +1809,14 @@ export default function AnalysisPage() {
                   </div>
                 )}
                 <div
-                  className="upload-zone"
+                  className={`upload-zone${isDragActive ? ' drag-active' : ''}`}
                   role="button"
                   tabIndex={0}
                   onClick={openAudioPicker}
+                  onDragEnter={handleAudioDragEnter}
+                  onDragOver={handleAudioDragOver}
+                  onDragLeave={handleAudioDragLeave}
+                  onDrop={handleAudioDrop}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
@@ -1789,9 +1833,9 @@ export default function AnalysisPage() {
                   />
                   <div className="upload-zone-content">
                     <div className="upload-icon">🎙️</div>
-                    <p>Upload an audio recording, including a phone voice memo.</p>
+                    <p>Drag and drop an audio recording here, or click to browse.</p>
                     <p style={{ fontSize: 13, color: "#94a3b8" }}>
-                      Max 90 minutes. Longer files are split automatically.
+                      Voice memos work too. Max 90 minutes. Longer files are split automatically.
                     </p>
                   </div>
                 </div>
