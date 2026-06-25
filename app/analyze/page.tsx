@@ -80,6 +80,118 @@ function getChunkSecondsForDuration(duration: number) {
   return 60;
 }
 
+const RECORDER_MIME_CANDIDATES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4;codecs=mp4a.40.2",
+  "audio/mp4",
+  "audio/ogg;codecs=opus",
+  "audio/ogg",
+] as const;
+
+function pickRecorderMimeType() {
+  if (typeof MediaRecorder === "undefined" || typeof MediaRecorder.isTypeSupported !== "function") {
+    return "";
+  }
+
+  return RECORDER_MIME_CANDIDATES.find((candidate) => MediaRecorder.isTypeSupported(candidate)) || "";
+}
+
+function getRecordingExtension(mimeType: string) {
+  if (mimeType.includes("mp4")) return "m4a";
+  if (mimeType.includes("ogg")) return "ogg";
+  return "webm";
+}
+
+async function resolveDurationFromAudioElement(url: string): Promise<number | null> {
+  return new Promise((resolve) => {
+    const audio = document.createElement("audio");
+    let settled = false;
+
+    const cleanup = () => {
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      audio.onloadedmetadata = null;
+      audio.ondurationchange = null;
+      audio.ontimeupdate = null;
+      audio.onerror = null;
+    };
+
+    const finish = (duration: number | null) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(duration);
+    };
+
+    const tryResolve = () => {
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        finish(audio.duration);
+        return true;
+      }
+      return false;
+    };
+
+    const seekForDuration = () => {
+      try {
+        audio.currentTime = Number.MAX_SAFE_INTEGER;
+      } catch {
+        finish(null);
+      }
+    };
+
+    audio.preload = "metadata";
+    audio.onloadedmetadata = () => {
+      if (tryResolve()) return;
+      seekForDuration();
+    };
+    audio.ondurationchange = () => {
+      tryResolve();
+    };
+    audio.ontimeupdate = () => {
+      if (tryResolve()) {
+        audio.currentTime = 0;
+      }
+    };
+    audio.onerror = () => finish(null);
+    audio.src = url;
+  });
+}
+
+async function resolveAudioDurationFromFile(file: File): Promise<number | null> {
+  const url = URL.createObjectURL(file);
+  try {
+    const duration = await resolveDurationFromAudioElement(url);
+    if (duration) {
+      return duration;
+    }
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+
+  try {
+    const AudioContextCtor =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+
+    if (!AudioContextCtor) {
+      return null;
+    }
+
+    const audioContext = new AudioContextCtor();
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const decoded = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+      return Number.isFinite(decoded.duration) && decoded.duration > 0 ? decoded.duration : null;
+    } finally {
+      await audioContext.close();
+    }
+  } catch {
+    return null;
+  }
+}
+
 export default function AnalysisPage() {
     const [isNarrowScreen, setIsNarrowScreen] = useState(false);
     // Audio Recorder State
@@ -112,8 +224,14 @@ export default function AnalysisPage() {
     const finalizeRecordedChunks = (chunks: Blob[]) => {
       if (chunks.length === 0) return;
 
-      const blob = new Blob(chunks, { type: "audio/webm" });
-      const file = new File([blob], `recording-${Date.now()}.webm`, { type: "audio/webm" });
+      const mimeType =
+        mediaRecorderRef.current?.mimeType ||
+        chunks.find((chunk) => chunk.type)?.type ||
+        pickRecorderMimeType() ||
+        "audio/webm";
+      const extension = getRecordingExtension(mimeType);
+      const blob = new Blob(chunks, { type: mimeType });
+      const file = new File([blob], `recording-${Date.now()}.${extension}`, { type: mimeType });
       handleAudioChange(file);
       attachPreviewUrl(blob);
       recordedChunksRef.current = [];
@@ -127,8 +245,16 @@ export default function AnalysisPage() {
       setRecordedChunks([]);
       recordedChunksRef.current = [];
       try {
+        if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+          setError("Recording is not supported on this device or browser. Please upload audio instead.");
+          return;
+        }
+
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        const recorder = new MediaRecorder(stream);
+        const mimeType = pickRecorderMimeType();
+        const recorder = mimeType
+          ? new MediaRecorder(stream, { mimeType })
+          : new MediaRecorder(stream);
         mediaRecorderRef.current = recorder;
         recordingStreamRef.current = stream;
         setMediaRecorder(recorder);
@@ -157,11 +283,16 @@ export default function AnalysisPage() {
           shouldAutoSaveOnStopRef.current = false;
           wasStoppedForBackgroundRef.current = false;
         };
+        recorder.onerror = () => {
+          setError("Error while recording. Please try again.");
+          setRecorderStatus("Recording stopped unexpectedly.");
+        };
         recorder.start(1000);
         setIsRecording(true);
         setIsPaused(false);
         setRecorderStatus("Recording in progress.");
-      } catch {
+      } catch (recordingError) {
+        console.error("Recording start failed:", recordingError);
         setError("Microphone access denied or unavailable.");
       }
     };
@@ -938,21 +1069,7 @@ export default function AnalysisPage() {
   };
 
   const resolveAudioDuration = async (file: File): Promise<number | null> => {
-    return new Promise((resolve) => {
-      const url = URL.createObjectURL(file);
-      const audio = new Audio(url);
-
-      audio.addEventListener('loadedmetadata', () => {
-        const duration = Number.isFinite(audio.duration) ? audio.duration : null;
-        URL.revokeObjectURL(url);
-        resolve(duration);
-      });
-
-      audio.addEventListener('error', () => {
-        URL.revokeObjectURL(url);
-        resolve(null);
-      });
-    });
+    return await resolveAudioDurationFromFile(file);
   };
 
   const parseJsonOrText = async (res: Response) => {
@@ -1205,16 +1322,16 @@ export default function AnalysisPage() {
     setAudioDuration(null);
     setError("");
 
-    const audio = new Audio(url);
+    void (async () => {
+      const duration = await resolveAudioDurationFromFile(file);
+      if (duration) {
+        setAudioDuration(duration);
+        return;
+      }
 
-    audio.addEventListener("loadedmetadata", () => {
-      setAudioDuration(audio.duration);
-    });
-
-    audio.addEventListener("error", () => {
-      setError("Unable to read audio duration. Please try a different file.");
+      setError("Unable to read audio duration. Please try again.");
       setSelectedFileUrl(null);
-    });
+    })();
   };
 
   const openAudioPicker = () => {
