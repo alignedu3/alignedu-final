@@ -80,10 +80,9 @@ function formatSelectedAudioLabel(fileName: string) {
     Number(seconds)
   );
 
-  return `Recording from ${recordedAt.toLocaleString([], {
+  return `Recorded ${recordedAt.toLocaleString([], {
     month: "short",
     day: "numeric",
-    year: "numeric",
     hour: "numeric",
     minute: "2-digit",
   })}`;
