@@ -1285,7 +1285,7 @@ async function updateAnalysisJob(
   patch: Record<string, unknown>
 ) {
   const serviceSupabase = createServiceSupabaseClient();
-  const basePatch = {
+  const basePatch: Record<string, unknown> = {
     ...patch,
     updated_at: new Date().toISOString(),
   };
@@ -1295,14 +1295,12 @@ async function updateAnalysisJob(
     .eq("id", jobId);
 
   if (error && /column .* does not exist/i.test(error.message || "")) {
-    const {
-      openai_api_path: _openaiApiPath,
-      openai_model: _openaiModel,
-      openai_attempt_count: _openaiAttemptCount,
-      openai_fallback_used: _openaiFallbackUsed,
-      openai_fallback_reason: _openaiFallbackReason,
-      ...legacyCompatiblePatch
-    } = basePatch;
+    const legacyCompatiblePatch: Record<string, unknown> = { ...basePatch };
+    delete legacyCompatiblePatch.openai_api_path;
+    delete legacyCompatiblePatch.openai_model;
+    delete legacyCompatiblePatch.openai_attempt_count;
+    delete legacyCompatiblePatch.openai_fallback_used;
+    delete legacyCompatiblePatch.openai_fallback_reason;
 
     const { error: retryError } = await serviceSupabase
       .from("analysis_jobs")
