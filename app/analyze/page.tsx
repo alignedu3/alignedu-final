@@ -1855,7 +1855,16 @@ export default function AnalysisPage() {
                     <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginBottom: 8, opacity: 0.85 }}>
                       If your phone locks or app goes to background, recording auto-stops and saves to prevent data loss.
                     </div>
-                    <audio ref={audioPlayerRef} controls style={{ width: '100%', borderRadius: 8, marginTop: 8, display: recordedChunks.length > 0 ? 'block' : 'none' }} />
+                    <audio
+                      ref={audioPlayerRef}
+                      controls
+                      style={{
+                        width: '100%',
+                        borderRadius: 8,
+                        marginTop: 8,
+                        display: recordedChunks.length > 0 && !isRecording ? 'block' : 'none',
+                      }}
+                    />
                   </div>
                 )}
                 <div
