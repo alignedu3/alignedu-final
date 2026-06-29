@@ -15,7 +15,8 @@ type InstallAppButtonProps = {
 
 function isIosDevice() {
   if (typeof window === "undefined") return false;
-  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
+  const platform = window.navigator.platform || "";
+  return /iphone|ipad|ipod/i.test(window.navigator.userAgent) || (platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
 }
 
 function isIosSafari() {
@@ -42,7 +43,7 @@ export default function InstallAppButton({
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstallReady, setIsInstallReady] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [showIosSheet, setShowIosSheet] = useState(false);
+  const [showInstallSheet, setShowInstallSheet] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -66,7 +67,7 @@ export default function InstallAppButton({
       setDeferredPrompt(null);
       setIsInstallReady(false);
       setIsInstalled(true);
-      setShowIosSheet(false);
+      setShowInstallSheet(false);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
@@ -87,7 +88,7 @@ export default function InstallAppButton({
     return null;
   }
 
-  const canShowButton = !isInstalled && (isInstallReady || ios);
+  const canShowButton = !isInstalled;
 
   const handleInstall = async () => {
     if (deferredPrompt) {
@@ -101,9 +102,7 @@ export default function InstallAppButton({
       return;
     }
 
-    if (ios) {
-      setShowIosSheet(true);
-    }
+    setShowInstallSheet(true);
   };
 
   if (!canShowButton) {
@@ -123,8 +122,8 @@ export default function InstallAppButton({
         <span>{label}</span>
       </button>
 
-      {showIosSheet && (
-        <div className="install-sheet-overlay" onClick={() => setShowIosSheet(false)}>
+      {showInstallSheet && (
+        <div className="install-sheet-overlay" onClick={() => setShowInstallSheet(false)}>
           <div
             className="install-sheet"
             onClick={(event) => event.stopPropagation()}
@@ -138,30 +137,88 @@ export default function InstallAppButton({
               Save AlignEDU like a premium app for faster launch, full-screen use, and a cleaner classroom workflow.
             </p>
             <div className="install-sheet-steps">
-              <div className="install-sheet-step">
-                <span className="install-sheet-step-number">1</span>
-                <span>
-                  Tap the <strong>Share</strong> button in {iosSafari ? "Safari" : "your browser"}.
-                </span>
-              </div>
-              <div className="install-sheet-step">
-                <span className="install-sheet-step-number">2</span>
-                <span>
-                  Choose <strong>Add to Home Screen</strong>.
-                </span>
-              </div>
-              {!iosSafari && (
-                <div className="install-sheet-step">
-                  <span className="install-sheet-step-number">3</span>
-                  <span>
-                    If you do not see that option, open this page in <strong>Safari</strong> and try again.
-                  </span>
-                </div>
+              {isInstallReady && !ios && (
+                <>
+                  <div className="install-sheet-step">
+                    <span className="install-sheet-step-number">1</span>
+                    <span>
+                      Tap <strong>Continue</strong> below to open the install prompt.
+                    </span>
+                  </div>
+                  <div className="install-sheet-step">
+                    <span className="install-sheet-step-number">2</span>
+                    <span>
+                      Approve <strong>Install</strong> in your browser.
+                    </span>
+                  </div>
+                </>
+              )}
+              {!isInstallReady && ios && (
+                <>
+                  <div className="install-sheet-step">
+                    <span className="install-sheet-step-number">1</span>
+                    <span>
+                      {iosSafari ? (
+                        <>
+                          Tap the <strong>Share</strong> button in Safari.
+                        </>
+                      ) : (
+                        <>
+                          Open this page in <strong>Safari</strong>.
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <div className="install-sheet-step">
+                    <span className="install-sheet-step-number">2</span>
+                    <span>
+                      Choose <strong>Add to Home Screen</strong>.
+                    </span>
+                  </div>
+                  {!iosSafari && (
+                    <div className="install-sheet-step">
+                      <span className="install-sheet-step-number">3</span>
+                      <span>
+                        After it opens in Safari, tap <strong>Share</strong>, then <strong>Add to Home Screen</strong>.
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+              {!isInstallReady && !ios && (
+                <>
+                  <div className="install-sheet-step">
+                    <span className="install-sheet-step-number">1</span>
+                    <span>
+                      Open your browser menu.
+                    </span>
+                  </div>
+                  <div className="install-sheet-step">
+                    <span className="install-sheet-step-number">2</span>
+                    <span>
+                      Look for <strong>Install App</strong>, <strong>Add to Home Screen</strong>, or <strong>Install AlignEDU</strong>.
+                    </span>
+                  </div>
+                </>
               )}
             </div>
-            <button type="button" className="install-sheet-close" onClick={() => setShowIosSheet(false)}>
-              Close
-            </button>
+            <div className="install-sheet-actions">
+              {isInstallReady && !ios && (
+                <button
+                  type="button"
+                  className="install-sheet-close"
+                  onClick={async () => {
+                    setShowInstallSheet(false);
+                    await handleInstall();
+                  }}
+                >
+                  Continue
+                </button>
+              )}
+              <button type="button" className="install-sheet-secondary" onClick={() => setShowInstallSheet(false)}>
+                {isInstallReady && !ios ? "Not now" : "Close"}
+              </button>
+            </div>
           </div>
         </div>
       )}

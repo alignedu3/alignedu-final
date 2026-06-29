@@ -411,6 +411,23 @@ button:disabled {
   box-shadow: 0 14px 30px rgba(249, 115, 22, 0.24);
 }
 
+.install-sheet-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.install-sheet-secondary {
+  min-height: 46px;
+  padding: 0 18px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
 .header-theme-toggle {
   height: 28px;
   min-width: 28px;
