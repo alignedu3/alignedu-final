@@ -3,94 +3,62 @@ type PwaIconProps = {
 };
 
 export function PwaIcon({ size }: PwaIconProps) {
-  const shellPadding = Math.round(size * 0.08);
-  const circleSize = Math.round(size * 0.66);
-  const circleBorder = Math.max(5, Math.round(size * 0.022));
-  const letterSize = Math.round(circleSize * 0.58);
-  const underlineWidth = Math.round(circleSize * 0.42);
-  const underlineHeight = Math.max(5, Math.round(size * 0.02));
-  const labelSize = Math.max(16, Math.round(size * 0.064));
-
   return (
-    <div
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: `${shellPadding}px ${Math.round(size * 0.06)}px ${Math.round(size * 0.09)}px`,
-        boxSizing: "border-box",
-        overflow: "hidden",
-        background: "#ffffff",
-        fontFamily: "Arial, Helvetica, sans-serif",
-      }}
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 1024 1024"
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="AlignEDU app icon"
     >
-      <div
-        style={{
-          width: "100%",
-          flex: 1,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            position: "relative",
-          width: circleSize,
-          height: circleSize,
-          borderRadius: "50%",
-          border: `${circleBorder}px solid #1f1f1f`,
-          boxSizing: "border-box",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-          <span
-            style={{
-              fontSize: letterSize,
-              fontWeight: 900,
-              color: "#1f1f1f",
-              letterSpacing: "-0.06em",
-              lineHeight: 0.88,
-              transform: "translateY(-10%)",
-            }}
-          >
-            A
-          </span>
-          <div
-            style={{
-              position: "absolute",
-              width: underlineWidth,
-              height: underlineHeight,
-              bottom: Math.round(circleSize * 0.18),
-              left: "50%",
-              transform: "translateX(-50%)",
-              borderRadius: 999,
-              background: "#1f1f1f",
-            }}
-          />
-        </div>
-      </div>
-
-      <div
-        style={{
-          width: "100%",
-          flexShrink: 0,
-          textAlign: "center",
-          color: "#1f1f1f",
-          fontSize: labelSize,
-          fontWeight: 700,
-          letterSpacing: "-0.035em",
-          lineHeight: 1,
-          whiteSpace: "nowrap",
-        }}
+      <rect width="1024" height="1024" fill="#ffffff" />
+      <g transform="translate(0, 12)">
+        <circle
+          cx="512"
+          cy="356"
+          r="268"
+          fill="none"
+          stroke="#1f1f1f"
+          strokeWidth="22"
+        />
+        <path
+          d="M512 160
+             L648 520
+             H575
+             L543 430
+             H481
+             L449 520
+             H376
+             Z
+             M497 364
+             H527
+             L512 320
+             Z"
+          fill="#1f1f1f"
+        />
+        <rect
+          x="350"
+          y="582"
+          width="324"
+          height="20"
+          rx="10"
+          fill="#1f1f1f"
+        />
+      </g>
+      <text
+        x="512"
+        y="902"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontFamily="Arial, Helvetica, sans-serif"
+        fontSize="78"
+        fontWeight="700"
+        letterSpacing="-2"
+        fill="#1f1f1f"
       >
         AlignEDU.net
-      </div>
-    </div>
+      </text>
+    </svg>
   );
 }
