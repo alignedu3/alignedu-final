@@ -6,12 +6,22 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 
+const ICON_VERSION = "2026-06-28-b";
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.alignedu.net'),
   title: "AlignEDU",
   description: "AI-powered lesson analysis for teachers",
-  manifest: "/manifest.webmanifest",
+  manifest: `/manifest.webmanifest?v=${ICON_VERSION}`,
   applicationName: "AlignEDU",
+  icons: {
+    apple: `/apple-icon?v=${ICON_VERSION}`,
+    icon: [
+      { url: `/pwa-icons/192?v=${ICON_VERSION}`, type: "image/png", sizes: "192x192" },
+      { url: `/pwa-icons/512?v=${ICON_VERSION}`, type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: [`/pwa-icons/192?v=${ICON_VERSION}`],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

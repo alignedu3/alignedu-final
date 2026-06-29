@@ -1,4 +1,4 @@
-const CACHE_NAME = "alignedu-pwa-v1";
+const CACHE_NAME = "alignedu-pwa-v2";
 const SHELL_CACHE = [
   "/",
   "/offline.html",
