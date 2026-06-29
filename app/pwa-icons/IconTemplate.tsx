@@ -3,15 +3,13 @@ type PwaIconProps = {
 };
 
 export function PwaIcon({ size }: PwaIconProps) {
-  const circleSize = Math.round(size * 0.68);
-  const circleTop = Math.round(size * 0.06);
+  const shellPadding = Math.round(size * 0.08);
+  const circleSize = Math.round(size * 0.66);
   const circleBorder = Math.max(5, Math.round(size * 0.022));
-  const letterSize = Math.round(size * 0.42);
-  const underlineWidth = Math.round(size * 0.26);
+  const letterSize = Math.round(circleSize * 0.58);
+  const underlineWidth = Math.round(circleSize * 0.42);
   const underlineHeight = Math.max(5, Math.round(size * 0.02));
-  const underlineOffset = Math.round(size * 0.095);
-  const labelTop = Math.round(size * 0.82);
-  const labelSize = Math.max(16, Math.round(size * 0.07));
+  const labelSize = Math.max(16, Math.round(size * 0.064));
 
   return (
     <div
@@ -19,9 +17,11 @@ export function PwaIcon({ size }: PwaIconProps) {
         width: "100%",
         height: "100%",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
+        justifyContent: "space-between",
+        padding: `${shellPadding}px ${Math.round(size * 0.06)}px ${Math.round(size * 0.09)}px`,
+        boxSizing: "border-box",
         overflow: "hidden",
         background: "#ffffff",
         fontFamily: "Arial, Helvetica, sans-serif",
@@ -29,62 +29,62 @@ export function PwaIcon({ size }: PwaIconProps) {
     >
       <div
         style={{
-          position: "absolute",
-          top: circleTop,
+          width: "100%",
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
           width: circleSize,
           height: circleSize,
           borderRadius: "50%",
           border: `${circleBorder}px solid #1f1f1f`,
           boxSizing: "border-box",
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          top: circleTop,
-          width: circleSize,
-          height: circleSize,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: letterSize,
-          fontWeight: 900,
-          color: "#1f1f1f",
-          letterSpacing: "-0.06em",
         }}
       >
-        <span
-          style={{
-            lineHeight: 0.9,
-            transform: "translateY(-6%)",
-          }}
-        >
-          A
-        </span>
+          <span
+            style={{
+              fontSize: letterSize,
+              fontWeight: 900,
+              color: "#1f1f1f",
+              letterSpacing: "-0.06em",
+              lineHeight: 0.88,
+              transform: "translateY(-10%)",
+            }}
+          >
+            A
+          </span>
+          <div
+            style={{
+              position: "absolute",
+              width: underlineWidth,
+              height: underlineHeight,
+              bottom: Math.round(circleSize * 0.18),
+              left: "50%",
+              transform: "translateX(-50%)",
+              borderRadius: 999,
+              background: "#1f1f1f",
+            }}
+          />
+        </div>
       </div>
 
       <div
         style={{
-          position: "absolute",
-          width: underlineWidth,
-          height: underlineHeight,
-          top: circleTop + Math.round(circleSize / 2) + underlineOffset,
-          borderRadius: 999,
-          background: "#1f1f1f",
-        }}
-      />
-
-      <div
-        style={{
-          position: "absolute",
-          top: labelTop,
           width: "100%",
+          flexShrink: 0,
           textAlign: "center",
           color: "#1f1f1f",
           fontSize: labelSize,
           fontWeight: 700,
-          letterSpacing: "-0.04em",
+          letterSpacing: "-0.035em",
           lineHeight: 1,
           whiteSpace: "nowrap",
         }}
