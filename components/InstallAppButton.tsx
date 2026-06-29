@@ -37,7 +37,6 @@ export default function InstallAppButton({
   label = "Install App",
   context = "hero",
 }: InstallAppButtonProps) {
-  const [mounted, setMounted] = useState(false);
   const [ios, setIos] = useState(false);
   const [iosSafari, setIosSafari] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -46,7 +45,6 @@ export default function InstallAppButton({
   const [showInstallSheet, setShowInstallSheet] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     setIos(isIosDevice());
     setIosSafari(isIosSafari());
 
@@ -83,10 +81,6 @@ export default function InstallAppButton({
       mediaQuery.removeEventListener?.("change", handleDisplayChange);
     };
   }, []);
-
-  if (!mounted) {
-    return null;
-  }
 
   const canShowButton = !isInstalled;
 
