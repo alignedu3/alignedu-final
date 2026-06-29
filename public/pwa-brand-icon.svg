@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="AlignEDU app icon">
+  <rect width="1024" height="1024" fill="#ffffff"/>
+  <circle cx="512" cy="512" r="340" fill="none" stroke="#1f1f1f" stroke-width="26"/>
+  <path d="M512 264 L682 716 H592 L552 604 H472 L432 716 H342 Z M492 522 H532 L512 463 Z" fill="#1f1f1f"/>
+  <rect x="312" y="754" width="400" height="26" rx="13" fill="#1f1f1f"/>
+</svg>

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const ICON_VERSION = "2026-06-28-b";
+const ICON_VERSION = "2026-06-28-c";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -16,13 +16,13 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["education", "productivity", "business"],
     icons: [
       {
-        src: `/pwa-icons/192?v=${ICON_VERSION}`,
+        src: `/pwa-icon-192.png?v=${ICON_VERSION}`,
         sizes: "192x192",
         type: "image/png",
         purpose: "maskable",
       },
       {
-        src: `/pwa-icons/512?v=${ICON_VERSION}`,
+        src: `/pwa-icon-512.png?v=${ICON_VERSION}`,
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

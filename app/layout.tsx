@@ -6,7 +6,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 
-const ICON_VERSION = "2026-06-28-b";
+const ICON_VERSION = "2026-06-28-c";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.alignedu.net'),
@@ -15,12 +15,12 @@ export const metadata: Metadata = {
   manifest: `/manifest.webmanifest?v=${ICON_VERSION}`,
   applicationName: "AlignEDU",
   icons: {
-    apple: `/apple-icon?v=${ICON_VERSION}`,
+    apple: `/apple-touch-icon.png?v=${ICON_VERSION}`,
     icon: [
-      { url: `/pwa-icons/192?v=${ICON_VERSION}`, type: "image/png", sizes: "192x192" },
-      { url: `/pwa-icons/512?v=${ICON_VERSION}`, type: "image/png", sizes: "512x512" },
+      { url: `/pwa-icon-192.png?v=${ICON_VERSION}`, type: "image/png", sizes: "192x192" },
+      { url: `/pwa-icon-512.png?v=${ICON_VERSION}`, type: "image/png", sizes: "512x512" },
     ],
-    shortcut: [`/pwa-icons/192?v=${ICON_VERSION}`],
+    shortcut: [`/pwa-icon-192.png?v=${ICON_VERSION}`],
   },
   appleWebApp: {
     capable: true,
