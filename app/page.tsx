@@ -5,6 +5,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { useTheme } from './context/ThemeContext';
 import { getTEKSStandards, type TEKSStandard } from '@/lib/teksStandards';
+import InstallAppButton from '@/components/InstallAppButton';
 
 const HeroCoverageCharts = dynamic(() => import('@/components/HeroCoverageCharts'), {
   ssr: false,
@@ -328,6 +329,11 @@ export default function HomePage() {
                 >
                   Request Demo
                 </button>
+                <InstallAppButton
+                  context="hero"
+                  label="Download App"
+                  className="hero-cta hero-install-cta"
+                />
 
               </div>
 

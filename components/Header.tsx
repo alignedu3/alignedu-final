@@ -9,6 +9,7 @@ import { useTheme } from '@/app/context/ThemeContext';
 import type { ProfileRecord } from '@/lib/dashboardData';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 import type { MouseEvent as ReactMouseEvent } from 'react';
+import InstallAppButton from '@/components/InstallAppButton';
 
 type AuthUser = {
   id: string;
@@ -272,6 +273,7 @@ export default function Header() {
 
           {!user && (
             <div className="header-guest-actions" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+              <InstallAppButton context="header" label="Install App" />
               <Link href="/login" className="login-button-top">
                 Login
               </Link>
@@ -411,6 +413,7 @@ export default function Header() {
                 <button type="button" className="mobile-nav-link" onClick={handleGuestHomeClick}>
                   Home
                 </button>
+                <InstallAppButton context="mobile" label="Install App" className="mobile-nav-install-btn" />
                 <Link href="/login" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                   Login
                 </Link>
