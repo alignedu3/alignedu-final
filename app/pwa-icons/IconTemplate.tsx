@@ -3,8 +3,15 @@ type PwaIconProps = {
 };
 
 export function PwaIcon({ size }: PwaIconProps) {
-  const titleSize = Math.round(size * 0.18);
-  const subtitleSize = Math.round(size * 0.078);
+  const circleSize = Math.round(size * 0.62);
+  const circleTop = Math.round(size * 0.1);
+  const circleBorder = Math.max(5, Math.round(size * 0.022));
+  const letterSize = Math.round(size * 0.34);
+  const underlineWidth = Math.round(size * 0.22);
+  const underlineHeight = Math.max(5, Math.round(size * 0.02));
+  const underlineOffset = Math.round(size * 0.08);
+  const labelTop = Math.round(size * 0.76);
+  const labelSize = Math.max(18, Math.round(size * 0.085));
 
   return (
     <div
@@ -12,116 +19,75 @@ export function PwaIcon({ size }: PwaIconProps) {
         width: "100%",
         height: "100%",
         display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        padding: Math.round(size * 0.11),
-        background:
-          "linear-gradient(160deg, #0f172a 0%, #0b1220 44%, #1d4ed8 100%)",
-        color: "white",
-        fontFamily: "Arial, sans-serif",
+        alignItems: "center",
+        justifyContent: "center",
         position: "relative",
+        overflow: "hidden",
+        background: "#ffffff",
+        fontFamily: "Arial, Helvetica, sans-serif",
       }}
     >
       <div
         style={{
           position: "absolute",
-          inset: Math.round(size * 0.06),
-          borderRadius: Math.round(size * 0.22),
-          border: `${Math.max(2, Math.round(size * 0.014))}px solid rgba(125, 211, 252, 0.16)`,
-          display: "flex",
+          top: circleTop,
+          width: circleSize,
+          height: circleSize,
+          borderRadius: "50%",
+          border: `${circleBorder}px solid #1f1f1f`,
+          boxSizing: "border-box",
         }}
       />
+
       <div
         style={{
+          position: "absolute",
+          top: circleTop,
+          width: circleSize,
+          height: circleSize,
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          zIndex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: letterSize,
+          fontWeight: 900,
+          color: "#1f1f1f",
+          letterSpacing: "-0.06em",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: Math.round(size * 0.018),
-          }}
-        >
-          <span
-            style={{
-              fontSize: titleSize,
-              fontWeight: 800,
-              letterSpacing: "-0.06em",
-              lineHeight: 0.95,
-            }}
-          >
-            Align
-          </span>
-          <span
-            style={{
-              fontSize: titleSize,
-              fontWeight: 800,
-              letterSpacing: "-0.06em",
-              lineHeight: 0.95,
-            }}
-          >
-            EDU
-          </span>
-        </div>
-        <div
-          style={{
-            width: Math.round(size * 0.16),
-            height: Math.round(size * 0.16),
-            borderRadius: Math.round(size * 0.05),
-            background: "linear-gradient(180deg, #fb923c 0%, #f97316 100%)",
-            boxShadow: `0 ${Math.round(size * 0.03)}px ${Math.round(size * 0.07)}px rgba(249, 115, 22, 0.35)`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: Math.round(size * 0.085),
-          }}
-        >
-          ✓
-        </div>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: Math.round(size * 0.02),
-          zIndex: 1,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            gap: Math.round(size * 0.028),
-            alignItems: "flex-end",
-          }}
-        >
-          {[0.78, 0.56, 0.9].map((height, index) => (
-            <div
-              key={index}
-              style={{
-                width: Math.round(size * 0.08),
-                height: Math.round(size * height * 0.24),
-                borderRadius: Math.round(size * 0.02),
-                background:
-                  index === 2
-                    ? "linear-gradient(180deg, #38bdf8 0%, #2563eb 100%)"
-                    : "rgba(255,255,255,0.28)",
-              }}
-            />
-          ))}
-        </div>
         <span
           style={{
-            fontSize: subtitleSize,
-            color: "rgba(226, 232, 240, 0.92)",
-            lineHeight: 1.25,
+            lineHeight: 0.9,
+            transform: "translateY(-8%)",
           }}
         >
-          Instructional visibility
+          A
         </span>
+      </div>
+
+      <div
+        style={{
+          position: "absolute",
+          width: underlineWidth,
+          height: underlineHeight,
+          top: circleTop + Math.round(circleSize / 2) + underlineOffset,
+          borderRadius: 999,
+          background: "#1f1f1f",
+        }}
+      />
+
+      <div
+        style={{
+          position: "absolute",
+          top: labelTop,
+          width: "100%",
+          textAlign: "center",
+          color: "#1f1f1f",
+          fontSize: labelSize,
+          fontWeight: 700,
+          letterSpacing: "-0.04em",
+        }}
+      >
+        AlignEDU
       </div>
     </div>
   );
