@@ -3,15 +3,15 @@ type PwaIconProps = {
 };
 
 export function PwaIcon({ size }: PwaIconProps) {
-  const circleSize = Math.round(size * 0.62);
-  const circleTop = Math.round(size * 0.1);
+  const circleSize = Math.round(size * 0.68);
+  const circleTop = Math.round(size * 0.06);
   const circleBorder = Math.max(5, Math.round(size * 0.022));
-  const letterSize = Math.round(size * 0.34);
-  const underlineWidth = Math.round(size * 0.22);
+  const letterSize = Math.round(size * 0.42);
+  const underlineWidth = Math.round(size * 0.26);
   const underlineHeight = Math.max(5, Math.round(size * 0.02));
-  const underlineOffset = Math.round(size * 0.08);
-  const labelTop = Math.round(size * 0.76);
-  const labelSize = Math.max(18, Math.round(size * 0.085));
+  const underlineOffset = Math.round(size * 0.095);
+  const labelTop = Math.round(size * 0.82);
+  const labelSize = Math.max(16, Math.round(size * 0.07));
 
   return (
     <div
@@ -57,7 +57,7 @@ export function PwaIcon({ size }: PwaIconProps) {
         <span
           style={{
             lineHeight: 0.9,
-            transform: "translateY(-8%)",
+            transform: "translateY(-6%)",
           }}
         >
           A
@@ -85,9 +85,11 @@ export function PwaIcon({ size }: PwaIconProps) {
           fontSize: labelSize,
           fontWeight: 700,
           letterSpacing: "-0.04em",
+          lineHeight: 1,
+          whiteSpace: "nowrap",
         }}
       >
-        AlignEDU
+        AlignEDU.net
       </div>
     </div>
   );
