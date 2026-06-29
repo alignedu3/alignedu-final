@@ -273,7 +273,6 @@ export default function Header() {
 
           {!user && (
             <div className="header-guest-actions" style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <InstallAppButton context="header" label="Install App" />
               <Link href="/login" className="login-button-top">
                 Login
               </Link>
@@ -413,7 +412,7 @@ export default function Header() {
                 <button type="button" className="mobile-nav-link" onClick={handleGuestHomeClick}>
                   Home
                 </button>
-                <InstallAppButton context="mobile" label="Install App" className="mobile-nav-install-btn" />
+                <InstallAppButton context="mobile" label="Download App" className="mobile-nav-link mobile-nav-install-btn" />
                 <Link href="/login" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                   Login
                 </Link>
