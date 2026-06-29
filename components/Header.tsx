@@ -359,6 +359,13 @@ export default function Header() {
                     </>
                   )}
 
+                  <InstallAppButton
+                    context="menu"
+                    label="Download App"
+                    className="header-dropdown-install-btn"
+                    onPress={() => setOpen(false)}
+                  />
+
                   <Link
                     href="/reset-password"
                     style={dropdownItem}
@@ -428,6 +435,12 @@ export default function Header() {
                 <Link href="/dashboard" className="mobile-nav-link" onClick={handleHeaderNavigation('/dashboard')}>
                   Teacher Dashboard
                 </Link>
+                <InstallAppButton
+                  context="mobile"
+                  label="Download App"
+                  className="mobile-nav-link mobile-nav-install-btn"
+                  onPress={() => setMobileOpen(false)}
+                />
                 {!isAdminUser && (
                   <Link href="/analyze" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                     Analyze Lesson

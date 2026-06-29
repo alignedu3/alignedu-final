@@ -10,7 +10,8 @@ type BeforeInstallPromptEvent = Event & {
 type InstallAppButtonProps = {
   className?: string;
   label?: string;
-  context?: "hero" | "header" | "mobile";
+  context?: "hero" | "header" | "mobile" | "menu";
+  onPress?: () => void;
 };
 
 function isIosDevice() {
@@ -36,6 +37,7 @@ export default function InstallAppButton({
   className = "",
   label = "Install App",
   context = "hero",
+  onPress,
 }: InstallAppButtonProps) {
   const [ios, setIos] = useState(false);
   const [iosSafari, setIosSafari] = useState(false);
@@ -85,6 +87,8 @@ export default function InstallAppButton({
   const canShowButton = !isInstalled;
 
   const handleInstall = async () => {
+    onPress?.();
+
     if (deferredPrompt) {
       await deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;

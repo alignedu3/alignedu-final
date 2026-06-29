@@ -313,12 +313,34 @@ button:disabled {
   font-weight: 500;
 }
 
+.install-app-btn-menu {
+  width: 100%;
+  min-height: auto;
+  padding: 12px 14px;
+  border-radius: 0;
+  justify-content: flex-start;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  box-shadow: none;
+  font-size: 15px;
+  font-weight: 400;
+}
+
 .install-app-btn-mobile .install-app-btn-icon {
+  display: none;
+}
+
+.install-app-btn-menu .install-app-btn-icon {
   display: none;
 }
 
 .mobile-nav-install-btn {
   width: 100%;
+}
+
+.header-dropdown-install-btn {
+  display: block;
 }
 
 .install-sheet-overlay {
