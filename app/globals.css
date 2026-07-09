@@ -1859,6 +1859,10 @@ h1, h2, h3 {
 
 .mobile-nav-install-btn {
   margin: 4px 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .mobile-nav-theme-toggle {
