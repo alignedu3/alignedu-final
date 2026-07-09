@@ -340,7 +340,10 @@ button:disabled {
 }
 
 .header-dropdown-install-btn {
-  display: block;
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
 }
 
 .install-sheet-overlay {
