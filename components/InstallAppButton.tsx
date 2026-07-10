@@ -87,16 +87,19 @@ export default function InstallAppButton({
   const canShowButton = !isInstalled;
 
   const handleInstall = async () => {
-    onPress?.();
-
     if (deferredPrompt) {
-      await deferredPrompt.prompt();
-      const choice = await deferredPrompt.userChoice;
-      if (choice.outcome === "accepted") {
-        setIsInstalled(true);
+      try {
+        await deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        if (choice.outcome === "accepted") {
+          setIsInstalled(true);
+        }
+      } finally {
+        setDeferredPrompt(null);
+        setIsInstallReady(false);
+        setShowInstallSheet(false);
+        onPress?.();
       }
-      setDeferredPrompt(null);
-      setIsInstallReady(false);
       return;
     }
 
