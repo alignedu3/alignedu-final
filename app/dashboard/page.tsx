@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts';
 import { buildTeacherDashboardSampleReports, getDashboardSummary, getOpenGapSummary, getTrendData, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getLessonReportSections, getRelatedPriorLessonGaps, getReportNarrative, getTEKSCoverageInsights, type AnalysisReport } from '@/lib/dashboardData';
 import { extractSectionText, extractStandardEntries } from '@/lib/analysisReport';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
@@ -463,8 +463,9 @@ export default function TeacherDashboard() {
 
       <div style={container} className="dashboard-container">
 
-        <div style={header}>
+        <div style={hero}>
           <div>
+            <div style={eyebrow}>Your Instructional Growth</div>
             <h1 style={heading}>
               Welcome{teacherName ? `, ${teacherName}` : ''}
             </h1>
@@ -573,7 +574,8 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        <div style={card}>
+        <div style={{ ...card, ...actionCard }}>
+          <div style={sectionEyebrow}>Plan Your Next Move</div>
           <h2 style={cardTitle}>Next Best Actions</h2>
           <ul style={{ ...text, margin: '0', paddingLeft: 18 }}>
             {nextActions.map((action, index) => (
@@ -582,15 +584,28 @@ export default function TeacherDashboard() {
           </ul>
         </div>
 
-        <div style={card}>
-          <h2 style={cardTitle}>📈 Score Trend</h2>
-          <p style={text}>{trendInsight}</p>
+        <div style={{ ...card, ...trendCard }}>
+          <div style={trendHeader}>
+            <div>
+              <div style={sectionEyebrow}>Growth Over Time</div>
+              <h2 style={cardTitle}>Instructional Performance Trend</h2>
+              <p style={{ ...text, marginBottom: 0 }}>{trendInsight}</p>
+            </div>
+            {trendData.length > 1 && (
+              <div style={trendChangePill}>
+                <span style={trendChangeLabel}>Latest change</span>
+                <strong style={{ color: scoreDiff >= 0 ? '#15803d' : '#b91c1c' }}>
+                  {scoreDiff > 0 ? '+' : ''}{scoreDiff} points
+                </strong>
+              </div>
+            )}
+          </div>
 
           <div
             style={{
               marginTop: 10,
               border: '1px solid var(--border-strong)',
-              borderRadius: 14,
+              borderRadius: 18,
               padding: isNarrowScreen ? '10px 8px 4px' : '14px 12px 8px',
               background: 'var(--surface-chip)',
               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
@@ -600,7 +615,8 @@ export default function TeacherDashboard() {
             {chartReady ? (
               <ResponsiveContainer width="100%" height={isNarrowScreen ? 210 : 260}>
                 <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <ReferenceLine y={75} stroke="rgba(249,115,22,0.30)" strokeDasharray="6 6" />
                   <XAxis
                     dataKey="date"
                     stroke="var(--text-secondary)"
@@ -614,8 +630,20 @@ export default function TeacherDashboard() {
                     tick={{ fontSize: isNarrowScreen ? 10 : 12, fill: 'var(--text-secondary)' }}
                     width={isNarrowScreen ? 28 : 40}
                   />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="score" stroke="#f97316" strokeWidth={3} />
+                  <Tooltip
+                    contentStyle={chartTooltip}
+                    labelStyle={{ color: 'var(--text-secondary)', marginBottom: 5 }}
+                    itemStyle={{ color: 'var(--text-primary)' }}
+                    formatter={(value) => [`${value}/100`, 'Lesson score']}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="score"
+                    stroke="#f97316"
+                    strokeWidth={4}
+                    dot={{ r: 3, fill: '#f97316', strokeWidth: 0 }}
+                    activeDot={{ r: 6, fill: '#f97316', stroke: 'var(--surface-card-solid)', strokeWidth: 3 }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -1278,16 +1306,24 @@ export default function TeacherDashboard() {
   );
 }
 
-const page: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-primary)' };
+const page: React.CSSProperties = { minHeight: '100vh', background: 'linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%)' };
 const container: React.CSSProperties = { maxWidth: 1200, margin: '0 auto' };
-const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 };
-const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 28, margin: '0 0 4px 0' };
-const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0 };
+const hero: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 22, padding: 'clamp(22px, 4vw, 36px)', borderRadius: 28, border: '1px solid var(--border)', background: 'linear-gradient(135deg, var(--surface-card-solid) 0%, var(--bg-tertiary) 100%)', boxShadow: 'var(--shadow-card)' };
+const eyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 800, marginBottom: 8 };
+const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 'clamp(2rem, 4vw, 2.8rem)', lineHeight: 1.05, margin: '0 0 8px 0' };
+const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0, fontSize: 16, lineHeight: 1.55 };
 const buttonGroup: React.CSSProperties = { display: 'flex', gap: 10, alignItems: 'center' };
-const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '10px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
+const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '11px 18px', borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', boxShadow: '0 10px 24px rgba(249,115,22,0.20)' };
 
-const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 20, minWidth: 0 };
-const cardTitle: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 10 };
+const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 22, borderRadius: 22, marginBottom: 20, minWidth: 0, boxShadow: 'var(--shadow-card)' };
+const cardTitle: React.CSSProperties = { color: 'var(--text-primary)', marginTop: 0, marginBottom: 10, fontSize: 22 };
+const sectionEyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 800, marginBottom: 7 };
+const actionCard: React.CSSProperties = { background: 'linear-gradient(135deg, var(--surface-card-solid) 0%, rgba(249,115,22,0.06) 100%)' };
+const trendCard: React.CSSProperties = { overflow: 'hidden' };
+const trendHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' };
+const trendChangePill: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, padding: '9px 13px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface-chip)', fontSize: 14 };
+const trendChangeLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 800 };
+const chartTooltip: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-soft)' };
 
 const analysisSummaryLayout: React.CSSProperties = {
   display: 'grid',

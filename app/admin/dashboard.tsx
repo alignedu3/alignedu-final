@@ -25,6 +25,7 @@ import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 
 type TrendTerm = 'full_year' | 'fall' | 'spring';
+const TEAM_AVERAGE_KEY = 'Team Average';
 
 function parseReportDate(report: AnalysisReport) {
   const raw = report.date ?? report.created_at?.slice(0, 10);
@@ -399,6 +400,13 @@ export default function AdminDashboard() {
         row[teacher] = calculateLessonScore(report);
       });
 
+      const scores = Object.entries(row)
+        .filter(([key, value]) => key !== 'date' && typeof value === 'number')
+        .map(([, value]) => value as number);
+      if (scores.length > 0) {
+        row[TEAM_AVERAGE_KEY] = Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
+      }
+
       return row;
     });
   }, [dashboardProfileById, trendReports]);
@@ -406,7 +414,7 @@ export default function AdminDashboard() {
   const teacherLineKeys = useMemo(() => {
     const keys = new Set<string>();
     teacherTrendData.forEach(entry => {
-      Object.keys(entry).forEach(k => { if (k !== 'date') keys.add(k); });
+      Object.keys(entry).forEach(k => { if (k !== 'date' && k !== TEAM_AVERAGE_KEY) keys.add(k); });
     });
     return Array.from(keys).filter((key) => getPointCountForKey(teacherTrendData, key) >= 2);
   }, [teacherTrendData]);
@@ -645,8 +653,9 @@ export default function AdminDashboard() {
       <div style={container} className="dashboard-container">
 
         {/* HEADER */}
-        <div style={header}>
+        <div style={hero}>
           <div>
+            <div style={eyebrow}>Instructional Leadership</div>
             <h1 style={heading}>{activeAdminName}</h1>
             <p style={subheading}>
               {isViewingAnotherAdmin
@@ -697,14 +706,21 @@ export default function AdminDashboard() {
         )}
 
         {/* AT RISK */}
-        <div id="performance" style={card}>
-          <h2 style={title}>At-Risk Teachers</h2>
+        <div id="performance" style={{ ...card, ...priorityCard }}>
+          <div style={sectionEyebrow}>Immediate Focus</div>
+          <h2 style={title}>Teachers Needing the Closest Support</h2>
           {atRiskTeachers.length === 0 ? (
             <p style={text}>No teachers currently need intervention.</p>
           ) : (
             atRiskTeachers.map((t, i) => (
-              <div key={i} style={listItem}>
-                {t.name} — {t.avgScore}/100 ({t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'})
+              <div key={i} style={priorityRow}>
+                <div>
+                  <div style={priorityTeacherName}>{t.name}</div>
+                  <div style={priorityMeta}>Current average {t.avgScore}/100</div>
+                </div>
+                <span style={priorityTrend}>
+                  {t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'}
+                </span>
               </div>
             ))
           )}
@@ -790,10 +806,11 @@ export default function AdminDashboard() {
         </div>
 
         {/* TREND */}
-        <div style={{ ...card, marginTop: 8 }}>
+        <div style={{ ...card, ...trendCard, marginTop: 8 }}>
           <div style={trendHeader}>
             <div>
-              <h2 style={{ ...title, marginBottom: 6 }}>System Trend</h2>
+              <div style={sectionEyebrow}>Team Momentum</div>
+              <h2 style={{ ...title, marginBottom: 6 }}>Instructional Performance Over Time</h2>
               <p style={{ ...text, margin: 0 }}>{systemInsight}</p>
             </div>
             <div style={trendControls}>
@@ -877,6 +894,15 @@ export default function AdminDashboard() {
                     itemStyle={{ color: 'var(--text-primary)' }}
                     labelStyle={{ color: 'var(--text-secondary)', marginBottom: 6 }}
                   />
+                  <Line
+                    type="monotone"
+                    dataKey={TEAM_AVERAGE_KEY}
+                    stroke="#f97316"
+                    strokeWidth={4}
+                    dot={{ r: 0 }}
+                    activeDot={{ r: 6, strokeWidth: 3, stroke: 'var(--surface-card-solid)', fill: '#f97316' }}
+                    connectNulls
+                  />
                   {teacherLineKeys.map((key) => (
                     <Line
                       key={key}
@@ -908,6 +934,10 @@ export default function AdminDashboard() {
               </p>
             ) : (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                <div style={teamAverageLegend}>
+                  <span style={{ flexShrink: 0, width: 18, height: 4, borderRadius: 99, background: '#f97316' }} />
+                  <strong style={{ color: 'var(--text-primary)', fontSize: 12 }}>Team Average</strong>
+                </div>
                 {teacherLineKeys.map((key) => (
                   <div
                     key={key}
@@ -1335,7 +1365,7 @@ function AdminDashboardSkeleton() {
   return (
     <main style={page} className="dashboard-page">
       <div style={container} className="dashboard-container">
-        <div style={header}>
+        <div style={hero}>
           <div style={{ flex: '1 1 420px', minWidth: 0 }}>
             <div style={{ ...skeletonBlock, width: 'min(340px, 72%)', height: 34, marginBottom: 10 }} />
             <div style={{ ...skeletonBlock, width: 'min(420px, 86%)', height: 16 }} />
@@ -1439,22 +1469,23 @@ function AdminDashboardSkeleton() {
 
 /* ========================= STYLES ========================= */
 
-const page: React.CSSProperties = { minHeight: '100vh', background: 'var(--bg-primary)' };
+const page: React.CSSProperties = { minHeight: '100vh', background: 'linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%)' };
 const container: React.CSSProperties = { maxWidth: 1200, margin: '0 auto' };
-const header: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 28 };
-const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 28, margin: '0 0 4px 0' };
-const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0 };
+const hero: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 22, padding: 'clamp(22px, 4vw, 36px)', borderRadius: 28, border: '1px solid var(--border)', background: 'linear-gradient(135deg, var(--surface-card-solid) 0%, var(--bg-tertiary) 100%)', boxShadow: 'var(--shadow-card)' };
+const eyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 800, marginBottom: 8 };
+const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 'clamp(2rem, 4vw, 2.8rem)', lineHeight: 1.05, margin: '0 0 8px 0' };
+const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0, fontSize: 16, lineHeight: 1.55 };
 const actions: React.CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' };
 const btn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '9px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, minHeight: 40 };
 const btnAlt: React.CSSProperties = { background: 'var(--surface-chip)', color: 'var(--text-primary)', padding: '9px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, minHeight: 40 };
 const headerActionBtn: React.CSSProperties = { ...btn, minWidth: 168, justifyContent: 'center', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
 const headerActionBtnAlt: React.CSSProperties = { ...btnAlt, minWidth: 168, justifyContent: 'center', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
-const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 20, borderRadius: 12, marginBottom: 24, minWidth: 0 };
+const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 22, borderRadius: 22, marginBottom: 20, minWidth: 0, boxShadow: 'var(--shadow-card)' };
 const cardSmall: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
-  padding: 16,
-  borderRadius: 12,
+  padding: 20,
+  borderRadius: 20,
   minWidth: 0,
   display: 'flex',
   flexDirection: 'column',
@@ -1462,9 +1493,10 @@ const cardSmall: React.CSSProperties = {
   justifyContent: 'center',
   textAlign: 'center',
   gap: 6,
+  boxShadow: 'var(--shadow-soft)',
 };
 const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 28 };
-const title: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 10 };
+const title: React.CSSProperties = { color: 'var(--text-primary)', marginTop: 0, marginBottom: 10, fontSize: 22 };
 const text: React.CSSProperties = { color: 'var(--text-secondary)' };
 const big: React.CSSProperties = { fontSize: 30, color: 'var(--text-primary)', width: '100%', fontWeight: 700, lineHeight: 1.05 };
 const statLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 14, marginBottom: 2, fontWeight: 600 };
@@ -1474,6 +1506,14 @@ const th: React.CSSProperties = { textAlign: 'left', color: 'var(--text-secondar
 const td: React.CSSProperties = { color: 'var(--text-primary)', padding: '5px 6px', fontSize: 14, verticalAlign: 'middle' };
 const actionButton: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 8, padding: '5px 9px', fontSize: 12, cursor: 'pointer' };
 const listItem: React.CSSProperties = { color: 'var(--text-primary)', marginBottom: 6 };
+const sectionEyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 800, marginBottom: 7 };
+const priorityCard: React.CSSProperties = { background: 'linear-gradient(135deg, var(--surface-card-solid) 0%, rgba(249,115,22,0.06) 100%)' };
+const priorityRow: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '13px 0', borderTop: '1px solid var(--border)' };
+const priorityTeacherName: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 16, fontWeight: 800, marginBottom: 3 };
+const priorityMeta: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 13 };
+const priorityTrend: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 66, padding: '7px 10px', borderRadius: 999, color: '#c2410c', background: 'rgba(249,115,22,0.10)', border: '1px solid rgba(249,115,22,0.18)', fontSize: 12, fontWeight: 800 };
+const trendCard: React.CSSProperties = { overflow: 'hidden' };
+const teamAverageLegend: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 10px', borderRadius: 999, background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.20)' };
 const hierarchyCard: React.CSSProperties = { border: '1px solid rgba(148,163,184,0.18)', borderRadius: 16, padding: 18, marginBottom: 14, background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, var(--surface-chip) 100%)', boxShadow: '0 18px 36px rgba(15,23,42,0.06)' };
 const hierarchyCardActive: React.CSSProperties = { border: '1px solid rgba(249,115,22,0.28)', boxShadow: '0 18px 40px rgba(249,115,22,0.12)' };
 const hierarchyHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 16 };
