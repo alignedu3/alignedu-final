@@ -670,20 +670,22 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div style={actions}>
-            <NotificationCenter triggerStyle={headerActionBtnAlt} />
-            {canAccessSuperAdminTools && (
-              <button onClick={handleOpenMonitoringDashboard} style={headerActionBtnAlt}>
-                Monitoring Dashboard
+            <div style={actionColumn}>
+              <NotificationCenter triggerStyle={headerActionBtnAlt} />
+              <button onClick={handleObserveLesson} style={headerActionBtn}>
+                Observe Lesson
               </button>
-            )}
+            </div>
             {canAccessSuperAdminTools && (
-              <button onClick={handleOpenDistrictDashboard} style={headerActionBtnAlt}>
-                District Dashboard
-              </button>
+              <div style={actionColumn}>
+                <button onClick={handleOpenMonitoringDashboard} style={headerActionBtnAlt}>
+                  Monitoring Dashboard
+                </button>
+                <button onClick={handleOpenDistrictDashboard} style={headerActionBtnAlt}>
+                  District Dashboard
+                </button>
+              </div>
             )}
-            <button onClick={handleObserveLesson} style={headerActionBtn}>
-              Observe Lesson
-            </button>
           </div>
         </div>
 
@@ -1487,7 +1489,8 @@ const hero: React.CSSProperties = { display: 'flex', justifyContent: 'space-betw
 const eyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 800, marginBottom: 8 };
 const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 'clamp(2rem, 4vw, 2.8rem)', lineHeight: 1.05, margin: '0 0 8px 0' };
 const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0, fontSize: 16, lineHeight: 1.55 };
-const actions: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 168px), 1fr))', gap: 10, alignItems: 'stretch', width: 'min(100%, 720px)', padding: 10, border: '1px solid var(--border)', borderRadius: 18, background: 'var(--surface-chip)' };
+const actions: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 188px), 1fr))', gap: 10, alignItems: 'stretch', width: 'min(100%, 430px)', padding: 10, border: '1px solid var(--border)', borderRadius: 18, background: 'var(--surface-chip)' };
+const actionColumn: React.CSSProperties = { display: 'grid', gridTemplateRows: 'repeat(2, 44px)', gap: 10, minWidth: 0 };
 const btn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '9px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, minHeight: 40 };
 const btnAlt: React.CSSProperties = { background: 'var(--surface-chip)', color: 'var(--text-primary)', padding: '9px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, minHeight: 40 };
 const headerActionBtn: React.CSSProperties = { ...btn, width: '100%', minWidth: 0, minHeight: 44, padding: '10px 14px', borderRadius: 12, justifyContent: 'center', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', boxShadow: '0 10px 22px rgba(249,115,22,0.18)' };
