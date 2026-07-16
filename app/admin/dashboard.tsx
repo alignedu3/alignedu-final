@@ -670,7 +670,7 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div style={actions}>
-            <NotificationCenter />
+            <NotificationCenter triggerStyle={headerActionBtnAlt} />
             {canAccessSuperAdminTools && (
               <button onClick={handleOpenMonitoringDashboard} style={headerActionBtnAlt}>
                 Monitoring Dashboard
@@ -1487,11 +1487,11 @@ const hero: React.CSSProperties = { display: 'flex', justifyContent: 'space-betw
 const eyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 800, marginBottom: 8 };
 const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 'clamp(2rem, 4vw, 2.8rem)', lineHeight: 1.05, margin: '0 0 8px 0' };
 const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0, fontSize: 16, lineHeight: 1.55 };
-const actions: React.CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' };
+const actions: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 168px), 1fr))', gap: 10, alignItems: 'stretch', width: 'min(100%, 720px)', padding: 10, border: '1px solid var(--border)', borderRadius: 18, background: 'var(--surface-chip)' };
 const btn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '9px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, minHeight: 40 };
 const btnAlt: React.CSSProperties = { background: 'var(--surface-chip)', color: 'var(--text-primary)', padding: '9px 16px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, minHeight: 40 };
-const headerActionBtn: React.CSSProperties = { ...btn, minWidth: 168, justifyContent: 'center', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
-const headerActionBtnAlt: React.CSSProperties = { ...btnAlt, minWidth: 168, justifyContent: 'center', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap' };
+const headerActionBtn: React.CSSProperties = { ...btn, width: '100%', minWidth: 0, minHeight: 44, padding: '10px 14px', borderRadius: 12, justifyContent: 'center', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', boxShadow: '0 10px 22px rgba(249,115,22,0.18)' };
+const headerActionBtnAlt: React.CSSProperties = { ...btnAlt, width: '100%', minWidth: 0, minHeight: 44, padding: '10px 14px', borderRadius: 12, border: '1px solid var(--border)', justifyContent: 'center', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', boxShadow: 'var(--shadow-soft)' };
 const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 22, borderRadius: 22, marginBottom: 20, minWidth: 0, boxShadow: 'var(--shadow-card)' };
 const cardSmall: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
