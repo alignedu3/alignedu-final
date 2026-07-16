@@ -2495,8 +2495,21 @@ export async function GET(request: NextRequest) {
           .limit(200),
       ]);
 
-      const { data: analyses, error: analysesError } = analysesResult;
+      let analyses: unknown[] | null = analysesResult.data as unknown[] | null;
+      let analysesError = analysesResult.error;
       const { data: analysisJobs, error: analysisJobsError } = analysisJobsResult;
+
+      if (analysesError && /column .* does not exist|schema cache/i.test(analysesError.message || '')) {
+        const legacyAnalysesResult = await serviceSupabase
+          .from('analyses')
+          .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result')
+          .order('created_at', { ascending: false });
+        analyses = legacyAnalysesResult.data;
+        analysesError = legacyAnalysesResult.error;
+        if (!analysesError) {
+          console.warn('MONITORING ANALYSES QUERY USED LEGACY FEEDBACK-RATING FALLBACK');
+        }
+      }
 
       if (profilesError) {
         return NextResponse.json({ success: false, error: profilesError.message }, { status: 500 });
