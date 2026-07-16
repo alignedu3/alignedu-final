@@ -12,9 +12,9 @@
 
 - Primary analysis model order:
   1. `OPENAI_ANALYSIS_MODEL` if set
-  2. `gpt-5.5`
-  3. `gpt-5.4-mini`
-  4. `gpt-4o-mini`
+  2. `gpt-5.6`
+  3. `gpt-5.6-terra`
+  4. `gpt-5.6-luna`
 - Analysis uses the Responses API with a strict JSON schema.
 - Transcription continues to use the existing route-specific models:
   - `gpt-4o-mini-transcribe` for most analyze uploads

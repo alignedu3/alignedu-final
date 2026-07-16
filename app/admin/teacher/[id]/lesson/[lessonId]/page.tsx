@@ -30,6 +30,7 @@ export default function LessonReportPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [adminFeedbackDraft, setAdminFeedbackDraft] = useState('');
+  const [adminFeedbackRating, setAdminFeedbackRating] = useState(5);
   const [editedAnalysisDraft, setEditedAnalysisDraft] = useState('');
   const [metricDraft, setMetricDraft] = useState({
     coverage: 75,
@@ -84,6 +85,7 @@ export default function LessonReportPage() {
 
   useEffect(() => {
     setAdminFeedbackDraft(lesson?.admin_feedback || '');
+    setAdminFeedbackRating(lesson?.admin_feedback_rating || 5);
     setEditedAnalysisDraft(lesson ? buildEditableAnalysisText(lesson) : '');
     const metrics = lesson ? getLessonMetrics(lesson) : null;
     setMetricDraft({
@@ -195,6 +197,7 @@ export default function LessonReportPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           adminFeedback: adminFeedbackDraft,
+          adminFeedbackRating,
           editedResult: editedAnalysisDraft,
           metricOverrides: metricDraft,
         }),
@@ -444,6 +447,25 @@ export default function LessonReportPage() {
           </div>
         )}
 
+        {reportSections.lessonEvidence.length > 0 && (
+          <div style={{ ...sectionCard, ...analysisSectionCard }}>
+            <h2 style={sectionTitle}>Evidence From the Lesson</h2>
+            <div style={teksSectionStack}>
+              {reportSections.lessonEvidence.map((section, index) => (
+                <div key={`lesson-evidence-${index}`} style={teksSectionRow}>
+                  <div style={subsectionTitle}>{section.title}</div>
+                  <p style={bodyText}>{section.content}</p>
+                  {section.bullets.length > 0 && (
+                    <ul style={findingsList}>
+                      {section.bullets.map((item, itemIndex) => <li key={itemIndex} style={findingItem}>{item}</li>)}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {reportSections.contentGaps.length > 0 && (
           <div style={{ ...sectionCard, ...analysisSectionCard }}>
             <h2 style={sectionTitle}>Content Gaps To Reinforce</h2>
@@ -485,6 +507,21 @@ export default function LessonReportPage() {
                 style={editorTextarea}
                 disabled={!canSaveAdminAdjustments || savingAdminUpdate}
               />
+              <label style={{ ...metricEditorField, marginTop: 10 }}>
+                <span style={metricEditorLabel}>AI analysis usefulness</span>
+                <select
+                  value={adminFeedbackRating}
+                  onChange={(event) => setAdminFeedbackRating(Number(event.target.value))}
+                  style={metricEditorInput}
+                  disabled={!canSaveAdminAdjustments || savingAdminUpdate}
+                >
+                  <option value={5}>5 — Extremely useful</option>
+                  <option value={4}>4 — Very useful</option>
+                  <option value={3}>3 — Somewhat useful</option>
+                  <option value={2}>2 — Slightly useful</option>
+                  <option value={1}>1 — Not useful</option>
+                </select>
+              </label>
               {lesson.admin_feedback_updated_at || lesson.admin_feedback_author_name ? (
                 <div style={helperText}>
                   {lesson.admin_feedback_author_name || 'Administrator'}

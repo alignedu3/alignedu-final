@@ -14,6 +14,7 @@ import {
 } from "@/lib/openaiStructuredAnalysis";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { getErrorMessage } from "@/lib/errorHandling";
+import { evaluateAnalysisQuality } from "@/lib/analysisQuality";
 
 const BIOLOGY_GAP_STOP_WORDS = new Set([
   "the",
@@ -224,6 +225,8 @@ const DEFAULT_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
 const LONG_AUDIO_TRANSCRIPTION_MODEL = "whisper-1";
 const TRANSCRIPTION_CONCURRENCY = 4;
 const LONG_AUDIO_WHISPER_THRESHOLD_SECONDS = 40 * 60;
+const ANALYSIS_PROMPT_VERSION = "lesson-analysis-v3-evidence-actions";
+const REPAIR_MODEL = "gpt-5.6-luna";
 
 type WorkflowProgress = {
   percent: number;
@@ -264,6 +267,7 @@ type AnalysisWorkflowOutput = {
     openaiApiPath: "responses" | "chat_completions";
     openaiModel: string;
     openaiAttemptCount: number;
+    promptVersion: string;
     usedFallback: boolean;
     fallbackReason: string | null;
   };
@@ -402,15 +406,14 @@ Additional metric calibration:
 
 async function callOpenAI(openai: OpenAI, messages: ChatMessage[]) {
   return await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: REPAIR_MODEL,
     messages,
-    temperature: 0,
   });
 }
 
 async function callOpenAIMetricsRepair(openai: OpenAI, prompt: string) {
   return await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: REPAIR_MODEL,
     messages: [
       {
         role: "system",
@@ -419,13 +422,12 @@ async function callOpenAIMetricsRepair(openai: OpenAI, prompt: string) {
       },
       { role: "user", content: prompt },
     ],
-    temperature: 0,
   });
 }
 
 async function callOpenAISectionRepair(openai: OpenAI, prompt: string) {
   return await openai.chat.completions.create({
-    model: "gpt-4o-mini",
+    model: REPAIR_MODEL,
     messages: [
       {
         role: "system",
@@ -434,7 +436,6 @@ async function callOpenAISectionRepair(openai: OpenAI, prompt: string) {
       },
       { role: "user", content: prompt },
     ],
-    temperature: 0,
   });
 }
 
@@ -1301,6 +1302,7 @@ async function updateAnalysisJob(
     delete legacyCompatiblePatch.openai_attempt_count;
     delete legacyCompatiblePatch.openai_fallback_used;
     delete legacyCompatiblePatch.openai_fallback_reason;
+    delete legacyCompatiblePatch.prompt_version;
 
     const { error: retryError } = await serviceSupabase
       .from("analysis_jobs")
@@ -1482,6 +1484,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
         openaiApiPath: "chat_completions",
         openaiModel: "reused_saved_analysis",
         openaiAttemptCount: 0,
+        promptVersion: ANALYSIS_PROMPT_VERSION,
         usedFallback: false,
         fallbackReason: null,
       },
@@ -1571,6 +1574,12 @@ Provide a numbered list of the exact content misunderstandings, missing ideas, w
 
 === RECOMMENDED NEXT STEP ===
 Provide 1 short paragraph with the single highest-leverage next move for the teacher. Limit it to 2-3 sentences. It must directly address the most important weakness from this lesson and explain why it matters here without repeating the summary.
+
+=== EVIDENCE FROM THE LESSON ===
+Provide 3-5 distinct evidence records that support the report's most important strengths, improvement needs, and recommended action. Use labeled bullets:
+- Lesson Moment: identify where it occurred (opening, modeling, guided practice, discussion, independent work, or closure), summarize the observable teacher/student action, and include a transcript phrase of no more than 12 words when available.
+  - Instructional Significance: explain exactly which report claim this evidence supports.
+Do not invent timestamps, student reactions, silence, or actions absent from the transcript. If the submission is abbreviated, explicitly label the evidence as limited rather than filling gaps.
 
 === NEXT-LESSON ACTION PLAN ===
 Turn the highest-leverage recommendation into a plan the teacher can use in the next class. Use exactly these labeled bullets:
@@ -2139,6 +2148,14 @@ ${transcript}`;
       ? `\n\n=== SUBMISSION CONTEXT ===\n- Submitted by: ${(callerProfileName || 'Administrator').trim()} (Administrator Observation)\n- Saved to Teacher Profile: ${observedTeacherName || 'Selected Teacher'}`
       : "";
   let finalResult = normalizeStructuredReportText(`${result}${submissionContext}`);
+  const qualityResult = evaluateAnalysisQuality(finalResult);
+  if (!qualityResult.passed) {
+    console.warn("ANALYSIS QUALITY GATE WARNINGS:", {
+      promptVersion: ANALYSIS_PROMPT_VERSION,
+      score: qualityResult.score,
+      issues: qualityResult.issues,
+    });
+  }
 
   if (shouldRepairMetricsBlock(finalResult)) {
     const finalMetricsRepairPrompt = `Based on the transcript and report below, return only this exact metrics block with integers:
@@ -2238,8 +2255,9 @@ ${transcript}`;
     saved: saveOutcome.saved,
     diagnostics: {
       openaiApiPath: generationDiagnostics ? "responses" : "chat_completions",
-      openaiModel: generationDiagnostics?.model || "gpt-4o-mini",
+      openaiModel: generationDiagnostics?.model || REPAIR_MODEL,
       openaiAttemptCount: generationDiagnostics?.attemptCount || 1,
+      promptVersion: ANALYSIS_PROMPT_VERSION,
       usedFallback: !generationDiagnostics,
       fallbackReason,
     },
@@ -2285,6 +2303,7 @@ async function processAnalysisJob(
       openai_api_path: output.diagnostics.openaiApiPath,
       openai_model: output.diagnostics.openaiModel,
       openai_attempt_count: output.diagnostics.openaiAttemptCount,
+      prompt_version: output.diagnostics.promptVersion,
       openai_fallback_used: output.diagnostics.usedFallback,
       openai_fallback_reason: output.diagnostics.fallbackReason,
       error: null,

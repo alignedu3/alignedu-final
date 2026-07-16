@@ -20,6 +20,7 @@ type StructuredAnalysis = {
   whatCanImprove: string[];
   contentGapsToReinforce: string[];
   recommendedNextStep: string;
+  lessonEvidence: LabeledSection[];
   teacherActionPlan: LabeledSection[];
   administratorCoachingPlan: LabeledSection[];
   instructionalCoachingFeedback: LabeledSection[];
@@ -51,6 +52,7 @@ const STRUCTURED_ANALYSIS_SCHEMA = {
     "whatCanImprove",
     "contentGapsToReinforce",
     "recommendedNextStep",
+    "lessonEvidence",
     "teacherActionPlan",
     "administratorCoachingPlan",
     "instructionalCoachingFeedback",
@@ -98,6 +100,21 @@ const STRUCTURED_ANALYSIS_SCHEMA = {
       items: { type: "string" },
     },
     recommendedNextStep: { type: "string" },
+    lessonEvidence: {
+      type: "array",
+      minItems: 3,
+      maxItems: 5,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["label", "content", "bullets"],
+        properties: {
+          label: { type: "string" },
+          content: { type: "string" },
+          bullets: { type: "array", maxItems: 2, items: { type: "string" } },
+        },
+      },
+    },
     teacherActionPlan: {
       type: "array",
       minItems: 4,
@@ -221,7 +238,7 @@ const STRUCTURED_ANALYSIS_SCHEMA = {
 
 function uniqueModels() {
   const configured = process.env.OPENAI_ANALYSIS_MODEL?.trim();
-  return [...new Set([configured, "gpt-5.5", "gpt-5.4-mini", "gpt-4o-mini"].filter(Boolean))] as string[];
+  return [...new Set([configured, "gpt-5.6", "gpt-5.6-terra", "gpt-5.6-luna"].filter(Boolean))] as string[];
 }
 
 function clampScore(value: unknown, fallback = 0) {
@@ -284,6 +301,7 @@ export function normalizeStructuredAnalysisPayload(payload: unknown): Structured
     whatCanImprove: cleanBullets(typed?.whatCanImprove, 5).slice(0, 3),
     contentGapsToReinforce: noGapPlaceholder,
     recommendedNextStep: cleanText(typed?.recommendedNextStep),
+    lessonEvidence: cleanLabeledSections(typed?.lessonEvidence, 5) || [],
     teacherActionPlan: cleanLabeledSections(typed?.teacherActionPlan, 4) || [],
     administratorCoachingPlan: cleanLabeledSections(typed?.administratorCoachingPlan, 4) || [],
     instructionalCoachingFeedback: cleanLabeledSections(typed?.instructionalCoachingFeedback, 6) || [],
@@ -354,6 +372,7 @@ export function renderStructuredAnalysisToLegacyText(
     renderBulletSection("WHAT CAN IMPROVE", result.whatCanImprove),
     renderContentGaps(result.contentGapsToReinforce),
     renderSimpleSection("RECOMMENDED NEXT STEP", result.recommendedNextStep, "No next step recommendation returned."),
+    renderLabeledSection("EVIDENCE FROM THE LESSON", result.lessonEvidence),
     renderLabeledSection("NEXT-LESSON ACTION PLAN", result.teacherActionPlan),
     renderLabeledSection("ADMINISTRATOR COACHING PLAN", result.administratorCoachingPlan),
     renderLabeledSection("INSTRUCTIONAL COACHING FEEDBACK", result.instructionalCoachingFeedback),

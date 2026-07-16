@@ -1317,6 +1317,7 @@ export default function AnalysisPage() {
   const roleActionPlanTitle = isAdminObservationMode
     ? "Administrator Coaching Plan"
     : "Your Next-Lesson Plan";
+  const lessonEvidence = feedbackSections.lessonEvidence;
   const contentGapItems = feedbackSections.contentGaps.flatMap((section) => {
     if (section.bullets.length > 0) return section.bullets;
     return section.content
@@ -2259,6 +2260,27 @@ export default function AnalysisPage() {
                                   {section.bullets.map((item, itemIndex) => (
                                     <li key={itemIndex}>{item}</li>
                                   ))}
+                                </ul>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {lessonEvidence.length > 0 && (
+                    <>
+                      <div style={reportSectionHeadingStyle}>Evidence From the Lesson</div>
+                      <div style={reportSectionPanelStyle}>
+                        <div style={reportStackStyle}>
+                          {lessonEvidence.map((section, index) => (
+                            <div key={`lesson-evidence-${index}`} style={reportSectionRowStyle}>
+                              <div style={reportPanelTitleStyle}>{section.title}</div>
+                              <div style={reportPanelTextStyle}>{section.content}</div>
+                              {section.bullets.length > 0 && (
+                                <ul style={reportPanelListStyle}>
+                                  {section.bullets.map((item, itemIndex) => <li key={itemIndex}>{item}</li>)}
                                 </ul>
                               )}
                             </div>

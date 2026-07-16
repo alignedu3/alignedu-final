@@ -127,29 +127,47 @@ export async function PATCH(
     }
 
     const teacherFeedbackRequested = Object.prototype.hasOwnProperty.call(body, 'teacherFeedback');
+    const teacherRatingRequested = Object.prototype.hasOwnProperty.call(body, 'teacherFeedbackRating');
     const adminFeedbackRequested = Object.prototype.hasOwnProperty.call(body, 'adminFeedback');
+    const adminRatingRequested = Object.prototype.hasOwnProperty.call(body, 'adminFeedbackRating');
     const editedResultRequested = Object.prototype.hasOwnProperty.call(body, 'editedResult');
     const metricOverridesRequested = Object.prototype.hasOwnProperty.call(body, 'metricOverrides');
 
     const updates: Record<string, unknown> = {};
     const now = new Date().toISOString();
 
-    if (teacherFeedbackRequested) {
+    if (teacherFeedbackRequested || teacherRatingRequested) {
       if (!isOwner) {
         return NextResponse.json({ success: false, error: 'Only the teacher can update teacher feedback.' }, { status: 403 });
       }
 
-      updates.teacher_feedback = normalizeOptionalText(body.teacherFeedback);
+      if (teacherFeedbackRequested) updates.teacher_feedback = normalizeOptionalText(body.teacherFeedback);
+      if (teacherRatingRequested) {
+        const rating = Number(body.teacherFeedbackRating);
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+          return NextResponse.json({ success: false, error: 'Teacher usefulness rating must be from 1 to 5.' }, { status: 400 });
+        }
+        updates.teacher_feedback_rating = rating;
+      }
       updates.teacher_feedback_updated_at = now;
     }
 
-    if (adminFeedbackRequested || editedResultRequested || metricOverridesRequested) {
+    if (adminFeedbackRequested || adminRatingRequested || editedResultRequested || metricOverridesRequested) {
       if (!canAdminManage) {
         return NextResponse.json({ success: false, error: 'Only an administrator in scope can update administrator notes or edits.' }, { status: 403 });
       }
 
       if (adminFeedbackRequested) {
         updates.admin_feedback = normalizeOptionalText(body.adminFeedback);
+        updates.admin_feedback_updated_at = now;
+        updates.admin_feedback_author_name = profile?.name || 'Administrator';
+      }
+      if (adminRatingRequested) {
+        const rating = Number(body.adminFeedbackRating);
+        if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+          return NextResponse.json({ success: false, error: 'Administrator usefulness rating must be from 1 to 5.' }, { status: 400 });
+        }
+        updates.admin_feedback_rating = rating;
         updates.admin_feedback_updated_at = now;
         updates.admin_feedback_author_name = profile?.name || 'Administrator';
       }

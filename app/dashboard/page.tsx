@@ -24,6 +24,7 @@ export default function TeacherDashboard() {
   const [lessonsPage, setLessonsPage] = useState(1);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [teacherFeedbackDraft, setTeacherFeedbackDraft] = useState('');
+  const [teacherFeedbackRating, setTeacherFeedbackRating] = useState<number>(5);
   const [savingTeacherFeedbackId, setSavingTeacherFeedbackId] = useState<string | null>(null);
   const selectedLessonRef = useRef<HTMLDivElement | null>(null);
 
@@ -139,6 +140,7 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     setTeacherFeedbackDraft(selectedReport?.teacher_feedback || '');
+    setTeacherFeedbackRating(selectedReport?.teacher_feedback_rating || 5);
   }, [selectedReport]);
 
   useEffect(() => {
@@ -200,7 +202,7 @@ export default function TeacherDashboard() {
       const response = await fetch(`/api/analyses/${selectedReport.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teacherFeedback: teacherFeedbackDraft }),
+        body: JSON.stringify({ teacherFeedback: teacherFeedbackDraft, teacherFeedbackRating }),
       });
       const data = await response.json();
 
@@ -1123,6 +1125,25 @@ export default function TeacherDashboard() {
                   </div>
                 )}
 
+                {selectedLessonSections.lessonEvidence.length > 0 && (
+                  <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
+                    <div style={reportSectionTitle}>Evidence From the Lesson</div>
+                    <div style={teksSectionStack}>
+                      {selectedLessonSections.lessonEvidence.map((section, index) => (
+                        <div key={`lesson-evidence-${index}`} style={teksSectionRow}>
+                          <div style={reportSubsectionTitle}>{section.title}</div>
+                          <p style={reportBodyText}>{section.content}</p>
+                          {section.bullets.length > 0 && (
+                            <ul style={reportList}>
+                              {section.bullets.map((item, itemIndex) => <li key={itemIndex} style={reportListItem}>{item}</li>)}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {selectedLessonSections.contentGaps.length > 0 && (
                   <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
                     <div style={reportSectionTitle}>Content Gaps To Reinforce</div>
@@ -1185,6 +1206,21 @@ export default function TeacherDashboard() {
                     style={analysisFeedbackInput}
                     disabled={isSampleMode || Boolean(savingTeacherFeedbackId)}
                   />
+                  <div style={{ ...reportMetaFootnote, marginTop: 10, marginBottom: 6 }}>How useful was this analysis?</div>
+                  <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        type="button"
+                        onClick={() => setTeacherFeedbackRating(rating)}
+                        disabled={isSampleMode || Boolean(savingTeacherFeedbackId)}
+                        style={{ ...secondaryButton, minWidth: 40, background: teacherFeedbackRating === rating ? 'rgba(249,115,22,0.16)' : secondaryButton.background, borderColor: teacherFeedbackRating === rating ? '#f97316' : 'var(--border)' }}
+                        aria-label={`${rating} out of 5 useful`}
+                      >
+                        {rating}
+                      </button>
+                    ))}
+                  </div>
                   <div style={analysisFeedbackActions}>
                     {selectedReport.teacher_feedback_updated_at ? (
                       <div style={reportMetaFootnote}>

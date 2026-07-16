@@ -95,6 +95,7 @@ export async function GET(
           openaiAttemptCount: typeof job.openai_attempt_count === "number" ? job.openai_attempt_count : 0,
           usedFallback: Boolean(job.openai_fallback_used),
           fallbackReason: job.openai_fallback_reason || null,
+          promptVersion: job.prompt_version || null,
         },
       },
     });

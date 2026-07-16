@@ -308,11 +308,19 @@ type MonitoringAlert = {
 };
 
 type AnalysisJobTelemetryRow = {
+  analysis_id?: string | null;
   created_at?: string | null;
   status?: string | null;
   openai_api_path?: string | null;
   openai_model?: string | null;
   openai_fallback_used?: boolean | null;
+  prompt_version?: string | null;
+};
+
+type AnalysisFeedbackTelemetryRow = {
+  id?: string | null;
+  teacher_feedback_rating?: number | null;
+  admin_feedback_rating?: number | null;
 };
 
 type OpenAIAnalysisMonitoring = {
@@ -326,6 +334,7 @@ type OpenAIAnalysisMonitoring = {
     fallbackRuns: number;
   };
   topModels: Array<{ model: string; count: number }>;
+  promptVersions: Array<{ version: string; jobs: number; feedbackCount: number; averageRating: number | null }>;
   diagnostics: {
     configured: boolean;
     configuredModel: string | null;
@@ -458,7 +467,7 @@ function roundTo(value: number, decimals = 1) {
 function buildReadiness(): MonitoringReadiness[] {
   const sentryConfigured = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN);
   const openAiConfigured = Boolean(process.env.OPENAI_API_KEY);
-  const configuredModel = process.env.OPENAI_ANALYSIS_MODEL?.trim() || 'gpt-5.5 -> gpt-5.4-mini -> gpt-4o-mini';
+  const configuredModel = process.env.OPENAI_ANALYSIS_MODEL?.trim() || 'gpt-5.6 -> gpt-5.6-terra -> gpt-5.6-luna';
   const publicSupabaseConfigured = Boolean(
     process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
@@ -496,7 +505,7 @@ function buildReadiness(): MonitoringReadiness[] {
   ];
 }
 
-function buildOpenAIAnalysisMonitoring(rows: AnalysisJobTelemetryRow[], error: string | null = null): OpenAIAnalysisMonitoring {
+function buildOpenAIAnalysisMonitoring(rows: AnalysisJobTelemetryRow[], error: string | null = null, analyses: AnalysisFeedbackTelemetryRow[] = []): OpenAIAnalysisMonitoring {
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const jobsLast7Days = rows.filter((row) => {
     const timestamp = row.created_at ? new Date(row.created_at).getTime() : 0;
@@ -504,11 +513,20 @@ function buildOpenAIAnalysisMonitoring(rows: AnalysisJobTelemetryRow[], error: s
   });
 
   const topModelMap = new Map<string, number>();
+  const feedbackByAnalysisId = new Map(analyses.filter((item) => item.id).map((item) => [item.id as string, item]));
+  const promptVersionMap = new Map<string, { jobs: number; ratings: number[] }>();
   for (const row of rows) {
     const model = typeof row.openai_model === 'string' && row.openai_model.trim()
       ? row.openai_model.trim()
       : 'unknown';
     topModelMap.set(model, (topModelMap.get(model) || 0) + 1);
+    const version = row.prompt_version?.trim() || 'unversioned';
+    const versionStats = promptVersionMap.get(version) || { jobs: 0, ratings: [] };
+    versionStats.jobs += 1;
+    const feedback = row.analysis_id ? feedbackByAnalysisId.get(row.analysis_id) : undefined;
+    if (typeof feedback?.teacher_feedback_rating === 'number') versionStats.ratings.push(feedback.teacher_feedback_rating);
+    if (typeof feedback?.admin_feedback_rating === 'number') versionStats.ratings.push(feedback.admin_feedback_rating);
+    promptVersionMap.set(version, versionStats);
   }
 
   return {
@@ -525,6 +543,16 @@ function buildOpenAIAnalysisMonitoring(rows: AnalysisJobTelemetryRow[], error: s
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([model, count]) => ({ model, count })),
+    promptVersions: Array.from(promptVersionMap.entries())
+      .sort((a, b) => b[1].jobs - a[1].jobs)
+      .map(([version, stats]) => ({
+        version,
+        jobs: stats.jobs,
+        feedbackCount: stats.ratings.length,
+        averageRating: stats.ratings.length
+          ? Math.round((stats.ratings.reduce((sum, rating) => sum + rating, 0) / stats.ratings.length) * 10) / 10
+          : null,
+      })),
     diagnostics: {
       configured: Boolean(process.env.OPENAI_API_KEY),
       configuredModel: process.env.OPENAI_ANALYSIS_MODEL?.trim() || null,
@@ -2426,7 +2454,7 @@ export async function GET(request: NextRequest) {
           .select('id, name, email, role'),
         serviceSupabase
           .from('analyses')
-          .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result')
+          .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result, teacher_feedback_rating, admin_feedback_rating')
           .order('created_at', { ascending: false }),
         listAllAuthUsers(serviceSupabase),
         serviceSupabase
@@ -2448,7 +2476,11 @@ export async function GET(request: NextRequest) {
 
       openaiAnalysis = analysisJobsError
         ? buildOpenAIAnalysisMonitoring([], analysisJobsError.message)
-        : buildOpenAIAnalysisMonitoring((analysisJobs || []) as AnalysisJobTelemetryRow[]);
+        : buildOpenAIAnalysisMonitoring(
+            (analysisJobs || []) as AnalysisJobTelemetryRow[],
+            null,
+            (analyses || []) as AnalysisFeedbackTelemetryRow[]
+          );
 
       profileList = (profiles || []) as ProfileRecord[];
       reportList = (analyses || []) as AnalysisReport[];
