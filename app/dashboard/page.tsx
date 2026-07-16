@@ -1074,6 +1074,27 @@ export default function TeacherDashboard() {
                   </div>
                 )}
 
+                {selectedLessonSections.teacherActionPlan.length > 0 && (
+                  <div style={{ ...reportSectionCard, ...nextStepSectionCard }}>
+                    <div style={reportSectionTitle}>Your Next-Lesson Plan</div>
+                    <div style={teksSectionStack}>
+                      {selectedLessonSections.teacherActionPlan.map((section, index) => (
+                        <div key={`teacher-action-${index}`} style={teksSectionRow}>
+                          <div style={reportSubsectionTitle}>{section.title}</div>
+                          <p style={reportBodyText}>{section.content}</p>
+                          {section.bullets.length > 0 && (
+                            <ul style={reportList}>
+                              {section.bullets.map((item, itemIndex) => (
+                                <li key={itemIndex} style={reportListItem}>{item}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {selectedLessonSections.contentGaps.length > 0 && (
                   <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
                     <div style={reportSectionTitle}>Content Gaps To Reinforce</div>

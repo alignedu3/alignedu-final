@@ -2,6 +2,16 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  Area,
+  Bar,
+  CartesianGrid,
+  ComposedChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 import ProtectedPageState from '@/components/ProtectedPageState';
 import {
@@ -150,6 +160,43 @@ export default function DistrictDashboard() {
     };
   }, [reports.length, teacherProfiles.length, teacherStats]);
 
+  const districtTrend = useMemo(() => {
+    const buckets = new Map<string, { label: string; sortKey: number; scores: number[]; gaps: number }>();
+
+    reports.forEach((report) => {
+      const rawDate = report.date || report.created_at;
+      if (!rawDate) return;
+      const date = new Date(rawDate);
+      if (!Number.isFinite(date.getTime())) return;
+
+      const sortKey = new Date(date.getFullYear(), date.getMonth(), 1).getTime();
+      const key = `${date.getFullYear()}-${date.getMonth()}`;
+      const bucket = buckets.get(key) || {
+        label: date.toLocaleDateString([], { month: 'short', year: '2-digit' }),
+        sortKey,
+        scores: [],
+        gaps: 0,
+      };
+      bucket.scores.push(calculateLessonScore(report));
+      bucket.gaps += getLessonMetrics(report).gaps;
+      buckets.set(key, bucket);
+    });
+
+    return [...buckets.values()]
+      .sort((a, b) => a.sortKey - b.sortKey)
+      .slice(-8)
+      .map((bucket) => ({
+        month: bucket.label,
+        average: Math.round(bucket.scores.reduce((sum, score) => sum + score, 0) / bucket.scores.length),
+        lessons: bucket.scores.length,
+        gaps: bucket.gaps,
+      }));
+  }, [reports]);
+
+  const trendChange = districtTrend.length > 1
+    ? districtTrend[districtTrend.length - 1].average - districtTrend[0].average
+    : 0;
+
   const topPerformers = [...teacherStats]
     .filter((teacher) => teacher.lessons > 0 && teacher.supportLevel === 'Stable')
     .sort((a, b) => {
@@ -173,7 +220,7 @@ export default function DistrictDashboard() {
   return (
     <main style={page}>
       <div style={container}>
-        <div style={header}>
+        <div style={hero}>
           <div>
             <div style={eyebrow}>District View</div>
             <h1 style={heading}>{districtName}</h1>
@@ -224,6 +271,71 @@ export default function DistrictDashboard() {
             <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Teachers currently crossing support thresholds</div>
           </div>
         </div>
+
+        <section style={{ ...card, ...trendCard }}>
+          <div style={chartHeader}>
+            <div>
+              <div style={sectionEyebrow}>District Momentum</div>
+              <h2 style={{ ...title, marginBottom: 5 }}>Instructional Performance Over Time</h2>
+              <p style={text}>District average lesson quality alongside observation volume.</p>
+            </div>
+            {districtTrend.length > 1 && (
+              <div style={trendSummary}>
+                <span style={trendSummaryLabel}>Period change</span>
+                <strong style={{ color: trendChange >= 0 ? '#15803d' : '#b91c1c' }}>
+                  {trendChange > 0 ? '+' : ''}{trendChange} points
+                </strong>
+              </div>
+            )}
+          </div>
+
+          {districtTrend.length > 0 ? (
+            <div style={chartWrap} aria-label="District instructional performance trend chart">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={districtTrend} margin={{ top: 18, right: 8, left: -18, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="districtScoreFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0f766e" stopOpacity={0.28} />
+                      <stop offset="95%" stopColor="#0f766e" stopOpacity={0.02} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="score" domain={[50, 100]} tick={{ fill: 'var(--text-secondary)', fontSize: 12 }} tickLine={false} axisLine={false} />
+                  <YAxis yAxisId="lessons" orientation="right" allowDecimals={false} hide />
+                  <Tooltip
+                    cursor={{ fill: 'var(--bg-secondary)', opacity: 0.5 }}
+                    contentStyle={chartTooltip}
+                    labelStyle={{ color: 'var(--text-primary)', fontWeight: 800 }}
+                    formatter={(value, name) => [name === 'District average' ? `${value}/100` : value, name]}
+                  />
+                  <Bar yAxisId="lessons" dataKey="lessons" name="Lessons analyzed" fill="rgba(14,165,233,0.18)" radius={[6, 6, 0, 0]} maxBarSize={34} />
+                  <Area
+                    yAxisId="score"
+                    type="monotone"
+                    dataKey="average"
+                    name="District average"
+                    stroke="#0f766e"
+                    strokeWidth={3}
+                    fill="url(#districtScoreFill)"
+                    activeDot={{ r: 6, fill: '#0f766e', stroke: 'var(--surface-card)', strokeWidth: 3 }}
+                  />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div style={chartEmpty}>
+              <div style={emptyChartIcon}>↗</div>
+              <div style={rowTitle}>Your district trend will build here</div>
+              <p style={text}>Analyze lessons across the district to reveal performance movement and observation volume over time.</p>
+            </div>
+          )}
+
+          <div style={chartLegend}>
+            <span style={legendItem}><i style={{ ...legendMark, background: '#0f766e' }} />District average</span>
+            <span style={legendItem}><i style={{ ...legendMark, background: 'rgba(14,165,233,0.35)' }} />Lessons analyzed</span>
+          </div>
+        </section>
 
         <div style={twoColumn}>
           <section style={card}>
@@ -329,13 +441,18 @@ const container: React.CSSProperties = {
   margin: '0 auto',
 };
 
-const header: React.CSSProperties = {
+const hero: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'flex-start',
   gap: 16,
   flexWrap: 'wrap',
   marginBottom: 22,
+  padding: 'clamp(22px, 4vw, 38px)',
+  borderRadius: 28,
+  border: '1px solid var(--border)',
+  background: 'linear-gradient(135deg, var(--surface-card) 0%, var(--bg-secondary) 100%)',
+  boxShadow: 'var(--shadow-md)',
 };
 
 const eyebrow: React.CSSProperties = {
@@ -431,6 +548,100 @@ const card: React.CSSProperties = {
   background: 'var(--surface-card)',
   border: '1px solid var(--border)',
   boxShadow: 'var(--shadow-md)',
+};
+
+const trendCard: React.CSSProperties = {
+  marginBottom: 18,
+  overflow: 'hidden',
+};
+
+const chartHeader: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'space-between',
+  gap: 16,
+  flexWrap: 'wrap',
+};
+
+const trendSummary: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-end',
+  gap: 3,
+  padding: '10px 14px',
+  borderRadius: 14,
+  background: 'var(--bg-secondary)',
+  border: '1px solid var(--border)',
+  fontSize: 15,
+};
+
+const trendSummaryLabel: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 11,
+  fontWeight: 800,
+  textTransform: 'uppercase',
+  letterSpacing: 0.6,
+};
+
+const chartWrap: React.CSSProperties = {
+  width: '100%',
+  height: 310,
+  marginTop: 14,
+};
+
+const chartTooltip: React.CSSProperties = {
+  background: 'var(--surface-card)',
+  border: '1px solid var(--border)',
+  borderRadius: 12,
+  color: 'var(--text-primary)',
+  boxShadow: 'var(--shadow-md)',
+};
+
+const chartEmpty: React.CSSProperties = {
+  minHeight: 250,
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  alignItems: 'center',
+  textAlign: 'center',
+  gap: 8,
+  maxWidth: 520,
+  margin: '0 auto',
+};
+
+const emptyChartIcon: React.CSSProperties = {
+  display: 'grid',
+  placeItems: 'center',
+  width: 54,
+  height: 54,
+  borderRadius: 18,
+  color: '#0f766e',
+  background: 'rgba(13,148,136,0.10)',
+  fontSize: 27,
+  fontWeight: 800,
+};
+
+const chartLegend: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'center',
+  flexWrap: 'wrap',
+  gap: 18,
+  marginTop: 4,
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+};
+
+const legendItem: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 7,
+};
+
+const legendMark: React.CSSProperties = {
+  display: 'inline-block',
+  width: 18,
+  height: 4,
+  borderRadius: 99,
 };
 
 const sectionEyebrow: React.CSSProperties = {

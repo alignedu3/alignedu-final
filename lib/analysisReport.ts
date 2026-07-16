@@ -24,6 +24,8 @@ const STRUCTURED_SECTION_HEADINGS = [
   'WHAT CAN IMPROVE',
   'CONTENT GAPS TO REINFORCE',
   'RECOMMENDED NEXT STEP',
+  'NEXT-LESSON ACTION PLAN',
+  'ADMINISTRATOR COACHING PLAN',
   'INSTRUCTIONAL COACHING FEEDBACK',
   'TEXAS TEKS STANDARDS ALIGNMENT',
   'STAAR TEKS COVERAGE',
@@ -137,6 +139,8 @@ export function parseAnalysisResult(text: string): ReportSection[] {
     .replace(/===\s*WHAT CAN IMPROVE\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*CONTENT GAPS TO REINFORCE\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*RECOMMENDED NEXT STEP\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*NEXT-LESSON ACTION PLAN\s*===[\s\S]*?(?====|$)/gi, "")
+    .replace(/===\s*ADMINISTRATOR COACHING PLAN\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*INSTRUCTIONAL COACHING FEEDBACK\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*TEXAS TEKS STANDARDS ALIGNMENT\s*===[\s\S]*?(?====|$)/gi, "")
     .replace(/===\s*STAAR TEKS COVERAGE\s*===[\s\S]*?(?====|$)/gi, "")
@@ -223,12 +227,16 @@ export function parseFeedbackSections(text: string) {
   const higherEdTextMatch = normalized.match(/===\s*HIGHER ED TEXTBOOK ALIGNMENT\s*===([\s\S]*?)(?====|$)/i);
   const contentGapsMatch = normalized.match(/===\s*CONTENT GAPS TO REINFORCE\s*===([\s\S]*?)(?====|$)/i);
   const submissionContextMatch = normalized.match(/===\s*SUBMISSION CONTEXT\s*===([\s\S]*?)(?====|$)/i);
+  const teacherActionPlanMatch = normalized.match(/===\s*NEXT-LESSON ACTION PLAN\s*===([\s\S]*?)(?====|$)/i);
+  const administratorCoachingPlanMatch = normalized.match(/===\s*ADMINISTRATOR COACHING PLAN\s*===([\s\S]*?)(?====|$)/i);
 
   return {
     executiveSummary: extractSimpleSection(normalized, "EXECUTIVE SUMMARY"),
     whatWentWell: extractBulletSection(normalized, "WHAT WENT WELL"),
     whatCanImprove: extractBulletSection(normalized, "WHAT CAN IMPROVE"),
     recommendedNextStep: extractSimpleSection(normalized, "RECOMMENDED NEXT STEP"),
+    teacherActionPlan: teacherActionPlanMatch ? parseLabeledSection(teacherActionPlanMatch[1]) : [],
+    administratorCoachingPlan: administratorCoachingPlanMatch ? parseLabeledSection(administratorCoachingPlanMatch[1]) : [],
     contentGaps: contentGapsMatch ? parseLabeledSection(contentGapsMatch[1]) : parseLabeledSection(extractSimpleSection(normalized, "CONTENT GAPS TO REINFORCE")),
     coaching: coachingMatch ? parseLabeledSection(coachingMatch[1]) : [],
     teks: teksMatch ? parseLabeledSection(teksMatch[1]) : [],

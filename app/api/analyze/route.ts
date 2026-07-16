@@ -1572,6 +1572,20 @@ Provide a numbered list of the exact content misunderstandings, missing ideas, w
 === RECOMMENDED NEXT STEP ===
 Provide 1 short paragraph with the single highest-leverage next move for the teacher. Limit it to 2-3 sentences. It must directly address the most important weakness from this lesson and explain why it matters here without repeating the summary.
 
+=== NEXT-LESSON ACTION PLAN ===
+Turn the highest-leverage recommendation into a plan the teacher can use in the next class. Use exactly these labeled bullets:
+- Learning Target: one student-facing, measurable target tied to the observed need and selected standard or course objective when available.
+- Instructional Move: a concrete 5-15 minute teaching move, including what the teacher should say, ask, model, or have students do.
+- Check for Understanding: one fast task or question that produces observable evidence from every student, plus the expected evidence of success.
+- Response Plan: what to do next if students show mastery and what to do if they do not. Keep it feasible with ordinary classroom materials.
+
+=== ADMINISTRATOR COACHING PLAN ===
+Create a short evidence-based coaching conversation for an observer or instructional leader. Use exactly these labeled bullets:
+- Celebrate: one specific teacher move worth reinforcing, grounded in this lesson.
+- Ask: one non-leading reflection question tied to the highest-leverage need.
+- Commit: one small, observable action the teacher and administrator can agree to before the next observation.
+- Look For Next Time: the specific teacher and student evidence that would demonstrate improvement. Do not introduce personnel judgments or claims beyond this lesson.
+
 === INSTRUCTIONAL COACHING FEEDBACK ===
 Provide lesson-specific instructional coaching feedback using labeled bullets:
 - Key Findings: cite the most important observable patterns from this lesson.

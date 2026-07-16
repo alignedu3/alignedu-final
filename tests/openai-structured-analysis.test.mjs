@@ -105,3 +105,29 @@ test('empty content gaps normalize to the expected placeholder and zero-gap coun
     loaded.cleanup();
   }
 });
+
+test('role-specific action plans render as stable report sections', async () => {
+  const loaded = await loadStructuredAnalysisModule();
+  const mod = await loaded.module;
+  const fixture = loadFixture('staar-school.json');
+
+  try {
+    fixture.payload.teacherActionPlan = [
+      { label: 'Learning Target', content: 'Students will justify one answer with evidence.', bullets: [] },
+    ];
+    fixture.payload.administratorCoachingPlan = [
+      { label: 'Look For Next Time', content: 'Every student produces visible evidence.', bullets: [] },
+    ];
+
+    const rendered = mod.renderStructuredAnalysisToLegacyText(
+      mod.normalizeStructuredAnalysisPayload(fixture.payload)
+    );
+
+    assert.match(rendered, /=== NEXT-LESSON ACTION PLAN ===/);
+    assert.match(rendered, /- Learning Target: Students will justify one answer with evidence\./);
+    assert.match(rendered, /=== ADMINISTRATOR COACHING PLAN ===/);
+    assert.match(rendered, /- Look For Next Time: Every student produces visible evidence\./);
+  } finally {
+    loaded.cleanup();
+  }
+});

@@ -1311,6 +1311,12 @@ export default function AnalysisPage() {
   const suggestedNextStepsSection = findCoachingSection("Suggested Next Steps");
   const reportStrengths = feedbackSections.whatWentWell;
   const reportImprovements = feedbackSections.whatCanImprove;
+  const roleActionPlan = isAdminObservationMode
+    ? feedbackSections.administratorCoachingPlan
+    : feedbackSections.teacherActionPlan;
+  const roleActionPlanTitle = isAdminObservationMode
+    ? "Administrator Coaching Plan"
+    : "Your Next-Lesson Plan";
   const contentGapItems = feedbackSections.contentGaps.flatMap((section) => {
     if (section.bullets.length > 0) return section.bullets;
     return section.content
@@ -2220,6 +2226,40 @@ export default function AnalysisPage() {
                                 </ul>
                               ) : (
                                 <div style={reportPanelTextStyle}>{section.content}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {roleActionPlan.length > 0 && (
+                    <>
+                      <div style={reportSectionHeadingStyle}>{roleActionPlanTitle}</div>
+                      <div style={reportSectionPanelStyle}>
+                        <div style={reportStackStyle}>
+                          {roleActionPlan.map((section, index) => (
+                            <div
+                              key={`role-action-${index}`}
+                              style={{
+                                ...reportSectionRowStyle,
+                                borderBottom:
+                                  index === roleActionPlan.length - 1
+                                    ? 'none'
+                                    : reportSectionRowStyle.borderBottom,
+                              }}
+                            >
+                              <div style={reportPanelTitleStyle}>{section.title}</div>
+                              {section.content && (
+                                <div style={reportPanelTextStyle}>{section.content}</div>
+                              )}
+                              {section.bullets.length > 0 && (
+                                <ul style={reportPanelListStyle}>
+                                  {section.bullets.map((item, itemIndex) => (
+                                    <li key={itemIndex}>{item}</li>
+                                  ))}
+                                </ul>
                               )}
                             </div>
                           ))}

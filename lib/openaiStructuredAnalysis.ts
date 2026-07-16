@@ -20,6 +20,8 @@ type StructuredAnalysis = {
   whatCanImprove: string[];
   contentGapsToReinforce: string[];
   recommendedNextStep: string;
+  teacherActionPlan: LabeledSection[];
+  administratorCoachingPlan: LabeledSection[];
   instructionalCoachingFeedback: LabeledSection[];
   teksStandardsAlignment: LabeledSection[] | null;
   staarTeksCoverage: LabeledSection[] | null;
@@ -49,6 +51,8 @@ const STRUCTURED_ANALYSIS_SCHEMA = {
     "whatCanImprove",
     "contentGapsToReinforce",
     "recommendedNextStep",
+    "teacherActionPlan",
+    "administratorCoachingPlan",
     "instructionalCoachingFeedback",
     "teksStandardsAlignment",
     "staarTeksCoverage",
@@ -94,6 +98,36 @@ const STRUCTURED_ANALYSIS_SCHEMA = {
       items: { type: "string" },
     },
     recommendedNextStep: { type: "string" },
+    teacherActionPlan: {
+      type: "array",
+      minItems: 4,
+      maxItems: 4,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["label", "content", "bullets"],
+        properties: {
+          label: { type: "string" },
+          content: { type: "string" },
+          bullets: { type: "array", maxItems: 3, items: { type: "string" } },
+        },
+      },
+    },
+    administratorCoachingPlan: {
+      type: "array",
+      minItems: 4,
+      maxItems: 4,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["label", "content", "bullets"],
+        properties: {
+          label: { type: "string" },
+          content: { type: "string" },
+          bullets: { type: "array", maxItems: 3, items: { type: "string" } },
+        },
+      },
+    },
     instructionalCoachingFeedback: {
       type: "array",
       minItems: 4,
@@ -250,6 +284,8 @@ export function normalizeStructuredAnalysisPayload(payload: unknown): Structured
     whatCanImprove: cleanBullets(typed?.whatCanImprove, 5).slice(0, 3),
     contentGapsToReinforce: noGapPlaceholder,
     recommendedNextStep: cleanText(typed?.recommendedNextStep),
+    teacherActionPlan: cleanLabeledSections(typed?.teacherActionPlan, 4) || [],
+    administratorCoachingPlan: cleanLabeledSections(typed?.administratorCoachingPlan, 4) || [],
     instructionalCoachingFeedback: cleanLabeledSections(typed?.instructionalCoachingFeedback, 6) || [],
     teksStandardsAlignment: cleanLabeledSections(typed?.teksStandardsAlignment, 6),
     staarTeksCoverage: cleanLabeledSections(typed?.staarTeksCoverage, 5),
@@ -318,6 +354,8 @@ export function renderStructuredAnalysisToLegacyText(
     renderBulletSection("WHAT CAN IMPROVE", result.whatCanImprove),
     renderContentGaps(result.contentGapsToReinforce),
     renderSimpleSection("RECOMMENDED NEXT STEP", result.recommendedNextStep, "No next step recommendation returned."),
+    renderLabeledSection("NEXT-LESSON ACTION PLAN", result.teacherActionPlan),
+    renderLabeledSection("ADMINISTRATOR COACHING PLAN", result.administratorCoachingPlan),
     renderLabeledSection("INSTRUCTIONAL COACHING FEEDBACK", result.instructionalCoachingFeedback),
     renderLabeledSection("TEXAS TEKS STANDARDS ALIGNMENT", result.teksStandardsAlignment),
     renderLabeledSection("STAAR TEKS COVERAGE", result.staarTeksCoverage),

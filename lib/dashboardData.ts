@@ -504,6 +504,11 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     report.gaps > 0
       ? `${teacherDisplayName} should reteach the most important unfinished concept from this lesson, then end with a brief written or verbal check that shows whether students can explain it independently. This will tighten closure and make the next instructional move easier to plan.`
       : `${teacherDisplayName} should keep the strongest instructional move from this lesson and add one sharper mastery check before closure so students have to explain, apply, or justify their understanding before moving on.`;
+  const topic = report.title.toLowerCase();
+  const learningTarget = `Students will explain ${topic} using accurate biology vocabulary and justify their thinking with evidence from a new example.`;
+  const instructionalMove = `Begin with one contrasting example and think aloud through how the evidence connects to ${topic}. Then have pairs annotate a second example before each student writes an independent explanation.`;
+  const checkForUnderstanding = `Use a two-minute response from every student: “Explain the key relationship in ${topic} and cite one piece of evidence.” Success means the response uses the target vocabulary accurately and connects the evidence to the concept.`;
+  const responsePlan = `If most students meet both criteria, move to a transfer example. If they do not, group responses by misconception, model one revision, and have students correct their own explanation before continuing.`;
 
   return [
     'Metrics:',
@@ -528,6 +533,18 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     '',
     '=== RECOMMENDED NEXT STEP ===',
     recommendedNextStep,
+    '',
+    '=== NEXT-LESSON ACTION PLAN ===',
+    `- Learning Target: ${learningTarget}`,
+    `- Instructional Move: ${instructionalMove}`,
+    `- Check for Understanding: ${checkForUnderstanding}`,
+    `- Response Plan: ${responsePlan}`,
+    '',
+    '=== ADMINISTRATOR COACHING PLAN ===',
+    `- Celebrate: ${teacherDisplayName} created a clear entry point into ${topic} and invited students to make their thinking visible.`,
+    `- Ask: Where in this lesson did you get the clearest evidence of what every student understood, and what did that evidence lead you to do next?`,
+    `- Commit: Before the next observation, plan one all-student mastery check with two explicit success criteria and use the responses to choose the next instructional move.`,
+    `- Look For Next Time: The teacher names the success criteria, every student produces visible evidence, and the lesson response changes when that evidence shows a misconception.`,
     '',
     '=== TEXAS TEKS STANDARDS ALIGNMENT ===',
     '- Covered in the Lesson:',
@@ -959,6 +976,8 @@ export function getLessonReportSections(report: AnalysisReport): {
   teks: ReportSection[];
   staar: ReportSection[];
   higherEdAlignment: ReportSection[];
+  teacherActionPlan: ReportSection[];
+  administratorCoachingPlan: ReportSection[];
   submissionContext: ReportSection[];
 } {
   const parsed = parseFeedbackSections(getReportNarrative(report));
@@ -985,6 +1004,8 @@ export function getLessonReportSections(report: AnalysisReport): {
     teks: parsed.teks,
     staar: parsed.staar,
     higherEdAlignment: parsed.higherEdAlignment ?? [],
+    teacherActionPlan: parsed.teacherActionPlan ?? [],
+    administratorCoachingPlan: parsed.administratorCoachingPlan ?? [],
     submissionContext: parsed.submissionContext,
   };
 }
