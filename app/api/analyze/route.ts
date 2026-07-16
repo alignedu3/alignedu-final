@@ -268,6 +268,9 @@ type AnalysisWorkflowOutput = {
     openaiModel: string;
     openaiAttemptCount: number;
     promptVersion: string;
+    qualityScore: number;
+    qualityPassed: boolean;
+    qualityIssues: string[];
     usedFallback: boolean;
     fallbackReason: string | null;
   };
@@ -1303,6 +1306,9 @@ async function updateAnalysisJob(
     delete legacyCompatiblePatch.openai_fallback_used;
     delete legacyCompatiblePatch.openai_fallback_reason;
     delete legacyCompatiblePatch.prompt_version;
+    delete legacyCompatiblePatch.quality_score;
+    delete legacyCompatiblePatch.quality_passed;
+    delete legacyCompatiblePatch.quality_issues;
 
     const { error: retryError } = await serviceSupabase
       .from("analysis_jobs")
@@ -1485,6 +1491,9 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
         openaiModel: "reused_saved_analysis",
         openaiAttemptCount: 0,
         promptVersion: ANALYSIS_PROMPT_VERSION,
+        qualityScore: evaluateAnalysisQuality(finalResult).score,
+        qualityPassed: evaluateAnalysisQuality(finalResult).passed,
+        qualityIssues: evaluateAnalysisQuality(finalResult).issues,
         usedFallback: false,
         fallbackReason: null,
       },
@@ -2258,6 +2267,9 @@ ${transcript}`;
       openaiModel: generationDiagnostics?.model || REPAIR_MODEL,
       openaiAttemptCount: generationDiagnostics?.attemptCount || 1,
       promptVersion: ANALYSIS_PROMPT_VERSION,
+      qualityScore: qualityResult.score,
+      qualityPassed: qualityResult.passed,
+      qualityIssues: qualityResult.issues,
       usedFallback: !generationDiagnostics,
       fallbackReason,
     },
@@ -2304,6 +2316,9 @@ async function processAnalysisJob(
       openai_model: output.diagnostics.openaiModel,
       openai_attempt_count: output.diagnostics.openaiAttemptCount,
       prompt_version: output.diagnostics.promptVersion,
+      quality_score: output.diagnostics.qualityScore,
+      quality_passed: output.diagnostics.qualityPassed,
+      quality_issues: output.diagnostics.qualityIssues,
       openai_fallback_used: output.diagnostics.usedFallback,
       openai_fallback_reason: output.diagnostics.fallbackReason,
       error: null,

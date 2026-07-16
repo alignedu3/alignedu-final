@@ -96,6 +96,9 @@ export async function GET(
           usedFallback: Boolean(job.openai_fallback_used),
           fallbackReason: job.openai_fallback_reason || null,
           promptVersion: job.prompt_version || null,
+          qualityScore: typeof job.quality_score === "number" ? job.quality_score : null,
+          qualityPassed: typeof job.quality_passed === "boolean" ? job.quality_passed : null,
+          qualityIssues: Array.isArray(job.quality_issues) ? job.quality_issues : [],
         },
       },
     });

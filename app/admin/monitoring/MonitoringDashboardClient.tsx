@@ -222,6 +222,25 @@ type MonitoringPayload = {
     bandwidthSeries?: TrafficSeriesPoint[];
     diagnostics?: CloudflareDiagnostics;
   };
+  openaiAnalysis?: {
+    summary: {
+      totalJobs: number;
+      jobsLast7Days: number;
+      completedJobs: number;
+      failedJobs: number;
+      responsesRuns: number;
+      chatFallbackRuns: number;
+      fallbackRuns: number;
+      qualityCheckedJobs: number;
+      qualityPassedJobs: number;
+      qualityPassRate: number | null;
+      averageQualityScore: number | null;
+    };
+    topModels: Array<{ model: string; count: number }>;
+    promptVersions: Array<{ version: string; jobs: number; feedbackCount: number; averageRating: number | null }>;
+    commonQualityIssues: Array<{ issue: string; count: number }>;
+    diagnostics: { configured: boolean; configuredModel: string | null; detail: string; error: string | null };
+  };
 };
 
 const WINDOW_OPTIONS = [7, 14, 30] as const;
@@ -379,6 +398,7 @@ export default function MonitoringDashboard() {
   const requestSeries = payload?.httpTraffic?.requestSeries || [];
   const bandwidthSeries = payload?.httpTraffic?.bandwidthSeries || [];
   const trafficDiagnostics = payload?.httpTraffic?.diagnostics;
+  const aiQuality = payload?.openaiAnalysis;
   const callerName = payload?.caller?.name || 'Platform Monitoring';
   const syncGeneratedAt = payload?.sync?.generatedAt || null;
   const hasLiveTraffic = trafficCards.some((card) => card.status !== 'connect_required');
@@ -529,6 +549,68 @@ export default function MonitoringDashboard() {
                 <div style={alertSource}>{alert.source}</div>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section style={sectionCard}>
+          <div style={sectionHeader}>
+            <div>
+              <div style={sectionEyebrow}>AI Response Quality</div>
+              <h2 style={sectionTitle}>Grounding, Actionability, and Educator Usefulness</h2>
+            </div>
+          </div>
+          <p style={{ ...bodyText, marginTop: 0 }}>
+            Quality checks verify lesson evidence, complete teacher and administrator action plans, repeated language, and unsupported certainty before reports are saved.
+          </p>
+          <div style={statsGrid}>
+            <div style={statCard}>
+              <div style={statLabel}>Quality Pass Rate</div>
+              <div style={statValue}>{aiQuality?.summary.qualityPassRate != null ? `${aiQuality.summary.qualityPassRate}%` : '—'}</div>
+              <div style={{ ...statSub, marginTop: 10 }}>{aiQuality?.summary.qualityCheckedJobs || 0} checked reports</div>
+            </div>
+            <div style={statCard}>
+              <div style={statLabel}>Average Quality Score</div>
+              <div style={statValue}>{aiQuality?.summary.averageQualityScore != null ? `${aiQuality.summary.averageQualityScore}/100` : '—'}</div>
+              <div style={{ ...statSub, marginTop: 10 }}>Deterministic report-quality rubric</div>
+            </div>
+            <div style={statCard}>
+              <div style={statLabel}>Fallback Runs</div>
+              <div style={statValue}>{aiQuality?.summary.fallbackRuns || 0}</div>
+              <div style={{ ...statSub, marginTop: 10 }}>{aiQuality?.summary.totalJobs || 0} total analysis jobs</div>
+            </div>
+            <div style={statCard}>
+              <div style={statLabel}>Primary Model</div>
+              <div style={{ ...statValue, fontSize: 22 }}>{aiQuality?.topModels[0]?.model || '—'}</div>
+              <div style={{ ...statSub, marginTop: 10 }}>{aiQuality?.topModels[0]?.count || 0} recorded runs</div>
+            </div>
+          </div>
+
+          <div style={aiQualityGrid} className="monitoring-two-column">
+            <div style={readinessCard}>
+              <div style={readinessLabel}>Prompt Versions and Ratings</div>
+              <div style={{ ...statusList, marginTop: 12 }}>
+                {(aiQuality?.promptVersions || []).length ? aiQuality?.promptVersions.map((version) => (
+                  <div key={version.version} style={qualityRow}>
+                    <div>
+                      <div style={statusTitle}>{version.version}</div>
+                      <div style={statusMeta}>{version.jobs} jobs · {version.feedbackCount} educator ratings</div>
+                    </div>
+                    <div style={qualityValue}>{version.averageRating != null ? `${version.averageRating}/5` : 'No ratings'}</div>
+                  </div>
+                )) : <p style={readinessText}>Prompt-version telemetry will appear after new analyses run.</p>}
+              </div>
+            </div>
+            <div style={readinessCard}>
+              <div style={readinessLabel}>Most Common Quality Warnings</div>
+              <div style={{ ...statusList, marginTop: 12 }}>
+                {(aiQuality?.commonQualityIssues || []).length ? aiQuality?.commonQualityIssues.map((issue) => (
+                  <div key={issue.issue} style={qualityRow}>
+                    <div style={{ ...statusMeta, color: 'var(--text-primary)' }}>{issue.issue}</div>
+                    <div style={qualityIssueCount}>{issue.count}</div>
+                  </div>
+                )) : <p style={readinessText}>No persisted quality warnings are available yet.</p>}
+              </div>
+            </div>
           </div>
         </section>
 
@@ -1821,6 +1903,42 @@ const readinessGrid: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
   gap: 16,
+};
+
+const aiQualityGrid: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+  gap: 16,
+  marginTop: 16,
+};
+
+const qualityRow: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 14,
+  padding: '12px 0',
+  borderTop: '1px solid var(--border)',
+};
+
+const qualityValue: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontSize: 13,
+  fontWeight: 800,
+  whiteSpace: 'nowrap',
+};
+
+const qualityIssueCount: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minWidth: 32,
+  padding: '5px 8px',
+  borderRadius: 999,
+  background: 'rgba(245,158,11,0.14)',
+  color: '#b45309',
+  fontSize: 12,
+  fontWeight: 800,
 };
 
 const readinessCard: React.CSSProperties = {

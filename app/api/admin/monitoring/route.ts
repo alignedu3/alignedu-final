@@ -315,6 +315,9 @@ type AnalysisJobTelemetryRow = {
   openai_model?: string | null;
   openai_fallback_used?: boolean | null;
   prompt_version?: string | null;
+  quality_score?: number | null;
+  quality_passed?: boolean | null;
+  quality_issues?: unknown;
 };
 
 type AnalysisFeedbackTelemetryRow = {
@@ -332,9 +335,14 @@ type OpenAIAnalysisMonitoring = {
     responsesRuns: number;
     chatFallbackRuns: number;
     fallbackRuns: number;
+    qualityCheckedJobs: number;
+    qualityPassedJobs: number;
+    qualityPassRate: number | null;
+    averageQualityScore: number | null;
   };
   topModels: Array<{ model: string; count: number }>;
   promptVersions: Array<{ version: string; jobs: number; feedbackCount: number; averageRating: number | null }>;
+  commonQualityIssues: Array<{ issue: string; count: number }>;
   diagnostics: {
     configured: boolean;
     configuredModel: string | null;
@@ -515,6 +523,11 @@ function buildOpenAIAnalysisMonitoring(rows: AnalysisJobTelemetryRow[], error: s
   const topModelMap = new Map<string, number>();
   const feedbackByAnalysisId = new Map(analyses.filter((item) => item.id).map((item) => [item.id as string, item]));
   const promptVersionMap = new Map<string, { jobs: number; ratings: number[] }>();
+  const qualityRows = rows.filter((row) => typeof row.quality_passed === 'boolean');
+  const qualityScores = rows
+    .map((row) => row.quality_score)
+    .filter((score): score is number => typeof score === 'number' && Number.isFinite(score));
+  const qualityIssueMap = new Map<string, number>();
   for (const row of rows) {
     const model = typeof row.openai_model === 'string' && row.openai_model.trim()
       ? row.openai_model.trim()
@@ -527,6 +540,12 @@ function buildOpenAIAnalysisMonitoring(rows: AnalysisJobTelemetryRow[], error: s
     if (typeof feedback?.teacher_feedback_rating === 'number') versionStats.ratings.push(feedback.teacher_feedback_rating);
     if (typeof feedback?.admin_feedback_rating === 'number') versionStats.ratings.push(feedback.admin_feedback_rating);
     promptVersionMap.set(version, versionStats);
+    if (Array.isArray(row.quality_issues)) {
+      row.quality_issues.forEach((issue) => {
+        if (typeof issue !== 'string' || !issue.trim()) return;
+        qualityIssueMap.set(issue.trim(), (qualityIssueMap.get(issue.trim()) || 0) + 1);
+      });
+    }
   }
 
   return {
@@ -538,6 +557,14 @@ function buildOpenAIAnalysisMonitoring(rows: AnalysisJobTelemetryRow[], error: s
       responsesRuns: rows.filter((row) => row.openai_api_path === 'responses').length,
       chatFallbackRuns: rows.filter((row) => row.openai_api_path === 'chat_completions').length,
       fallbackRuns: rows.filter((row) => Boolean(row.openai_fallback_used)).length,
+      qualityCheckedJobs: qualityRows.length,
+      qualityPassedJobs: qualityRows.filter((row) => row.quality_passed).length,
+      qualityPassRate: qualityRows.length
+        ? Math.round((qualityRows.filter((row) => row.quality_passed).length / qualityRows.length) * 100)
+        : null,
+      averageQualityScore: qualityScores.length
+        ? Math.round(qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length)
+        : null,
     },
     topModels: Array.from(topModelMap.entries())
       .sort((a, b) => b[1] - a[1])
@@ -553,6 +580,10 @@ function buildOpenAIAnalysisMonitoring(rows: AnalysisJobTelemetryRow[], error: s
           ? Math.round((stats.ratings.reduce((sum, rating) => sum + rating, 0) / stats.ratings.length) * 10) / 10
           : null,
       })),
+    commonQualityIssues: Array.from(qualityIssueMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([issue, count]) => ({ issue, count })),
     diagnostics: {
       configured: Boolean(process.env.OPENAI_API_KEY),
       configuredModel: process.env.OPENAI_ANALYSIS_MODEL?.trim() || null,
