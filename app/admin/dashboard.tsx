@@ -23,6 +23,8 @@ import {
 } from 'recharts';
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
+import GettingStartedChecklist from '@/components/GettingStartedChecklist';
+import NotificationCenter from '@/components/NotificationCenter';
 
 type TrendTerm = 'full_year' | 'fall' | 'spring';
 const TEAM_AVERAGE_KEY = 'Team Average';
@@ -83,6 +85,7 @@ export default function AdminDashboard() {
   const [selectedSchoolYear, setSelectedSchoolYear] = useState<string>('');
   const [selectedTrendTerm, setSelectedTrendTerm] = useState<TrendTerm>('full_year');
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const [performanceSearch, setPerformanceSearch] = useState('');
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedAdminId = searchParams ? searchParams.get('adminId') : null;
@@ -587,6 +590,9 @@ export default function AdminDashboard() {
 
   const strongCount = teacherStats.filter(t => !t.needsAttention).length;
   const supportCount = teacherStats.filter(t => t.needsAttention).length;
+  const visibleTeacherStats = teacherStats.filter((teacher) =>
+    teacher.name.toLowerCase().includes(performanceSearch.trim().toLowerCase())
+  );
 
   // Average of each teacher's average — every teacher contributes equally
   const adminQualityScore = teacherStats.length
@@ -664,6 +670,7 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div style={actions}>
+            <NotificationCenter />
             {canAccessSuperAdminTools && (
               <button onClick={handleOpenMonitoringDashboard} style={headerActionBtnAlt}>
                 Monitoring Dashboard
@@ -679,6 +686,8 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
+
+        {!isViewingAnotherAdmin && <GettingStartedChecklist role="admin" />}
 
         {loadError && (
           <div style={{ ...card, marginBottom: 12, border: '1px solid rgba(248,113,113,0.28)' }}>
@@ -980,7 +989,10 @@ export default function AdminDashboard() {
         </div>
 
         <div style={card}>
-          <h2 style={title}>Teacher Performance</h2>
+          <div style={trendHeader}>
+            <div><div style={sectionEyebrow}>Search and Compare</div><h2 style={title}>Teacher Performance</h2></div>
+            <input value={performanceSearch} onChange={(event) => setPerformanceSearch(event.target.value)} placeholder="Search teachers" aria-label="Search teachers" style={dashboardSearchInput} />
+          </div>
           <div
             className="table-scroll-wrap"
             style={isNarrowScreen ? { overflowX: 'hidden', border: '1px solid var(--border)', borderRadius: 10, padding: '4px 6px', background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.05) 100%)' } : undefined}
@@ -995,7 +1007,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {teacherStats.map((t, i) => (
+                {visibleTeacherStats.map((t, i) => (
                   <tr key={i}>
                     <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding }}>{t.name}</td>
                     <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding }}>{t.avgScore}/100</td>
@@ -1514,6 +1526,7 @@ const priorityMeta: React.CSSProperties = { color: 'var(--text-secondary)', font
 const priorityTrend: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 66, padding: '7px 10px', borderRadius: 999, color: '#c2410c', background: 'rgba(249,115,22,0.10)', border: '1px solid rgba(249,115,22,0.18)', fontSize: 12, fontWeight: 800 };
 const trendCard: React.CSSProperties = { overflow: 'hidden' };
 const teamAverageLegend: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 10px', borderRadius: 999, background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.20)' };
+const dashboardSearchInput: React.CSSProperties = { minWidth: 220, padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 13 };
 const hierarchyCard: React.CSSProperties = { border: '1px solid rgba(148,163,184,0.18)', borderRadius: 16, padding: 18, marginBottom: 14, background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, var(--surface-chip) 100%)', boxShadow: '0 18px 36px rgba(15,23,42,0.06)' };
 const hierarchyCardActive: React.CSSProperties = { border: '1px solid rgba(249,115,22,0.28)', boxShadow: '0 18px 40px rgba(249,115,22,0.12)' };
 const hierarchyHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap', marginBottom: 16 };

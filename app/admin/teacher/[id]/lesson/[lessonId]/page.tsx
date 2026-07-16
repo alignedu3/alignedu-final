@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { buildSampleAnalysisReports, calculateLessonScoreFromMetrics, getLessonInsights, getLessonMetrics, getLessonReportSections, getReportNarrative, getTEKSCoverageInsights, SAMPLE_TEACHER_IDS, type AnalysisReport, type ProfileRecord } from "@/lib/dashboardData";
 import { cleanDisplayText, extractSectionText, extractStandardEntries, normalizeStructuredReportText } from "@/lib/analysisReport";
 import ProtectedPageState from "@/components/ProtectedPageState";
+import CoachingReminder from "@/components/CoachingReminder";
 
 function buildEditableAnalysisText(report: AnalysisReport) {
   const narrative = getReportNarrative(report);
@@ -480,6 +481,7 @@ export default function LessonReportPage() {
         <div style={{ ...sectionCard, ...nextStepSectionCard }}>
           <h2 style={sectionTitle}>Recommended Next Step</h2>
           <p style={bodyText}>{reportSections.recommendedNextStep}</p>
+          <CoachingReminder lessonId={String(lesson.id)} teacherName={teacher?.name || 'Teacher'} lessonTitle={lesson.title || 'Lesson'} />
         </div>
 
         {lesson.teacher_feedback && (

@@ -34,6 +34,8 @@ const emptyAnalysisMetrics: AnalysisMetricsState = {
 };
 
 const ACTIVE_ANALYSIS_JOB_KEY = "active-analysis-job-id";
+const TEACHER_DRAFT_KEY = "alignedu-lesson-draft-v1";
+const ADMIN_DRAFT_KEY = "alignedu-observation-draft-v1";
 
 function formatDurationLabel(totalSeconds: number | null) {
   if (!totalSeconds || totalSeconds <= 0) return "Less than a minute";
@@ -462,6 +464,8 @@ export default function AnalysisPage() {
   const [observerReady, setObserverReady] = useState(!isAdminObservationMode);
   const [observedTeacherId, setObservedTeacherId] = useState("");
   const [observedTeachers, setObservedTeachers] = useState<Array<{ id: string; name: string }>>([]);
+  const [draftHydrated, setDraftHydrated] = useState(false);
+  const [draftNotice, setDraftNotice] = useState("");
   const dragCounterRef = useRef(0);
 
   const gradeOptions = [
@@ -512,6 +516,50 @@ export default function AnalysisPage() {
   const higherEdBiologyChapterOptions = Array.from({ length: 56 }, (_, index) => `Chapter ${index + 1}`);
   const higherEdChapterOptions = Array.from({ length: 40 }, (_, index) => `Chapter ${index + 1}`);
   const matchedBiologyObjectives = isHigherEdBiology ? getHigherEdBiologyObjectivesForChapter(chapter) : [];
+
+  useEffect(() => {
+    const key = isAdminObservationMode ? ADMIN_DRAFT_KEY : TEACHER_DRAFT_KEY;
+    try {
+      const saved = window.localStorage.getItem(key);
+      if (saved) {
+        const draft = JSON.parse(saved) as Partial<{
+          grade: string; subject: string; book: string; chapter: string; lessonNotes: string; observedTeacherId: string;
+        }>;
+        setGrade(draft.grade || "");
+        setSubject(draft.subject || "");
+        setBook(draft.book || "");
+        setChapter(draft.chapter || "");
+        setLessonNotes(draft.lessonNotes || "");
+        if (isAdminObservationMode) setObservedTeacherId(draft.observedTeacherId || "");
+        if (draft.grade || draft.subject || draft.lessonNotes) setDraftNotice("Your saved draft was restored on this device.");
+      }
+    } catch {
+      window.localStorage.removeItem(key);
+    } finally {
+      setDraftHydrated(true);
+    }
+  }, [isAdminObservationMode]);
+
+  useEffect(() => {
+    if (!draftHydrated || result) return;
+    const key = isAdminObservationMode ? ADMIN_DRAFT_KEY : TEACHER_DRAFT_KEY;
+    const timer = window.setTimeout(() => {
+      const hasDraft = Boolean(grade || subject || book || chapter || lessonNotes || observedTeacherId);
+      if (!hasDraft) {
+        window.localStorage.removeItem(key);
+        return;
+      }
+      window.localStorage.setItem(key, JSON.stringify({ grade, subject, book, chapter, lessonNotes, observedTeacherId }));
+      setDraftNotice("Draft saved on this device.");
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [book, chapter, draftHydrated, grade, isAdminObservationMode, lessonNotes, observedTeacherId, result, subject]);
+
+  useEffect(() => {
+    if (!result) return;
+    window.localStorage.removeItem(isAdminObservationMode ? ADMIN_DRAFT_KEY : TEACHER_DRAFT_KEY);
+    setDraftNotice("");
+  }, [isAdminObservationMode, result]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1665,17 +1713,42 @@ export default function AnalysisPage() {
   };
 
   return (
-    <main className="analysis-wrapper">
+    <main className={`analysis-wrapper${isAdminObservationMode ? ' admin-observation-page' : ''}`}>
       <div className="analysis-container">
         <div className="analysis-header">
-          <span className="analysis-badge">{isAdminObservationMode ? 'Administrator Observation' : 'Lesson Review'}</span>
-          <h1 className="analysis-title">{isAdminObservationMode ? 'Observation Report Builder' : 'Instructional Review'}</h1>
-          <p className="analysis-subtitle">
-            {isAdminObservationMode
-              ? 'Create a clear observation report for school and district leaders, with coaching priorities and standards alignment in one place.'
-              : 'Generate a clean coaching report with clear strengths, priority moves, and standards-aligned feedback teachers can act on quickly.'}
-          </p>
+          <div>
+            <span className="analysis-badge">{isAdminObservationMode ? 'Instructional Leadership' : 'Lesson Review'}</span>
+            <h1 className="analysis-title">{isAdminObservationMode ? 'Observe a Lesson' : 'Instructional Review'}</h1>
+            <p className="analysis-subtitle">
+              {isAdminObservationMode
+                ? 'Capture lesson evidence and turn it into a focused coaching conversation, standards review, and next-observation plan.'
+                : 'Generate a clean coaching report with clear strengths, priority moves, and standards-aligned feedback teachers can act on quickly.'}
+            </p>
+          </div>
+          {isAdminObservationMode && (
+            <button type="button" className="analysis-back-button" onClick={() => router.push('/admin')}>
+              Back to Administrator Dashboard
+            </button>
+          )}
         </div>
+
+        {isAdminObservationMode && (
+          <div className="observation-step-grid" aria-label="Observation workflow">
+            <div className="observation-step-card">
+              <span className="observation-step-number">1</span>
+              <div><strong>Select context</strong><p>Choose the teacher, grade, subject, and instructional target.</p></div>
+            </div>
+            <div className="observation-step-card">
+              <span className="observation-step-number">2</span>
+              <div><strong>Capture evidence</strong><p>Record live, upload audio, or enter observation notes.</p></div>
+            </div>
+            <div className="observation-step-card">
+              <span className="observation-step-number">3</span>
+              <div><strong>Coach forward</strong><p>Review grounded findings, action steps, and next look-fors.</p></div>
+            </div>
+          </div>
+        )}
+        {draftNotice && !result && <div className="analysis-draft-notice">{draftNotice}</div>}
 
         <div className="analysis-shell">
           <div className="analysis-panel-grid">
@@ -2014,7 +2087,7 @@ export default function AnalysisPage() {
           </div>
 
           {result && (
-            <section style={resultCardStyle}>
+            <section style={resultCardStyle} className="analysis-report-print">
               <div style={reportBannerStyle}>
                 <div style={reportIntroStyle}>
                   <div style={reportHeadingStyle}>Lesson Review</div>
@@ -2023,6 +2096,9 @@ export default function AnalysisPage() {
                   </div>
                 </div>
                 <div style={reportChipRowStyle}>
+                  <button type="button" className="analysis-print-button" onClick={() => window.print()}>
+                    Print / Save PDF
+                  </button>
                   {grade && <div style={reportChipStyle}>{grade}</div>}
                   {subject && <div style={reportChipStyle}>{subject}</div>}
                   <div style={{ ...reportChipStyle, color: scoreBand.tone, borderColor: `${scoreBand.tone}33` }}>

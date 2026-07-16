@@ -8,6 +8,7 @@ import { extractSectionText, extractStandardEntries } from '@/lib/analysisReport
 import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 import ProtectedPageState from '@/components/ProtectedPageState';
+import GettingStartedChecklist from '@/components/GettingStartedChecklist';
 
 export default function TeacherDashboard() {
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
@@ -26,6 +27,7 @@ export default function TeacherDashboard() {
   const [teacherFeedbackDraft, setTeacherFeedbackDraft] = useState('');
   const [teacherFeedbackRating, setTeacherFeedbackRating] = useState<number>(5);
   const [savingTeacherFeedbackId, setSavingTeacherFeedbackId] = useState<string | null>(null);
+  const [lessonSearch, setLessonSearch] = useState('');
   const selectedLessonRef = useRef<HTMLDivElement | null>(null);
 
   const pushToast = useCallback((message: string, tone: ToastItem['tone'] = 'info') => {
@@ -481,6 +483,8 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
+        <GettingStartedChecklist role="teacher" />
+
         {loadError && (
           <div style={{ ...card, marginBottom: 12, border: '1px solid rgba(248,113,113,0.28)' }}>
             <p style={{ ...text, margin: 0 }}>{loadError}</p>
@@ -708,7 +712,10 @@ export default function TeacherDashboard() {
         </div>
 
         <div style={card}>
-          <h2 style={cardTitle}>Lessons</h2>
+          <div style={lessonSearchHeader}>
+            <h2 style={cardTitle}>Lessons</h2>
+            <input value={lessonSearch} onChange={(event) => setLessonSearch(event.target.value)} placeholder="Search lessons" aria-label="Search lessons" style={lessonSearchInput} />
+          </div>
 
           {reports.length === 0 ? (
             <p style={emptyState}>
@@ -730,7 +737,7 @@ export default function TeacherDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {pagedReports.map((r, i) => {
+                    {pagedReports.filter((report) => getReportDisplayLabel(report).toLowerCase().includes(lessonSearch.trim().toLowerCase())).map((r, i) => {
                       const score = getLessonMetrics(r).score;
                       const absoluteIndex = (lessonsPage - 1) * lessonsPerPage + i;
                       const previous = reports[absoluteIndex + 1];
@@ -1360,6 +1367,8 @@ const trendHeader: React.CSSProperties = { display: 'flex', justifyContent: 'spa
 const trendChangePill: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, padding: '9px 13px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface-chip)', fontSize: 14 };
 const trendChangeLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 800 };
 const chartTooltip: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-soft)' };
+const lessonSearchHeader: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' };
+const lessonSearchInput: React.CSSProperties = { minWidth: 210, padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 13 };
 
 const analysisSummaryLayout: React.CSSProperties = {
   display: 'grid',

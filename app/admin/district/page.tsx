@@ -37,6 +37,8 @@ export default function DistrictDashboard() {
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
+  const [rosterSearch, setRosterSearch] = useState('');
+  const [supportFilter, setSupportFilter] = useState<'All' | 'Priority' | 'Monitor' | 'Stable' | 'No Data'>('All');
   const router = useRouter();
 
   useEffect(() => {
@@ -206,6 +208,10 @@ export default function DistrictDashboard() {
     })
     .slice(0, 3);
   const priorityTeachers = teacherStats.filter((teacher) => teacher.lessons > 0 && teacher.supportLevel === 'Priority').slice(0, 5);
+  const filteredTeacherStats = teacherStats.filter((teacher) => {
+    const matchesSearch = teacher.name.toLowerCase().includes(rosterSearch.trim().toLowerCase());
+    return matchesSearch && (supportFilter === 'All' || teacher.supportLevel === supportFilter);
+  });
 
   if (!ready) {
     return (
@@ -382,8 +388,15 @@ export default function DistrictDashboard() {
         </div>
 
         <section style={card}>
-          <div style={sectionEyebrow}>District Roster</div>
-          <h2 style={title}>Teacher Performance Snapshot</h2>
+          <div style={chartHeader}>
+            <div><div style={sectionEyebrow}>District Roster</div><h2 style={title}>Teacher Performance Snapshot</h2></div>
+            <div style={filterRow}>
+              <input value={rosterSearch} onChange={(event) => setRosterSearch(event.target.value)} placeholder="Search teachers" aria-label="Search district teachers" style={filterInput} />
+              <select value={supportFilter} onChange={(event) => setSupportFilter(event.target.value as typeof supportFilter)} aria-label="Filter by support level" style={filterInput}>
+                {['All', 'Priority', 'Monitor', 'Stable', 'No Data'].map((option) => <option key={option}>{option}</option>)}
+              </select>
+            </div>
+          </div>
           <div style={tableWrap}>
             <table style={table}>
               <thead>
@@ -397,7 +410,7 @@ export default function DistrictDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {teacherStats.map((teacher) => (
+                {filteredTeacherStats.map((teacher) => (
                   <tr key={teacher.id}>
                     <td style={tdStrong}>{teacher.name}</td>
                     <td style={td}>{teacher.lessons}</td>
@@ -643,6 +656,8 @@ const legendMark: React.CSSProperties = {
   height: 4,
   borderRadius: 99,
 };
+const filterRow: React.CSSProperties = { display: 'flex', gap: 8, flexWrap: 'wrap' };
+const filterInput: React.CSSProperties = { padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 13 };
 
 const sectionEyebrow: React.CSSProperties = {
   color: '#0f766e',
