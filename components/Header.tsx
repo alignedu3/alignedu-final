@@ -321,22 +321,6 @@ export default function Header() {
                         Administrator Dashboard
                       </Link>
 
-                      <Link
-                        href="/admin/observe"
-                        style={dropdownItem}
-                        onClick={() => setOpen(false)}
-                      >
-                        Observe Lesson
-                      </Link>
-
-                      <Link
-                        href="/admin/invite"
-                        style={dropdownItem}
-                        onClick={() => setOpen(false)}
-                      >
-                        Add User
-                      </Link>
-
                       {isSuperAdmin && (
                         <>
                           <Link
@@ -356,15 +340,16 @@ export default function Header() {
                           </Link>
                         </>
                       )}
+
+                      <Link href="/admin/observe" style={dropdownItem} onClick={() => setOpen(false)}>
+                        Observe Lesson
+                      </Link>
+
+                      <Link href="/admin/invite" style={dropdownItem} onClick={() => setOpen(false)}>
+                        Add User
+                      </Link>
                     </>
                   )}
-
-                  <InstallAppButton
-                    context="menu"
-                    label="Download App"
-                    className="header-dropdown-install-btn"
-                    onPress={() => setOpen(false)}
-                  />
 
                   <Link
                     href="/reset-password"
@@ -373,6 +358,13 @@ export default function Header() {
                   >
                     Change Password
                   </Link>
+
+                  <InstallAppButton
+                    context="menu"
+                    label="Download App"
+                    className="header-dropdown-install-btn"
+                    onPress={() => setOpen(false)}
+                  />
 
                   <button
                     onClick={handleLogout}
@@ -435,12 +427,6 @@ export default function Header() {
                 <Link href="/dashboard" className="mobile-nav-link" onClick={handleHeaderNavigation('/dashboard')}>
                   Teacher Dashboard
                 </Link>
-                <InstallAppButton
-                  context="mobile"
-                  label="Download App"
-                  className="mobile-nav-link mobile-nav-install-btn"
-                  onPress={() => setMobileOpen(false)}
-                />
                 {!isAdminUser && (
                   <Link href="/analyze" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                     Analyze Lesson
@@ -451,13 +437,6 @@ export default function Header() {
                     <Link href="/admin" className="mobile-nav-link" onClick={handleHeaderNavigation('/admin')}>
                       Administrator Dashboard
                     </Link>
-                    <Link href="/admin/observe" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
-                      Observe Lesson
-                    </Link>
-                    <Link href="/admin/invite" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
-                      Add User
-                    </Link>
-
                     {isSuperAdmin && (
                       <>
                         <Link href="/admin/district" className="mobile-nav-link" onClick={handleHeaderNavigation('/admin/district')}>
@@ -468,11 +447,23 @@ export default function Header() {
                         </Link>
                       </>
                     )}
+                    <Link href="/admin/observe" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                      Observe Lesson
+                    </Link>
+                    <Link href="/admin/invite" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
+                      Add User
+                    </Link>
                   </>
                 )}
                 <Link href="/reset-password" className="mobile-nav-link" onClick={() => setMobileOpen(false)}>
                   Change Password
                 </Link>
+                <InstallAppButton
+                  context="mobile"
+                  label="Download App"
+                  className="mobile-nav-link mobile-nav-install-btn"
+                  onPress={() => setMobileOpen(false)}
+                />
                 <button
                   type="button"
                   className="mobile-nav-link mobile-nav-logout"
@@ -512,7 +503,7 @@ const dropdown: React.CSSProperties = {
   borderRadius: 12,
   border: '1px solid var(--border)',
   boxShadow: 'var(--shadow-card)',
-  minWidth: 170,
+  minWidth: 235,
   overflow: 'hidden',
   zIndex: 1000
 };
@@ -528,4 +519,5 @@ const dropdownItem: React.CSSProperties = {
   textAlign: 'left',
   cursor: 'pointer',
   fontSize: 15,
+  whiteSpace: 'nowrap',
 };
