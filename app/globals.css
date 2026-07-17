@@ -705,6 +705,68 @@ button:disabled {
   cursor: pointer;
 }
 
+.document-upload-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 16px;
+  background: var(--surface-chip);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.document-upload-card:hover {
+  border-color: #f97316;
+  background: rgba(249, 115, 22, 0.06);
+}
+
+.document-upload-card.drag-active {
+  border-color: #f97316;
+  border-style: solid;
+  background: rgba(249, 115, 22, 0.12);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.10);
+}
+
+.document-upload-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: rgba(249, 115, 22, 0.14);
+  color: #ea580c;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.document-upload-card strong {
+  color: var(--text-primary);
+  font-size: 14px;
+  word-break: break-word;
+}
+
+.document-upload-card p {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 4px 0 0;
+}
+
+.document-remove-button {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: #dc2626;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 @media print {
   .analysis-wrapper .analysis-header,
   .analysis-wrapper .observation-step-grid,

@@ -247,6 +247,7 @@ export default function AnalysisPage() {
     const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
     const [recorderStatus, setRecorderStatus] = useState("");
     const uploadInputRef = useRef<HTMLInputElement>(null);
+    const documentInputRef = useRef<HTMLInputElement>(null);
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const recordingStreamRef = useRef<MediaStream | null>(null);
     const recordedChunksRef = useRef<Blob[]>([]);
@@ -320,6 +321,8 @@ export default function AnalysisPage() {
             finalizeRecordedChunks(chunks);
             if (wasStoppedForBackgroundRef.current) {
               setRecorderStatus("Recording auto-saved after phone lock or app background.");
+            } else {
+              setRecorderStatus("Recording saved and ready to analyze.");
             }
           }
 
@@ -362,7 +365,7 @@ export default function AnalysisPage() {
     const stopRecording = () => {
       const recorder = mediaRecorderRef.current;
       if (recorder && (recorder.state === "recording" || recorder.state === "paused")) {
-        shouldAutoSaveOnStopRef.current = false;
+        shouldAutoSaveOnStopRef.current = true;
         wasStoppedForBackgroundRef.current = false;
         try {
           recorder.requestData();
@@ -370,16 +373,8 @@ export default function AnalysisPage() {
           // requestData can fail on some browsers; stop() still finalizes recording.
         }
         recorder.stop();
-        setRecorderStatus("Recording stopped. Save when ready.");
+        setRecorderStatus("Stopping and saving recording...");
       }
-    };
-
-    // Save recording as file
-    const saveRecording = () => {
-      const chunks = [...recordedChunksRef.current];
-      if (chunks.length === 0) return;
-      finalizeRecordedChunks(chunks);
-      setRecorderStatus("Recording saved to audio upload.");
     };
 
     useEffect(() => {
@@ -449,6 +444,11 @@ export default function AnalysisPage() {
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
+  const [documentText, setDocumentText] = useState("");
+  const [documentStatus, setDocumentStatus] = useState("");
+  const [documentLoading, setDocumentLoading] = useState(false);
+  const [documentDragActive, setDocumentDragActive] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [processingStep, setProcessingStep] = useState("");
@@ -1491,6 +1491,39 @@ export default function AnalysisPage() {
     uploadInputRef.current.click();
   };
 
+  const handleDocumentChange = async (file: File | null) => {
+    setDocumentFile(file);
+    setDocumentText("");
+    setDocumentStatus("");
+    setError("");
+    if (!file) return;
+    if (file.size > 15 * 1024 * 1024) {
+      setError("Documents must be 15 MB or smaller.");
+      setDocumentFile(null);
+      return;
+    }
+
+    setDocumentLoading(true);
+    setDocumentStatus("Reading document...");
+    try {
+      const body = new FormData();
+      body.append("file", file);
+      const response = await fetch("/api/extract-document", { method: "POST", body });
+      const data = await response.json().catch(() => null);
+      if (!response.ok || !data?.success || typeof data.text !== "string") {
+        throw new Error(data?.error || "Unable to read this document.");
+      }
+      setDocumentText(data.text);
+      setDocumentStatus(`Ready · ${data.text.length.toLocaleString()} characters extracted`);
+    } catch (documentError) {
+      setDocumentFile(null);
+      setDocumentStatus("");
+      setError(documentError instanceof Error ? documentError.message : "Unable to read this document.");
+    } finally {
+      setDocumentLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isAdminObservationMode) {
       setObserverReady(true);
@@ -1563,8 +1596,24 @@ export default function AnalysisPage() {
 
   const handleSubmit = async () => {
     try {
+      if (isRecording) {
+        setError('Stop the recording before starting analysis. Your recording will save automatically.');
+        return;
+      }
       if (isAdminObservationMode && !observedTeacherId) {
         setError('Select a teacher to continue.');
+        return;
+      }
+      if (isAdminObservationMode && !subject.trim()) {
+        setError('Select a subject before analyzing this observation.');
+        return;
+      }
+      if (!lessonNotes.trim() && !audioFile && !documentText) {
+        setError('Record or upload lesson audio, enter notes, or upload a document before starting analysis.');
+        return;
+      }
+      if (documentLoading) {
+        setError('Wait for the document to finish processing before starting analysis.');
         return;
       }
 
@@ -1589,7 +1638,10 @@ export default function AnalysisPage() {
         return;
       }
 
-      const transcriptText = lessonNotes.trim();
+      const transcriptText = [
+        lessonNotes.trim(),
+        documentText ? `Uploaded document (${documentFile?.name || "document"}):\n${documentText}` : "",
+      ].filter(Boolean).join("\n\n");
       let audioChunksForAnalysis: File[] = [];
       let nextEstimatedChunkCount = 1;
 
@@ -1883,6 +1935,49 @@ export default function AnalysisPage() {
               </div>
 
               <div className="analysis-field-group">
+                <label className="analysis-label">Lesson Document <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>(audio not required)</span></label>
+                <div
+                  className={`document-upload-card${documentDragActive ? ' drag-active' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => documentInputRef.current?.click()}
+                  onDragEnter={(event) => { event.preventDefault(); event.stopPropagation(); setDocumentDragActive(true); }}
+                  onDragOver={(event) => { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = 'copy'; setDocumentDragActive(true); }}
+                  onDragLeave={(event) => { event.preventDefault(); event.stopPropagation(); setDocumentDragActive(false); }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setDocumentDragActive(false);
+                    void handleDocumentChange(event.dataTransfer.files?.[0] || null);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      documentInputRef.current?.click();
+                    }
+                  }}
+                >
+                  <input
+                    ref={documentInputRef}
+                    type="file"
+                    accept=".pdf,.docx,.txt,.md,.csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,text/csv"
+                    style={{ display: 'none' }}
+                    onChange={(event) => void handleDocumentChange(event.target.files?.[0] || null)}
+                  />
+                  <div className="document-upload-icon">DOC</div>
+                  <div>
+                    <strong>{documentFile ? documentFile.name : documentDragActive ? 'Drop document here' : 'Drag and drop or click to upload'}</strong>
+                    <p>{documentStatus || 'Analyze this document by itself, or combine it with notes/audio · Max 15 MB'}</p>
+                  </div>
+                </div>
+                {documentFile && !documentLoading && (
+                  <button type="button" className="document-remove-button" onClick={() => { setDocumentFile(null); setDocumentText(""); setDocumentStatus(""); if (documentInputRef.current) documentInputRef.current.value = ""; }}>
+                    Remove document
+                  </button>
+                )}
+              </div>
+
+              <div className="analysis-field-group">
                 <label className="analysis-label">Audio Upload</label>
                 {isPremium && (
                   <div style={recorderCardStyle}>
@@ -1923,14 +2018,6 @@ export default function AnalysisPage() {
                         style={{ ...recorderBtnBaseStyle, background: '#ef4444', cursor: !isRecording ? 'not-allowed' : 'pointer' }}
                       >
                         Stop
-                      </button>
-                      <button
-                        type="button"
-                        onClick={saveRecording}
-                        disabled={isRecording || recordedChunks.length === 0}
-                        style={{ ...recorderBtnBaseStyle, background: '#f97316', cursor: (isRecording || recordedChunks.length === 0) ? 'not-allowed' : 'pointer' }}
-                      >
-                        Save
                       </button>
                     </div>
 
@@ -2027,7 +2114,7 @@ export default function AnalysisPage() {
                   <button
                     className="analyze-btn"
                     onClick={handleSubmit}
-                    disabled={loading || (isAdminObservationMode && (!observerReady || !observedTeacherId || !subject.trim()))}
+                    disabled={loading || isRecording || documentLoading}
                     style={loading ? analyzeButtonLoadingStyle : analyzeButtonIdleStyle}
                   >
                     {loading ? (
@@ -2056,7 +2143,7 @@ export default function AnalysisPage() {
                         </span>
                       </span>
                     ) : (
-                      "Analyze Lesson"
+                      isRecording ? "Stop Recording to Analyze" : "Analyze Lesson"
                     )}
                   </button>
                   {loading && activeJobId && (
