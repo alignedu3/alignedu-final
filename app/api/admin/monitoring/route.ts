@@ -1299,24 +1299,12 @@ function buildMonitoringAlerts(args: {
   }
 
   if (args.cloudflareTraffic.connected) {
-    const cacheRatioCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'cache-hit-ratio');
-    const cachedBandwidthCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'cached-bandwidth-ratio');
     const threatsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'threats-blocked');
     const unexpectedClientErrorsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'unexpected-client-errors');
     const serverErrorsCard = args.cloudflareTraffic.summaryCards.find((card) => card.key === 'server-errors');
     const top4xxRoute = args.cloudflareTraffic.topErrorRoutes.find((route) => route.key === 'top-unexpected-4xx-route');
     const top5xxRoute = args.cloudflareTraffic.topErrorRoutes.find((route) => route.key === 'top-5xx-route');
     const requests = args.cloudflareTraffic.requestSeries.map((point) => point.requests || 0);
-
-    if ((cacheRatioCard?.value || 0) < 3 && (cachedBandwidthCard?.value || 0) < 20) {
-      alerts.push({
-        key: 'cache-ratio',
-        severity: 'info',
-        title: 'Most application traffic is dynamic',
-        detail: `Cloudflare cache hit ratio is ${cacheRatioCard?.displayValue || 'low'} for the selected window. This is expected for authenticated pages and API requests, which should bypass public caching.`,
-        source: 'Cloudflare',
-      });
-    }
 
     const threatCount = threatsCard?.value || 0;
     const hasRealOriginImpact =

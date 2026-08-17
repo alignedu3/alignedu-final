@@ -394,6 +394,8 @@ export default function MonitoringDashboard() {
   ]);
   const primaryTrafficCards = trafficCards.filter((card) => primaryTrafficCardKeys.has(card.key));
   const secondaryTrafficCards = trafficCards.filter((card) => !primaryTrafficCardKeys.has(card.key));
+  const cacheRatioCard = trafficCards.find((card) => card.key === 'cache-hit-ratio');
+  const cachedBandwidthCard = trafficCards.find((card) => card.key === 'cached-bandwidth-ratio');
   const trafficErrorRoutes = (payload?.httpTraffic?.topErrorRoutes || []).filter((route) => route.requests > 0);
   const requestSeries = payload?.httpTraffic?.requestSeries || [];
   const bandwidthSeries = payload?.httpTraffic?.bandwidthSeries || [];
@@ -402,6 +404,9 @@ export default function MonitoringDashboard() {
   const callerName = payload?.caller?.name || 'Platform Monitoring';
   const syncGeneratedAt = payload?.sync?.generatedAt || null;
   const hasLiveTraffic = trafficCards.some((card) => card.status !== 'connect_required');
+  const hasExpectedDynamicTraffic = hasLiveTraffic &&
+    (cacheRatioCard?.value || 0) < 3 &&
+    (cachedBandwidthCard?.value || 0) < 20;
   const hasLiveSentry = sentryCards.some((card) => card.status !== 'connect_required');
   const hasLiveSupabaseAdvisors = supabaseAdvisorCards.some((card) => card.status !== 'connect_required');
   const cloudflareConnection = connections.find((item) => item.key === 'cloudflare-traffic');
@@ -1023,6 +1028,18 @@ export default function MonitoringDashboard() {
                 </p>
               </section>
             </div>
+            {hasExpectedDynamicTraffic ? (
+              <div style={{ ...configurationBanner, marginBottom: 0 }}>
+                <div style={uptimeCheckTopRow}>
+                  <div style={configurationTitle}>Most application traffic is dynamic</div>
+                  <div style={{ ...miniStatusPill, background: 'rgba(59,130,246,0.12)', color: '#3b82f6' }}>Info</div>
+                </div>
+                <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
+                  Cloudflare cache hit ratio is {cacheRatioCard?.displayValue || 'low'} for the selected window. This is expected for authenticated pages and API requests, which should bypass public caching.
+                </p>
+                <div style={{ ...statSub, marginTop: 8 }}>Cloudflare</div>
+              </div>
+            ) : null}
           </div>
         </section>
 
