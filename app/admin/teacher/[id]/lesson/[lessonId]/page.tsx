@@ -7,6 +7,14 @@ import { buildSampleAnalysisReports, calculateLessonScoreFromMetrics, getLessonI
 import { cleanDisplayText, extractSectionText, extractStandardEntries, normalizeStructuredReportText } from "@/lib/analysisReport";
 import ProtectedPageState from "@/components/ProtectedPageState";
 import CoachingReminder from "@/components/CoachingReminder";
+import {
+  DALLAS_ISD_OBSERVATION_INDICATORS,
+  DALLAS_ISD_RUBRIC_ID,
+  parseDallasRubricEvidence,
+  RUBRIC_RATING_LABELS,
+  type RubricReviewItem,
+  type RubricRating,
+} from "@/lib/evaluationRubrics";
 
 function buildEditableAnalysisText(report: AnalysisReport) {
   const narrative = getReportNarrative(report);
@@ -28,11 +36,13 @@ export default function LessonReportPage() {
 
   const [lesson, setLesson] = useState<AnalysisReport | null>(null);
   const [teacher, setTeacher] = useState<ProfileRecord | null>(null);
+  const [viewerRole, setViewerRole] = useState('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [adminFeedbackDraft, setAdminFeedbackDraft] = useState('');
   const [adminFeedbackRating, setAdminFeedbackRating] = useState(5);
   const [editedAnalysisDraft, setEditedAnalysisDraft] = useState('');
+  const [rubricReviewDraft, setRubricReviewDraft] = useState<RubricReviewItem[]>([]);
   const [metricDraft, setMetricDraft] = useState({
     coverage: 75,
     clarity: 75,
@@ -75,6 +85,7 @@ export default function LessonReportPage() {
 
       setLesson(data.lesson || null);
       setTeacher(data.teacher || null);
+      setViewerRole(data.viewerRole || '');
       setLoading(false);
     }
     if (lessonId) load();
@@ -88,6 +99,20 @@ export default function LessonReportPage() {
     setAdminFeedbackDraft(lesson?.admin_feedback || '');
     setAdminFeedbackRating(lesson?.admin_feedback_rating || 5);
     setEditedAnalysisDraft(lesson ? buildEditableAnalysisText(lesson) : '');
+    const suggestedRubric = lesson ? parseDallasRubricEvidence(getReportNarrative(lesson)) : [];
+    const savedRubric = Array.isArray(lesson?.rubric_review) ? lesson.rubric_review as RubricReviewItem[] : [];
+    setRubricReviewDraft(DALLAS_ISD_OBSERVATION_INDICATORS.map((definition) => {
+      const suggestion = suggestedRubric.find((item) => item.indicator === definition.indicator);
+      const saved = savedRubric.find((item) => item.indicator === definition.indicator);
+      return {
+        indicator: definition.indicator,
+        title: definition.title,
+        rating: suggestion?.rating ?? saved?.rating ?? -1,
+        evidence: suggestion?.evidence || saved?.evidence || 'The submitted evidence was insufficient to support a rating.',
+        confirmedRating: saved?.confirmedRating ?? suggestion?.rating ?? -1,
+        administratorNote: saved?.administratorNote || '',
+      };
+    }));
     const metrics = lesson ? getLessonMetrics(lesson) : null;
     setMetricDraft({
       coverage: metrics?.coverage ?? 75,
@@ -201,6 +226,7 @@ export default function LessonReportPage() {
           adminFeedbackRating,
           editedResult: editedAnalysisDraft,
           metricOverrides: metricDraft,
+          ...(lesson.rubric_id === DALLAS_ISD_RUBRIC_ID ? { rubricReview: rubricReviewDraft } : {}),
         }),
       });
       const data = await response.json();
@@ -491,6 +517,56 @@ export default function LessonReportPage() {
             {lesson.teacher_feedback_updated_at ? (
               <div style={helperText}>Last updated {new Date(lesson.teacher_feedback_updated_at).toLocaleDateString()}</div>
             ) : null}
+          </div>
+        )}
+
+        {viewerRole === 'super_admin' && lesson.rubric_id === DALLAS_ISD_RUBRIC_ID && (
+          <div style={{ ...sectionCard, ...analysisSectionCard }}>
+            <h2 style={sectionTitle}>Dallas ISD Rubric Review</h2>
+            <p style={bodyText}>
+              Review the suggested observation ratings below. “Not rated” means the submitted evidence did not support a defensible score. Your confirmed ratings are saved separately from the 100-point instructional score.
+            </p>
+            <div style={teksSectionStack}>
+              {rubricReviewDraft.map((item, index) => (
+                <div key={item.indicator} style={teksSectionRow}>
+                  <div style={subsectionTitle}>{item.indicator} {item.title}</div>
+                  <p style={bodyText}><strong>Suggested:</strong> {RUBRIC_RATING_LABELS[item.rating]}</p>
+                  <p style={bodyText}><strong>Evidence:</strong> {item.evidence}</p>
+                  <div style={editorGrid} className="lesson-report-two-column-grid">
+                    <label style={metricEditorField}>
+                      <span style={metricEditorLabel}>Administrator-confirmed rating</span>
+                      <select
+                        value={item.confirmedRating}
+                        onChange={(event) => {
+                          const confirmedRating = Number(event.target.value) as RubricRating;
+                          setRubricReviewDraft((current) => current.map((entry, entryIndex) =>
+                            entryIndex === index ? { ...entry, confirmedRating } : entry
+                          ));
+                        }}
+                        style={metricEditorInput}
+                        disabled={!canSaveAdminAdjustments || savingAdminUpdate}
+                      >
+                        {([-1, 0, 1, 2, 3] as RubricRating[]).map((rating) => (
+                          <option key={rating} value={rating}>{rating === -1 ? 'Not rated' : `${rating} — ${RUBRIC_RATING_LABELS[rating]}`}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label style={metricEditorField}>
+                      <span style={metricEditorLabel}>Administrator evidence or note</span>
+                      <textarea
+                        value={item.administratorNote}
+                        onChange={(event) => setRubricReviewDraft((current) => current.map((entry, entryIndex) =>
+                          entryIndex === index ? { ...entry, administratorNote: event.target.value } : entry
+                        ))}
+                        placeholder="Add evidence from the observation or explain an adjustment."
+                        style={{ ...editorTextarea, minHeight: 92 }}
+                        disabled={!canSaveAdminAdjustments || savingAdminUpdate}
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

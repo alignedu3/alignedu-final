@@ -6,6 +6,7 @@ import { createHash } from "node:crypto";
 import { formatTEKSForPrompt, getPrimaryTEKSStandards, getRelatedTEKSStandards, getTEKSStandards } from "@/lib/teksStandards";
 import { STAAR_SUBJECTS } from "@/lib/staarSubjects";
 import { getAdminVisibility } from "@/lib/adminVisibility";
+import { DALLAS_ISD_RUBRIC_ID, isElementaryRubricGrade } from "@/lib/evaluationRubrics";
 import { getHigherEdBiologyObjectivesForChapter } from "@/lib/higherEdBiologyObjectives";
 import { normalizeStructuredReportText, parseFeedbackSections } from "@/lib/analysisReport";
 import {
@@ -242,6 +243,7 @@ type AnalysisWorkflowInput = {
   subject: string;
   book: string;
   chapter: string;
+  rubricId: string;
   lectureText: string;
   waitTimeEvidence: string;
   audioDuration?: number;
@@ -1229,8 +1231,9 @@ async function saveAnalysisRecord(params: {
   subject: string;
   transcript: string;
   finalResult: string;
+  rubricId: string;
 }) {
-  const { targetUserId, lessonContextTitle, grade, subject, transcript, finalResult } = params;
+  const { targetUserId, lessonContextTitle, grade, subject, transcript, finalResult, rubricId } = params;
   const metrics = extractMetricsFromResult(finalResult);
   const serviceSupabase = createServiceSupabaseClient();
 
@@ -1249,6 +1252,7 @@ async function saveAnalysisRecord(params: {
     gaps_detected: metrics.gaps_detected,
     transcript,
     result: finalResult,
+    rubric_id: rubricId || null,
     created_at: new Date().toISOString(),
   };
 
@@ -1258,10 +1262,10 @@ async function saveAnalysisRecord(params: {
     .select()
     .single();
 
-  if (dbError && /assessment_quality/i.test(dbError.message || "")) {
+  if (dbError && /(assessment_quality|rubric_id)/i.test(dbError.message || "")) {
     const legacyRecord = Object.fromEntries(
-      Object.entries(analysisRecord).filter(([key]) => key !== "assessment_quality")
-    ) as Omit<typeof analysisRecord, "assessment_quality">;
+      Object.entries(analysisRecord).filter(([key]) => !["assessment_quality", "rubric_id"].includes(key))
+    );
     ({ data: insertedData, error: dbError } = await serviceSupabase
       .from("analyses")
       .insert([legacyRecord])
@@ -1343,6 +1347,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
     subject,
     book,
     chapter,
+    rubricId,
     lectureText,
     waitTimeEvidence,
     audioDuration,
@@ -1445,12 +1450,14 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
     subject,
   });
 
-  const reusableAnalysis = await findReusableAnalysis({
-    grade,
-    subject,
-    lessonContextTitle,
-    transcript,
-  });
+  const reusableAnalysis = rubricId
+    ? null
+    : await findReusableAnalysis({
+        grade,
+        subject,
+        lessonContextTitle,
+        transcript,
+      });
 
   if (reusableAnalysis) {
     await reportProgress(88, "Matching saved lesson found. Reusing consistent analysis...");
@@ -1468,6 +1475,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
       subject,
       transcript,
       finalResult,
+      rubricId,
     });
 
     await reportProgress(100, "Analysis complete.");
@@ -1611,9 +1619,13 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 - Student Engagement Signals: describe what students appeared to be doing or not doing based on the lesson record.
 - Suggested Next Steps: give coaching moves tailored to this lesson, not generic teacher advice.`;
 
+  const rubricGuidance = rubricId === DALLAS_ISD_RUBRIC_ID && isElementaryRubricGrade(grade)
+    ? `\n\nThis is an administrator observation using the Dallas ISD 2025-2026 Teacher Performance Rubric. Populate rubricEvaluation with exactly these seven observation indicators: 2.1 Alignment, 2.2 Mastery, 2.3 Delivery, 2.4 Cognitive Demand, 3.1 Procedures and Systems, 3.2 Behavioral Expectations, and 3.3 Climate and Culture. Use the official performance scale: 3 Exemplary, 2 Proficient, 1 Progressing, 0 Unsatisfactory. Use -1 when the submitted evidence cannot support a defensible rating. Every evidence statement must name an observable lesson detail or plainly explain why evidence is insufficient. Do not evaluate Domain 1 planning or Domain 4 professionalism from a classroom observation alone. These are suggestions for administrator review, not final personnel ratings.`
+    : `\n\nSet rubricEvaluation to null because no supported administrator rubric was selected.`;
+
   if (hasStandards) {
     systemPrompt += '\nProvide two distinct types of feedback: (1) Generic instructional quality coaching, and (2) Texas TEKS standards alignment analysis.';
-    userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${teksContext}\n\n${waitTimeGuidance}${transcriptOnlyGuidance ? `\n\n${transcriptOnlyGuidance}` : ''}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}`;
+    userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${teksContext}\n\n${waitTimeGuidance}${transcriptOnlyGuidance ? `\n\n${transcriptOnlyGuidance}` : ''}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}${rubricGuidance}`;
 
     if (isSTAAR) {
       userPrompt += `\n\n=== STAAR TEKS COVERAGE ===\nSummarize how well the lesson covered the most important TEKS for this STAAR-tested subject and grade. Use labeled bullets for:\n- Readiness Summary: ...\n- Standards Reinforced:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- Standards That Need Stronger Assessment Evidence:\n  - CODE: exact TEKS description\n  - CODE: exact TEKS description\n- STAAR Readiness Recommendation: ...\nFor Standards Reinforced and Standards That Need Stronger Assessment Evidence, list only actual TEKS codes with their matching descriptions from the standards reference above. Do not use generic prose in those two fields. For the weaker-assessment field, choose TEKS that are directly related to the lesson topic and concept focus.`;
@@ -1634,7 +1646,7 @@ Provide lesson-specific instructional coaching feedback using labeled bullets:
 For the three standards lists above, use the provided Primary TEKS first, then use the Related Supporting TEKS when they genuinely connect to the lesson. Do not invent codes outside the provided standards reference, and do not use generic prose in those list fields.
 \nTranscript:\n${transcript}\n`;
   } else {
-    userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${waitTimeGuidance}${transcriptOnlyGuidance ? `\n\n${transcriptOnlyGuidance}` : ''}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}\n\nTranscript:\n${transcript}\n`;
+    userPrompt = `Grade: ${grade}\nSubject: ${subject}${book ? `\nBook: ${book}` : ''}${chapter ? `\nChapter / Unit: ${chapter}` : ''}${matchedBiologyObjectives.length ? `\nMatched Biology Course Objectives: ${matchedBiologyObjectives.join(' ')}` : ''}\n\n${waitTimeGuidance}${transcriptOnlyGuidance ? `\n\n${transcriptOnlyGuidance}` : ''}${waitTimeEvidence ? `\n\nAdditional audio timing evidence:\n${waitTimeEvidence}` : ''}\n\n${reportFormat}${higherEdBiologyFormat}${higherEdCustomTextFormat}${rubricGuidance}\n\nTranscript:\n${transcript}\n`;
   }
 
   await reportProgress(55, "Analyzing lesson content...");
@@ -2244,6 +2256,7 @@ ${transcript}`;
     subject,
     transcript,
     finalResult,
+    rubricId,
   });
 
   await reportProgress(100, "Analysis complete.");
@@ -2412,6 +2425,10 @@ export async function POST(req: Request) {
     const subject = String(formData.get("subject") || "");
     const book = String(formData.get("book") || "").trim();
     const chapter = String(formData.get("chapter") || "").trim();
+    const requestedRubricId = String(formData.get("rubricId") || "").trim();
+    const rubricId = callerRole === "super_admin" && requestedRubricId === DALLAS_ISD_RUBRIC_ID && isElementaryRubricGrade(grade)
+      ? requestedRubricId
+      : "";
     const lectureText = String(formData.get("lecture") || "").trim();
     const waitTimeEvidence = String(formData.get("waitTimeEvidence") || "").trim();
     const audioDurationValue = formData.get("audioDuration");
@@ -2483,6 +2500,7 @@ export async function POST(req: Request) {
         subject,
         book,
         chapter,
+        rubricId,
         lectureText,
         waitTimeEvidence,
         audioDuration,
@@ -2515,6 +2533,7 @@ export async function POST(req: Request) {
         subject,
         book,
         chapter,
+        rubricId,
         lectureText,
         waitTimeEvidence,
         audioDuration,

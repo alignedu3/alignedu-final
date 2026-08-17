@@ -40,6 +40,8 @@ export type AnalysisReport = Partial<LessonReport> & {
   admin_feedback_author_name?: string | null;
   admin_feedback_rating?: number | null;
   transcript?: string | null;
+  rubric_id?: string | null;
+  rubric_review?: unknown;
   score?: number | string | null;
 };
 

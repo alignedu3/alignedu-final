@@ -27,6 +27,12 @@ type StructuredAnalysis = {
   teksStandardsAlignment: LabeledSection[] | null;
   staarTeksCoverage: LabeledSection[] | null;
   higherEdAlignment: LabeledSection[] | null;
+  rubricEvaluation: Array<{
+    indicator: string;
+    title: string;
+    rating: number;
+    evidence: string;
+  }> | null;
 };
 
 type GenerateStructuredAnalysisParams = {
@@ -59,6 +65,7 @@ const STRUCTURED_ANALYSIS_SCHEMA = {
     "teksStandardsAlignment",
     "staarTeksCoverage",
     "higherEdAlignment",
+    "rubricEvaluation",
   ],
   properties: {
     metrics: {
@@ -233,6 +240,27 @@ const STRUCTURED_ANALYSIS_SCHEMA = {
         { type: "null" },
       ],
     },
+    rubricEvaluation: {
+      anyOf: [
+        {
+          type: "array",
+          minItems: 7,
+          maxItems: 7,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["indicator", "title", "rating", "evidence"],
+            properties: {
+              indicator: { type: "string" },
+              title: { type: "string" },
+              rating: { type: "integer", minimum: -1, maximum: 3 },
+              evidence: { type: "string" },
+            },
+          },
+        },
+        { type: "null" },
+      ],
+    },
   },
 } as const;
 
@@ -308,6 +336,14 @@ export function normalizeStructuredAnalysisPayload(payload: unknown): Structured
     teksStandardsAlignment: cleanLabeledSections(typed?.teksStandardsAlignment, 6),
     staarTeksCoverage: cleanLabeledSections(typed?.staarTeksCoverage, 5),
     higherEdAlignment: cleanLabeledSections(typed?.higherEdAlignment, 5),
+    rubricEvaluation: Array.isArray(typed?.rubricEvaluation)
+      ? typed.rubricEvaluation.slice(0, 7).map((item) => ({
+          indicator: cleanText(item?.indicator),
+          title: cleanText(item?.title),
+          rating: [-1, 0, 1, 2, 3].includes(Number(item?.rating)) ? Number(item.rating) : -1,
+          evidence: cleanText(item?.evidence) || 'The submitted evidence was insufficient to support a rating.',
+        }))
+      : null,
   };
 }
 
@@ -354,6 +390,13 @@ function renderContentGaps(items: string[]) {
 ${items.map((item, index) => `${index + 1}. ${item}`).join("\n")}`;
 }
 
+function renderRubricEvaluation(items: StructuredAnalysis["rubricEvaluation"]) {
+  if (!items?.length) return "";
+  return `=== DALLAS ISD RUBRIC EVIDENCE ===\n${items
+    .map((item) => `- ${item.indicator} ${item.title}: Rating ${item.rating} | Evidence: ${item.evidence}`)
+    .join("\n")}`;
+}
+
 export function renderStructuredAnalysisToLegacyText(
   result: StructuredAnalysis,
   higherEdAlignmentTitle: GenerateStructuredAnalysisParams["higherEdAlignmentTitle"]
@@ -382,6 +425,7 @@ export function renderStructuredAnalysisToLegacyText(
       higherEdAlignmentTitle || "HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT",
       result.higherEdAlignment
     ),
+    renderRubricEvaluation(result.rubricEvaluation),
   ].filter(Boolean);
 
   return parts.join("\n\n").trim();

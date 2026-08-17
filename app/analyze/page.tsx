@@ -11,6 +11,7 @@ import {
 } from "@/lib/analysisReport";
 import { fetchJsonWithTimeout } from "@/lib/fetchJsonWithTimeout";
 import { getHigherEdBiologyObjectivesForChapter } from "@/lib/higherEdBiologyObjectives";
+import { DALLAS_ISD_RUBRIC_ID, isElementaryRubricGrade } from "@/lib/evaluationRubrics";
 
 // Simulate premium check (replace with real check if available)
 const isPremium = true;
@@ -441,6 +442,7 @@ export default function AnalysisPage() {
   const [book, setBook] = useState("");
   const [chapter, setChapter] = useState("");
   const [lessonNotes, setLessonNotes] = useState("");
+  const [rubricId, setRubricId] = useState("");
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
@@ -464,6 +466,7 @@ export default function AnalysisPage() {
   const [observerReady, setObserverReady] = useState(!isAdminObservationMode);
   const [observedTeacherId, setObservedTeacherId] = useState("");
   const [observedTeachers, setObservedTeachers] = useState<Array<{ id: string; name: string }>>([]);
+  const [viewerRole, setViewerRole] = useState('');
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [draftNotice, setDraftNotice] = useState("");
   const dragCounterRef = useRef(0);
@@ -523,13 +526,14 @@ export default function AnalysisPage() {
       const saved = window.localStorage.getItem(key);
       if (saved) {
         const draft = JSON.parse(saved) as Partial<{
-          grade: string; subject: string; book: string; chapter: string; lessonNotes: string; observedTeacherId: string;
+          grade: string; subject: string; book: string; chapter: string; lessonNotes: string; observedTeacherId: string; rubricId: string;
         }>;
         setGrade(draft.grade || "");
         setSubject(draft.subject || "");
         setBook(draft.book || "");
         setChapter(draft.chapter || "");
         setLessonNotes(draft.lessonNotes || "");
+        setRubricId(draft.rubricId || "");
         if (isAdminObservationMode) setObservedTeacherId(draft.observedTeacherId || "");
         if (draft.grade || draft.subject || draft.lessonNotes) setDraftNotice("Your saved draft was restored on this device.");
       }
@@ -549,11 +553,11 @@ export default function AnalysisPage() {
         window.localStorage.removeItem(key);
         return;
       }
-      window.localStorage.setItem(key, JSON.stringify({ grade, subject, book, chapter, lessonNotes, observedTeacherId }));
+      window.localStorage.setItem(key, JSON.stringify({ grade, subject, book, chapter, lessonNotes, observedTeacherId, rubricId }));
       setDraftNotice("Draft saved on this device.");
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [book, chapter, draftHydrated, grade, isAdminObservationMode, lessonNotes, observedTeacherId, result, subject]);
+  }, [book, chapter, draftHydrated, grade, isAdminObservationMode, lessonNotes, observedTeacherId, result, rubricId, subject]);
 
   useEffect(() => {
     if (!result) return;
@@ -1540,6 +1544,7 @@ export default function AnalysisPage() {
           success: boolean;
           error?: string;
           teachers?: Array<{ id: string; name: string }>;
+          callerRole?: string;
         }>('/api/admin/observe/teachers', {
           credentials: 'include',
           cache: 'no-store',
@@ -1560,6 +1565,7 @@ export default function AnalysisPage() {
         }
 
         const teachers = (data.teachers || []) as Array<{ id: string; name: string }>;
+        setViewerRole(data.callerRole || '');
         if (!teachers.length) {
           if (!isMounted) return;
           setObservedTeachers([]);
@@ -1697,6 +1703,7 @@ export default function AnalysisPage() {
       }
       if (isAdminObservationMode) {
         analysisForm.append("observedTeacherId", observedTeacherId);
+        analysisForm.append("rubricId", rubricId);
       }
 
       setProcessingStep("Sending transcript for analysis...");
@@ -1819,6 +1826,7 @@ export default function AnalysisPage() {
                   onChange={(e) => {
                     const nextGrade = e.target.value;
                     setGrade(nextGrade);
+                    if (!isElementaryRubricGrade(nextGrade)) setRubricId('');
                     if (nextGrade !== 'Higher Ed') {
                       setBook('');
                       setChapter('');
@@ -1852,6 +1860,24 @@ export default function AnalysisPage() {
                       ))
                     )}
                   </select>
+                </div>
+              )}
+
+              {isAdminObservationMode && viewerRole === 'super_admin' && (
+                <div className="analysis-field-group">
+                  <label className="analysis-label">Evaluation framework</label>
+                  <select
+                    value={rubricId}
+                    onChange={(event) => setRubricId(event.target.value)}
+                  >
+                    <option value="">General instructional review</option>
+                    <option value={DALLAS_ISD_RUBRIC_ID} disabled={!isElementaryRubricGrade(grade)}>
+                      Dallas ISD 2025-2026 Teacher Performance Rubric (Grades 3-5)
+                    </option>
+                  </select>
+                  <p className="analysis-context-note">
+                    Suggested rubric ratings require administrator confirmation and remain separate from the instructional score.
+                  </p>
                 </div>
               )}
 

@@ -47,7 +47,7 @@ export async function GET() {
 
     const visibility = await getAdminVisibility(user.id, callerProfile!.role);
     if (!visibility.teacherIds.length) {
-      return NextResponse.json({ success: true, teachers: [] });
+      return NextResponse.json({ success: true, teachers: [], callerRole: callerProfile!.role });
     }
 
     const serviceSupabase = getServiceSupabase();
@@ -68,7 +68,7 @@ export async function GET() {
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    return NextResponse.json({ success: true, teachers });
+    return NextResponse.json({ success: true, teachers, callerRole: callerProfile!.role });
   } catch (error) {
     console.error('Admin observe teachers route error:', error);
     return NextResponse.json({ success: false, error: getErrorMessage(error) }, { status: 500 });

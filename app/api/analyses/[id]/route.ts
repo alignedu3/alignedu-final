@@ -5,6 +5,7 @@ import { getAdminVisibility } from '@/lib/adminVisibility';
 import { normalizeStructuredReportText, parseAnalysisMetrics } from '@/lib/analysisReport';
 import { calculateLessonScoreFromMetrics } from '@/lib/dashboardData';
 import { getErrorMessage } from '@/lib/errorHandling';
+import { DALLAS_ISD_OBSERVATION_INDICATORS, DALLAS_ISD_RUBRIC_ID } from '@/lib/evaluationRubrics';
 
 function getServiceSupabase() {
   return createServiceClient(
@@ -132,6 +133,7 @@ export async function PATCH(
     const adminRatingRequested = Object.prototype.hasOwnProperty.call(body, 'adminFeedbackRating');
     const editedResultRequested = Object.prototype.hasOwnProperty.call(body, 'editedResult');
     const metricOverridesRequested = Object.prototype.hasOwnProperty.call(body, 'metricOverrides');
+    const rubricReviewRequested = Object.prototype.hasOwnProperty.call(body, 'rubricReview');
 
     const updates: Record<string, unknown> = {};
     const now = new Date().toISOString();
@@ -152,7 +154,7 @@ export async function PATCH(
       updates.teacher_feedback_updated_at = now;
     }
 
-    if (adminFeedbackRequested || adminRatingRequested || editedResultRequested || metricOverridesRequested) {
+    if (adminFeedbackRequested || adminRatingRequested || editedResultRequested || metricOverridesRequested || rubricReviewRequested) {
       if (!canAdminManage) {
         return NextResponse.json({ success: false, error: 'Only an administrator in scope can update administrator notes or edits.' }, { status: 403 });
       }
@@ -170,6 +172,33 @@ export async function PATCH(
         updates.admin_feedback_rating = rating;
         updates.admin_feedback_updated_at = now;
         updates.admin_feedback_author_name = profile?.name || 'Administrator';
+      }
+
+      if (rubricReviewRequested) {
+        if (profile?.role !== 'super_admin') {
+          return NextResponse.json({ success: false, error: 'The rubric pilot is currently limited to the super administrator.' }, { status: 403 });
+        }
+        if (analysis.rubric_id !== DALLAS_ISD_RUBRIC_ID || !Array.isArray(body.rubricReview)) {
+          return NextResponse.json({ success: false, error: 'This lesson does not have a supported rubric review.' }, { status: 400 });
+        }
+
+        const allowedIndicators = new Set(DALLAS_ISD_OBSERVATION_INDICATORS.map((item) => item.indicator));
+        const normalizedReview = body.rubricReview
+          .filter((item: unknown) => item && typeof item === 'object')
+          .map((item: Record<string, unknown>) => ({
+            indicator: String(item.indicator || ''),
+            title: String(item.title || '').slice(0, 100),
+            rating: [-1, 0, 1, 2, 3].includes(Number(item.rating)) ? Number(item.rating) : -1,
+            confirmedRating: [-1, 0, 1, 2, 3].includes(Number(item.confirmedRating)) ? Number(item.confirmedRating) : -1,
+            evidence: String(item.evidence || '').slice(0, 2000),
+            administratorNote: String(item.administratorNote || '').trim().slice(0, 2000),
+          }))
+          .filter((item: { indicator: string }) => allowedIndicators.has(item.indicator));
+
+        if (normalizedReview.length !== DALLAS_ISD_OBSERVATION_INDICATORS.length) {
+          return NextResponse.json({ success: false, error: 'Rubric review must include all seven observation indicators.' }, { status: 400 });
+        }
+        updates.rubric_review = normalizedReview;
       }
 
       if (editedResultRequested) {
