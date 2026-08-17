@@ -182,7 +182,7 @@ export async function PATCH(
           return NextResponse.json({ success: false, error: 'This lesson does not have a supported rubric review.' }, { status: 400 });
         }
 
-        const allowedIndicators = new Set(DALLAS_ISD_OBSERVATION_INDICATORS.map((item) => item.indicator));
+        const allowedIndicators = new Set<string>(DALLAS_ISD_OBSERVATION_INDICATORS.map((item) => item.indicator));
         const normalizedReview = body.rubricReview
           .filter((item: unknown) => item && typeof item === 'object')
           .map((item: Record<string, unknown>) => ({
