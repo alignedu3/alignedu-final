@@ -695,8 +695,10 @@ export default function MonitoringDashboard() {
             </div>
             <div style={sectionContentStack}>
               {!hasLiveSentry ? (
-                <div style={warningBanner}>
-                  <div style={warningTitle}>Sentry issue monitoring is not live yet.</div>
+                <div style={sentryDiagnostics?.status === 'error' ? warningBanner : configurationBanner}>
+                  <div style={sentryDiagnostics?.status === 'error' ? warningTitle : configurationTitle}>
+                    {sentryDiagnostics?.status === 'error' ? 'Sentry connection needs attention.' : 'Optional Sentry monitoring is not configured.'}
+                  </div>
                   <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
                     {sentryConnection?.detail || 'Add Sentry API credentials to pull live issue and error metrics.'}
                   </p>
@@ -840,8 +842,10 @@ export default function MonitoringDashboard() {
           </div>
           <div style={sectionContentStack}>
             {!hasLiveTraffic ? (
-              <div style={warningBanner}>
-                <div style={warningTitle}>Cloudflare traffic is not connected for this environment.</div>
+              <div style={trafficDiagnostics?.status === 'error' ? warningBanner : configurationBanner}>
+                <div style={trafficDiagnostics?.status === 'error' ? warningTitle : configurationTitle}>
+                  {trafficDiagnostics?.status === 'error' ? 'Cloudflare connection needs attention.' : 'Optional Cloudflare monitoring is not configured.'}
+                </div>
                 <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
                   {cloudflareConnection?.detail || 'Add Cloudflare credentials so the monitoring API can pull live traffic analytics.'}
                 </p>
@@ -1031,8 +1035,10 @@ export default function MonitoringDashboard() {
           </div>
           <div style={sectionContentStack}>
             {!hasLiveSupabaseAdvisors ? (
-              <div style={warningBanner}>
-                <div style={warningTitle}>Supabase advisor monitoring is not live yet.</div>
+              <div style={supabaseAdvisorDiagnostics?.status === 'error' ? warningBanner : configurationBanner}>
+                <div style={supabaseAdvisorDiagnostics?.status === 'error' ? warningTitle : configurationTitle}>
+                  {supabaseAdvisorDiagnostics?.status === 'error' ? 'Supabase advisor connection needs attention.' : 'Optional Supabase advisor monitoring is not configured.'}
+                </div>
                 <p style={{ ...bodyText, margin: '6px 0 0 0' }}>
                   {supabaseAdvisorConnection?.detail || 'Add Supabase management credentials so the monitoring API can pull live advisor findings.'}
                 </p>
@@ -1705,6 +1711,20 @@ const warningBanner: React.CSSProperties = {
 
 const warningTitle: React.CSSProperties = {
   color: '#b45309',
+  fontSize: 14,
+  fontWeight: 800,
+};
+
+const configurationBanner: React.CSSProperties = {
+  marginBottom: 14,
+  padding: 16,
+  borderRadius: 16,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-muted)',
+};
+
+const configurationTitle: React.CSSProperties = {
+  color: 'var(--text-primary)',
   fontSize: 14,
   fontWeight: 800,
 };

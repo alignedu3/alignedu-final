@@ -13,20 +13,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        source: '/:path((?!admin|dashboard|login|signup|reset-password|reset-access|accept-invite|auth/handle-auth|api).*)',
+        source: '/:path((?!_next|admin|dashboard|login|signup|reset-password|reset-access|accept-invite|auth/handle-auth|api).*)',
         headers: [
           {
             key: 'Cache-Control',
             value: 'public, s-maxage=600, stale-while-revalidate=86400',
-          },
-        ],
-      },
-      {
-        source: '/_next/static/:path*',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
           },
         ],
       },

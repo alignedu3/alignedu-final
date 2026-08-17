@@ -458,6 +458,16 @@ async function listAllAuthUsers(serviceSupabase: ReturnType<typeof getServiceSup
   return users;
 }
 
+function getAuthDirectoryErrorDetail(error: unknown) {
+  const message = getErrorMessage(error, 'Supabase Auth users could not be loaded.');
+
+  if (/unrecognized JWT kid|unable to parse or verify signature|token is unverifiable/i.test(message)) {
+    return 'Supabase rejected SUPABASE_SERVICE_ROLE_KEY. Replace it in Vercel with the current service-role or secret key from the same Supabase project, then redeploy.';
+  }
+
+  return `Supabase Auth users could not be loaded: ${message}`;
+}
+
 function getTotalFromStatsGroups(payload: StatsPayload | null | undefined, field: string) {
   return roundTo(
     Number(
@@ -2472,6 +2482,7 @@ export async function GET(request: NextRequest) {
     let averageScore = 0;
     let lessonsInWindow = 0;
     let openaiAnalysis = buildOpenAIAnalysisMonitoring([]);
+    let authDirectoryError: string | null = null;
 
     if (!providersOnly) {
       const [
@@ -2487,7 +2498,11 @@ export async function GET(request: NextRequest) {
           .from('analyses')
           .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result, teacher_feedback_rating, admin_feedback_rating')
           .order('created_at', { ascending: false }),
-        listAllAuthUsers(serviceSupabase),
+        listAllAuthUsers(serviceSupabase).catch((error) => {
+          authDirectoryError = getAuthDirectoryErrorDetail(error);
+          console.warn('Monitoring auth directory enrichment unavailable:', authDirectoryError);
+          return [];
+        }),
         serviceSupabase
           .from('analysis_jobs')
           .select('*')
@@ -2806,6 +2821,22 @@ export async function GET(request: NextRequest) {
       supabaseAdvisors,
       uptime,
     });
+
+    if (authDirectoryError) {
+      alerts.unshift({
+        key: 'supabase-auth-directory',
+        severity: 'warning',
+        title: 'Supabase Auth directory is unavailable',
+        detail: authDirectoryError,
+        source: 'Supabase',
+      });
+
+      const serviceReadiness = readiness.find((item) => item.key === 'supabase-service');
+      if (serviceReadiness) {
+        serviceReadiness.healthy = false;
+        serviceReadiness.detail = authDirectoryError;
+      }
+    }
 
     const hydratedConnections = connectionState.connections.map((item) => {
       if (item.key === 'sentry-api') {
