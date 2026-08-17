@@ -1301,9 +1301,9 @@ function buildMonitoringAlerts(args: {
     if ((cacheRatioCard?.value || 0) < 3 && (cachedBandwidthCard?.value || 0) < 20) {
       alerts.push({
         key: 'cache-ratio',
-        severity: 'warning',
-        title: 'Cache efficiency is low',
-        detail: `Cloudflare cache hit ratio is ${cacheRatioCard?.displayValue || 'low'} for the selected window.`,
+        severity: 'info',
+        title: 'Most application traffic is dynamic',
+        detail: `Cloudflare cache hit ratio is ${cacheRatioCard?.displayValue || 'low'} for the selected window. This is expected for authenticated pages and API requests, which should bypass public caching.`,
         source: 'Cloudflare',
       });
     }
