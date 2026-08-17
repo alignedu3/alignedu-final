@@ -36,7 +36,6 @@ const emptyAnalysisMetrics: AnalysisMetricsState = {
 
 const ACTIVE_ANALYSIS_JOB_KEY = "active-analysis-job-id";
 const TEACHER_DRAFT_KEY = "alignedu-lesson-draft-v1";
-const ADMIN_DRAFT_KEY = "alignedu-observation-draft-v1";
 
 function formatDurationLabel(totalSeconds: number | null) {
   if (!totalSeconds || totalSeconds <= 0) return "Less than a minute";
@@ -521,7 +520,13 @@ export default function AnalysisPage() {
   const matchedBiologyObjectives = isHigherEdBiology ? getHigherEdBiologyObjectivesForChapter(chapter) : [];
 
   useEffect(() => {
-    const key = isAdminObservationMode ? ADMIN_DRAFT_KEY : TEACHER_DRAFT_KEY;
+    if (isAdminObservationMode) {
+      setDraftHydrated(true);
+      setDraftNotice("");
+      return;
+    }
+
+    const key = TEACHER_DRAFT_KEY;
     try {
       const saved = window.localStorage.getItem(key);
       if (saved) {
@@ -534,7 +539,6 @@ export default function AnalysisPage() {
         setChapter(draft.chapter || "");
         setLessonNotes(draft.lessonNotes || "");
         setRubricId(draft.rubricId || "");
-        if (isAdminObservationMode) setObservedTeacherId(draft.observedTeacherId || "");
         if (draft.grade || draft.subject || draft.lessonNotes) setDraftNotice("Your saved draft was restored on this device.");
       }
     } catch {
@@ -545,8 +549,8 @@ export default function AnalysisPage() {
   }, [isAdminObservationMode]);
 
   useEffect(() => {
-    if (!draftHydrated || result) return;
-    const key = isAdminObservationMode ? ADMIN_DRAFT_KEY : TEACHER_DRAFT_KEY;
+    if (isAdminObservationMode || !draftHydrated || result) return;
+    const key = TEACHER_DRAFT_KEY;
     const timer = window.setTimeout(() => {
       const hasDraft = Boolean(grade || subject || book || chapter || lessonNotes || observedTeacherId);
       if (!hasDraft) {
@@ -560,8 +564,8 @@ export default function AnalysisPage() {
   }, [book, chapter, draftHydrated, grade, isAdminObservationMode, lessonNotes, observedTeacherId, result, rubricId, subject]);
 
   useEffect(() => {
-    if (!result) return;
-    window.localStorage.removeItem(isAdminObservationMode ? ADMIN_DRAFT_KEY : TEACHER_DRAFT_KEY);
+    if (!result || isAdminObservationMode) return;
+    window.localStorage.removeItem(TEACHER_DRAFT_KEY);
     setDraftNotice("");
   }, [isAdminObservationMode, result]);
 
