@@ -465,7 +465,7 @@ export default function AnalysisPage() {
   const [observerReady, setObserverReady] = useState(!isAdminObservationMode);
   const [observedTeacherId, setObservedTeacherId] = useState("");
   const [observedTeachers, setObservedTeachers] = useState<Array<{ id: string; name: string }>>([]);
-  const [viewerRole, setViewerRole] = useState('');
+  const [rubricPilotEnabled, setRubricPilotEnabled] = useState(false);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [draftNotice, setDraftNotice] = useState("");
   const dragCounterRef = useRef(0);
@@ -1549,6 +1549,7 @@ export default function AnalysisPage() {
           error?: string;
           teachers?: Array<{ id: string; name: string }>;
           callerRole?: string;
+          rubricPilotEnabled?: boolean;
         }>('/api/admin/observe/teachers', {
           credentials: 'include',
           cache: 'no-store',
@@ -1569,7 +1570,7 @@ export default function AnalysisPage() {
         }
 
         const teachers = (data.teachers || []) as Array<{ id: string; name: string }>;
-        setViewerRole(data.callerRole || '');
+        setRubricPilotEnabled(Boolean(data.rubricPilotEnabled));
         if (!teachers.length) {
           if (!isMounted) return;
           setObservedTeachers([]);
@@ -1867,7 +1868,7 @@ export default function AnalysisPage() {
                 </div>
               )}
 
-              {isAdminObservationMode && viewerRole === 'super_admin' && (
+              {isAdminObservationMode && rubricPilotEnabled && (
                 <div className="analysis-field-group">
                   <label className="analysis-label">Evaluation framework</label>
                   <select

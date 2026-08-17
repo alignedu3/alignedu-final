@@ -3,7 +3,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getAdminVisibility } from '@/lib/adminVisibility';
 import { getErrorMessage } from '@/lib/errorHandling';
-import { hidePilotRubricFields } from '@/lib/evaluationRubrics';
+import { canUseDallasRubricPilot, hidePilotRubricFields } from '@/lib/evaluationRubrics';
 
 function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -88,8 +88,9 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      lesson: callerProfile.role === 'super_admin' ? lesson : hidePilotRubricFields(lesson),
+      lesson: canUseDallasRubricPilot(user.id, callerProfile.role) ? lesson : hidePilotRubricFields(lesson),
       viewerRole: callerProfile.role,
+      rubricPilotEnabled: canUseDallasRubricPilot(user.id, callerProfile.role),
       teacher: teacher || { id, name: 'Teacher' },
     });
   } catch (error) {

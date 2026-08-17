@@ -1,5 +1,13 @@
 export const DALLAS_ISD_RUBRIC_ID = 'dallas-isd-2025-2026';
 
+const DALLAS_RUBRIC_PILOT_USER_IDS = new Set([
+  '32707daa-0454-4ad5-87bc-26a8da84a42f', // Joseph Francis
+]);
+
+export function canUseDallasRubricPilot(userId: string | null | undefined, role: string | null | undefined) {
+  return role === 'super_admin' || Boolean(userId && DALLAS_RUBRIC_PILOT_USER_IDS.has(userId));
+}
+
 export type RubricRating = -1 | 0 | 1 | 2 | 3;
 
 export type RubricEvidenceItem = {

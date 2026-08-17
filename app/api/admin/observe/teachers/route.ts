@@ -3,6 +3,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getAdminVisibility } from '@/lib/adminVisibility';
 import { getErrorMessage } from '@/lib/errorHandling';
+import { canUseDallasRubricPilot } from '@/lib/evaluationRubrics';
 
 function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -47,7 +48,12 @@ export async function GET() {
 
     const visibility = await getAdminVisibility(user.id, callerProfile!.role);
     if (!visibility.teacherIds.length) {
-      return NextResponse.json({ success: true, teachers: [], callerRole: callerProfile!.role });
+      return NextResponse.json({
+        success: true,
+        teachers: [],
+        callerRole: callerProfile!.role,
+        rubricPilotEnabled: canUseDallasRubricPilot(user.id, callerProfile!.role),
+      });
     }
 
     const serviceSupabase = getServiceSupabase();
@@ -68,7 +74,12 @@ export async function GET() {
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    return NextResponse.json({ success: true, teachers, callerRole: callerProfile!.role });
+    return NextResponse.json({
+      success: true,
+      teachers,
+      callerRole: callerProfile!.role,
+      rubricPilotEnabled: canUseDallasRubricPilot(user.id, callerProfile!.role),
+    });
   } catch (error) {
     console.error('Admin observe teachers route error:', error);
     return NextResponse.json({ success: false, error: getErrorMessage(error) }, { status: 500 });

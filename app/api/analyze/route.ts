@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { formatTEKSForPrompt, getPrimaryTEKSStandards, getRelatedTEKSStandards, getTEKSStandards } from "@/lib/teksStandards";
 import { STAAR_SUBJECTS } from "@/lib/staarSubjects";
 import { getAdminVisibility } from "@/lib/adminVisibility";
-import { DALLAS_ISD_RUBRIC_ID, isElementaryRubricGrade } from "@/lib/evaluationRubrics";
+import { canUseDallasRubricPilot, DALLAS_ISD_RUBRIC_ID, isElementaryRubricGrade } from "@/lib/evaluationRubrics";
 import { getHigherEdBiologyObjectivesForChapter } from "@/lib/higherEdBiologyObjectives";
 import { normalizeStructuredReportText, parseFeedbackSections } from "@/lib/analysisReport";
 import {
@@ -2426,7 +2426,7 @@ export async function POST(req: Request) {
     const book = String(formData.get("book") || "").trim();
     const chapter = String(formData.get("chapter") || "").trim();
     const requestedRubricId = String(formData.get("rubricId") || "").trim();
-    const rubricId = callerRole === "super_admin" && requestedRubricId === DALLAS_ISD_RUBRIC_ID && isElementaryRubricGrade(grade)
+    const rubricId = canUseDallasRubricPilot(user?.id, callerRole) && requestedRubricId === DALLAS_ISD_RUBRIC_ID && isElementaryRubricGrade(grade)
       ? requestedRubricId
       : "";
     const lectureText = String(formData.get("lecture") || "").trim();

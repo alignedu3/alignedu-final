@@ -5,7 +5,7 @@ import { getAdminVisibility } from '@/lib/adminVisibility';
 import { normalizeStructuredReportText, parseAnalysisMetrics } from '@/lib/analysisReport';
 import { calculateLessonScoreFromMetrics } from '@/lib/dashboardData';
 import { getErrorMessage } from '@/lib/errorHandling';
-import { DALLAS_ISD_OBSERVATION_INDICATORS, DALLAS_ISD_RUBRIC_ID } from '@/lib/evaluationRubrics';
+import { canUseDallasRubricPilot, DALLAS_ISD_OBSERVATION_INDICATORS, DALLAS_ISD_RUBRIC_ID } from '@/lib/evaluationRubrics';
 
 function getServiceSupabase() {
   return createServiceClient(
@@ -175,7 +175,7 @@ export async function PATCH(
       }
 
       if (rubricReviewRequested) {
-        if (profile?.role !== 'super_admin') {
+        if (!canUseDallasRubricPilot(user.id, profile?.role)) {
           return NextResponse.json({ success: false, error: 'The rubric pilot is currently limited to the super administrator.' }, { status: 403 });
         }
         if (analysis.rubric_id !== DALLAS_ISD_RUBRIC_ID || !Array.isArray(body.rubricReview)) {

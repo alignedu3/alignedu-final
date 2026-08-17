@@ -3,7 +3,7 @@ import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getErrorMessage } from '@/lib/errorHandling';
 import { captureRouteException } from '@/lib/sentryRoute';
-import { hidePilotRubricFields } from '@/lib/evaluationRubrics';
+import { canUseDallasRubricPilot, hidePilotRubricFields } from '@/lib/evaluationRubrics';
 
 function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -70,7 +70,7 @@ export async function GET() {
         name: callerProfile?.name || 'Teacher',
         role: callerProfile?.role || 'teacher',
       },
-      analyses: callerProfile?.role === 'super_admin'
+      analyses: canUseDallasRubricPilot(user.id, callerProfile?.role)
         ? analyses || []
         : (analyses || []).map((analysis) => hidePilotRubricFields(analysis)),
     });

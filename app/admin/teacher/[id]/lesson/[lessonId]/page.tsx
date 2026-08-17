@@ -36,7 +36,7 @@ export default function LessonReportPage() {
 
   const [lesson, setLesson] = useState<AnalysisReport | null>(null);
   const [teacher, setTeacher] = useState<ProfileRecord | null>(null);
-  const [viewerRole, setViewerRole] = useState('');
+  const [rubricPilotEnabled, setRubricPilotEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [adminFeedbackDraft, setAdminFeedbackDraft] = useState('');
@@ -85,7 +85,7 @@ export default function LessonReportPage() {
 
       setLesson(data.lesson || null);
       setTeacher(data.teacher || null);
-      setViewerRole(data.viewerRole || '');
+      setRubricPilotEnabled(Boolean(data.rubricPilotEnabled));
       setLoading(false);
     }
     if (lessonId) load();
@@ -520,7 +520,7 @@ export default function LessonReportPage() {
           </div>
         )}
 
-        {viewerRole === 'super_admin' && lesson.rubric_id === DALLAS_ISD_RUBRIC_ID && (
+        {rubricPilotEnabled && lesson.rubric_id === DALLAS_ISD_RUBRIC_ID && (
           <div style={{ ...sectionCard, ...analysisSectionCard }}>
             <h2 style={sectionTitle}>Dallas ISD Rubric Review</h2>
             <p style={bodyText}>
