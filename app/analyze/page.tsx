@@ -91,24 +91,6 @@ function formatSelectedAudioLabel(fileName: string) {
   })}`;
 }
 
-function estimateAnalysisProcessingSeconds(audioSeconds: number | null, chunkCount: number) {
-  if (!audioSeconds || audioSeconds <= 0) {
-    return 110;
-  }
-
-  const splittingSeconds =
-    audioSeconds > 60
-      ? Math.min(90, Math.max(12, Math.round(chunkCount * 1.5)))
-      : 0;
-  const uploadAndTranscriptionSeconds = Math.max(
-    40,
-    Math.round(Math.ceil(chunkCount / 2) * 9 + audioSeconds / 85)
-  );
-  const reportSeconds = Math.min(150, Math.max(45, Math.round(audioSeconds / 55)));
-
-  return Math.round(splittingSeconds + uploadAndTranscriptionSeconds + reportSeconds);
-}
-
 function getChunkSecondsForDuration(duration: number) {
   if (duration >= 40 * 60) {
     return 5 * 60;
@@ -456,7 +438,6 @@ export default function AnalysisPage() {
   const [processingStep, setProcessingStep] = useState("");
   const [analysisStartedAt, setAnalysisStartedAt] = useState<number | null>(null);
   const [elapsedAnalysisSeconds, setElapsedAnalysisSeconds] = useState(0);
-  const [estimatedProcessingSeconds, setEstimatedProcessingSeconds] = useState<number | null>(null);
   const [analysisProgressPercent, setAnalysisProgressPercent] = useState<number | null>(null);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const [result, setResult] = useState("");
@@ -745,22 +726,6 @@ export default function AnalysisPage() {
 
     return () => window.clearInterval(timer);
   }, [analysisStartedAt, loading]);
-
-  const analysisProgress = useMemo(() => {
-    if (!loading || !estimatedProcessingSeconds) return null;
-    const elapsedPercent = Math.min(96, Math.max(8, Math.round((elapsedAnalysisSeconds / estimatedProcessingSeconds) * 100)));
-    const percent = analysisProgressPercent !== null
-      ? Math.max(elapsedPercent, Math.min(96, analysisProgressPercent))
-      : elapsedPercent;
-    const remainingSeconds = Math.max(0, estimatedProcessingSeconds - elapsedAnalysisSeconds);
-    const isPastEstimate = elapsedAnalysisSeconds >= estimatedProcessingSeconds;
-
-    return {
-      percent,
-      remainingSeconds,
-      isPastEstimate,
-    };
-  }, [analysisProgressPercent, elapsedAnalysisSeconds, estimatedProcessingSeconds, loading]);
 
   const filePreviewCardStyle: React.CSSProperties = {
     background: 'var(--bg-secondary)',
@@ -1679,8 +1644,6 @@ export default function AnalysisPage() {
         documentText ? `Uploaded document (${documentFile?.name || "document"}):\n${documentText}` : "",
       ].filter(Boolean).join("\n\n");
       let audioChunksForAnalysis: File[] = [];
-      let nextEstimatedChunkCount = 1;
-
       if (audioFile) {
         if (!resolvedDuration || resolvedDuration <= 60) {
           audioChunksForAnalysis = [audioFile];
@@ -1688,15 +1651,7 @@ export default function AnalysisPage() {
           setProcessingStep("Splitting audio into chunks...");
           audioChunksForAnalysis = await splitAudioIntoChunks(audioFile, resolvedDuration);
         }
-        nextEstimatedChunkCount = audioChunksForAnalysis.length || 1;
       }
-
-      setEstimatedProcessingSeconds(
-        estimateAnalysisProcessingSeconds(
-          resolvedDuration ?? audioDuration ?? null,
-          audioFile ? nextEstimatedChunkCount : 1
-        )
-      );
 
       let combinedTranscriptText = transcriptText;
       let waitTimeEvidence = "";
@@ -2181,21 +2136,22 @@ export default function AnalysisPage() {
                             {processingStep || "Analyzing lesson..."}
                           </span>
                         </span>
-                        <span style={buttonProgressTrackStyle}>
-                          <span
-                            style={{
-                              ...buttonProgressFillStyle,
-                              display: 'block',
-                              width: `${analysisProgress?.percent ?? 12}%`,
-                            }}
-                          />
-                        </span>
+                        {analysisProgressPercent !== null && (
+                          <span style={buttonProgressTrackStyle}>
+                            <span
+                              style={{
+                                ...buttonProgressFillStyle,
+                                display: 'block',
+                                width: `${Math.max(1, Math.min(99, analysisProgressPercent))}%`,
+                              }}
+                            />
+                          </span>
+                        )}
                         <span style={buttonMetaTextStyle}>
-                          {analysisProgress
-                            ? analysisProgress.isPastEstimate
-                              ? 'Wrapping up...'
-                              : `${formatDurationLabel(analysisProgress.remainingSeconds)} left`
-                            : `Elapsed ${formatDurationLabel(elapsedAnalysisSeconds)}`}
+                          {analysisProgressPercent !== null
+                            ? `${analysisProgressPercent}% complete · `
+                            : ''}
+                          Elapsed {formatDurationLabel(elapsedAnalysisSeconds)}
                         </span>
                       </span>
                     ) : (
