@@ -36,6 +36,7 @@ const emptyAnalysisMetrics: AnalysisMetricsState = {
 
 const ACTIVE_ANALYSIS_JOB_KEY = "active-analysis-job-id";
 const TEACHER_DRAFT_KEY = "alignedu-lesson-draft-v1";
+const MAX_ANALYSIS_JOB_AGE_MS = 30 * 60 * 1000;
 
 function formatDurationLabel(totalSeconds: number | null) {
   if (!totalSeconds || totalSeconds <= 0) return "Less than a minute";
@@ -630,6 +631,8 @@ export default function AnalysisPage() {
           result?: string | null;
           metrics?: Partial<AnalysisMetricsState>;
           analysisId?: string | null;
+          createdAt?: string | null;
+          updatedAt?: string | null;
         };
       }>(`/api/analyze/jobs/${jobId}`, {
         credentials: 'include',
@@ -649,6 +652,9 @@ export default function AnalysisPage() {
       }
 
       if (data.job.status === "completed") {
+        if (!data.job.result) {
+          throw new Error("The analysis finished but its report could not be loaded. Please start the analysis again.");
+        }
         applyCompletedJob(data.job);
         setSaveNotice(
           isAdminObservationMode
@@ -668,6 +674,25 @@ export default function AnalysisPage() {
           window.localStorage.removeItem(ACTIVE_ANALYSIS_JOB_KEY);
         }
         throw new Error(data?.error || data.job.error || "Analysis failed.");
+      }
+
+      const createdAtMs = data.job.createdAt ? new Date(data.job.createdAt).getTime() : 0;
+      const jobIsStale = Number.isFinite(createdAtMs) && createdAtMs > 0 && Date.now() - createdAtMs > MAX_ANALYSIS_JOB_AGE_MS;
+      const completionUpdateIsInconsistent =
+        data.job.progressPercent === 100 &&
+        /analysis complete/i.test(data.job.progressStep || "") &&
+        !data.job.result;
+
+      if (jobIsStale || completionUpdateIsInconsistent) {
+        setActiveJobId(null);
+        if (typeof window !== "undefined") {
+          window.localStorage.removeItem(ACTIVE_ANALYSIS_JOB_KEY);
+        }
+        throw new Error(
+          completionUpdateIsInconsistent
+            ? "The analysis reached completion but its report was not saved. Please try again."
+            : "This analysis job stopped responding. Please start a new analysis."
+        );
       }
 
       await new Promise((resolve) => window.setTimeout(resolve, 3000));

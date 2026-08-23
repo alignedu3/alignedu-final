@@ -1302,7 +1302,7 @@ async function updateAnalysisJob(
     .update(basePatch)
     .eq("id", jobId);
 
-  if (error && /column .* does not exist/i.test(error.message || "")) {
+  if (error && /column .* does not exist|schema cache|could not find/i.test(error.message || "")) {
     const legacyCompatiblePatch: Record<string, unknown> = { ...basePatch };
     delete legacyCompatiblePatch.openai_api_path;
     delete legacyCompatiblePatch.openai_model;
@@ -2312,6 +2312,9 @@ async function processAnalysisJob(
       },
     });
 
+    // Persist the completed report and terminal status independently from optional
+    // diagnostics. A missing telemetry column must never leave a finished job stuck
+    // in "processing" with the UI polling forever.
     await updateAnalysisJob(jobId, {
       status: "completed",
       progress_percent: 100,
@@ -2325,6 +2328,10 @@ async function processAnalysisJob(
       assessment_quality: output.metrics.assessment,
       gaps_detected: output.metrics.gaps,
       analysis_id: output.analysisId,
+      error: null,
+    });
+
+    await updateAnalysisJob(jobId, {
       openai_api_path: output.diagnostics.openaiApiPath,
       openai_model: output.diagnostics.openaiModel,
       openai_attempt_count: output.diagnostics.openaiAttemptCount,
@@ -2334,7 +2341,6 @@ async function processAnalysisJob(
       quality_issues: output.diagnostics.qualityIssues,
       openai_fallback_used: output.diagnostics.usedFallback,
       openai_fallback_reason: output.diagnostics.fallbackReason,
-      error: null,
     });
   } catch (error) {
     const message = getErrorMessage(error, "Analysis failed");
