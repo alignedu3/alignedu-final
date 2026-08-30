@@ -195,6 +195,24 @@ export default function AdminDashboard() {
   }, [loadDashboard]);
 
   useEffect(() => {
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void loadDashboard();
+      }
+    };
+    const refreshOnFocus = () => void loadDashboard();
+    const refreshTimer = window.setInterval(refreshWhenVisible, 30_000);
+
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      window.clearInterval(refreshTimer);
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [loadDashboard]);
+
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [selectedAdminId]);
 

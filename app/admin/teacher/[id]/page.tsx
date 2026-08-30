@@ -91,7 +91,26 @@ export default function AdminTeacherPage() {
       setReady(true);
     }
 
-    if (id) load();
+    if (!id) return;
+    void load();
+
+    if ((id as string).startsWith('sample-')) return;
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') {
+        void load();
+      }
+    };
+    const refreshOnFocus = () => void load();
+    const refreshTimer = window.setInterval(refreshWhenVisible, 30_000);
+
+    window.addEventListener('focus', refreshOnFocus);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      window.clearInterval(refreshTimer);
+      window.removeEventListener('focus', refreshOnFocus);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
   }, [id]);
 
   useEffect(() => {
