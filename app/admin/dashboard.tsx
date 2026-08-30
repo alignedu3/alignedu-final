@@ -31,9 +31,9 @@ type TrendTerm = 'full_year' | 'fall' | 'spring';
 const TEAM_AVERAGE_KEY = 'Team Average';
 
 function parseReportDate(report: AnalysisReport) {
-  const raw = report.date ?? report.created_at?.slice(0, 10);
+  const raw = report.created_at ?? report.date;
   if (!raw) return null;
-  const parsed = new Date(`${raw}T12:00:00`);
+  const parsed = new Date(raw.includes('T') ? raw : `${raw}T12:00:00`);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
@@ -337,17 +337,17 @@ export default function AdminDashboard() {
       if (selectedSchoolYear) setSelectedSchoolYear('');
       return;
     }
-    if (!selectedSchoolYear || !schoolYearOptions.includes(selectedSchoolYear)) {
-      setSelectedSchoolYear(schoolYearOptions[0]);
+    if (selectedSchoolYear && !schoolYearOptions.includes(selectedSchoolYear)) {
+      setSelectedSchoolYear('');
     }
   }, [schoolYearOptions, selectedSchoolYear]);
 
   const trendReports = useMemo(() => {
-    if (!selectedSchoolYear) return teacherPerformanceReports;
     return teacherPerformanceReports.filter((report) => {
       const parsed = parseReportDate(report);
       if (!parsed) return false;
-      return getSchoolYearLabel(parsed) === selectedSchoolYear && isWithinSelectedTerm(parsed, selectedTrendTerm);
+      const matchesSchoolYear = !selectedSchoolYear || getSchoolYearLabel(parsed) === selectedSchoolYear;
+      return matchesSchoolYear && isWithinSelectedTerm(parsed, selectedTrendTerm);
     });
   }, [selectedSchoolYear, selectedTrendTerm, teacherPerformanceReports]);
 
@@ -463,7 +463,7 @@ export default function AdminDashboard() {
   const teacherStatsBase = useMemo(() => {
     const map: Record<string, AnalysisReport[]> = {};
 
-    teacherPerformanceReports.forEach((r) => {
+    trendReports.forEach((r) => {
       const key = r.user_id;
       if (!key) return;
       if (!map[key]) map[key] = [];
@@ -471,7 +471,7 @@ export default function AdminDashboard() {
     });
 
     const getReportTimestamp = (report: AnalysisReport) => {
-      const raw = report.date || report.created_at || '';
+      const raw = report.created_at || report.date || '';
       const parsed = new Date(raw).getTime();
       return Number.isFinite(parsed) ? parsed : 0;
     };
@@ -501,7 +501,7 @@ export default function AdminDashboard() {
         trend: Math.round(trend),
       };
     });
-  }, [dashboardProfileById, teacherPerformanceReports]);
+  }, [dashboardProfileById, trendReports]);
 
   const hierarchyRows = useMemo(() => {
     const adminIds = dashboardVisibleAdminIds.filter((id) => {
@@ -851,6 +851,7 @@ export default function AdminDashboard() {
                   onChange={(event) => setSelectedSchoolYear(event.target.value)}
                   style={trendSelect}
                 >
+                  <option value="">All School Years</option>
                   {schoolYearOptions.map((option) => (
                     <option key={option} value={option}>
                       {option === '2025-2026' ? 'August 2025 - May 2026' : `${option.split('-')[0]} - ${option.split('-')[1]}`}
@@ -1021,16 +1022,18 @@ export default function AdminDashboard() {
             <table style={{ ...table, minWidth: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ ...th, width: '40%', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Teacher</th>
-                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Current Avg</th>
-                  <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Trend</th>
-                  <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Actions</th>
+                  <th style={{ ...th, width: '32%', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Teacher</th>
+                  <th style={{ ...th, width: '14%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Lessons</th>
+                  <th style={{ ...th, width: '17%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Current Avg</th>
+                  <th style={{ ...th, width: '20%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Trend</th>
+                  <th style={{ ...th, width: '17%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {visibleTeacherStats.map((t, i) => (
                   <tr key={i}>
                     <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding }}>{t.name}</td>
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding }}>{t.count}</td>
                     <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding }}>{t.avgScore}/100</td>
                     <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding, color: getLessonTrendDisplay(t.trend).direction === 'improving' ? '#22c55e' : getLessonTrendDisplay(t.trend).direction === 'declining' ? '#ef4444' : 'var(--text-secondary)' }}>
                       {getLessonTrendDisplay(t.trend).label}
