@@ -19,8 +19,6 @@ export default function TeacherDashboard() {
   const [keyFindingsReportId, setKeyFindingsReportId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string>('');
-  const [pendingDeleteReport, setPendingDeleteReport] = useState<AnalysisReport | null>(null);
-  const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
   const [lessonsPage, setLessonsPage] = useState(1);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [teacherFeedbackDraft, setTeacherFeedbackDraft] = useState('');
@@ -168,31 +166,6 @@ export default function TeacherDashboard() {
       }
       return report;
     });
-  };
-
-  const handleDeleteReport = async (report: AnalysisReport) => {
-    setDeletingReportId(report.id);
-    try {
-      const response = await fetch(`/api/analyses/${report.id}`, {
-        method: 'DELETE',
-      });
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        pushToast(data.error || 'Unable to delete this analysis.', 'error');
-        return;
-      }
-
-      setSelectedReport((current) => (current?.id === report.id ? null : current));
-      setPendingDeleteReport(null);
-      pushToast('Lesson deleted successfully.', 'success');
-      await loadData();
-    } catch (error) {
-      console.error(error);
-      pushToast('Unable to delete the lesson. Please try again.', 'error');
-    } finally {
-      setDeletingReportId(null);
-    }
   };
 
   const handleSaveTeacherFeedback = async () => {
@@ -765,23 +738,6 @@ export default function TeacherDashboard() {
                               >
                                 View
                               </button>
-                              <button
-                                style={{
-                                  ...deleteButton,
-                                  padding: isNarrowScreen ? '3px 7px' : deleteButton.padding,
-                                  fontSize: isNarrowScreen ? 11 : undefined,
-                                  opacity: isSampleMode ? 0.55 : 1,
-                                  cursor: isSampleMode ? 'not-allowed' : 'pointer',
-                                }}
-                                onClick={() => {
-                                  if (isSampleMode) return;
-                                  setPendingDeleteReport(r);
-                                }}
-                                disabled={isSampleMode}
-                                title={isSampleMode ? 'Sample lessons cannot be deleted.' : 'Delete lesson'}
-                              >
-                                Delete
-                              </button>
                             </div>
                           </td>
                         </tr>
@@ -1246,44 +1202,6 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {pendingDeleteReport && (
-          <div
-            style={modalOverlay}
-            onClick={() => {
-              if (!deletingReportId) setPendingDeleteReport(null);
-            }}
-          >
-            <div style={modalCard} onClick={(e) => e.stopPropagation()}>
-              <div style={modalTitle}>Delete Lesson Analysis</div>
-              <p style={modalText}>
-                Delete{' '}
-                <strong>
-                  {getReportDisplayLabel(pendingDeleteReport)}
-                </strong>
-                ? This action cannot be undone.
-              </p>
-              <div style={modalActions}>
-                <button
-                  type="button"
-                  onClick={() => setPendingDeleteReport(null)}
-                  disabled={Boolean(deletingReportId)}
-                  style={modalCancelBtn}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteReport(pendingDeleteReport)}
-                  disabled={Boolean(deletingReportId)}
-                  style={modalDangerBtn}
-                >
-                  {deletingReportId ? 'Deleting...' : 'Confirm Delete'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
       </div>
     </main>
   );
@@ -1421,14 +1339,6 @@ const actionButton: React.CSSProperties = {
   borderRadius: 8,
   cursor: 'pointer',
   whiteSpace: 'nowrap',
-};
-const deleteButton: React.CSSProperties = {
-  background: '#ef4444',
-  color: '#fff',
-  border: 'none',
-  padding: '6px 12px',
-  borderRadius: 8,
-  cursor: 'pointer',
 };
 const secondaryButton: React.CSSProperties = {
   background: 'transparent',
@@ -1695,65 +1605,4 @@ const teksSectionRow: React.CSSProperties = {
 const analysisSectionCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   borderColor: 'rgba(99,102,241,0.16)',
-};
-
-const modalOverlay: React.CSSProperties = {
-  position: 'fixed',
-  inset: 0,
-  zIndex: 10000,
-  background: 'rgba(2, 6, 23, 0.66)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: 16,
-};
-
-const modalCard: React.CSSProperties = {
-  background: 'var(--surface-card-solid)',
-  border: '1px solid var(--border)',
-  borderRadius: 14,
-  width: '100%',
-  maxWidth: 460,
-  padding: 20,
-  boxShadow: '0 24px 80px rgba(2,6,23,0.35)',
-};
-
-const modalTitle: React.CSSProperties = {
-  color: 'var(--text-primary)',
-  fontSize: 18,
-  fontWeight: 700,
-  marginBottom: 8,
-};
-
-const modalText: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  fontSize: 13,
-  lineHeight: 1.5,
-  margin: '0 0 16px 0',
-};
-
-const modalActions: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: 10,
-};
-
-const modalCancelBtn: React.CSSProperties = {
-  background: 'var(--surface-chip)',
-  color: 'var(--text-primary)',
-  border: '1px solid var(--border)',
-  borderRadius: 10,
-  padding: '10px 14px',
-  fontWeight: 700,
-  cursor: 'pointer',
-};
-
-const modalDangerBtn: React.CSSProperties = {
-  background: '#dc2626',
-  color: '#fff',
-  border: 'none',
-  borderRadius: 10,
-  padding: '10px 14px',
-  fontWeight: 700,
-  cursor: 'pointer',
 };
