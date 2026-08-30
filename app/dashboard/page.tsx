@@ -908,7 +908,13 @@ export default function TeacherDashboard() {
                   </div>
                 )}
 
-                <div style={reportMetricGrid}>
+                <div style={{
+                  ...reportMetricGrid,
+                  gridTemplateColumns: isNarrowScreen
+                    ? 'repeat(2, minmax(0, 1fr))'
+                    : 'repeat(4, minmax(0, 1fr))',
+                  gap: isNarrowScreen ? 10 : reportMetricGrid.gap,
+                }}>
                   <div style={{ ...reportMetricCard, ...coverageMetricCard, flexDirection: isNarrowScreen ? 'column' : reportMetricCard.flexDirection, justifyContent: isNarrowScreen ? 'center' : reportMetricCard.justifyContent, textAlign: 'center' }}>
                     <div style={{ ...reportMetricLabel, textAlign: 'center' }}>Coverage</div>
                     <div style={{ ...reportMetricValue, textAlign: 'center' }}>{selectedLessonInsights.coverage}%</div>
@@ -924,10 +930,6 @@ export default function TeacherDashboard() {
                   <div style={{ ...reportMetricCard, ...assessmentMetricCard, flexDirection: isNarrowScreen ? 'column' : reportMetricCard.flexDirection, justifyContent: isNarrowScreen ? 'center' : reportMetricCard.justifyContent, textAlign: 'center' }}>
                     <div style={{ ...reportMetricLabel, textAlign: 'center' }}>Assessment</div>
                     <div style={{ ...reportMetricValue, textAlign: 'center' }}>{selectedLessonInsights.assessment}%</div>
-                  </div>
-                  <div style={{ ...reportMetricCard, ...gapsMetricCard, flexDirection: isNarrowScreen ? 'column' : reportMetricCard.flexDirection, justifyContent: isNarrowScreen ? 'center' : reportMetricCard.justifyContent, textAlign: 'center' }}>
-                    <div style={{ ...reportMetricLabel, textAlign: 'center' }}>Gaps Flagged</div>
-                    <div style={{ ...reportMetricValue, textAlign: 'center' }}>{selectedLessonInsights.gaps}</div>
                   </div>
                 </div>
 
@@ -1568,11 +1570,6 @@ const engagementMetricCard: React.CSSProperties = {
 const assessmentMetricCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   borderColor: 'rgba(245,158,11,0.16)',
-};
-
-const gapsMetricCard: React.CSSProperties = {
-  background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(239,68,68,0.16)',
 };
 
 const successSectionCard: React.CSSProperties = {
