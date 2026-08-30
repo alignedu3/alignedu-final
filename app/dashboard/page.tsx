@@ -532,7 +532,7 @@ export default function TeacherDashboard() {
           >
             <div style={analysisScorePanel}>
               <div style={analysisScoreEyebrow}>Current Average</div>
-              <div style={{ ...analysisScoreValue, fontSize: isNarrowScreen ? 34 : analysisScoreValue.fontSize }}>{overallScore}/100</div>
+              <div style={{ ...analysisScoreValue, fontSize: isNarrowScreen ? 40 : analysisScoreValue.fontSize }}>{overallScore}/100</div>
               <div style={{ ...analysisScoreSubtext, fontSize: isNarrowScreen ? 12 : analysisScoreSubtext.fontSize }}>
                 {summary.lessonsAnalyzed > 0
                   ? `Average across ${summary.lessonsAnalyzed} lesson${summary.lessonsAnalyzed === 1 ? '' : 's'}`
@@ -541,19 +541,19 @@ export default function TeacherDashboard() {
             </div>
 
             <div style={analysisMetricsGrid}>
-              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 88 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '14px 12px 12px' : analysisMetricCard.padding }}>
-                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 11 : analysisMetricLabel.fontSize }}>Coverage</div>
-                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{summary.averageCoverage}%</div>
+              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 104 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '18px 14px 16px' : analysisMetricCard.padding }}>
+                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 12 : analysisMetricLabel.fontSize }}>Coverage</div>
+                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 30 : analysisMetricValue.fontSize }}>{summary.averageCoverage}%</div>
               </div>
 
-              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 88 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '14px 12px 12px' : analysisMetricCard.padding }}>
-                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 11 : analysisMetricLabel.fontSize }}>Clarity</div>
-                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
+              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 104 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '18px 14px 16px' : analysisMetricCard.padding }}>
+                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 12 : analysisMetricLabel.fontSize }}>Clarity</div>
+                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 30 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
               </div>
 
-              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 88 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '14px 12px 12px' : analysisMetricCard.padding }}>
-                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 11 : analysisMetricLabel.fontSize }}>Engagement</div>
-                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
+              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 104 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '18px 14px 16px' : analysisMetricCard.padding }}>
+                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 12 : analysisMetricLabel.fontSize }}>Engagement</div>
+                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 30 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
               </div>
 
             </div>
@@ -1306,8 +1306,9 @@ const analysisScorePanel: React.CSSProperties = {
   textAlign: 'center',
   gap: 8,
   minWidth: 0,
-  padding: '18px 20px',
-  borderRadius: 16,
+  minHeight: 148,
+  padding: '24px 22px',
+  borderRadius: 18,
   border: '1px solid rgba(249,115,22,0.22)',
   background: 'linear-gradient(145deg, rgba(249,115,22,0.14) 0%, rgba(249,115,22,0.05) 52%, rgba(255,255,255,0.02) 100%)',
   boxShadow: 'var(--shadow-soft)',
@@ -1320,7 +1321,7 @@ const analysisScoreEyebrow: React.CSSProperties = {
   textTransform: 'uppercase',
 };
 const analysisScoreValue: React.CSSProperties = {
-  fontSize: 40,
+  fontSize: 48,
   lineHeight: 1,
   color: 'var(--text-primary)',
   fontWeight: 800,
@@ -1345,23 +1346,23 @@ const analysisMetricCard: React.CSSProperties = {
   alignItems: 'center',
   textAlign: 'center',
   gap: 10,
-  minHeight: 100,
-  padding: '16px 16px 14px',
-  borderRadius: 14,
+  minHeight: 124,
+  padding: '22px 18px 20px',
+  borderRadius: 17,
   border: '1px solid var(--border)',
   background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(148,163,184,0.05) 100%)',
   boxShadow: 'var(--shadow-soft)',
 };
 const analysisMetricLabel: React.CSSProperties = {
   color: 'var(--text-secondary)',
-  fontSize: 12,
+  fontSize: 13,
   fontWeight: 700,
   letterSpacing: '0.02em',
   lineHeight: 1.3,
 };
 const analysisMetricValue: React.CSSProperties = {
   color: 'var(--text-primary)',
-  fontSize: 28,
+  fontSize: 36,
   lineHeight: 1,
   fontWeight: 800,
   letterSpacing: '-0.02em',
