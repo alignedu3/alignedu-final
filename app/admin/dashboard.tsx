@@ -1011,11 +1011,11 @@ export default function AdminDashboard() {
             <table style={{ ...table, minWidth: '100%' }}>
               <thead>
                 <tr>
-                  <th style={{ ...th, width: '32%', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Teacher</th>
-                  <th style={{ ...th, width: '14%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Lessons</th>
-                  <th style={{ ...th, width: '17%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Current Avg</th>
+                  <th style={{ ...th, width: isNarrowScreen ? '27%' : '32%', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Teacher</th>
+                  <th style={{ ...th, width: isNarrowScreen ? '19%' : '14%', textAlign: 'center', whiteSpace: 'nowrap', fontSize: isNarrowScreen ? 11 : th.fontSize, padding: isNarrowScreen ? '4px 2px' : th.padding }}>Lessons</th>
+                  <th style={{ ...th, width: isNarrowScreen ? '18%' : '17%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 11 : th.fontSize, padding: isNarrowScreen ? '4px 2px' : th.padding }}>Current Avg</th>
                   <th style={{ ...th, width: '20%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Trend</th>
-                  <th style={{ ...th, width: '17%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Actions</th>
+                  <th style={{ ...th, width: isNarrowScreen ? '16%' : '17%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 11 : th.fontSize, padding: isNarrowScreen ? '4px 2px' : th.padding }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
