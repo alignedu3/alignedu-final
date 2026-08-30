@@ -1289,7 +1289,7 @@ const trendHeader: React.CSSProperties = { display: 'flex', justifyContent: 'spa
 const trendChangePill: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, padding: '9px 13px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface-chip)', fontSize: 14 };
 const trendChangeLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 800 };
 const chartTooltip: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--shadow-soft)' };
-const lessonSearchHeader: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' };
+const lessonSearchHeader: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 };
 const lessonSearchInput: React.CSSProperties = { minWidth: 210, padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 13 };
 
 const analysisSummaryLayout: React.CSSProperties = {
