@@ -395,7 +395,7 @@ export default function DistrictDashboard() {
         </div>
 
         <section style={card}>
-          <div style={chartHeader}>
+          <div style={{ ...chartHeader, marginBottom: 14 }}>
             <div><div style={sectionEyebrow}>District Roster</div><h2 style={title}>Teacher Performance Snapshot</h2></div>
             <div style={filterRow}>
               <input value={rosterSearch} onChange={(event) => setRosterSearch(event.target.value)} placeholder="Search teachers" aria-label="Search district teachers" style={filterInput} />

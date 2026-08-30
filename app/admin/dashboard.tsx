@@ -992,7 +992,7 @@ export default function AdminDashboard() {
         </div>
 
         <div style={card}>
-          <div style={trendHeader}>
+          <div style={{ ...trendHeader, marginBottom: 14 }}>
             <div><div style={sectionEyebrow}>Search and Compare</div><h2 style={title}>Teacher Performance</h2></div>
             <input value={performanceSearch} onChange={(event) => setPerformanceSearch(event.target.value)} placeholder="Search teachers" aria-label="Search teachers" style={dashboardSearchInput} />
           </div>
