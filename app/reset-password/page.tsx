@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
@@ -35,6 +35,7 @@ function getPasswordRequirementErrors(password: string) {
 
 export default function ResetPassword() {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   const [sessionReady, setSessionReady] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [isRecoverySession, setIsRecoverySession] = useState(false);
@@ -47,7 +48,6 @@ export default function ResetPassword() {
 
   // Verify session is valid before showing the form
   useEffect(() => {
-    const supabase = createClient();
     const recoveryMarkerKey = 'alignedu-password-recovery';
 
     const waitForSession = async (attempts = 10, delayMs = 250) => {
@@ -69,16 +69,22 @@ export default function ResetPassword() {
       const recoveryFlowActive = Boolean(code || (accessToken && refreshToken) || hasRecoveryMarker);
 
       if (code) {
-        await supabase.auth.signOut({ scope: 'local' });
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
         if (exchangeError) {
           console.error('Reset code exchange error:', exchangeError);
+          window.sessionStorage.removeItem(recoveryMarkerKey);
+          setError('This password reset link is invalid or has expired. Please request a new link.');
+          setCheckingSession(false);
+          return;
         }
       } else if (accessToken && refreshToken) {
-        await supabase.auth.signOut({ scope: 'local' });
-        const { error: setError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
-        if (setError) {
-          console.error('Reset session set error:', setError);
+        const { error: setSessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        if (setSessionError) {
+          console.error('Reset session set error:', setSessionError);
+          window.sessionStorage.removeItem(recoveryMarkerKey);
+          setError('This password reset link is invalid or has expired. Please request a new link.');
+          setCheckingSession(false);
+          return;
         }
       }
 
@@ -86,8 +92,13 @@ export default function ResetPassword() {
 
       if (!session) {
         window.sessionStorage.removeItem(recoveryMarkerKey);
-        router.replace('/login');
+        setError('Your secure password reset session could not be created. Please request a new reset link.');
+        setCheckingSession(false);
         return;
+      }
+
+      if (code || accessToken) {
+        window.history.replaceState({}, document.title, '/reset-password');
       }
 
       setIsRecoverySession(recoveryFlowActive);
@@ -96,7 +107,7 @@ export default function ResetPassword() {
     };
 
     checkSession();
-  }, [router]);
+  }, [router, supabase]);
 
   const isRefreshTokenError = (message: string) => {
     const text = message.toLowerCase();
@@ -141,7 +152,14 @@ export default function ResetPassword() {
     }
 
     setLoading(true);
-    const supabase = createClient();
+
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      window.sessionStorage.removeItem('alignedu-password-recovery');
+      setError('Your password reset session expired. Please request a new reset link.');
+      setLoading(false);
+      return;
+    }
 
     const updatePayload = isRecoverySession
       ? { password }
@@ -154,7 +172,12 @@ export default function ResetPassword() {
         await supabase.auth.signOut({ scope: 'global' });
         window.sessionStorage.removeItem('alignedu-password-recovery');
         setError('Your session expired. Please log in again, then change your password.');
-      } else if (isRecoverySession && updateError.message.toLowerCase().includes('current password required')) {
+      } else if (
+        isRecoverySession &&
+        (updateError.message.toLowerCase().includes('current password required') ||
+          updateError.message.toLowerCase().includes('auth session missing') ||
+          updateError.message.toLowerCase().includes('missing credentials'))
+      ) {
         setError('This reset link was not opened in a recovery session. Please use the password reset link from your email again.');
       } else {
         setError(updateError.message);
@@ -188,11 +211,23 @@ export default function ResetPassword() {
     setLoading(false);
   };
 
-  if (checkingSession || !sessionReady) {
+  if (checkingSession) {
     return (
       <main style={mainContainer}>
         <section style={card}>
           <p style={subheading}>Setting up your account…</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (!sessionReady) {
+    return (
+      <main style={mainContainer}>
+        <section style={card}>
+          <h1 style={heading}>Reset Link Needed</h1>
+          <p style={errorText}>{error || 'Your password reset session could not be created.'}</p>
+          <a href="/forgot-password" style={backLink}>Request a New Reset Link</a>
         </section>
       </main>
     );
