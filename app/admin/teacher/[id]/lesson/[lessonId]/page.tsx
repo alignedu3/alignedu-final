@@ -294,10 +294,6 @@ export default function LessonReportPage() {
             <div style={metricLabel}>Assessment</div>
             <div style={metricValue}>{insights.assessment}%</div>
           </div>
-          <div style={{ ...metricCard, ...gapsMetricCard }}>
-            <div style={metricLabel}>Gaps</div>
-            <div style={metricValue}>{insights.gaps}</div>
-          </div>
         </div>
 
         <div style={{ ...sectionCard, ...contextSectionCard }}>
@@ -1066,11 +1062,6 @@ const engagementMetricCard: React.CSSProperties = {
 const assessmentMetricCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   borderColor: 'rgba(245,158,11,0.16)',
-};
-
-const gapsMetricCard: React.CSSProperties = {
-  background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(239,68,68,0.16)',
 };
 
 const contextSectionCard: React.CSSProperties = {

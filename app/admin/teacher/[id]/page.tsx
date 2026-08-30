@@ -30,6 +30,15 @@ function formatStableDate(value: string | null | undefined) {
   return stableDateFormatter.format(parsed);
 }
 
+function getChapterLabel(report: AnalysisReport) {
+  const title = String(report.title || '').trim();
+  const chapterMatch = title.match(/\bchapter\s+(?:\d+[a-z]?|[ivxlcdm]+)\b/i);
+  if (chapterMatch) {
+    return chapterMatch[0].replace(/^chapter/i, 'Chapter');
+  }
+  return title || report.subject || 'Lesson';
+}
+
 export default function AdminTeacherPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
@@ -163,7 +172,7 @@ export default function AdminTeacherPage() {
   const latestLessonLabel = useMemo(() => {
     if (!activeReport) return 'No lesson selected';
     const date = formatStableDate(activeReport.created_at);
-    return `${activeReport.grade || 'Grade'} ${activeReport.subject || 'Lesson'} · ${date}`;
+    return `${getChapterLabel(activeReport)} · ${activeReport.grade || 'Grade'} ${activeReport.subject || 'Lesson'} · ${date}`;
   }, [activeReport]);
 
   if (!ready) {
@@ -349,7 +358,8 @@ export default function AdminTeacherPage() {
                   <div style={chipWrap} className="admin-teacher-chip-wrap">
                     {previousReports.map((report, index) => {
                       const lessonDate = formatStableDate(report.created_at);
-                      const chipLabel = `${report.grade || 'Grade'} ${report.subject || 'Lesson'}${lessonDate !== 'No date' ? ` · ${lessonDate}` : ''}`;
+                      const chapterLabel = getChapterLabel(report);
+                      const chipLabel = `${chapterLabel}, ${report.grade || 'Grade'} ${report.subject || 'Lesson'}${lessonDate !== 'No date' ? `, ${lessonDate}` : ''}`;
                       const isActive = activeReport.id === report.id;
                       return (
                         <button
@@ -362,7 +372,10 @@ export default function AdminTeacherPage() {
                           }}
                           title={chipLabel}
                         >
-                          {chipLabel}
+                          <span style={previousFindingChapter}>{chapterLabel}</span>
+                          <span style={previousFindingMeta}>
+                            {report.grade || 'Grade'} {report.subject || 'Lesson'}{lessonDate !== 'No date' ? ` · ${lessonDate}` : ''}
+                          </span>
                         </button>
                       );
                     })}
@@ -382,6 +395,7 @@ export default function AdminTeacherPage() {
             <div style={historyGrid} className="admin-teacher-history-grid">
               {reports.map((report, index) => {
                 const lessonDate = formatStableDate(report.created_at);
+                const chapterLabel = getChapterLabel(report);
                 return (
                   <Link
                     key={report.id || index}
@@ -389,7 +403,10 @@ export default function AdminTeacherPage() {
                     style={historyCard}
                   >
                     <div style={historyTopRow}>
-                      <div style={historyTitle}>{report.grade || 'Grade'} {report.subject || 'Lesson'}</div>
+                      <div>
+                        <div style={historyTitle}>{chapterLabel}</div>
+                        <div style={historyCourse}>{report.grade || 'Grade'} {report.subject || 'Lesson'}</div>
+                      </div>
                       <div style={historyScore}>{getLessonMetrics(report).score}/100</div>
                     </div>
                     <div style={muted}>{lessonDate}</div>
@@ -639,23 +656,40 @@ const actionPanel: React.CSSProperties = {
 };
 
 const chipWrap: React.CSSProperties = {
-  display: 'flex',
-  flexWrap: 'wrap',
-  gap: 8
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+  gap: 10
 };
 
 const chip: React.CSSProperties = {
   border: '1px solid var(--border)',
   background: 'var(--surface-chip)',
   color: 'var(--text-primary)',
-  borderRadius: 999,
-  padding: '7px 11px',
-  fontSize: 12,
+  borderRadius: 14,
+  padding: '12px 14px',
   cursor: 'pointer',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-start',
+  gap: 5,
+  textAlign: 'left',
   maxWidth: '100%',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap'
+  minHeight: 72,
+  boxShadow: 'var(--shadow-soft)',
+  transition: 'border-color 160ms ease, background 160ms ease, transform 160ms ease'
+};
+
+const previousFindingChapter: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  fontSize: 14,
+  fontWeight: 800,
+  lineHeight: 1.25
+};
+
+const previousFindingMeta: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 11,
+  lineHeight: 1.4
 };
 
 const historyGrid: React.CSSProperties = {
@@ -686,6 +720,12 @@ const historyTitle: React.CSSProperties = {
   color: 'var(--text-primary)',
   fontSize: 16,
   fontWeight: 700
+};
+
+const historyCourse: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 12,
+  marginTop: 4
 };
 
 const historyScore: React.CSSProperties = {
