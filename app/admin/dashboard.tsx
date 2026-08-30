@@ -367,6 +367,11 @@ export default function AdminDashboard() {
     return palette[Math.abs(hash) % palette.length];
   };
 
+  const getTeacherLineColor = (teacherName: string) => {
+    if (/\brobert\b/i.test(teacherName)) return '#2563eb';
+    return getStablePaletteColor(teacherName, TEACHER_COLORS);
+  };
+
   const getPointCountForKey = (rows: Array<Record<string, string | number>>, key: string) => {
     return rows.reduce((count, row) => {
       const value = row[key];
@@ -923,10 +928,10 @@ export default function AdminDashboard() {
                       key={key}
                       type="monotone"
                       dataKey={key}
-                      stroke={getStablePaletteColor(key, TEACHER_COLORS)}
+                      stroke={getTeacherLineColor(key)}
                       strokeWidth={3}
                       dot={{ r: 0 }}
-                      activeDot={{ r: 5, strokeWidth: 0, fill: getStablePaletteColor(key, TEACHER_COLORS) }}
+                      activeDot={{ r: 5, strokeWidth: 0, fill: getTeacherLineColor(key) }}
                       connectNulls
                     />
                   ))}
@@ -974,7 +979,7 @@ export default function AdminDashboard() {
                       width: 10,
                       height: 10,
                       borderRadius: '50%',
-                      background: getStablePaletteColor(key, TEACHER_COLORS),
+                      background: getTeacherLineColor(key),
                     }} />
                     <span style={{
                       fontSize: 12,
