@@ -27,7 +27,6 @@ import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 import GettingStartedChecklist from '@/components/GettingStartedChecklist';
 import NotificationCenter from '@/components/NotificationCenter';
 
-type TrendTerm = 'full_year' | 'fall' | 'spring';
 const TEAM_AVERAGE_KEY = 'Team Average';
 
 function parseReportDate(report: AnalysisReport) {
@@ -37,18 +36,13 @@ function parseReportDate(report: AnalysisReport) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-function getSchoolYearLabel(date: Date) {
+function getSemesterPeriod(date: Date) {
   const year = date.getFullYear();
   const month = date.getMonth();
-  const startYear = month >= 7 ? year : year - 1;
-  return `${startYear}-${startYear + 1}`;
-}
-
-function isWithinSelectedTerm(date: Date, term: TrendTerm) {
-  const month = date.getMonth();
-  if (term === 'full_year') return true;
-  if (term === 'fall') return month >= 7 && month <= 11;
-  return month >= 0 && month <= 4;
+  const term = month >= 7 ? 'fall' : month >= 5 ? 'summer' : 'spring';
+  const label = `${term.charAt(0).toUpperCase()}${term.slice(1)} ${year}`;
+  const termRank = term === 'fall' ? 3 : term === 'summer' ? 2 : 1;
+  return { value: `${term}-${year}`, label, rank: year * 10 + termRank };
 }
 
 function formatTrendAxisLabel(value: string | number) {
@@ -83,8 +77,7 @@ export default function AdminDashboard() {
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [openActionsForId, setOpenActionsForId] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
-  const [selectedSchoolYear, setSelectedSchoolYear] = useState<string>('');
-  const [selectedTrendTerm, setSelectedTrendTerm] = useState<TrendTerm>('full_year');
+  const [selectedSemester, setSelectedSemester] = useState<string>('');
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [performanceSearch, setPerformanceSearch] = useState('');
   const router = useRouter();
@@ -322,34 +315,30 @@ export default function AdminDashboard() {
     [dashboardReports, teacherPerformanceUserIds]
   );
   const summary = getDashboardSummary(dashboardReports);
-  const schoolYearOptions = useMemo(() => {
-    const labels = new Set<string>();
+  const semesterOptions = useMemo(() => {
+    const periods = new Map<string, { value: string; label: string; rank: number }>();
     dashboardReports.forEach((report) => {
       const parsed = parseReportDate(report);
       if (!parsed) return;
-      labels.add(getSchoolYearLabel(parsed));
+      const period = getSemesterPeriod(parsed);
+      periods.set(period.value, period);
     });
-    return Array.from(labels).sort((a, b) => b.localeCompare(a));
+    return Array.from(periods.values()).sort((a, b) => b.rank - a.rank);
   }, [dashboardReports]);
 
   useEffect(() => {
-    if (!schoolYearOptions.length) {
-      if (selectedSchoolYear) setSelectedSchoolYear('');
-      return;
+    if (selectedSemester && !semesterOptions.some((option) => option.value === selectedSemester)) {
+      setSelectedSemester('');
     }
-    if (selectedSchoolYear && !schoolYearOptions.includes(selectedSchoolYear)) {
-      setSelectedSchoolYear('');
-    }
-  }, [schoolYearOptions, selectedSchoolYear]);
+  }, [selectedSemester, semesterOptions]);
 
   const trendReports = useMemo(() => {
     return teacherPerformanceReports.filter((report) => {
       const parsed = parseReportDate(report);
       if (!parsed) return false;
-      const matchesSchoolYear = !selectedSchoolYear || getSchoolYearLabel(parsed) === selectedSchoolYear;
-      return matchesSchoolYear && isWithinSelectedTerm(parsed, selectedTrendTerm);
+      return !selectedSemester || getSemesterPeriod(parsed).value === selectedSemester;
     });
-  }, [selectedSchoolYear, selectedTrendTerm, teacherPerformanceReports]);
+  }, [selectedSemester, teacherPerformanceReports]);
 
   const trendLessonCount = trendReports.length;
   const trendTeacherCount = useMemo(() => {
@@ -845,30 +834,18 @@ export default function AdminDashboard() {
             </div>
             <div style={trendControls}>
               <label style={trendFilterField}>
-                <span style={trendFilterLabel}>School Year</span>
+                <span style={trendFilterLabel}>Semester</span>
                 <select
-                  value={selectedSchoolYear}
-                  onChange={(event) => setSelectedSchoolYear(event.target.value)}
+                  value={selectedSemester}
+                  onChange={(event) => setSelectedSemester(event.target.value)}
                   style={trendSelect}
                 >
-                  <option value="">All School Years</option>
-                  {schoolYearOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option === '2025-2026' ? 'August 2025 - May 2026' : `${option.split('-')[0]} - ${option.split('-')[1]}`}
+                  <option value="">All Time</option>
+                  {semesterOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
                     </option>
                   ))}
-                </select>
-              </label>
-              <label style={trendFilterField}>
-                <span style={trendFilterLabel}>Term</span>
-                <select
-                  value={selectedTrendTerm}
-                  onChange={(event) => setSelectedTrendTerm(event.target.value as TrendTerm)}
-                  style={trendSelect}
-                >
-                  <option value="full_year">Full Year</option>
-                  <option value="fall">Fall</option>
-                  <option value="spring">Spring</option>
                 </select>
               </label>
             </div>
