@@ -23,12 +23,10 @@ function normalizedSentences(report: string) {
 
 export function evaluateAnalysisQuality(report: string): AnalysisQualityResult {
   const issues: string[] = [];
-  const evidence = sectionBody(report, "EVIDENCE FROM THE LESSON");
   const teacherPlan = sectionBody(report, "NEXT-LESSON ACTION PLAN");
   const adminPlan = sectionBody(report, "ADMINISTRATOR COACHING PLAN");
   const nextStep = sectionBody(report, "RECOMMENDED NEXT STEP");
 
-  if (labeledItemCount(evidence) < 3) issues.push("Fewer than three lesson-evidence records were provided.");
   if (labeledItemCount(teacherPlan) < 4) issues.push("The next-lesson plan is incomplete.");
   if (labeledItemCount(adminPlan) < 4) issues.push("The administrator coaching plan is incomplete.");
   if (nextStep.length < 80) issues.push("The recommended next step is not sufficiently developed.");

@@ -474,25 +474,6 @@ export default function LessonReportPage() {
           </div>
         )}
 
-        {reportSections.lessonEvidence.length > 0 && (
-          <div style={{ ...sectionCard, ...analysisSectionCard }}>
-            <h2 style={sectionTitle}>Evidence From the Lesson</h2>
-            <div style={teksSectionStack}>
-              {reportSections.lessonEvidence.map((section, index) => (
-                <div key={`lesson-evidence-${index}`} style={teksSectionRow}>
-                  <div style={subsectionTitle}>{section.title}</div>
-                  <p style={bodyText}>{section.content}</p>
-                  {section.bullets.length > 0 && (
-                    <ul style={findingsList}>
-                      {section.bullets.map((item, itemIndex) => <li key={itemIndex} style={findingItem}>{item}</li>)}
-                    </ul>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {reportSections.contentGaps.length > 0 && (
           <div style={{ ...sectionCard, ...analysisSectionCard }}>
             <h2 style={sectionTitle}>Content Gaps To Reinforce</h2>

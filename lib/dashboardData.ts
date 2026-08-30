@@ -538,14 +538,6 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     '=== RECOMMENDED NEXT STEP ===',
     recommendedNextStep,
     '',
-    '=== EVIDENCE FROM THE LESSON ===',
-    `- Opening and modeling: ${teacherDisplayName} introduced ${topic} and connected the explanation to the lesson target.`,
-    '  - Instructional Significance: Supports the report finding about objective alignment and explanation clarity.',
-    `- Student response: Students were prompted to discuss prior knowledge and make their thinking about ${topic} visible.`,
-    '  - Instructional Significance: Supports the engagement finding while avoiding claims about unobserved mastery.',
-    '- Closure: The sample record includes a request for students to show their thinking before the next example.',
-    '  - Instructional Significance: Supports the recommendation to strengthen the final all-student mastery check.',
-    '',
     '=== NEXT-LESSON ACTION PLAN ===',
     `- Learning Target: ${learningTarget}`,
     `- Instructional Move: ${instructionalMove}`,
@@ -992,7 +984,6 @@ export function getLessonReportSections(report: AnalysisReport): {
   teks: ReportSection[];
   staar: ReportSection[];
   higherEdAlignment: ReportSection[];
-  lessonEvidence: ReportSection[];
   teacherActionPlan: ReportSection[];
   administratorCoachingPlan: ReportSection[];
   submissionContext: ReportSection[];
@@ -1021,7 +1012,6 @@ export function getLessonReportSections(report: AnalysisReport): {
     teks: parsed.teks,
     staar: parsed.staar,
     higherEdAlignment: parsed.higherEdAlignment ?? [],
-    lessonEvidence: parsed.lessonEvidence ?? [],
     teacherActionPlan: parsed.teacherActionPlan ?? [],
     administratorCoachingPlan: parsed.administratorCoachingPlan ?? [],
     submissionContext: parsed.submissionContext,

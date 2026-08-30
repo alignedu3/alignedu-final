@@ -230,7 +230,6 @@ export function parseFeedbackSections(text: string) {
   const contentGapsMatch = normalized.match(/===\s*CONTENT GAPS TO REINFORCE\s*===([\s\S]*?)(?====|$)/i);
   const submissionContextMatch = normalized.match(/===\s*SUBMISSION CONTEXT\s*===([\s\S]*?)(?====|$)/i);
   const teacherActionPlanMatch = normalized.match(/===\s*NEXT-LESSON ACTION PLAN\s*===([\s\S]*?)(?====|$)/i);
-  const lessonEvidenceMatch = normalized.match(/===\s*EVIDENCE FROM THE LESSON\s*===([\s\S]*?)(?====|$)/i);
   const administratorCoachingPlanMatch = normalized.match(/===\s*ADMINISTRATOR COACHING PLAN\s*===([\s\S]*?)(?====|$)/i);
 
   return {
@@ -238,7 +237,6 @@ export function parseFeedbackSections(text: string) {
     whatWentWell: extractBulletSection(normalized, "WHAT WENT WELL"),
     whatCanImprove: extractBulletSection(normalized, "WHAT CAN IMPROVE"),
     recommendedNextStep: extractSimpleSection(normalized, "RECOMMENDED NEXT STEP"),
-    lessonEvidence: lessonEvidenceMatch ? parseLabeledSection(lessonEvidenceMatch[1]) : [],
     teacherActionPlan: teacherActionPlanMatch ? parseLabeledSection(teacherActionPlanMatch[1]) : [],
     administratorCoachingPlan: administratorCoachingPlanMatch ? parseLabeledSection(administratorCoachingPlanMatch[1]) : [],
     contentGaps: contentGapsMatch ? parseLabeledSection(contentGapsMatch[1]) : parseLabeledSection(extractSimpleSection(normalized, "CONTENT GAPS TO REINFORCE")),

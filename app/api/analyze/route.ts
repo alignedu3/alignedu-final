@@ -1592,12 +1592,6 @@ Provide a numbered list of the exact content misunderstandings, missing ideas, w
 === RECOMMENDED NEXT STEP ===
 Provide 1 short paragraph with the single highest-leverage next move for the teacher. Limit it to 2-3 sentences. It must directly address the most important weakness from this lesson and explain why it matters here without repeating the summary.
 
-=== EVIDENCE FROM THE LESSON ===
-Provide 3-5 distinct evidence records that support the report's most important strengths, improvement needs, and recommended action. Use labeled bullets:
-- Lesson Moment: identify where it occurred (opening, modeling, guided practice, discussion, independent work, or closure), summarize the observable teacher/student action, and include a transcript phrase of no more than 12 words when available.
-  - Instructional Significance: explain exactly which report claim this evidence supports.
-Do not invent timestamps, student reactions, silence, or actions absent from the transcript. If the submission is abbreviated, explicitly label the evidence as limited rather than filling gaps.
-
 === NEXT-LESSON ACTION PLAN ===
 Turn the highest-leverage recommendation into a plan the teacher can use in the next class. Use exactly these labeled bullets:
 - Learning Target: one student-facing, measurable target tied to the observed need and selected standard or course objective when available.

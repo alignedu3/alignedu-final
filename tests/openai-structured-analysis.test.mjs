@@ -80,6 +80,7 @@ test('structured analysis fixtures render back into the legacy report contract',
         /Instructional Score \(0-100\): \d+/,
         `${fixture.name} should render an instructional score`
       );
+      assert.doesNotMatch(rendered, /EVIDENCE FROM THE LESSON/);
     }
   } finally {
     loaded.cleanup();
