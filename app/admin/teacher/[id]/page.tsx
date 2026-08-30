@@ -13,7 +13,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
-import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getLessonTrendDisplay, getOverallLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
+import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getOverallLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
 import ProtectedPageState from '@/components/ProtectedPageState';
 
 const stableDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -189,29 +189,27 @@ export default function AdminTeacherPage() {
 
         <div style={grid} className="admin-teacher-stat-grid">
           <div style={statCard}>
-            <div style={statLabel}>Lesson Analysis</div>
+            <div style={statLabel}>Current Average</div>
             <div style={statValue}>{summary.averageScore}/100</div>
             <div style={statHelper}>Average across {summary.lessonsAnalyzed} lesson{summary.lessonsAnalyzed === 1 ? '' : 's'}</div>
           </div>
 
           <div style={statCard}>
-            <div style={statLabel}>Average Clarity</div>
+            <div style={statLabel}>Coverage</div>
+            <div style={statValue}>{summary.lessonsAnalyzed ? `${summary.averageCoverage}%` : '—'}</div>
+            <div style={statHelper}>Average across analyzed lessons</div>
+          </div>
+
+          <div style={statCard}>
+            <div style={statLabel}>Clarity</div>
             <div style={statValue}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
-            <div style={statHelper}>Rolled up from analyzed lessons</div>
+            <div style={statHelper}>Average across analyzed lessons</div>
           </div>
 
           <div style={statCard}>
-            <div style={statLabel}>Total Gaps</div>
-            <div style={statValue}>{summary.totalGaps}</div>
-            <div style={statHelper}>All detected gaps across lessons</div>
-          </div>
-
-          <div style={statCard}>
-            <div style={statLabel}>Performance Trend</div>
-            <div style={statValue}>
-              {getLessonTrendDisplay(overview.trend).label}
-            </div>
-            <div style={statHelper}>{overview.risk}</div>
+            <div style={statLabel}>Engagement</div>
+            <div style={statValue}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
+            <div style={statHelper}>Average across analyzed lessons</div>
           </div>
         </div>
 

@@ -21,7 +21,6 @@ export default function TeacherDashboard() {
   const [loadError, setLoadError] = useState<string>('');
   const [pendingDeleteReport, setPendingDeleteReport] = useState<AnalysisReport | null>(null);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
-  const [showOpenGaps, setShowOpenGaps] = useState(false);
   const [lessonsPage, setLessonsPage] = useState(1);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const [teacherFeedbackDraft, setTeacherFeedbackDraft] = useState('');
@@ -557,25 +556,6 @@ export default function TeacherDashboard() {
                 <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowOpenGaps(true)}
-                style={{
-                  ...analysisMetricCard,
-                  ...openGapMetricButton,
-                  minHeight: isNarrowScreen ? 88 : analysisMetricCard.minHeight,
-                  padding: isNarrowScreen ? '14px 12px 12px' : analysisMetricCard.padding,
-                }}
-                title="Review unresolved gaps"
-              >
-                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 11 : analysisMetricLabel.fontSize }}>Open Gaps</div>
-                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 24 : analysisMetricValue.fontSize }}>{openGapSummary.total || 0}</div>
-                <div style={analysisMetricHint}>
-                  {openGapSummary.total > 0
-                    ? `Click to review ${openGapSummary.topicsWithOpenGaps} lesson topic${openGapSummary.topicsWithOpenGaps === 1 ? '' : 's'}`
-                    : 'Click to confirm all tracked gaps are covered'}
-                </div>
-              </button>
             </div>
           </div>
         </div>
@@ -1305,45 +1285,6 @@ export default function TeacherDashboard() {
           </div>
         )}
 
-        {showOpenGaps && (
-          <div
-            style={modalOverlay}
-            onClick={() => setShowOpenGaps(false)}
-          >
-            <div
-              style={{ ...modalCard, maxWidth: 720, maxHeight: '80vh', overflowY: 'auto' }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={modalTitle}>Open Gaps To Cover</div>
-              <p style={modalText}>
-                This list only shows the latest unresolved gaps by lesson topic. When a newer lesson on the same or similar topic no longer shows an older gap, it drops out of this count.
-              </p>
-              {openGapSummary.items.length > 0 ? (
-                <ul style={{ ...reportList, marginBottom: 16 }}>
-                  {openGapSummary.items.map((item, index) => (
-                    <li key={`${item.reportId}-${index}`} style={reportListItem}>
-                      <strong>{item.lessonLabel}</strong>
-                      {item.createdAt ? ` · ${new Date(item.createdAt).toLocaleDateString()}` : ''}: {item.gap}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p style={{ ...modalText, marginBottom: 16 }}>
-                  No open gaps are being tracked right now.
-                </p>
-              )}
-              <div style={modalActions}>
-                <button
-                  type="button"
-                  onClick={() => setShowOpenGaps(false)}
-                  style={modalCancelBtn}
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </main>
   );
@@ -1443,16 +1384,6 @@ const analysisMetricValue: React.CSSProperties = {
   lineHeight: 1,
   fontWeight: 800,
   letterSpacing: '-0.02em',
-};
-const analysisMetricHint: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  fontSize: 11,
-  lineHeight: 1.35,
-};
-const openGapMetricButton: React.CSSProperties = {
-  appearance: 'none',
-  width: '100%',
-  cursor: 'pointer',
 };
 const label: React.CSSProperties = { color: 'var(--text-secondary)' };
 
