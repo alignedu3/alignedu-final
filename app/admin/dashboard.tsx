@@ -7,6 +7,7 @@ import {
   buildSampleAnalysisReports,
   getDashboardSummary,
   calculateLessonScore,
+  getLessonTrendDisplay,
   getOverallLessonTrend,
   type AnalysisReport,
   type ProfileRecord,
@@ -730,7 +731,7 @@ export default function AdminDashboard() {
                   <div style={priorityMeta}>Current average {t.avgScore}/100</div>
                 </div>
                 <span style={priorityTrend}>
-                  {t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'}
+                  {getLessonTrendDisplay(t.trend).label}
                 </span>
               </div>
             ))
@@ -1013,8 +1014,8 @@ export default function AdminDashboard() {
                   <tr key={i}>
                     <td style={{ ...td, whiteSpace: 'normal', wordBreak: 'break-word', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding }}>{t.name}</td>
                     <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding }}>{t.avgScore}/100</td>
-                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding, color: t.trend > 0 ? '#22c55e' : t.trend < 0 ? '#ef4444' : 'var(--text-secondary)' }}>
-                      {t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'}
+                    <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : td.fontSize, padding: isNarrowScreen ? '4px 3px' : td.padding, color: getLessonTrendDisplay(t.trend).direction === 'improving' ? '#22c55e' : getLessonTrendDisplay(t.trend).direction === 'declining' ? '#ef4444' : 'var(--text-secondary)' }}>
+                      {getLessonTrendDisplay(t.trend).label}
                     </td>
                     <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding }}>
                       <button
@@ -1281,7 +1282,7 @@ export default function AdminDashboard() {
                           </td>
                           <td style={{ padding: '8px 8px', textAlign: 'center', color: t.needsAttention ? '#ef4444' : '#22c55e', fontWeight: 700 }}>{t.avgScore}</td>
                           <td style={{ padding: '8px 8px', textAlign: 'center', color: 'var(--text-secondary)' }}>{t.count}</td>
-                          <td style={{ padding: '8px 8px', textAlign: 'center', color: t.trend > 0 ? '#22c55e' : t.trend < 0 ? '#ef4444' : 'var(--text-secondary)' }}>{t.trend > 0 ? `↑ ${t.trend}` : t.trend < 0 ? `↓ ${Math.abs(t.trend)}` : '→ 0'}</td>
+                          <td style={{ padding: '8px 8px', textAlign: 'center', color: getLessonTrendDisplay(t.trend).direction === 'improving' ? '#22c55e' : getLessonTrendDisplay(t.trend).direction === 'declining' ? '#ef4444' : 'var(--text-secondary)' }}>{getLessonTrendDisplay(t.trend).label}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1526,7 +1527,7 @@ const priorityCard: React.CSSProperties = { background: 'linear-gradient(135deg,
 const priorityRow: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '13px 0', borderTop: '1px solid var(--border)' };
 const priorityTeacherName: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 16, fontWeight: 800, marginBottom: 3 };
 const priorityMeta: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 13 };
-const priorityTrend: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 66, padding: '7px 10px', borderRadius: 999, color: '#c2410c', background: 'rgba(249,115,22,0.10)', border: '1px solid rgba(249,115,22,0.18)', fontSize: 12, fontWeight: 800 };
+const priorityTrend: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 66, padding: '7px 10px', borderRadius: 999, color: 'var(--text-secondary)', background: 'var(--surface-chip)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 800 };
 const trendCard: React.CSSProperties = { overflow: 'hidden' };
 const teamAverageLegend: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 10px', borderRadius: 999, background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.20)' };
 const dashboardSearchInput: React.CSSProperties = { minWidth: 220, padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 13 };

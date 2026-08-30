@@ -17,6 +17,7 @@ import ProtectedPageState from '@/components/ProtectedPageState';
 import {
   calculateLessonScore,
   getLatestLessonTrend,
+  getLessonTrendDisplay,
   getLessonMetrics,
   type AnalysisReport,
   type ProfileRecord,
@@ -355,11 +356,17 @@ export default function DistrictDashboard() {
                   <div>
                     <div style={rowTitle}>{teacher.name}</div>
                     <div style={rowMeta}>
-                      Current avg {teacher.avgScore}/100, trend {teacher.trend > 0 ? `+${teacher.trend}` : teacher.trend < 0 ? `${teacher.trend}` : '0'}, gaps {teacher.gaps}
+                      Current avg {teacher.avgScore}/100, trend {getLessonTrendDisplay(teacher.trend).label.toLowerCase()}, gaps {teacher.gaps}
                     </div>
                   </div>
-                  <div style={pillDanger}>
-                    {teacher.trend > 0 ? `+${teacher.trend}` : teacher.trend < 0 ? `${teacher.trend}` : '0'}
+                  <div style={
+                    getLessonTrendDisplay(teacher.trend).direction === 'declining'
+                      ? pillDanger
+                      : getLessonTrendDisplay(teacher.trend).direction === 'improving'
+                        ? pillSuccess
+                        : pillNeutral
+                  }>
+                    {getLessonTrendDisplay(teacher.trend).label}
                   </div>
                 </div>
               ))
@@ -416,7 +423,7 @@ export default function DistrictDashboard() {
                     <td style={td}>{teacher.lessons}</td>
                     <td style={td}>{teacher.avgScore ? `${teacher.avgScore}/100` : '—'}</td>
                     <td style={td}>
-                      {teacher.trend > 0 ? `+${teacher.trend}` : teacher.trend < 0 ? `${teacher.trend}` : '0'}
+                      {getLessonTrendDisplay(teacher.trend).label}
                     </td>
                     <td style={td}>{teacher.gaps}</td>
                     <td style={td}>
@@ -729,6 +736,13 @@ const pillWarn: React.CSSProperties = {
   color: '#b45309',
   background: 'rgba(245,158,11,0.10)',
   borderColor: 'rgba(245,158,11,0.20)',
+};
+
+const pillNeutral: React.CSSProperties = {
+  ...pillBase,
+  color: 'var(--text-secondary)',
+  background: 'var(--surface-chip)',
+  borderColor: 'var(--border)',
 };
 
 const pillSuccess: React.CSSProperties = {

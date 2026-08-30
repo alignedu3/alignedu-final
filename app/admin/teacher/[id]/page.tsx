@@ -13,7 +13,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
-import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getOverallLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
+import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getLessonTrendDisplay, getOverallLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
 import ProtectedPageState from '@/components/ProtectedPageState';
 
 const stableDateFormatter = new Intl.DateTimeFormat('en-US', {
@@ -209,7 +209,7 @@ export default function AdminTeacherPage() {
           <div style={statCard}>
             <div style={statLabel}>Performance Trend</div>
             <div style={statValue}>
-              {overview.trend > 0 ? `↑ ${overview.trend}` : overview.trend < 0 ? `↓ ${Math.abs(overview.trend)}` : 'No change'}
+              {getLessonTrendDisplay(overview.trend).label}
             </div>
             <div style={statHelper}>{overview.risk}</div>
           </div>

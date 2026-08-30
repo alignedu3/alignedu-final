@@ -861,9 +861,13 @@ export function getLessonMetrics(report: AnalysisReport) {
     assessment: normalizedAssessment,
     gaps: normalizedGaps,
   });
+  const reportedScore = toNumberMetric(report.score, parsedMetrics.score ?? fallbackScore);
+  const normalizedScore = Math.max(0, Math.min(100, Math.round(reportedScore)));
 
   return {
-    score: fallbackScore,
+    // Keep every dashboard surface aligned with the score shown in the analysis.
+    // Recalculate only for older reports that do not include a canonical score.
+    score: normalizedScore,
     coverage: normalizedCoverage,
     clarity: normalizedClarity,
     engagement: normalizedEngagement,
@@ -1069,14 +1073,15 @@ export function buildAdminSupportPlanForTeacher(
 
   const trendMagnitude = Math.abs(trend);
   const overallTrendMagnitude = Math.abs(overallTrend);
+  const latestTrendIsMeaningful = trendMagnitude >= 5;
   const trendText =
     overallTrend <= -8
       ? `Across this lesson sequence, performance declined by ${overallTrendMagnitude} point${overallTrendMagnitude === 1 ? '' : 's'} from the earliest lesson to the latest lesson`
       : overallTrend >= 8
         ? `Across this lesson sequence, performance improved by ${overallTrendMagnitude} point${overallTrendMagnitude === 1 ? '' : 's'} from the earliest lesson to the latest lesson`
-        : trend < 0
+        : latestTrendIsMeaningful && trend < 0
           ? `The latest lesson declined by ${trendMagnitude} point${trendMagnitude === 1 ? '' : 's'} from the previous lesson`
-          : trend > 0
+          : latestTrendIsMeaningful && trend > 0
             ? `The latest lesson improved by ${trendMagnitude} point${trendMagnitude === 1 ? '' : 's'} from the previous lesson`
             : 'The latest lesson held steady compared with the previous lesson';
 
@@ -1087,7 +1092,7 @@ export function buildAdminSupportPlanForTeacher(
     weakestDomain.belowTargetCount * 5 +
     openGapSummary.total * 4 +
     latestMetrics.gaps * 6 +
-    (trend < 0 ? Math.min(12, trendMagnitude * 2) : 0) +
+    (trend <= -5 ? Math.min(12, trendMagnitude * 2) : 0) +
     (overallTrend < 0 ? Math.min(16, overallTrendMagnitude) : 0);
 
   const requiresPrioritySupport =
@@ -1097,7 +1102,7 @@ export function buildAdminSupportPlanForTeacher(
     weakestDomain.belowTargetCount >= 2 ||
     latestMetrics.gaps >= 2 ||
     openGapSummary.total >= 2 ||
-    trend <= -4 ||
+    trend <= -5 ||
     overallTrend <= -8 ||
     (latestMetrics.score < 78 && latestMetrics.gaps > 0 && weakestDomain.value < 74);
 
@@ -1134,7 +1139,7 @@ export function buildAdminSupportPlanForTeacher(
     topOpenGap
       ? `The lesson revisits this priority content gap with explicit reteach and mastery evidence: ${topOpenGap}`
       : 'Students can demonstrate understanding before the lesson ends.',
-    overallTrend < 0 || trend < 0
+    overallTrend <= -8 || trend <= -5
       ? 'The teacher follows the agreed coaching move consistently from the start of the lesson.'
       : weakestDomain.belowTargetCount >= 2
         ? 'The targeted support move is visible early and stays consistent across the lesson, not just at the end.'
@@ -1258,7 +1263,7 @@ export function getTeacherRankings(reports: LessonReport[]) {
 
 export function getTrendData(reports: AnalysisReport[]) {
   return [...reports]
-    .sort((a, b) => (a.date ?? a.created_at ?? '').localeCompare(b.date ?? b.created_at ?? ''))
+    .sort((a, b) => getReportSortValue(a).localeCompare(getReportSortValue(b)))
     .map(report => {
       const metrics = getLessonMetrics(report);
       return {
@@ -1324,7 +1329,7 @@ export function getRelatedPriorLessonGaps(
 }
 
 export function sortReportsNewestFirst(reports: AnalysisReport[]) {
-  return [...reports].sort((a, b) => (b.date ?? b.created_at ?? '').localeCompare(a.date ?? a.created_at ?? ''));
+  return [...reports].sort((a, b) => getReportSortValue(b).localeCompare(getReportSortValue(a)));
 }
 
 export function getLatestLessonTrend(reports: AnalysisReport[]) {
@@ -1333,8 +1338,24 @@ export function getLatestLessonTrend(reports: AnalysisReport[]) {
   return getLessonMetrics(sortedReports[0]).score - getLessonMetrics(sortedReports[1]).score;
 }
 
+export function getLessonTrendDisplay(trend: number) {
+  const roundedTrend = Math.round(trend);
+  if (Math.abs(roundedTrend) < 5) {
+    const signedChange = roundedTrend > 0 ? `+${roundedTrend}` : `${roundedTrend}`;
+    return { direction: 'stable' as const, label: `Stable range (${signedChange})`, change: roundedTrend };
+  }
+  if (roundedTrend > 0) {
+    return { direction: 'improving' as const, label: `Improving (+${roundedTrend})`, change: roundedTrend };
+  }
+  return { direction: 'declining' as const, label: `Declining (${roundedTrend})`, change: roundedTrend };
+}
+
 export function getOverallLessonTrend(reports: AnalysisReport[]) {
-  const sortedReports = [...reports].sort((a, b) => (a.date ?? a.created_at ?? '').localeCompare(b.date ?? b.created_at ?? ''));
+  const sortedReports = [...reports].sort((a, b) => getReportSortValue(a).localeCompare(getReportSortValue(b)));
   if (sortedReports.length < 2) return 0;
   return getLessonMetrics(sortedReports[sortedReports.length - 1]).score - getLessonMetrics(sortedReports[0]).score;
+}
+
+function getReportSortValue(report: AnalysisReport) {
+  return report.created_at ?? report.date ?? '';
 }
