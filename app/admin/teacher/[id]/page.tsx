@@ -239,6 +239,12 @@ export default function AdminTeacherPage() {
             <div style={statValue}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
             <div style={statHelper}>Average across analyzed lessons</div>
           </div>
+
+          <div style={statCard}>
+            <div style={statLabel}>Assessment</div>
+            <div style={statValue}>{summary.lessonsAnalyzed ? `${summary.averageAssessment}%` : '—'}</div>
+            <div style={statHelper}>Average across analyzed lessons</div>
+          </div>
         </div>
 
         <div style={cardFull}>

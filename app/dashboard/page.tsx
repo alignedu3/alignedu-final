@@ -536,14 +536,19 @@ export default function TeacherDashboard() {
                 ...analysisMetricCard,
                 minHeight: isNarrowScreen ? 104 : analysisMetricCard.minHeight,
                 padding: isNarrowScreen ? '18px 14px 16px' : analysisMetricCard.padding,
-                gridColumn: isNarrowScreen ? '1 / -1' : undefined,
-                width: isNarrowScreen ? 'calc(50% - 6px)' : undefined,
-                justifySelf: isNarrowScreen ? 'center' : undefined,
               }}>
                 <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 12 : analysisMetricLabel.fontSize }}>Engagement</div>
                 <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 30 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
                 <div style={metricProgressTrack} aria-hidden="true">
                   <div style={{ ...metricProgressFill, width: `${summary.lessonsAnalyzed ? summary.averageEngagement : 0}%`, background: '#10b981' }} />
+                </div>
+              </div>
+
+              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 104 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '18px 14px 16px' : analysisMetricCard.padding }}>
+                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 12 : analysisMetricLabel.fontSize }}>Assessment</div>
+                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 30 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageAssessment}%` : '—'}</div>
+                <div style={metricProgressTrack} aria-hidden="true">
+                  <div style={{ ...metricProgressFill, width: `${summary.lessonsAnalyzed ? summary.averageAssessment : 0}%`, background: '#f59e0b' }} />
                 </div>
               </div>
 
