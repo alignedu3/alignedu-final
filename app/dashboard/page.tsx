@@ -559,7 +559,14 @@ export default function TeacherDashboard() {
                 </div>
               </div>
 
-              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 104 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '18px 14px 16px' : analysisMetricCard.padding }}>
+              <div style={{
+                ...analysisMetricCard,
+                minHeight: isNarrowScreen ? 104 : analysisMetricCard.minHeight,
+                padding: isNarrowScreen ? '18px 14px 16px' : analysisMetricCard.padding,
+                gridColumn: isNarrowScreen ? '1 / -1' : undefined,
+                width: isNarrowScreen ? 'calc(50% - 6px)' : undefined,
+                justifySelf: isNarrowScreen ? 'center' : undefined,
+              }}>
                 <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 12 : analysisMetricLabel.fontSize }}>Engagement</div>
                 <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 30 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
                 <div style={metricProgressTrack} aria-hidden="true">
