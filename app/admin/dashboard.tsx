@@ -41,8 +41,9 @@ function getSemesterPeriod(date: Date) {
   const month = date.getMonth();
   const term = month >= 7 ? 'fall' : month >= 5 ? 'summer' : 'spring';
   const label = `${term.charAt(0).toUpperCase()}${term.slice(1)} ${year}`;
+  const range = term === 'fall' ? 'Aug–Dec' : term === 'summer' ? 'Jun–Jul' : 'Jan–May';
   const termRank = term === 'fall' ? 3 : term === 'summer' ? 2 : 1;
-  return { value: `${term}-${year}`, label, rank: year * 10 + termRank };
+  return { value: `${term}-${year}`, label, range, rank: year * 10 + termRank };
 }
 
 function formatTrendAxisLabel(value: string | number) {
@@ -316,19 +317,25 @@ export default function AdminDashboard() {
   );
   const summary = getDashboardSummary(dashboardReports);
   const semesterOptions = useMemo(() => {
-    const periods = new Map<string, { value: string; label: string; rank: number }>();
-    dashboardReports.forEach((report) => {
+    const periods = new Map<string, { value: string; label: string; range: string; rank: number; count: number }>();
+    teacherPerformanceReports.forEach((report) => {
       const parsed = parseReportDate(report);
       if (!parsed) return;
       const period = getSemesterPeriod(parsed);
-      periods.set(period.value, period);
+      const existing = periods.get(period.value);
+      periods.set(period.value, { ...period, count: (existing?.count || 0) + 1 });
     });
     return Array.from(periods.values()).sort((a, b) => b.rank - a.rank);
-  }, [dashboardReports]);
+  }, [teacherPerformanceReports]);
 
   useEffect(() => {
-    if (selectedSemester && !semesterOptions.some((option) => option.value === selectedSemester)) {
-      setSelectedSemester('');
+    if (!semesterOptions.length) return;
+    if (!selectedSemester) {
+      setSelectedSemester(semesterOptions[0].value);
+      return;
+    }
+    if (selectedSemester !== 'all' && !semesterOptions.some((option) => option.value === selectedSemester)) {
+      setSelectedSemester(semesterOptions[0].value);
     }
   }, [selectedSemester, semesterOptions]);
 
@@ -336,7 +343,7 @@ export default function AdminDashboard() {
     return teacherPerformanceReports.filter((report) => {
       const parsed = parseReportDate(report);
       if (!parsed) return false;
-      return !selectedSemester || getSemesterPeriod(parsed).value === selectedSemester;
+      return selectedSemester === 'all' || !selectedSemester || getSemesterPeriod(parsed).value === selectedSemester;
     });
   }, [selectedSemester, teacherPerformanceReports]);
 
@@ -840,10 +847,10 @@ export default function AdminDashboard() {
                   onChange={(event) => setSelectedSemester(event.target.value)}
                   style={trendSelect}
                 >
-                  <option value="">All Time</option>
+                  <option value="all">All Semesters · {teacherPerformanceReports.length} lesson{teacherPerformanceReports.length === 1 ? '' : 's'}</option>
                   {semesterOptions.map((option) => (
                     <option key={option.value} value={option.value}>
-                      {option.label}
+                      {option.label} ({option.range}) · {option.count} lesson{option.count === 1 ? '' : 's'}
                     </option>
                   ))}
                 </select>
