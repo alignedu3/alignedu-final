@@ -1488,8 +1488,12 @@ const reportSectionCard: React.CSSProperties = {
 
 const reportSectionTitle: React.CSSProperties = {
   color: 'var(--text-primary)',
-  fontSize: 17,
-  fontWeight: 750,
+  fontSize: 19,
+  fontWeight: 800,
+  lineHeight: 1.25,
+  letterSpacing: '-0.01em',
+  borderLeft: '3px solid #f97316',
+  paddingLeft: 10,
   marginBottom: 12,
 };
 

@@ -876,6 +876,12 @@ const sectionCard: React.CSSProperties = {
 
 const sectionTitle: React.CSSProperties = {
   color: 'var(--text-primary)',
+  fontSize: 19,
+  fontWeight: 800,
+  lineHeight: 1.25,
+  letterSpacing: '-0.01em',
+  borderLeft: '3px solid #f97316',
+  paddingLeft: 10,
   margin: '0 0 12px 0',
 };
 
