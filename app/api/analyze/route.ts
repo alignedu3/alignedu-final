@@ -1533,10 +1533,10 @@ Score the lesson with professional calibration. The scores do not need to match 
   let userPrompt = '';
 
   const higherEdBiologyFormat = isHigherEdBiology
-    ? `\n\n=== HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT ===\nCompare this lesson to the expectations of an introductory college biology course using Campbell Biology as the benchmark. Use labeled bullets for:\n- Textbook Alignment: what chapter-level or concept-level expectations the lesson appears to address.\n- Missing Conceptual Depth: what a strong introductory biology lesson or textbook treatment would include that was missing or underdeveloped here.\n- Terminology Precision: whether the biological language and explanation depth are at the level expected in an introductory biology course.\n- College-Level Recommendation: the most important adjustment needed to better align the lesson to a Campbell Biology-style course sequence.`
+    ? `\n\n=== HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT ===\nCompare this lesson to the expectations of an introductory college biology course using Campbell Biology as the benchmark. Use only these three labeled items:\n- Textbook Alignment: summarize the chapter concepts and course objectives addressed in 2-3 concise sentences. Do not insert inline dash bullets into the paragraph.\n- Alignment Priorities: identify no more than three textbook-level concepts or reasoning demands that need greater depth.\n- Terminology Precision: identify no more than two terminology corrections that materially affect college-level accuracy.\nDo not add a recommendation here; concrete actions belong in the next-lesson and administrator coaching plans.`
     : '';
   const higherEdCustomTextFormat = isHigherEdCustomText && book
-    ? `\n\n=== HIGHER ED TEXTBOOK ALIGNMENT ===\nCompare this lesson to ${book}${chapter ? `, ${chapter},` : ''} as the benchmark. Use labeled bullets for:\n- Textbook Alignment: what chapter-level or concept-level expectations the lesson appears to address.\n- Missing Conceptual Depth: what a strong textbook-aligned lesson for this course would include that was missing or underdeveloped here.\n- Terminology Precision: whether the course language and explanation depth are at the level expected for this textbook.\n- College-Level Recommendation: the most important adjustment needed to better align the lesson to this textbook and chapter.`
+    ? `\n\n=== HIGHER ED TEXTBOOK ALIGNMENT ===\nCompare this lesson to ${book}${chapter ? `, ${chapter},` : ''} as the benchmark. Use only these three labeled items:\n- Textbook Alignment: summarize the chapter concepts and course objectives addressed in 2-3 concise sentences. Do not insert inline dash bullets into the paragraph.\n- Alignment Priorities: identify no more than three textbook-level concepts or reasoning demands that need greater depth.\n- Terminology Precision: identify no more than two terminology corrections that materially affect course accuracy.\nDo not add a recommendation here; concrete actions belong in the next-lesson and administrator coaching plans.`
     : '';
 
   const reportFormat = `Analyze this lesson transcript and provide feedback in the following structured format. Use these exact section headers and keep the feedback evidence-based, specific, and unbiased.
@@ -1922,10 +1922,10 @@ ${transcript}`;
 Requirements:
 - Use these exact labels:
   - Textbook Alignment:
-  - Missing Conceptual Depth:
+  - Alignment Priorities:
   - Terminology Precision:
-  - College-Level Recommendation:
 - Keep each field concise and specific to this lesson.
+- Do not repeat the report's recommended next step or action plans.
 - Ground the response in the selected ${isHigherEdBiology ? 'Campbell Biology chapter' : 'textbook and chapter'}.
 - Do not include a heading outside of the labeled bullets.
 

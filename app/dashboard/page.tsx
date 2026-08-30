@@ -395,8 +395,10 @@ export default function TeacherDashboard() {
       sectionHeading: 'Standards Alignment',
       summaryTitle: hasHigherEdAlignment ? 'Textbook Alignment' : 'Standards Summary',
       higherEdAlignment: allHigherEdAlignmentSections.filter(
-        (section) => !['Textbook Alignment', 'Summary'].includes(section.title)
-      ),
+        (section) => !['Textbook Alignment', 'Summary', 'College-Level Recommendation'].includes(section.title)
+      ).map((section) => section.title === 'Missing Conceptual Depth'
+        ? { ...section, title: 'Alignment Priorities' }
+        : section),
     };
   }, [selectedLessonSections]);
   const hasStructuredSelectedLesson = useMemo(() => {

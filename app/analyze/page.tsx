@@ -1328,8 +1328,10 @@ export default function AnalysisPage() {
   );
   const allHigherEdAlignmentSections = feedbackSections.higherEdAlignment ?? [];
   const higherEdAlignmentSections = allHigherEdAlignmentSections.filter(
-    (section) => !["Textbook Alignment", "Summary"].includes(section.title)
-  );
+    (section) => !["Textbook Alignment", "Summary", "College-Level Recommendation"].includes(section.title)
+  ).map((section) => section.title === "Missing Conceptual Depth"
+    ? { ...section, title: "Alignment Priorities" }
+    : section);
   const hasHigherEdAlignment = allHigherEdAlignmentSections.length > 0;
   const readinessSummarySection = feedbackSections.staar.find(
     (section) => section.title === "Readiness Summary"
