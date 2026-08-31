@@ -945,6 +945,114 @@ button:disabled {
   margin-bottom: 24px;
 }
 
+.analysis-form-section {
+  padding: 18px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface-chip);
+}
+
+.analysis-context-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.analysis-context-section > .analysis-form-section-heading,
+.analysis-context-section > .analysis-context-grid,
+.analysis-context-section > .analysis-context-note {
+  grid-column: 1 / -1;
+}
+
+.analysis-context-section > .analysis-form-section-heading {
+  margin-bottom: 0;
+}
+
+.analysis-context-section > .analysis-field-group {
+  margin-bottom: 0;
+}
+
+.analysis-form-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-bottom: 18px;
+}
+
+.analysis-form-section-heading > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.14);
+  color: #ea580c;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.analysis-form-section-heading h3 {
+  margin: 1px 0 3px;
+  color: var(--text-primary);
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.analysis-form-section-heading p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.analysis-optional-label {
+  margin-left: 5px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.analysis-evidence-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.analysis-evidence-divider::before,
+.analysis-evidence-divider::after {
+  content: '';
+  height: 1px;
+  flex: 1;
+  background: var(--border);
+}
+
+@media (max-width: 640px) {
+  .analysis-form-section {
+    padding: 15px;
+  }
+
+  .analysis-context-section {
+    grid-template-columns: 1fr;
+  }
+
+  .analysis-context-section > .analysis-form-section-heading,
+  .analysis-context-section > .analysis-context-grid,
+  .analysis-context-section > .analysis-context-note {
+    grid-column: 1;
+  }
+}
+
 .analysis-section-top h2,
 .analysis-results-header h2,
 .analysis-side-card h3 {

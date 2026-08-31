@@ -227,7 +227,6 @@ export default function AnalysisPage() {
     const [isPaused, setIsPaused] = useState(false);
     const [recordingElapsedSeconds, setRecordingElapsedSeconds] = useState(0);
     const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-    const [recordedChunks, setRecordedChunks] = useState<Blob[]>([]);
     const [recorderStatus, setRecorderStatus] = useState("");
     const uploadInputRef = useRef<HTMLInputElement>(null);
     const documentInputRef = useRef<HTMLInputElement>(null);
@@ -260,14 +259,12 @@ export default function AnalysisPage() {
       handleAudioChange(file);
       attachPreviewUrl(blob);
       recordedChunksRef.current = [];
-      setRecordedChunks([]);
     };
 
     // Start recording
     const startRecording = async () => {
       setError("");
       setRecorderStatus("");
-      setRecordedChunks([]);
       recordedChunksRef.current = [];
       setRecordingElapsedSeconds(0);
       try {
@@ -287,7 +284,6 @@ export default function AnalysisPage() {
         recorder.ondataavailable = (e) => {
           if (e.data.size > 0) {
             recordedChunksRef.current = [...recordedChunksRef.current, e.data];
-            setRecordedChunks([...recordedChunksRef.current]);
           }
         };
         recorder.onstop = () => {
@@ -1841,9 +1837,39 @@ export default function AnalysisPage() {
               <div className="analysis-section-top">
                 <h2>Lesson submission</h2>
                 <p>
-                  Record live in the app or upload an audio recording, including a phone voice memo, to generate a concise instructional report built for teachers, campus leaders, and district teams.
+                  Add the lesson context, then provide at least one source of instructional evidence.
                 </p>
               </div>
+
+              <div className="analysis-form-section analysis-context-section">
+                <div className="analysis-form-section-heading">
+                  <span>1</span>
+                  <div>
+                    <h3>Lesson Context</h3>
+                    <p>Identify the lesson before adding evidence.</p>
+                  </div>
+                </div>
+
+              {isAdminObservationMode && (
+                <div className="analysis-field-group">
+                  <label className="analysis-label">Teacher Being Observed</label>
+                  <select
+                    value={observedTeacherId}
+                    onChange={(e) => setObservedTeacherId(e.target.value)}
+                    disabled={!observerReady || observedTeachers.length === 0}
+                  >
+                    {observedTeachers.length === 0 ? (
+                      <option value="">No teachers available</option>
+                    ) : (
+                      observedTeachers.map((teacher) => (
+                        <option key={teacher.id} value={teacher.id}>
+                          {teacher.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+              )}
 
               <div className="analysis-field-group">
                 <label className="analysis-label">Grade</label>
@@ -1868,45 +1894,6 @@ export default function AnalysisPage() {
                 </select>
               </div>
 
-              {isAdminObservationMode && (
-                <div className="analysis-field-group">
-                  <label className="analysis-label">Teacher Being Observed</label>
-                  <select
-                    value={observedTeacherId}
-                    onChange={(e) => setObservedTeacherId(e.target.value)}
-                    disabled={!observerReady || observedTeachers.length === 0}
-                  >
-                    {observedTeachers.length === 0 ? (
-                      <option value="">No teachers available</option>
-                    ) : (
-                      observedTeachers.map((teacher) => (
-                        <option key={teacher.id} value={teacher.id}>
-                          {teacher.name}
-                        </option>
-                      ))
-                    )}
-                  </select>
-                </div>
-              )}
-
-              {isAdminObservationMode && rubricPilotEnabled && (
-                <div className="analysis-field-group">
-                  <label className="analysis-label">Evaluation framework</label>
-                  <select
-                    value={rubricId}
-                    onChange={(event) => setRubricId(event.target.value)}
-                  >
-                    <option value="">General instructional review</option>
-                    <option value={DALLAS_ISD_RUBRIC_ID} disabled={!isElementaryRubricGrade(grade)}>
-                      Dallas ISD 2025-2026 Teacher Performance Rubric (Grades 3-5)
-                    </option>
-                  </select>
-                  <p className="analysis-context-note">
-                    Suggested rubric ratings require administrator confirmation and remain separate from the instructional score.
-                  </p>
-                </div>
-              )}
-
               <div className="analysis-field-group">
                 <label className="analysis-label">Subject</label>
                 <select
@@ -1930,6 +1917,24 @@ export default function AnalysisPage() {
                   ))}
                 </select>
               </div>
+
+              {isAdminObservationMode && rubricPilotEnabled && (
+                <div className="analysis-field-group">
+                  <label className="analysis-label">Evaluation Framework <span className="analysis-optional-label">Optional</span></label>
+                  <select
+                    value={rubricId}
+                    onChange={(event) => setRubricId(event.target.value)}
+                  >
+                    <option value="">General instructional review</option>
+                    <option value={DALLAS_ISD_RUBRIC_ID} disabled={!isElementaryRubricGrade(grade)}>
+                      Dallas ISD 2025-2026 Teacher Performance Rubric (Grades 3-5)
+                    </option>
+                  </select>
+                  <p className="analysis-context-note">
+                    Suggested ratings require administrator confirmation and remain separate from the instructional score.
+                  </p>
+                </div>
+              )}
 
               {isHigherEd && (
                 <>
@@ -1977,8 +1982,19 @@ export default function AnalysisPage() {
                 </>
               )}
 
+              </div>
+
+              <div className="analysis-form-section">
+                <div className="analysis-form-section-heading">
+                  <span>2</span>
+                  <div>
+                    <h3>Lesson Evidence</h3>
+                    <p>Use one source or combine notes, a document, and audio.</p>
+                  </div>
+                </div>
+
               <div className="analysis-field-group">
-                <label className="analysis-label">Lesson Notes</label>
+                <label className="analysis-label">Lesson Notes <span className="analysis-optional-label">Optional</span></label>
                 <textarea
                   value={lessonNotes}
                   onChange={(e) => setLessonNotes(e.target.value)}
@@ -1987,7 +2003,7 @@ export default function AnalysisPage() {
               </div>
 
               <div className="analysis-field-group">
-                <label className="analysis-label">Lesson Document <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>(audio not required)</span></label>
+                <label className="analysis-label">Lesson Document <span className="analysis-optional-label">Optional</span></label>
                 <div
                   className={`document-upload-card${documentDragActive ? ' drag-active' : ''}`}
                   role="button"
@@ -2030,52 +2046,40 @@ export default function AnalysisPage() {
               </div>
 
               <div className="analysis-field-group">
-                <label className="analysis-label">Audio Upload</label>
+                <label className="analysis-label">Audio Evidence <span className="analysis-optional-label">Optional</span></label>
                 {isPremium && (
                   <div style={recorderCardStyle}>
-                    <div style={recorderTitleStyle}>Premium Audio Recorder</div>
+                    <div style={recorderTitleStyle}>Record Audio</div>
 
                     <div style={recorderButtonRowStyle}>
-                      <button
-                        type="button"
-                        onClick={startRecording}
-                        disabled={isRecording}
-                        style={{ ...recorderBtnBaseStyle, background: '#22c55e', cursor: isRecording ? 'not-allowed' : 'pointer' }}
-                      >
-                        Record
-                      </button>
-                      <button
-                        type="button"
-                        onClick={pauseRecording}
-                        disabled={!isRecording || isPaused}
-                        style={{ ...recorderBtnBaseStyle, background: '#f59e0b', cursor: (!isRecording || isPaused) ? 'not-allowed' : 'pointer' }}
-                      >
-                        Pause
-                      </button>
-                      <button
-                        type="button"
-                        onClick={resumeRecording}
-                        disabled={!isRecording || !isPaused}
-                        style={{ ...recorderBtnBaseStyle, background: '#0ea5e9', cursor: (!isRecording || !isPaused) ? 'not-allowed' : 'pointer' }}
-                      >
-                        Resume
-                      </button>
+                      {!isRecording ? (
+                        <button
+                          type="button"
+                          onClick={startRecording}
+                          style={{ ...recorderBtnBaseStyle, background: '#22c55e' }}
+                        >
+                          {audioFile ? 'Record Again' : 'Start Recording'}
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={isPaused ? resumeRecording : pauseRecording}
+                            style={{ ...recorderBtnBaseStyle, background: isPaused ? '#0ea5e9' : '#f59e0b' }}
+                          >
+                            {isPaused ? 'Resume' : 'Pause'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={stopRecording}
+                            style={{ ...recorderBtnBaseStyle, background: '#ef4444' }}
+                          >
+                            Stop & Save
+                          </button>
+                        </>
+                      )}
                     </div>
 
-                    <div style={{ ...recorderButtonRowStyle, marginTop: 8 }}>
-                      <button
-                        type="button"
-                        onClick={stopRecording}
-                        disabled={!isRecording}
-                        style={{ ...recorderBtnBaseStyle, background: '#ef4444', cursor: !isRecording ? 'not-allowed' : 'pointer' }}
-                      >
-                        Stop
-                      </button>
-                    </div>
-
-                    <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 6 }}>
-                      {recorderStatus || (isRecording ? (isPaused ? 'Paused' : 'Recording...') : recordedChunks.length > 0 ? 'Ready to save or re-record.' : 'Click Record to begin.')}
-                    </div>
                     <div
                       style={{
                         display: 'flex',
@@ -2090,7 +2094,7 @@ export default function AnalysisPage() {
                       }}
                     >
                       <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>
-                        {isRecording ? (isPaused ? 'Recording paused' : 'Recording live') : 'Recorder idle'}
+                        {recorderStatus || (audioFile ? 'Audio ready' : 'Ready to record')}
                       </span>
                       <span
                         style={{
@@ -2109,6 +2113,7 @@ export default function AnalysisPage() {
                     </div>
                   </div>
                 )}
+                <div className="analysis-evidence-divider"><span>or upload audio</span></div>
                 <div
                   className={`upload-zone${isDragActive ? ' drag-active' : ''}`}
                   role="button"
@@ -2159,6 +2164,8 @@ export default function AnalysisPage() {
                     Audio duration: {Math.round(audioDuration)} seconds
                   </p>
                 )}
+              </div>
+
               </div>
 
               <div className="analysis-actions">
