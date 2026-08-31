@@ -330,7 +330,7 @@ export default function HomePage() {
                   style={heroSecondaryBtn}
                   className="hero-cta hero-cta-unified"
                 >
-                  Book a Demo
+                  Request Demo
                 </button>
 
               </div>
