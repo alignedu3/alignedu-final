@@ -964,6 +964,15 @@ button:disabled {
   letter-spacing: 0.04em;
 }
 
+.analysis-required-label {
+  margin-left: 5px;
+  color: #ea580c;
+  font-size: 10px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .analysis-evidence-divider {
   display: flex;
   align-items: center;

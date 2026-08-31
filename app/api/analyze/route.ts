@@ -2421,8 +2421,8 @@ export async function POST(req: Request) {
       observedTeacherName = observedTeacherProfile?.name || "";
     }
 
-    const grade = String(formData.get("grade") || "");
-    const subject = String(formData.get("subject") || "");
+    const grade = String(formData.get("grade") || "").trim();
+    const subject = String(formData.get("subject") || "").trim();
     const book = String(formData.get("book") || "").trim();
     const chapter = String(formData.get("chapter") || "").trim();
     const requestedRubricId = String(formData.get("rubricId") || "").trim();
@@ -2444,6 +2444,13 @@ export async function POST(req: Request) {
 
     if (!targetUserId) {
       return safeJson({ result: null, error: "Sign in is required to analyze and save lessons." }, 401);
+    }
+
+    if (!grade || !subject) {
+      return safeJson(
+        { result: null, error: "Grade and subject are required for lesson analysis." },
+        400
+      );
     }
 
     if (audioDuration && audioDuration > 5400) {

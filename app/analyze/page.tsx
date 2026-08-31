@@ -1649,8 +1649,12 @@ export default function AnalysisPage() {
         setError('Select a teacher to continue.');
         return;
       }
-      if (isAdminObservationMode && !subject.trim()) {
-        setError('Select a subject before analyzing this observation.');
+      if (!grade.trim()) {
+        setError('Select a grade level before analyzing this lesson.');
+        return;
+      }
+      if (!subject.trim()) {
+        setError('Select a subject before analyzing this lesson.');
         return;
       }
       if (!lessonNotes.trim() && !audioFile && !documentText) {
@@ -1863,8 +1867,9 @@ export default function AnalysisPage() {
               )}
 
               <div className="analysis-field-group">
-                <label className="analysis-label">Grade</label>
+                <label className="analysis-label">Grade <span className="analysis-required-label">Required</span></label>
                 <select
+                  required
                   value={grade}
                   onChange={(e) => {
                     const nextGrade = e.target.value;
@@ -1886,8 +1891,9 @@ export default function AnalysisPage() {
               </div>
 
               <div className="analysis-field-group">
-                <label className="analysis-label">Subject</label>
+                <label className="analysis-label">Subject <span className="analysis-required-label">Required</span></label>
                 <select
+                  required
                   value={subject}
                   onChange={(e) => {
                     const nextSubject = e.target.value;
@@ -2040,12 +2046,9 @@ export default function AnalysisPage() {
                 <label className="analysis-label">Audio Evidence <span className="analysis-optional-label">Optional</span></label>
                 {isPremium && (
                   <div style={recorderCardStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                      <span aria-hidden="true" style={{ display: 'grid', placeItems: 'center', width: 34, height: 34, borderRadius: 11, background: 'rgba(249,115,22,0.12)', color: '#ea580c', fontSize: 16 }}>●</span>
-                      <div>
-                        <div style={recorderTitleStyle}>Record Audio</div>
-                        <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 3 }}>Capture live lesson evidence in the app.</div>
-                      </div>
+                    <div style={{ marginBottom: 16 }}>
+                      <div style={recorderTitleStyle}>Record Audio</div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 3 }}>Capture live lesson evidence in the app.</div>
                     </div>
 
                     <div
