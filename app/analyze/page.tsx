@@ -448,6 +448,7 @@ export default function AnalysisPage() {
   const [draftNotice, setDraftNotice] = useState("");
   const [viewerRole, setViewerRole] = useState("");
   const [viewerAuthenticated, setViewerAuthenticated] = useState(false);
+  const [viewerChecked, setViewerChecked] = useState(false);
   const lastSavedDraftRef = useRef("");
   const dragCounterRef = useRef(0);
 
@@ -588,6 +589,8 @@ export default function AnalysisPage() {
         setViewerRole((data?.profile?.role || "").toLowerCase());
       } catch {
         // Allow analysis flow to continue even if the role prefetch fails.
+      } finally {
+        if (isMounted) setViewerChecked(true);
       }
     };
 
@@ -599,7 +602,8 @@ export default function AnalysisPage() {
   }, [isAdminObservationMode, router]);
 
   const viewerIsAdmin = isAdminObservationMode || viewerRole === "admin" || viewerRole === "super_admin";
-  const dashboardHref = viewerIsAdmin ? "/admin" : "/dashboard";
+  const returnHref = viewerIsAdmin ? "/admin" : viewerAuthenticated ? "/dashboard" : "/";
+  const returnLabel = viewerAuthenticated || isAdminObservationMode ? "Back to Dashboard" : "Back to Homepage";
 
   useEffect(() => {
     const updateScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
@@ -1801,9 +1805,9 @@ export default function AnalysisPage() {
       <div className="analysis-container">
         <div className="analysis-header">
           <div>
-            {(isAdminObservationMode || viewerAuthenticated) && (
-              <button type="button" className="analysis-back-button" onClick={() => router.push(dashboardHref)}>
-                ← Back to Dashboard
+            {(isAdminObservationMode || viewerChecked) && (
+              <button type="button" className="analysis-back-button" onClick={() => router.push(returnHref)}>
+                ← {returnLabel}
               </button>
             )}
             <span className="analysis-badge">{isAdminObservationMode ? 'Instructional Leadership' : 'Lesson Review'}</span>
