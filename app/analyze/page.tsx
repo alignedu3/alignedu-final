@@ -451,6 +451,7 @@ export default function AnalysisPage() {
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [draftNotice, setDraftNotice] = useState("");
   const [viewerRole, setViewerRole] = useState("");
+  const [viewerAuthenticated, setViewerAuthenticated] = useState(false);
   const lastSavedDraftRef = useRef("");
   const dragCounterRef = useRef(0);
 
@@ -579,6 +580,7 @@ export default function AnalysisPage() {
     const loadViewerRole = async () => {
       try {
         const { data } = await fetchJsonWithTimeout<{
+          user?: { id?: string } | null;
           profile?: { role?: string | null } | null;
         }>("/api/auth/me", {
           credentials: "include",
@@ -586,6 +588,7 @@ export default function AnalysisPage() {
           timeoutMs: 5000,
         });
         if (!isMounted) return;
+        setViewerAuthenticated(Boolean(data?.user));
         setViewerRole((data?.profile?.role || "").toLowerCase());
       } catch {
         // Allow analysis flow to continue even if the role prefetch fails.
@@ -1799,9 +1802,11 @@ export default function AnalysisPage() {
       <div className="analysis-container">
         <div className="analysis-header">
           <div>
-            <button type="button" className="analysis-back-button" onClick={() => router.push(dashboardHref)}>
-              ← Back to Dashboard
-            </button>
+            {(isAdminObservationMode || viewerAuthenticated) && (
+              <button type="button" className="analysis-back-button" onClick={() => router.push(dashboardHref)}>
+                ← Back to Dashboard
+              </button>
+            )}
             <span className="analysis-badge">{isAdminObservationMode ? 'Instructional Leadership' : 'Lesson Review'}</span>
             <h1 className="analysis-title">{isAdminObservationMode ? 'Observe a Lesson' : 'Instructional Review'}</h1>
             <p className="analysis-subtitle">
