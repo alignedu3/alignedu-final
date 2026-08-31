@@ -2136,10 +2136,14 @@ h1, h2, h3 {
   text-transform: uppercase;
 }
 
+.performance-overall-label {
+  font-size: 13px;
+}
+
 .performance-overall-value {
   margin: 12px 0 10px;
   color: var(--text-primary);
-  font-size: clamp(2.8rem, 5vw, 3.65rem);
+  font-size: clamp(3.25rem, 5.5vw, 4.15rem);
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 0.95;
@@ -2203,6 +2207,10 @@ h1, h2, h3 {
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.45;
+}
+
+.performance-overall-card .performance-metric-helper {
+  font-size: 13px;
 }
 
 .dashboard-page {
