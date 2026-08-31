@@ -15,6 +15,7 @@ export default function TeacherDashboard() {
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [chartReady, setChartReady] = useState(false);
   const [teacherName, setTeacherName] = useState<string | null>(null);
+  const [viewerRole, setViewerRole] = useState<string | null>(null);
   const [dbReports, setDbReports] = useState<AnalysisReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
   const [keyFindingsReportId, setKeyFindingsReportId] = useState<string | null>(null);
@@ -42,7 +43,7 @@ export default function TeacherDashboard() {
       const { response, data } = await fetchJsonWithTimeout<{
         success: boolean;
         error?: string;
-        teacher?: { name?: string | null };
+        teacher?: { name?: string | null; role?: string | null };
         analyses?: AnalysisReport[];
       }>('/api/dashboard/teacher', {
         credentials: 'include',
@@ -59,6 +60,7 @@ export default function TeacherDashboard() {
       }
 
       setTeacherName(data.teacher?.name || 'Teacher');
+      setViewerRole(data.teacher?.role || 'teacher');
       setDbReports(data.analyses || []);
     } catch (err) {
       console.error('Dashboard load error:', err);
@@ -446,6 +448,9 @@ export default function TeacherDashboard() {
 
         <div style={hero}>
           <div>
+            {(viewerRole === 'admin' || viewerRole === 'super_admin') && (
+              <Link href="/admin" style={backLink}>← Administrator Dashboard</Link>
+            )}
             <div style={eyebrow}>Your Instructional Growth</div>
             <h1 style={heading}>
               Welcome{teacherName ? `, ${teacherName}` : ''}
@@ -1179,6 +1184,7 @@ const eyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTrans
 const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 'clamp(2rem, 4vw, 2.8rem)', lineHeight: 1.05, margin: '0 0 8px 0' };
 const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0, fontSize: 16, lineHeight: 1.55 };
 const buttonGroup: React.CSSProperties = { display: 'flex', gap: 10, alignItems: 'center' };
+const backLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', marginBottom: 10, color: '#f97316', textDecoration: 'none', fontSize: 13, fontWeight: 700 };
 const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '11px 18px', borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', boxShadow: '0 10px 24px rgba(249,115,22,0.20)' };
 
 const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 22, borderRadius: 22, marginBottom: 20, minWidth: 0, boxShadow: 'var(--shadow-card)' };

@@ -2107,15 +2107,15 @@ h1, h2, h3 {
 
 .performance-metric-summary {
   display: grid;
-  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 2.1fr);
+  grid-template-columns: minmax(210px, 0.78fr) minmax(0, 2.22fr);
   gap: 14px;
   align-items: stretch;
   margin-top: 16px;
 }
 
 .performance-overall-card {
-  min-height: 174px;
-  padding: 26px;
+  min-height: 158px;
+  padding: 22px;
   border: 1px solid rgba(249, 115, 22, 0.22);
   border-radius: 20px;
   background: linear-gradient(145deg, rgba(249, 115, 22, 0.13), rgba(249, 115, 22, 0.035));
@@ -2124,6 +2124,7 @@ h1, h2, h3 {
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
+  align-self: center;
 }
 
 .performance-overall-label,
@@ -2242,6 +2243,7 @@ h1, h2, h3 {
   .performance-overall-card {
     min-height: 150px;
     padding: 22px;
+    align-self: stretch;
   }
 
   .performance-secondary-grid {
