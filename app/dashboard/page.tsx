@@ -9,6 +9,7 @@ import ToastViewport, { type ToastItem } from '@/components/ToastViewport';
 import { fetchJsonWithTimeout } from '@/lib/fetchJsonWithTimeout';
 import ProtectedPageState from '@/components/ProtectedPageState';
 import GettingStartedChecklist from '@/components/GettingStartedChecklist';
+import PerformanceMetricSummary from '@/components/dashboard/PerformanceMetricSummary';
 
 export default function TeacherDashboard() {
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
@@ -499,63 +500,16 @@ export default function TeacherDashboard() {
         <div style={card}>
           <h2 style={cardTitle}>Overall Lesson Analysis</h2>
 
-          <div
-            style={{
-              ...analysisSummaryLayout,
-              gridTemplateColumns: isNarrowScreen ? '1fr' : analysisSummaryLayout.gridTemplateColumns,
-            }}
-          >
-            <div style={analysisScorePanel}>
-              <div style={analysisScoreEyebrow}>Current Average</div>
-              <div style={{ ...analysisScoreValue, fontSize: isNarrowScreen ? 46 : analysisScoreValue.fontSize }}>
-                {overallScore}<span style={analysisScoreScale}>/100</span>
-              </div>
-              <div style={{ ...analysisScoreSubtext, fontSize: isNarrowScreen ? 12 : analysisScoreSubtext.fontSize }}>
-                {summary.lessonsAnalyzed > 0
-                  ? `Average across ${summary.lessonsAnalyzed} lesson${summary.lessonsAnalyzed === 1 ? '' : 's'}`
-                  : 'No lessons analyzed yet'}
-              </div>
-            </div>
-
-            <div style={analysisMetricsGrid}>
-              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 104 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '18px 14px 16px' : analysisMetricCard.padding }}>
-                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 12 : analysisMetricLabel.fontSize }}>Coverage</div>
-                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 30 : analysisMetricValue.fontSize }}>{summary.averageCoverage}%</div>
-                <div style={metricProgressTrack} aria-hidden="true">
-                  <div style={{ ...metricProgressFill, width: `${summary.averageCoverage}%`, background: '#3b82f6' }} />
-                </div>
-              </div>
-
-              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 104 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '18px 14px 16px' : analysisMetricCard.padding }}>
-                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 12 : analysisMetricLabel.fontSize }}>Clarity</div>
-                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 30 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
-                <div style={metricProgressTrack} aria-hidden="true">
-                  <div style={{ ...metricProgressFill, width: `${summary.lessonsAnalyzed ? summary.averageClarity : 0}%`, background: '#8b5cf6' }} />
-                </div>
-              </div>
-
-              <div style={{
-                ...analysisMetricCard,
-                minHeight: isNarrowScreen ? 104 : analysisMetricCard.minHeight,
-                padding: isNarrowScreen ? '18px 14px 16px' : analysisMetricCard.padding,
-              }}>
-                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 12 : analysisMetricLabel.fontSize }}>Engagement</div>
-                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 30 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
-                <div style={metricProgressTrack} aria-hidden="true">
-                  <div style={{ ...metricProgressFill, width: `${summary.lessonsAnalyzed ? summary.averageEngagement : 0}%`, background: '#10b981' }} />
-                </div>
-              </div>
-
-              <div style={{ ...analysisMetricCard, minHeight: isNarrowScreen ? 104 : analysisMetricCard.minHeight, padding: isNarrowScreen ? '18px 14px 16px' : analysisMetricCard.padding }}>
-                <div style={{ ...analysisMetricLabel, fontSize: isNarrowScreen ? 12 : analysisMetricLabel.fontSize }}>Assessment</div>
-                <div style={{ ...analysisMetricValue, fontSize: isNarrowScreen ? 30 : analysisMetricValue.fontSize }}>{summary.lessonsAnalyzed ? `${summary.averageAssessment}%` : '—'}</div>
-                <div style={metricProgressTrack} aria-hidden="true">
-                  <div style={{ ...metricProgressFill, width: `${summary.lessonsAnalyzed ? summary.averageAssessment : 0}%`, background: '#f59e0b' }} />
-                </div>
-              </div>
-
-            </div>
-          </div>
+          <PerformanceMetricSummary
+            overallScore={overallScore}
+            lessonsAnalyzed={summary.lessonsAnalyzed}
+            metrics={[
+              { label: 'Coverage', value: summary.lessonsAnalyzed ? summary.averageCoverage : null, color: '#3b82f6' },
+              { label: 'Clarity', value: summary.lessonsAnalyzed ? summary.averageClarity : null, color: '#8b5cf6' },
+              { label: 'Engagement', value: summary.lessonsAnalyzed ? summary.averageEngagement : null, color: '#10b981' },
+              { label: 'Assessment', value: summary.lessonsAnalyzed ? summary.averageAssessment : null, color: '#f59e0b' },
+            ]}
+          />
         </div>
 
         <div style={{ ...card, ...actionCard }}>
@@ -1237,101 +1191,6 @@ const chartTooltip: React.CSSProperties = { background: 'var(--surface-card-soli
 const lessonSearchHeader: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 };
 const lessonSearchInput: React.CSSProperties = { minWidth: 210, padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 13 };
 
-const analysisSummaryLayout: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'minmax(230px, 280px) minmax(0, 1fr)',
-  gap: 16,
-  alignItems: 'stretch',
-};
-const analysisScorePanel: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
-  alignItems: 'center',
-  textAlign: 'center',
-  gap: 8,
-  minWidth: 0,
-  minHeight: 174,
-  padding: '28px 24px',
-  borderRadius: 20,
-  border: '1px solid rgba(249,115,22,0.22)',
-  background: 'linear-gradient(145deg, rgba(249,115,22,0.14) 0%, rgba(249,115,22,0.05) 52%, rgba(255,255,255,0.02) 100%)',
-  boxShadow: 'var(--shadow-soft)',
-};
-const analysisScoreEyebrow: React.CSSProperties = {
-  color: '#c2410c',
-  fontSize: 11,
-  fontWeight: 700,
-  letterSpacing: 0.8,
-  textTransform: 'uppercase',
-};
-const analysisScoreValue: React.CSSProperties = {
-  fontSize: 58,
-  lineHeight: 1,
-  color: 'var(--text-primary)',
-  fontWeight: 800,
-  letterSpacing: '-0.03em',
-};
-const analysisScoreScale: React.CSSProperties = {
-  marginLeft: 5,
-  color: 'var(--text-secondary)',
-  fontSize: '0.34em',
-  fontWeight: 700,
-  letterSpacing: 0,
-};
-const analysisScoreSubtext: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  fontSize: 13,
-  lineHeight: 1.45,
-  maxWidth: 180,
-};
-const analysisMetricsGrid: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-  gap: 12,
-  minWidth: 0,
-};
-const analysisMetricCard: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
-  alignItems: 'center',
-  textAlign: 'center',
-  gap: 12,
-  minHeight: 142,
-  padding: '24px 20px 20px',
-  borderRadius: 18,
-  border: '1px solid var(--border)',
-  background: 'linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(148,163,184,0.05) 100%)',
-  boxShadow: 'var(--shadow-soft)',
-};
-const analysisMetricLabel: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  fontSize: 13,
-  fontWeight: 700,
-  letterSpacing: '0.02em',
-  lineHeight: 1.3,
-};
-const analysisMetricValue: React.CSSProperties = {
-  color: 'var(--text-primary)',
-  fontSize: 40,
-  lineHeight: 1,
-  fontWeight: 800,
-  letterSpacing: '-0.02em',
-};
-const metricProgressTrack: React.CSSProperties = {
-  width: '100%',
-  maxWidth: 132,
-  height: 6,
-  overflow: 'hidden',
-  borderRadius: 999,
-  background: 'rgba(148,163,184,0.18)',
-};
-const metricProgressFill: React.CSSProperties = {
-  height: '100%',
-  borderRadius: 999,
-  boxShadow: '0 0 12px rgba(59,130,246,0.20)',
-};
 const label: React.CSSProperties = { color: 'var(--text-secondary)' };
 
 const text: React.CSSProperties = { color: 'var(--text-secondary)' };

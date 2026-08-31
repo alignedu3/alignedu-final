@@ -1008,12 +1008,12 @@ export default function AdminDashboard() {
             className="table-scroll-wrap"
             style={isNarrowScreen ? { overflowX: 'hidden', border: '1px solid var(--border)', borderRadius: 10, padding: '4px 6px', background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.05) 100%)' } : undefined}
           >
-            <table style={{ ...table, minWidth: '100%' }}>
+            <table style={{ ...table, minWidth: '100%' }} className="dashboard-data-table">
               <thead>
                 <tr>
                   <th style={{ ...th, width: isNarrowScreen ? '27%' : '32%', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Teacher</th>
                   <th style={{ ...th, width: isNarrowScreen ? '19%' : '14%', textAlign: 'center', whiteSpace: 'nowrap', fontSize: isNarrowScreen ? 11 : th.fontSize, padding: isNarrowScreen ? '4px 2px' : th.padding }}>Lessons</th>
-                  <th style={{ ...th, width: isNarrowScreen ? '18%' : '17%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 11 : th.fontSize, padding: isNarrowScreen ? '4px 2px' : th.padding }}>Current Avg</th>
+                  <th style={{ ...th, width: isNarrowScreen ? '18%' : '17%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 11 : th.fontSize, padding: isNarrowScreen ? '4px 2px' : th.padding }}>Overall Score</th>
                   <th style={{ ...th, width: '20%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 12 : th.fontSize, padding: isNarrowScreen ? '4px 3px' : th.padding }}>Trend</th>
                   <th style={{ ...th, width: isNarrowScreen ? '16%' : '17%', textAlign: 'center', whiteSpace: 'normal', fontSize: isNarrowScreen ? 11 : th.fontSize, padding: isNarrowScreen ? '4px 2px' : th.padding }}>Actions</th>
                 </tr>

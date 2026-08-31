@@ -283,18 +283,22 @@ export default function LessonReportPage() {
           <div style={{ ...metricCard, ...coverageMetricCard }}>
             <div style={metricLabel}>Coverage</div>
             <div style={metricValue}>{insights.coverage}%</div>
+            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.coverage}%`, background: '#3b82f6' }} /></div>
           </div>
           <div style={{ ...metricCard, ...clarityMetricCard }}>
             <div style={metricLabel}>Clarity</div>
             <div style={metricValue}>{insights.clarity}%</div>
+            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.clarity}%`, background: '#8b5cf6' }} /></div>
           </div>
           <div style={{ ...metricCard, ...engagementMetricCard }}>
             <div style={metricLabel}>Engagement</div>
             <div style={metricValue}>{insights.engagement}%</div>
+            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.engagement}%`, background: '#10b981' }} /></div>
           </div>
           <div style={{ ...metricCard, ...assessmentMetricCard }}>
             <div style={metricLabel}>Assessment</div>
             <div style={metricValue}>{insights.assessment}%</div>
+            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.assessment}%`, background: '#f59e0b' }} /></div>
           </div>
         </div>
 
@@ -722,17 +726,17 @@ const page: React.CSSProperties = {
 };
 
 const container: React.CSSProperties = {
-  maxWidth: 980,
+  maxWidth: 1200,
   margin: '0 auto',
 };
 
 const heroCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   border: '1px solid rgba(249,115,22,0.16)',
-  borderRadius: 18,
-  padding: 28,
+  borderRadius: 28,
+  padding: 'clamp(22px, 4vw, 36px)',
   marginBottom: 22,
-  boxShadow: 'var(--shadow-soft)',
+  boxShadow: 'var(--shadow-card)',
 };
 
 const heroTop: React.CSSProperties = {
@@ -776,7 +780,7 @@ const summaryBanner: React.CSSProperties = {
   gap: 16,
   alignItems: 'center',
   padding: 18,
-  borderRadius: 14,
+  borderRadius: 18,
   background: 'var(--surface-chip)',
   border: '1px solid rgba(249,115,22,0.14)',
 };
@@ -794,7 +798,7 @@ const summaryText: React.CSSProperties = {
 };
 
 const summaryScoreCard: React.CSSProperties = {
-  borderRadius: 14,
+  borderRadius: 18,
   border: '1px solid rgba(249,115,22,0.16)',
   background: 'var(--surface-card-solid)',
   padding: 18,
@@ -839,13 +843,16 @@ const metricGrid: React.CSSProperties = {
 
 const metricCard: React.CSSProperties = {
   display: 'flex',
+  flexDirection: 'column',
   alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 12,
+  justifyContent: 'center',
+  gap: 11,
+  textAlign: 'center',
+  minHeight: 142,
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
-  borderRadius: 14,
-  padding: '14px 16px',
+  borderRadius: 18,
+  padding: '20px 16px 18px',
   boxShadow: 'var(--shadow-soft)',
 };
 
@@ -859,19 +866,33 @@ const metricLabel: React.CSSProperties = {
 
 const metricValue: React.CSSProperties = {
   color: 'var(--text-primary)',
-  fontSize: 24,
-  fontWeight: 700,
+  fontSize: 34,
+  fontWeight: 800,
   lineHeight: 1,
   whiteSpace: 'nowrap',
+};
+
+const metricProgressTrack: React.CSSProperties = {
+  width: '100%',
+  maxWidth: 132,
+  height: 6,
+  overflow: 'hidden',
+  borderRadius: 999,
+  background: 'rgba(148,163,184,0.18)',
+};
+
+const metricProgressFill: React.CSSProperties = {
+  height: '100%',
+  borderRadius: 999,
 };
 
 const sectionCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
-  borderRadius: 14,
+  borderRadius: 22,
   padding: 22,
   marginBottom: 18,
-  boxShadow: 'var(--shadow-soft)',
+  boxShadow: 'var(--shadow-card)',
 };
 
 const sectionTitle: React.CSSProperties = {

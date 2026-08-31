@@ -356,7 +356,7 @@ export default function DistrictDashboard() {
                   <div>
                     <div style={rowTitle}>{teacher.name}</div>
                     <div style={rowMeta}>
-                      Current avg {teacher.avgScore}/100, trend {getLessonTrendDisplay(teacher.trend).label.toLowerCase()}, gaps {teacher.gaps}
+                      Overall score {teacher.avgScore}/100, trend {getLessonTrendDisplay(teacher.trend).label.toLowerCase()}, gaps {teacher.gaps}
                     </div>
                   </div>
                   <div style={
@@ -384,7 +384,7 @@ export default function DistrictDashboard() {
                   <div>
                     <div style={rowTitle}>{teacher.name}</div>
                     <div style={rowMeta}>
-                      Current avg {teacher.avgScore}/100, latest coverage {teacher.latestCoverage}/100, {teacher.lessons} lesson{teacher.lessons === 1 ? '' : 's'}
+                      Overall score {teacher.avgScore}/100, latest coverage {teacher.latestCoverage}/100, {teacher.lessons} lesson{teacher.lessons === 1 ? '' : 's'}
                     </div>
                   </div>
                   <div style={pillSuccess}>{teacher.supportLevel}</div>
@@ -404,13 +404,13 @@ export default function DistrictDashboard() {
               </select>
             </div>
           </div>
-          <div style={tableWrap}>
-            <table style={table}>
+          <div style={tableWrap} className="premium-table-panel">
+            <table style={table} className="dashboard-data-table">
               <thead>
                 <tr>
                   <th style={th}>Teacher</th>
                   <th style={th}>Lessons</th>
-                  <th style={th}>Current Avg</th>
+                  <th style={th}>Overall Score</th>
                   <th style={th}>Trend</th>
                   <th style={th}>Gaps</th>
                   <th style={th}>Support Level</th>

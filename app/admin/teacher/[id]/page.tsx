@@ -15,6 +15,7 @@ import {
 
 import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getOverallLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
 import ProtectedPageState from '@/components/ProtectedPageState';
+import PerformanceMetricSummary from '@/components/dashboard/PerformanceMetricSummary';
 
 const stableDateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'numeric',
@@ -204,47 +205,32 @@ export default function AdminTeacherPage() {
         <div style={header} className="admin-teacher-header">
           <div>
             <Link href={backHref} style={backLink}>
-              Back to Dashboard
+              ← Administrator Dashboard
             </Link>
+            <div style={eyebrow}>Teacher Performance</div>
             <h1 style={heading}>{name}</h1>
-            <p style={subheading}>{reports.length} lessons analyzed</p>
+            <p style={subheading}>Instructional performance, lesson evidence, and coaching priorities in one view.</p>
           </div>
           <div style={headerMeta} className="admin-teacher-header-meta">
-            <div style={metaLabel}>Administrator Drill-Down</div>
-            <div style={metaValue}>Teacher Results</div>
+            <div style={metaLabel}>Lessons Analyzed</div>
+            <div style={metaValue}>{reports.length}</div>
           </div>
         </div>
 
-        <div style={grid} className="admin-teacher-stat-grid">
-          <div style={statCard}>
-            <div style={statLabel}>Current Average</div>
-            <div style={statValue}>{summary.averageScore}/100</div>
-            <div style={statHelper}>Average across {summary.lessonsAnalyzed} lesson{summary.lessonsAnalyzed === 1 ? '' : 's'}</div>
-          </div>
-
-          <div style={statCard}>
-            <div style={statLabel}>Coverage</div>
-            <div style={statValue}>{summary.lessonsAnalyzed ? `${summary.averageCoverage}%` : '—'}</div>
-            <div style={statHelper}>Average across analyzed lessons</div>
-          </div>
-
-          <div style={statCard}>
-            <div style={statLabel}>Clarity</div>
-            <div style={statValue}>{summary.lessonsAnalyzed ? `${summary.averageClarity}%` : '—'}</div>
-            <div style={statHelper}>Average across analyzed lessons</div>
-          </div>
-
-          <div style={statCard}>
-            <div style={statLabel}>Engagement</div>
-            <div style={statValue}>{summary.lessonsAnalyzed ? `${summary.averageEngagement}%` : '—'}</div>
-            <div style={statHelper}>Average across analyzed lessons</div>
-          </div>
-
-          <div style={statCard}>
-            <div style={statLabel}>Assessment</div>
-            <div style={statValue}>{summary.lessonsAnalyzed ? `${summary.averageAssessment}%` : '—'}</div>
-            <div style={statHelper}>Average across analyzed lessons</div>
-          </div>
+        <div style={cardFull}>
+          <div style={sectionEyebrow}>Performance Summary</div>
+          <h2 style={title}>Teacher Performance</h2>
+          <PerformanceMetricSummary
+            overallScore={summary.averageScore}
+            lessonsAnalyzed={summary.lessonsAnalyzed}
+            metricHelper="Lesson average"
+            metrics={[
+              { label: 'Coverage', value: summary.lessonsAnalyzed ? summary.averageCoverage : null, color: '#3b82f6' },
+              { label: 'Clarity', value: summary.lessonsAnalyzed ? summary.averageClarity : null, color: '#8b5cf6' },
+              { label: 'Engagement', value: summary.lessonsAnalyzed ? summary.averageEngagement : null, color: '#10b981' },
+              { label: 'Assessment', value: summary.lessonsAnalyzed ? summary.averageAssessment : null, color: '#f59e0b' },
+            ]}
+          />
         </div>
 
         <div style={cardFull}>
@@ -407,6 +393,7 @@ export default function AdminTeacherPage() {
                     key={report.id || index}
                     href={`/admin/teacher/${id}/lesson/${report.id}`}
                     style={historyCard}
+                    className="admin-history-card"
                   >
                     <div style={historyTopRow}>
                       <div>
@@ -435,32 +422,42 @@ export default function AdminTeacherPage() {
 
 const page: React.CSSProperties = {
   minHeight: '100vh',
-  background: 'var(--surface-page)',
-  paddingTop: 18,
+  background: 'linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%)',
 };
 
 const container: React.CSSProperties = {
-  maxWidth: 1100,
+  maxWidth: 1200,
   margin: '0 auto'
 };
 
 const header: React.CSSProperties = {
-  marginBottom: 24,
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'flex-start',
-  gap: 16,
-  flexWrap: 'wrap'
+  gap: 20,
+  flexWrap: 'wrap',
+  marginBottom: 22,
+  padding: 'clamp(22px, 4vw, 36px)',
+  borderRadius: 28,
+  border: '1px solid var(--border)',
+  background: 'linear-gradient(135deg, var(--surface-card-solid) 0%, var(--bg-tertiary) 100%)',
+  boxShadow: 'var(--shadow-card)',
 };
 
 const headerMeta: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
-  borderRadius: 12,
-  padding: '10px 12px',
+  borderRadius: 18,
+  padding: '14px 18px',
   minWidth: 0,
-  width: '100%',
-  maxWidth: 220
+  minHeight: 84,
+  width: 170,
+  display: 'flex',
+  flexDirection: 'column',
+  justifyContent: 'center',
+  alignItems: 'center',
+  textAlign: 'center',
+  boxShadow: 'var(--shadow-soft)',
 };
 
 const metaLabel: React.CSSProperties = {
@@ -473,18 +470,34 @@ const metaLabel: React.CSSProperties = {
 
 const metaValue: React.CSSProperties = {
   color: 'var(--text-primary)',
-  fontSize: 15,
-  marginTop: 4,
-  fontWeight: 600
+  fontSize: 30,
+  lineHeight: 1,
+  marginTop: 8,
+  fontWeight: 800
+};
+
+const eyebrow: React.CSSProperties = {
+  color: '#ea580c',
+  fontSize: 11,
+  textTransform: 'uppercase',
+  letterSpacing: 1,
+  fontWeight: 800,
+  marginBottom: 8,
 };
 
 const heading: React.CSSProperties = {
   color: 'var(--text-primary)',
-  fontSize: 28
+  fontSize: 'clamp(2rem, 4vw, 2.8rem)',
+  lineHeight: 1.05,
+  margin: '0 0 8px 0',
 };
 
 const subheading: React.CSSProperties = {
-  color: 'var(--text-secondary)'
+  color: 'var(--text-secondary)',
+  margin: 0,
+  fontSize: 16,
+  lineHeight: 1.55,
+  maxWidth: 650,
 };
 
 const backLink: React.CSSProperties = {
@@ -498,69 +511,19 @@ const backLink: React.CSSProperties = {
   fontWeight: 700,
 };
 
-const grid: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-  gap: 16,
-  marginBottom: 24
-};
-
-const card: React.CSSProperties = {
-  background: 'var(--surface-card-solid)',
-  padding: 18,
-  borderRadius: 12,
-  border: '1px solid var(--border)',
-};
-
-const statCard: React.CSSProperties = {
-  ...card,
-  display: 'flex',
-  flexDirection: 'column',
-  justifyContent: 'center',
-  alignItems: 'center',
-  textAlign: 'center',
-  minHeight: 158,
-  padding: '20px 18px',
-  background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.05) 100%)',
-  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
-};
-
 const cardFull: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
-  padding: 20,
-  borderRadius: 12,
+  padding: 22,
+  borderRadius: 22,
   marginBottom: 20,
   border: '1px solid var(--border)',
   minWidth: 0,
+  boxShadow: 'var(--shadow-card)',
 };
 
 const label: React.CSSProperties = {
   color: 'var(--text-secondary)',
   fontSize: 13
-};
-
-const statLabel: React.CSSProperties = {
-  ...label,
-  fontSize: 12,
-  fontWeight: 700,
-  letterSpacing: 0.4,
-  textTransform: 'uppercase',
-};
-
-const statValue: React.CSSProperties = {
-  color: 'var(--text-primary)',
-  fontSize: 34,
-  lineHeight: 1.05,
-  marginTop: 10,
-  fontWeight: 800,
-};
-
-const statHelper: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  fontSize: 13,
-  lineHeight: 1.45,
-  marginTop: 10,
-  maxWidth: 170,
 };
 
 const valueLarge: React.CSSProperties = {
@@ -572,7 +535,18 @@ const valueLarge: React.CSSProperties = {
 
 const title: React.CSSProperties = {
   color: 'var(--text-primary)',
-  marginBottom: 10
+  marginTop: 0,
+  marginBottom: 10,
+  fontSize: 22,
+};
+
+const sectionEyebrow: React.CSSProperties = {
+  color: '#ea580c',
+  fontSize: 11,
+  textTransform: 'uppercase',
+  letterSpacing: 0.8,
+  fontWeight: 800,
+  marginBottom: 7,
 };
 
 const text: React.CSSProperties = {
@@ -593,9 +567,10 @@ const overviewRow: React.CSSProperties = {
 
 const overviewPanel: React.CSSProperties = {
   border: '1px solid var(--border)',
-  borderRadius: 12,
-  padding: 14,
-  background: 'var(--surface-chip)'
+  borderRadius: 16,
+  padding: 16,
+  background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, var(--surface-chip) 100%)',
+  boxShadow: 'var(--shadow-soft)',
 };
 
 const supportHeader: React.CSSProperties = {
@@ -711,7 +686,9 @@ const historyCard: React.CSSProperties = {
   padding: 16,
   borderRadius: 14,
   border: '1px solid var(--border)',
-  background: 'var(--surface-card-solid)'
+  background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, rgba(148,163,184,0.04) 100%)',
+  boxShadow: 'var(--shadow-soft)',
+  transition: 'transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease',
 };
 
 const historyTopRow: React.CSSProperties = {
