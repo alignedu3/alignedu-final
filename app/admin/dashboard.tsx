@@ -106,6 +106,10 @@ export default function AdminDashboard() {
     router.push('/admin/monitoring');
   };
 
+  const handleBackToAdminDashboard = () => {
+    router.push('/admin#team');
+  };
+
   const navigateToUserDashboard = (userId: string, role?: string | null, returnSection?: 'team' | 'performance') => {
     if (userId.startsWith('sample-') && !canOpenSampleEntity(userId)) return;
     const queryParts = [
@@ -682,6 +686,11 @@ export default function AdminDashboard() {
         {/* HEADER */}
         <div style={hero}>
           <div>
+            {isViewingAnotherAdmin && (
+              <button onClick={handleBackToAdminDashboard} style={backToAdminBtn}>
+                ← Back to Admin Dashboard
+              </button>
+            )}
             <div style={eyebrow}>Instructional Leadership</div>
             <h1 style={heading}>{activeAdminName}</h1>
             <p style={subheading}>
@@ -1505,6 +1514,7 @@ function AdminDashboardSkeleton() {
 const page: React.CSSProperties = { minHeight: '100vh', background: 'linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%)' };
 const container: React.CSSProperties = { maxWidth: 1200, margin: '0 auto' };
 const hero: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 22, padding: 'clamp(22px, 4vw, 36px)', borderRadius: 28, border: '1px solid var(--border)', background: 'var(--surface-card-solid)', boxShadow: 'var(--shadow-card)' };
+const backToAdminBtn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', marginBottom: 12, padding: 0, border: 'none', background: 'transparent', color: '#f97316', cursor: 'pointer', fontSize: 12, fontWeight: 650 };
 const eyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 800, marginBottom: 8 };
 const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 'clamp(2rem, 4vw, 2.8rem)', lineHeight: 1.05, margin: '0 0 8px 0' };
 const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0, fontSize: 16, lineHeight: 1.55 };
