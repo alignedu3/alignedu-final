@@ -178,8 +178,6 @@ export default function AdminTeacherPage() {
     return buildAdminSupportPlanForTeacher(name || 'Teacher', reports, typeof id === 'string' ? id : undefined);
   }, [id, name, reports]);
 
-  const previousReports = useMemo(() => reports.slice(1), [reports]);
-
   const latestLessonLabel = useMemo(() => {
     if (!activeReport) return 'No lesson selected';
     const date = formatStableDate(activeReport.created_at);
@@ -359,11 +357,11 @@ export default function AdminTeacherPage() {
                 <div style={text}>{activeInsights.nextAction}</div>
               </div>
 
-              {previousReports.length > 0 && (
+              {reports.length > 1 && (
                 <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(148,163,184,0.15)' }}>
-                  <div style={{ ...label, marginBottom: 8 }}>Previous Lesson Findings</div>
+                  <div style={{ ...label, marginBottom: 8 }}>Lesson Findings</div>
                   <div style={chipWrap} className="admin-teacher-chip-wrap">
-                    {previousReports.map((report, index) => {
+                    {reports.map((report, index) => {
                       const lessonDate = formatStableDate(report.created_at);
                       const chapterLabel = getChapterLabel(report);
                       const chipLabel = `${chapterLabel}, ${report.grade || 'Grade'} ${report.subject || 'Lesson'}${lessonDate !== 'No date' ? `, ${lessonDate}` : ''}`;
