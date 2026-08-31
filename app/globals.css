@@ -627,8 +627,18 @@ button:disabled {
 }
 
 .admin-observation-page .analysis-subtitle {
-  margin-left: 0;
+  margin: 0 !important;
   max-width: 760px;
+  text-align: left;
+}
+
+.admin-observation-page .analysis-title {
+  margin: 0 0 12px;
+  text-align: left;
+}
+
+.admin-observation-page .analysis-badge {
+  margin-bottom: 14px;
 }
 
 .analysis-back-button {

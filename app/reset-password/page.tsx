@@ -371,7 +371,7 @@ const card: React.CSSProperties = {
   borderRadius: '24px', boxShadow: 'var(--shadow-card)',
   backdropFilter: 'blur(14px)', display: 'flex', flexDirection: 'column', gap: '16px',
 };
-const heading: React.CSSProperties = { fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: 0 };
+const heading: React.CSSProperties = { fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 };
 const subheading: React.CSSProperties = { fontSize: '15px', color: 'var(--text-secondary)', margin: 0 };
 const requirementsCard: React.CSSProperties = {
   background: 'linear-gradient(180deg, rgba(125, 211, 252, 0.10), rgba(15, 23, 42, 0.04))',
@@ -460,4 +460,4 @@ const successText: React.CSSProperties = {
   borderRadius: '8px', border: '1px solid rgba(34,197,94,0.2)',
 };
 const backLink: React.CSSProperties = { display: 'block', textAlign: 'center', color: '#7dd3fc', fontSize: '14px' };
-const topBackLink: React.CSSProperties = { display: 'inline-flex', marginBottom: '16px', color: '#f97316', fontSize: '12px', fontWeight: 650, textDecoration: 'none' };
+const topBackLink: React.CSSProperties = { display: 'inline-flex', alignSelf: 'flex-start', color: '#f97316', fontSize: '12px', fontWeight: 650, textDecoration: 'none' };
