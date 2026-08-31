@@ -601,7 +601,6 @@ export default function AnalysisPage() {
 
   const viewerIsAdmin = isAdminObservationMode || viewerRole === "admin" || viewerRole === "super_admin";
   const dashboardHref = viewerIsAdmin ? "/admin" : "/dashboard";
-  const dashboardLabel = viewerIsAdmin ? "Back to Admin Dashboard" : "Back to Teacher Dashboard";
 
   useEffect(() => {
     const updateScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
@@ -1809,7 +1808,7 @@ export default function AnalysisPage() {
             </p>
           </div>
           <button type="button" className="analysis-back-button" onClick={() => router.push(dashboardHref)}>
-            ← {dashboardLabel}
+            ← Back to Dashboard
           </button>
         </div>
 

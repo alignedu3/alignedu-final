@@ -254,7 +254,7 @@ export default function ResetPassword() {
     <main style={mainContainer}>
       <section style={card}>
         <a href={isRecoverySession ? '/login' : ['admin', 'super_admin'].includes(viewerRole) ? '/admin' : '/dashboard'} style={topBackLink}>
-          {isRecoverySession ? '← Back to Login' : ['admin', 'super_admin'].includes(viewerRole) ? '← Back to Admin Dashboard' : '← Back to Teacher Dashboard'}
+          {isRecoverySession ? '← Back to Login' : '← Back to Dashboard'}
         </a>
         <h1 style={heading}>Set Your Password</h1>
         <p style={subheading}>
