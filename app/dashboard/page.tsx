@@ -421,7 +421,7 @@ export default function TeacherDashboard() {
   const keyFindings = useMemo(() => {
     if (!activeKeyFindingsReport) return [];
     return getLessonInsights(activeKeyFindingsReport).findings.filter(
-      (finding) => !/^\s*(?:detected|identified|flagged)\s+\d+\s+(?:content\s+|concept\s+)?gaps?\b/i.test(finding)
+      (finding) => !/\bgaps?\b/i.test(finding)
     );
   }, [activeKeyFindingsReport]);
 

@@ -411,15 +411,19 @@ export default function AdminTeacherPage() {
                     className="admin-history-card"
                   >
                     <div style={historyTopRow}>
-                      <div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={historyEyebrow}>Lesson</div>
                         <div style={historyTitle}>{chapterLabel}</div>
                         <div style={historyCourse}>{report.grade || 'Grade'} {report.subject || 'Lesson'}</div>
                       </div>
-                      <div style={historyScore}>{getLessonMetrics(report).score}/100</div>
+                      <div style={historyScoreWrap}>
+                        <span style={historyScoreLabel}>Score</span>
+                        <span style={historyScore}>{getLessonMetrics(report).score}/100</span>
+                      </div>
                     </div>
-                    <div style={muted}>{lessonDate}</div>
-                    <div style={{ ...text, marginTop: 8 }}>
-                      Open the full report to review findings, action steps, AI analysis, and transcript.
+                    <div style={historyFooter}>
+                      <span style={historyDate}>{lessonDate}</span>
+                      <span style={historyAction}>View full analysis →</span>
                     </div>
                   </Link>
                 );
@@ -710,7 +714,9 @@ const historyGrid: React.CSSProperties = {
 };
 
 const historyCard: React.CSSProperties = {
-  display: 'block',
+  display: 'flex',
+  flexDirection: 'column',
+  minHeight: 156,
   textDecoration: 'none',
   color: 'var(--text-primary)',
   padding: 16,
@@ -722,11 +728,59 @@ const historyCard: React.CSSProperties = {
 };
 
 const historyTopRow: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
+  display: 'grid',
+  gridTemplateColumns: 'minmax(0, 1fr) 76px',
   gap: 12,
   alignItems: 'flex-start',
-  flexWrap: 'wrap'
+};
+
+const historyEyebrow: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: 0.7,
+  textTransform: 'uppercase',
+  marginBottom: 5
+};
+
+const historyScoreWrap: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'flex-end',
+  justifyContent: 'flex-start',
+  gap: 3,
+  width: 76,
+  minHeight: 48
+};
+
+const historyScoreLabel: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 9,
+  fontWeight: 800,
+  letterSpacing: 0.6,
+  textTransform: 'uppercase'
+};
+
+const historyFooter: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  marginTop: 'auto',
+  paddingTop: 12,
+  borderTop: '1px solid var(--border)'
+};
+
+const historyDate: React.CSSProperties = {
+  color: 'var(--text-secondary)',
+  fontSize: 12
+};
+
+const historyAction: React.CSSProperties = {
+  color: '#f97316',
+  fontSize: 12,
+  fontWeight: 700,
+  textAlign: 'right'
 };
 
 const historyTitle: React.CSSProperties = {
