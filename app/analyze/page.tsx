@@ -2130,7 +2130,7 @@ export default function AnalysisPage() {
                     </div>
 
                     <div style={{ color: 'var(--text-secondary)', fontSize: 11, lineHeight: 1.55, marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-                      If your phone locks or app goes to background, recording auto-stops and saves to prevent data loss.
+                      <strong style={{ color: 'var(--text-primary)' }}>Pro tip:</strong> For longer observations, record with your phone’s Voice Memos app and upload the file afterward. Device locks, backgrounding, or browser interruptions can stop in-app recording.
                     </div>
                   </div>
                 )}
