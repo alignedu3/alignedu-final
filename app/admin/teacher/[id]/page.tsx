@@ -147,7 +147,7 @@ export default function AdminTeacherPage() {
       : trend <= -5
         ? `The latest lesson declined ${Math.abs(Math.round(trend))} points from the previous lesson.`
         : 'The latest lesson remained within the teacher’s recent performance range.';
-    const readout = `${avg}/100 average across ${reports.length} analyzed lesson${reports.length === 1 ? '' : 's'}. ${trendText}`;
+    const readout = trendText;
 
     const recentMetrics = reports.slice(0, 3).map(getLessonMetrics);
     const domains = [
@@ -157,7 +157,7 @@ export default function AdminTeacherPage() {
       { label: 'checks for understanding', values: recentMetrics.map((metric) => metric.assessment) },
     ].map((domain) => ({ ...domain, average: Math.round(domain.values.reduce((sum, value) => sum + value, 0) / domain.values.length) }));
     const weakestDomain = [...domains].sort((a, b) => a.average - b.average)[0];
-    const focus = `Primary need: ${weakestDomain.label} · ${weakestDomain.average}/100 recent average`;
+    const focus = weakestDomain.label.charAt(0).toUpperCase() + weakestDomain.label.slice(1);
 
     return { avg, trend: Math.round(trend), status, readout, focus };
   }, [reports, summary.averageScore]);
