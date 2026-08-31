@@ -924,7 +924,7 @@ export default function HomePage() {
         style={{
           padding: 'clamp(66px, 8vw, 86px) 20px',
           background:
-            'linear-gradient(135deg, #020617 0%, #0f172a 50%, #0f766e 100%)',
+            'radial-gradient(circle at 82% 18%, rgba(20,184,166,0.24), transparent 34%), linear-gradient(135deg, #081120 0%, #0f172a 100%)',
           color: '#ffffff',
           textAlign: 'center',
         }}
