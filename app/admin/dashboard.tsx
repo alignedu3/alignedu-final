@@ -10,6 +10,7 @@ import {
   getLessonTrendDisplay,
   getOverallLessonTrend,
   type AnalysisReport,
+  type AdminSupportPlan,
   type ProfileRecord,
 } from '@/lib/dashboardData';
 import {
@@ -624,7 +625,7 @@ export default function AdminDashboard() {
       ? "System performance is declining due to gaps in lesson closure and concept reinforcement."
       : "Instructional quality is strong with consistent standards alignment.";
 
-  const recommendedSupportPlan = useMemo(() => {
+  const recommendedSupportPlan = useMemo<AdminSupportPlan>(() => {
     const primary = adminSupportPlans.find((plan) => plan.requiresPrioritySupport);
     if (!primary) {
       return {
