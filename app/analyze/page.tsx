@@ -1112,18 +1112,18 @@ export default function AnalysisPage() {
 
   const recorderCardStyle: React.CSSProperties = {
     marginBottom: 16,
-    background: 'var(--surface-card-solid)',
+    background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, var(--surface-chip) 100%)',
     border: '1px solid var(--border)',
-    borderRadius: 14,
-    padding: 16,
-    textAlign: 'center',
+    borderRadius: 18,
+    padding: '18px',
+    boxShadow: '0 12px 28px rgba(15, 23, 42, 0.07)',
   };
 
   const recorderTitleStyle: React.CSSProperties = {
-    color: 'var(--accent)',
+    color: 'var(--text-primary)',
+    fontSize: 15,
     fontWeight: 800,
-    marginBottom: 10,
-    letterSpacing: '0.03em',
+    lineHeight: 1.2,
   };
 
   const recorderButtonRowStyle: React.CSSProperties = {
@@ -1132,15 +1132,18 @@ export default function AnalysisPage() {
     alignItems: 'center',
     justifyContent: 'center',
     flexWrap: 'wrap',
+    marginTop: 18,
   };
 
   const recorderBtnBaseStyle: React.CSSProperties = {
     color: '#fff',
     border: 'none',
-    borderRadius: 10,
-    padding: '8px 14px',
-    fontWeight: 700,
-    minWidth: 92,
+    borderRadius: 12,
+    padding: '11px 18px',
+    fontWeight: 800,
+    minWidth: 132,
+    cursor: 'pointer',
+    boxShadow: '0 8px 18px rgba(15, 23, 42, 0.14)',
   };
 
   const splitAudioIntoChunks = async (file: File, duration: number) => {
@@ -2033,14 +2036,62 @@ export default function AnalysisPage() {
                 <label className="analysis-label">Audio Evidence <span className="analysis-optional-label">Optional</span></label>
                 {isPremium && (
                   <div style={recorderCardStyle}>
-                    <div style={recorderTitleStyle}>Record Audio</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                      <span aria-hidden="true" style={{ display: 'grid', placeItems: 'center', width: 34, height: 34, borderRadius: 11, background: 'rgba(249,115,22,0.12)', color: '#ea580c', fontSize: 16 }}>●</span>
+                      <div>
+                        <div style={recorderTitleStyle}>Record Audio</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginTop: 3 }}>Capture live lesson evidence in the app.</div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        padding: '20px 16px',
+                        borderRadius: 15,
+                        background: isRecording ? 'rgba(239, 68, 68, 0.07)' : 'var(--surface-card-solid)',
+                        border: isRecording ? '1px solid rgba(239, 68, 68, 0.22)' : '1px solid var(--border)',
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 7,
+                          color: 'var(--text-secondary)',
+                          fontSize: 11,
+                          fontWeight: 750,
+                          letterSpacing: '0.05em',
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: 999, background: isRecording ? '#ef4444' : audioFile ? '#22c55e' : '#94a3b8' }} />
+                        {recorderStatus || (audioFile ? 'Audio ready' : 'Ready to record')}
+                      </span>
+                      <span
+                        style={{
+                          color: isRecording ? '#ef4444' : 'var(--text-primary)',
+                          fontSize: 'clamp(2rem, 7vw, 2.75rem)',
+                          lineHeight: 1,
+                          fontWeight: 800,
+                          letterSpacing: '0.08em',
+                          fontVariantNumeric: 'tabular-nums',
+                        }}
+                      >
+                        {formatRecordingTimer(recordingElapsedSeconds)}
+                      </span>
+                    </div>
 
                     <div style={recorderButtonRowStyle}>
                       {!isRecording ? (
                         <button
                           type="button"
                           onClick={startRecording}
-                          style={{ ...recorderBtnBaseStyle, background: '#22c55e' }}
+                          style={{ ...recorderBtnBaseStyle, background: 'linear-gradient(135deg, #f97316, #ea580c)' }}
                         >
                           {audioFile ? 'Record Again' : 'Start Recording'}
                         </button>
@@ -2064,35 +2115,7 @@ export default function AnalysisPage() {
                       )}
                     </div>
 
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 12,
-                        padding: '10px 12px',
-                        borderRadius: 12,
-                        marginBottom: 8,
-                        background: isRecording ? 'rgba(239, 68, 68, 0.08)' : 'rgba(148, 163, 184, 0.08)',
-                        border: isRecording ? '1px solid rgba(239, 68, 68, 0.22)' : '1px solid rgba(148, 163, 184, 0.16)',
-                      }}
-                    >
-                      <span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>
-                        {recorderStatus || (audioFile ? 'Audio ready' : 'Ready to record')}
-                      </span>
-                      <span
-                        style={{
-                          color: isRecording ? '#ef4444' : 'var(--text-primary)',
-                          fontSize: 22,
-                          fontWeight: 800,
-                          letterSpacing: '0.08em',
-                          fontVariantNumeric: 'tabular-nums',
-                        }}
-                      >
-                        {formatRecordingTimer(recordingElapsedSeconds)}
-                      </span>
-                    </div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginBottom: 8, opacity: 0.85 }}>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: 11, lineHeight: 1.55, marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
                       If your phone locks or app goes to background, recording auto-stops and saves to prevent data loss.
                     </div>
                   </div>
