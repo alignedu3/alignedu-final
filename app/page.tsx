@@ -121,15 +121,15 @@ export default function HomePage() {
     },
     {
       title: 'Actionable Instructional Feedback',
-      desc: 'Give teachers and leaders immediate next steps they can actually use to improve instruction.',
+      desc: 'Give teachers and leaders clear next steps they can actually use to improve instruction.',
     },
   ];
 
   const outcomes = [
-    'Coverage insights by lesson',
-    'Missed concepts flagged instantly',
-    'Clear instructional feedback',
-    'District-ready reporting potential',
+    'Standards alignment by lesson',
+    'Clarity and engagement insights',
+    'Assessment evidence visibility',
+    'Actionable coaching next steps',
   ];
 
   const process = [
@@ -146,7 +146,7 @@ export default function HomePage() {
     {
       step: '03',
       title: 'Review results',
-      desc: 'Get immediate feedback, insight summaries, and improvement opportunities in one place.',
+      desc: 'Get timely feedback, insight summaries, and improvement opportunities in one place.',
     },
   ];
 
@@ -279,7 +279,7 @@ export default function HomePage() {
 
               <h1
                 style={{
-                  fontSize: 'clamp(2.6rem, 5vw, 4.5rem)',
+                  fontSize: 'clamp(2.6rem, 5vw, 4.1rem)',
                   lineHeight: '1.05',
                   margin: '0 0 22px',
                   fontWeight: 750,
@@ -287,7 +287,7 @@ export default function HomePage() {
                   maxWidth: '780px',
                 }}
               >
-                AI That Shows Exactly What Was Taught—and What Was Missed
+                See What Was Taught—and What to Do Next
               </h1>
 
               <p
@@ -299,8 +299,8 @@ export default function HomePage() {
                   color: theme.heroSubtext,
                 }}
               >
-                Record live in the app or upload an audio recording, including a phone voice memo, and instantly see curriculum alignment, instructional gaps,
-                and actionable feedback for teachers, administrators, and districts.
+                Record live in the app or upload an audio recording, including a phone voice memo, and receive curriculum alignment, instructional insight,
+                and actionable feedback in minutes.
               </p>
 
               <div
@@ -323,7 +323,7 @@ export default function HomePage() {
                 </button>
                 <button
                   onClick={handleBookDemo}
-                  style={primaryBtn}
+                  style={heroSecondaryBtn}
                   className="hero-cta hero-cta-unified"
                 >
                   Request Demo
@@ -381,15 +381,15 @@ export default function HomePage() {
                   <div className="preview-inner-body" style={{ padding: '18px' }}>
                     <div className="preview-kpi-row" style={previewTopRow}>
                       <div className="preview-card-up" style={previewKpiPrimary}>
-                        <div style={previewKpiLabel}>District Instruction Score</div>
-                        <div className="preview-kpi-value" style={previewKpiValue}>92.4%</div>
-                        <div style={previewKpiDelta}>+8.1% this month</div>
+                        <div style={previewKpiLabel}>Overall Score</div>
+                        <div className="preview-kpi-value" style={previewKpiValue}>86/100</div>
+                        <div style={previewKpiDelta}>Based on 128 analyzed lessons</div>
                       </div>
 
                       <div className="preview-card-up preview-delay-2" style={previewKpiSecondary}>
-                        <div style={previewKpiLabel}>At-Risk Standards</div>
-                        <div className="preview-kpi-value" style={{ ...previewKpiValue, color: '#0f172a' }}>4</div>
-                        <div style={{ ...previewKpiDelta, color: '#b45309' }}>Needs review in 2 schools</div>
+                        <div style={previewKpiLabel}>Teachers Tracked</div>
+                        <div className="preview-kpi-value" style={{ ...previewKpiValue, color: '#0f172a' }}>24</div>
+                        <div style={{ ...previewKpiDelta, color: '#0369a1' }}>Across 3 campuses</div>
                       </div>
                     </div>
 
@@ -425,7 +425,7 @@ export default function HomePage() {
 
                     <div className="preview-bottom-grid" style={previewBottomGrid}>
                       <div className="preview-card-up preview-delay-3" style={previewProgressCard}>
-                        <div style={previewSectionHeader}>Standard Mastery</div>
+                        <div style={previewSectionHeader}>Standards Alignment</div>
                         {[
                           {
                             school: 'Elementary School',
@@ -461,26 +461,26 @@ export default function HomePage() {
                       </div>
 
                       <div className="preview-card-up preview-delay-4" style={previewActivityCard}>
-                        <div style={previewSectionHeader}>Recent Flags</div>
+                        <div style={previewSectionHeader}>Coaching Priorities</div>
                         <div style={previewActivityItem}>
                           <span style={previewActivityDotWarn} />
-                          <span>STAAR-tested TEKS A.7(C) not observed in 4 of 6 Algebra I classrooms</span>
+                          <span>Strengthen checks for understanding in Algebra I</span>
                         </div>
                         <div style={previewActivityItem}>
                           <span style={previewActivityDotWarn} />
-                          <span>Grade 5 Science — 3 campuses below 70% mastery on TEKS 5.6(A)</span>
+                          <span>Reinforce assessment evidence in Grade 5 Science</span>
                         </div>
                         <div style={previewActivityItem}>
                           <span style={previewActivityDotWarn} />
-                          <span>Curriculum pacing gap detected: 8th grade ELA 3 weeks behind district scope</span>
+                          <span>Clarify lesson closure in Grade 8 RLA</span>
                         </div>
                         <div style={previewActivityItem}>
                           <span style={previewActivityDotWarn} />
-                          <span>Low instructional alignment in Grade 3 Reading across two campuses</span>
+                          <span>Increase student reasoning evidence in Grade 3 Reading</span>
                         </div>
                         <div style={previewActivityItem}>
                           <span style={previewActivityDotGood} />
-                          <span>Middle school Math TEKS coverage up 11% after targeted coaching cycle</span>
+                          <span>Middle school Math alignment improved after targeted coaching</span>
                         </div>
                       </div>
                     </div>
@@ -518,17 +518,13 @@ export default function HomePage() {
         }}
       >
         <div style={container}>
-          <div
-            style={{
-              textAlign: 'center',
-              maxWidth: '960px',
-              margin: '0 auto',
-              color: theme.mutedText,
-              fontSize: '16px',
-              lineHeight: '1.8',
-            }}
-          >
-            The first AI platform designed to verify what is actually taught in the classroom and turn instruction into measurable, scalable insight.
+          <div className="homepage-trust-row">
+            {['Role-based dashboards', 'Private lesson reports', 'Standards-aligned analysis'].map((item) => (
+              <div key={item} className="homepage-trust-item" style={{ color: theme.mutedText }}>
+                <span aria-hidden="true">✓</span>
+                {item}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -577,56 +573,6 @@ export default function HomePage() {
                 </p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* WHAT YOU GET */}
-      <section
-        style={{
-          padding: 'clamp(64px, 8vw, 84px) 20px',
-          background: theme.sectionAlt,
-        }}
-      >
-        <div style={container}>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-              gap: '30px',
-              alignItems: 'center',
-            }}
-          >
-            <div>
-              <div style={eyebrowLight}>What you get</div>
-              <h2 style={{ ...sectionTitle, color: theme.text, textAlign: 'left' }}>
-                One upload can turn a classroom lesson into a clear improvement plan
-              </h2>
-              <p style={{ ...sectionSubtitle, color: theme.mutedText, textAlign: 'left', margin: 0 }}>
-                AlignEDU is designed to give teachers and school leaders immediate visibility into what happened during instruction and what to do next.
-              </p>
-            </div>
-
-            <div
-              style={{
-                ...glassCard,
-                background: theme.cardBg,
-                border: `1px solid ${theme.cardBorder}`,
-                padding: '28px',
-              }}
-            >
-              {[
-                'Percent of standards or concepts covered',
-                'Potential instructional gaps and missed content',
-                'Clear feedback on lesson delivery and pacing',
-                'A more consistent, scalable review process for schools',
-              ].map((item) => (
-                <div key={item} style={benefitRow}>
-                  <span style={checkPill}>✓</span>
-                  <span style={{ color: theme.text, lineHeight: '1.7' }}>{item}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </section>
@@ -910,7 +856,7 @@ export default function HomePage() {
             >
               <h3 style={{ marginTop: 0, fontSize: '22px', color: theme.text }}>With AlignEDU</h3>
               <ul style={listStyle(theme.text)}>
-                <li>Immediate AI-supported analysis</li>
+                <li>AI-supported analysis in minutes</li>
                 <li>Clear, objective instructional insight</li>
                 <li>Faster coaching and better follow-up</li>
                 <li>District-ready scalability without extra admin burden</li>
@@ -994,36 +940,6 @@ export default function HomePage() {
                 </p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* DISTRICT SCALE */}
-      <section
-        style={{
-          padding: 'clamp(64px, 8vw, 84px) 20px',
-          background: theme.sectionSoft,
-        }}
-      >
-        <div style={container}>
-          <div
-            style={{
-              ...glassCard,
-              background:
-                isDarkMode
-                  ? 'linear-gradient(135deg, rgba(15,23,42,0.92), rgba(8,47,73,0.92))'
-                  : 'linear-gradient(135deg, #ffffff, #f8fbff)',
-              border: `1px solid ${theme.cardBorder}`,
-              padding: '40px',
-            }}
-          >
-            <div style={eyebrowLight}>Built for district scale</div>
-            <h2 style={{ ...sectionTitle, color: theme.text, textAlign: 'left', marginBottom: '16px' }}>
-              Built to analyze classrooms across schools and districts—without adding administrative workload
-            </h2>
-            <p style={{ color: theme.mutedText, lineHeight: '1.9', fontSize: '16px', margin: 0 }}>
-              AlignEDU is positioned to help educational organizations move from isolated observations to scalable instructional visibility. That means faster insight, more consistency, and stronger decision-making over time.
-            </p>
           </div>
         </div>
       </section>
@@ -1218,6 +1134,35 @@ export default function HomePage() {
           justify-content: center;
           gap: 12px;
           flex-wrap: wrap;
+        }
+
+        .homepage-trust-row {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 12px 28px;
+          max-width: 920px;
+          margin: 0 auto;
+        }
+
+        .homepage-trust-item {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          font-size: 14px;
+          font-weight: 700;
+        }
+
+        .homepage-trust-item span {
+          display: grid;
+          place-items: center;
+          width: 24px;
+          height: 24px;
+          border-radius: 999px;
+          color: #047857;
+          background: rgba(16,185,129,0.12);
+          font-size: 12px;
         }
 
         .legal-link {
@@ -1421,6 +1366,14 @@ export default function HomePage() {
         }
 
         @media (max-width: 560px) {
+          .hero-dashboard-frame {
+            max-height: 560px;
+          }
+
+          .preview-legend-row {
+            display: none !important;
+          }
+
           .hero-cta-row {
             grid-template-columns: 1fr !important;
             gap: 10px !important;
@@ -1432,12 +1385,20 @@ export default function HomePage() {
           }
 
           .preview-subject-row {
-            grid-template-columns: 1fr !important;
-            gap: 10px !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            gap: 6px !important;
           }
 
           .preview-school-card:last-child {
             grid-column: auto !important;
+          }
+
+          .preview-school-card {
+            min-width: 0 !important;
+          }
+
+          .preview-coverage-wrap {
+            height: 105px !important;
           }
         }
       `}</style>
@@ -1514,6 +1475,14 @@ const primaryBtn: React.CSSProperties = {
   lineHeight: '1',
   whiteSpace: 'nowrap',
   boxShadow: '0 14px 30px rgba(249, 115, 22, 0.28)',
+};
+
+const heroSecondaryBtn: React.CSSProperties = {
+  ...primaryBtn,
+  background: 'rgba(255,255,255,0.08)',
+  border: '1px solid rgba(255,255,255,0.38)',
+  boxShadow: 'none',
+  backdropFilter: 'blur(8px)',
 };
 
 const secondaryBtnDark: React.CSSProperties = {
@@ -1854,28 +1823,6 @@ const previewActivityDotGood: React.CSSProperties = {
   borderRadius: '999px',
   background: '#10b981',
   flexShrink: 0,
-};
-
-const benefitRow: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'flex-start',
-  gap: '12px',
-  marginBottom: '16px',
-};
-
-const checkPill: React.CSSProperties = {
-  width: '24px',
-  height: '24px',
-  minWidth: '24px',
-  borderRadius: '999px',
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: 'linear-gradient(135deg, #2563eb, #10b981)',
-  color: '#ffffff',
-  fontSize: '13px',
-  fontWeight: 700,
-  marginTop: '2px',
 };
 
 const stepBadge: React.CSSProperties = {
