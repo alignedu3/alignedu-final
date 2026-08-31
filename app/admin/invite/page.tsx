@@ -177,9 +177,9 @@ const container: React.CSSProperties = { maxWidth: 820, margin: '0 auto' };
 
 const hero: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 20, padding: 'clamp(24px, 4vw, 38px)', borderRadius: 28, border: '1px solid var(--border)', background: 'linear-gradient(135deg, var(--surface-card-solid) 0%, var(--bg-tertiary) 100%)', boxShadow: 'var(--shadow-card)' };
 const eyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 800, marginBottom: 8 };
-const backLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', marginBottom: 10, color: '#ea580c', textDecoration: 'none', fontSize: 13, fontWeight: 700 };
+const backLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', marginBottom: 12, color: '#ea580c', textDecoration: 'none', fontSize: 12, fontWeight: 650 };
 
-const heading: React.CSSProperties = { fontSize: 'clamp(2rem, 4vw, 2.8rem)', lineHeight: 1.05, color: 'var(--text-primary)', margin: '0 0 8px', fontWeight: 800 };
+const heading: React.CSSProperties = { fontSize: 'clamp(2.25rem, 4.5vw, 3rem)', lineHeight: 1.05, color: 'var(--text-primary)', margin: '0 0 8px', fontWeight: 800 };
 
 const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0, maxWidth: 690, lineHeight: 1.6, fontSize: 16 };
 

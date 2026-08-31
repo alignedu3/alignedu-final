@@ -1179,18 +1179,18 @@ export default function TeacherDashboard() {
 
 const page: React.CSSProperties = { minHeight: '100vh', background: 'linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%)' };
 const container: React.CSSProperties = { maxWidth: 1200, margin: '0 auto' };
-const hero: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 22, padding: 'clamp(22px, 4vw, 36px)', borderRadius: 28, border: '1px solid var(--border)', background: 'linear-gradient(135deg, var(--surface-card-solid) 0%, var(--bg-tertiary) 100%)', boxShadow: 'var(--shadow-card)' };
+const hero: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 22, padding: 'clamp(22px, 4vw, 36px)', borderRadius: 28, border: '1px solid var(--border)', background: 'var(--surface-card-solid)', boxShadow: 'var(--shadow-card)' };
 const eyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 800, marginBottom: 8 };
-const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 'clamp(2rem, 4vw, 2.8rem)', lineHeight: 1.05, margin: '0 0 8px 0' };
+const heading: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 'clamp(2.25rem, 4.5vw, 3rem)', lineHeight: 1.05, margin: '0 0 8px 0' };
 const subheading: React.CSSProperties = { color: 'var(--text-secondary)', margin: 0, fontSize: 16, lineHeight: 1.55 };
 const buttonGroup: React.CSSProperties = { display: 'flex', gap: 10, alignItems: 'center' };
-const backLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', marginBottom: 10, color: '#f97316', textDecoration: 'none', fontSize: 13, fontWeight: 700 };
+const backLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', marginBottom: 12, color: '#f97316', textDecoration: 'none', fontSize: 12, fontWeight: 650 };
 const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', padding: '11px 18px', borderRadius: 12, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', whiteSpace: 'nowrap', boxShadow: '0 10px 24px rgba(249,115,22,0.20)' };
 
 const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 22, borderRadius: 22, marginBottom: 20, minWidth: 0, boxShadow: 'var(--shadow-card)' };
 const cardTitle: React.CSSProperties = { color: 'var(--text-primary)', marginTop: 0, marginBottom: 10, fontSize: 22 };
 const sectionEyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 800, marginBottom: 7 };
-const actionCard: React.CSSProperties = { background: 'linear-gradient(135deg, var(--surface-card-solid) 0%, rgba(249,115,22,0.06) 100%)' };
+const actionCard: React.CSSProperties = { background: 'var(--surface-card-solid)' };
 const trendCard: React.CSSProperties = { overflow: 'hidden' };
 const trendHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' };
 const trendChangePill: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3, padding: '9px 13px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface-chip)', fontSize: 14 };

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Area,
   Bar,
@@ -274,9 +275,9 @@ export default function DistrictDashboard() {
       <div style={container}>
         <div style={hero}>
           <div>
-            <button type="button" onClick={() => router.push('/admin')} style={backLink}>
+            <Link href="/admin" style={backLink}>
               ← Administrator Dashboard
-            </button>
+            </Link>
             <div style={eyebrow}>District View</div>
             <h1 style={heading}>{districtName}</h1>
             <p style={subheading}>
@@ -607,7 +608,7 @@ const eyebrow: React.CSSProperties = {
 
 const heading: React.CSSProperties = {
   margin: 0,
-  fontSize: 'clamp(2rem, 4vw, 3rem)',
+  fontSize: 'clamp(2.25rem, 4.5vw, 3.2rem)',
   color: 'var(--text-primary)',
   lineHeight: 1.05,
 };
@@ -620,7 +621,7 @@ const subheading: React.CSSProperties = {
   lineHeight: 1.6,
 };
 
-const backLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', marginBottom: 10, padding: 0, border: 'none', background: 'transparent', color: '#0f766e', cursor: 'pointer', fontSize: 13, fontWeight: 700 };
+const backLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', marginBottom: 12, color: '#0f766e', textDecoration: 'none', fontSize: 12, fontWeight: 650 };
 
 const statsGrid: React.CSSProperties = {
   display: 'grid',

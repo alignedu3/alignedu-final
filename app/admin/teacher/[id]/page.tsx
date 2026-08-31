@@ -498,7 +498,7 @@ const eyebrow: React.CSSProperties = {
 
 const heading: React.CSSProperties = {
   color: 'var(--text-primary)',
-  fontSize: 'clamp(2rem, 4vw, 2.8rem)',
+  fontSize: 'clamp(2.25rem, 4.5vw, 3rem)',
   lineHeight: 1.05,
   margin: '0 0 8px 0',
 };
@@ -515,11 +515,11 @@ const backLink: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   gap: 6,
-  marginBottom: 10,
+  marginBottom: 12,
   color: '#f97316',
   textDecoration: 'none',
-  fontSize: 13,
-  fontWeight: 700,
+  fontSize: 12,
+  fontWeight: 650,
 };
 
 const cardFull: React.CSSProperties = {
