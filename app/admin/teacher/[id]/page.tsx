@@ -13,7 +13,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 
-import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getOverallLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
+import { buildSampleAnalysisReports, buildAdminSupportPlanForTeacher, getDashboardSummary, getLatestLessonTrend, getLessonInsights, getLessonMetrics, getTrendData, sortReportsNewestFirst, SAMPLE_TEACHER_IDS, type AnalysisReport } from '@/lib/dashboardData';
 import ProtectedPageState from '@/components/ProtectedPageState';
 import PerformanceMetricSummary from '@/components/dashboard/PerformanceMetricSummary';
 
@@ -77,7 +77,7 @@ export default function AdminTeacherPage() {
         const sampleTeacherName =
           Object.entries(SAMPLE_TEACHER_IDS).find(([, sampleId]) => sampleId === id)?.[0] || 'Sample Teacher';
         setName(sampleTeacherName);
-        setReports(sampleReports);
+        setReports(sortReportsNewestFirst(sampleReports));
         setReady(true);
         return;
       }
@@ -97,7 +97,7 @@ export default function AdminTeacherPage() {
       }
 
       setName(data.teacher?.name || 'Teacher');
-      setReports(data.analyses || []);
+      setReports(sortReportsNewestFirst(data.analyses || []));
       setReady(true);
     }
 
@@ -136,20 +136,30 @@ export default function AdminTeacherPage() {
 
   const overview = useMemo(() => {
     if (!reports.length) {
-      return { avg: 0, trend: 0, risk: 'Unknown', summary: 'No results available yet.' };
+      return { avg: 0, trend: 0, status: 'Unknown', readout: 'No results available yet.', focus: 'Analyze a lesson to establish an instructional baseline.' };
     }
 
     const avg = summary.averageScore;
-    const trend = getOverallLessonTrend(reports);
-    const risk = avg < 70 ? 'High Risk' : avg < 80 ? 'Moderate Risk' : 'Strong';
-    const summaryText =
-      avg >= 85
-        ? 'Consistently strong instructional quality across analyzed lessons.'
-        : avg >= 75
-          ? 'Solid instructional performance with clear opportunities to sharpen consistency.'
-          : 'Instruction needs targeted support around clarity, reinforcement, and closure.';
+    const trend = getLatestLessonTrend(reports);
+    const status = avg >= 85 ? 'Strong' : avg >= 75 ? 'Developing' : 'Priority Support';
+    const trendText = trend >= 5
+      ? `The latest lesson improved ${Math.round(trend)} points from the previous lesson.`
+      : trend <= -5
+        ? `The latest lesson declined ${Math.abs(Math.round(trend))} points from the previous lesson.`
+        : 'The latest lesson remained within the teacher’s recent performance range.';
+    const readout = `${avg}/100 average across ${reports.length} analyzed lesson${reports.length === 1 ? '' : 's'}. ${trendText}`;
 
-    return { avg, trend: Math.round(trend), risk, summary: summaryText };
+    const recentMetrics = reports.slice(0, 3).map(getLessonMetrics);
+    const domains = [
+      { label: 'standards alignment', values: recentMetrics.map((metric) => metric.coverage), focus: 'Tighten standards alignment from the lesson objective through modeling, practice, and closure.' },
+      { label: 'instructional clarity', values: recentMetrics.map((metric) => metric.clarity), focus: 'Strengthen modeling, directions, and success criteria before students work independently.' },
+      { label: 'student engagement', values: recentMetrics.map((metric) => metric.engagement), focus: 'Increase visible student response opportunities and require students to explain their thinking.' },
+      { label: 'checks for understanding', values: recentMetrics.map((metric) => metric.assessment), focus: 'Use a clear mastery check before closure and respond to misconceptions before moving on.' },
+    ].map((domain) => ({ ...domain, average: Math.round(domain.values.reduce((sum, value) => sum + value, 0) / domain.values.length) }));
+    const weakestDomain = [...domains].sort((a, b) => a.average - b.average)[0];
+    const focus = `${weakestDomain.focus} Recent ${weakestDomain.label} average: ${weakestDomain.average}/100.`;
+
+    return { avg, trend: Math.round(trend), status, readout, focus };
   }, [reports, summary.averageScore]);
 
   const chartData = useMemo(() => getTrendData(reports), [reports]);
@@ -235,29 +245,24 @@ export default function AdminTeacherPage() {
 
         <div style={cardFull}>
           <h2 style={title}>Performance Overview</h2>
-          <p style={text}>{overview.summary}</p>
 
           <div style={overviewRow} className="admin-teacher-overview-grid">
             <div style={overviewPanel}>
               <div style={label}>Current Status</div>
-              <div style={{ ...valueLarge, color: overview.risk === 'Strong' ? '#22c55e' : overview.risk === 'Moderate Risk' ? '#f59e0b' : '#ef4444' }}>
-                {overview.risk}
+              <div style={{ ...valueLarge, color: overview.status === 'Strong' ? '#22c55e' : overview.status === 'Developing' ? '#f59e0b' : '#ef4444' }}>
+                {overview.status}
               </div>
             </div>
             <div style={overviewPanel}>
               <div style={label}>Administrator Readout</div>
               <div style={text}>
-                {overview.summary
-                  ? overview.summary
-                  : 'No additional admin notes for this teacher yet.'}
+                {overview.readout}
               </div>
             </div>
             <div style={overviewPanel}>
               <div style={label}>Recommended Focus</div>
               <div style={text}>
-                {summary.totalGaps > 0
-                  ? 'Prioritize closure, reinforce gaps, and tighten checks for understanding.'
-                  : 'Maintain strong execution and push toward deeper student reasoning.'}
+                {overview.focus}
               </div>
             </div>
           </div>
