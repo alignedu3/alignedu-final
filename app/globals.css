@@ -64,6 +64,15 @@
   --shadow-card: 0 20px 50px rgba(2, 6, 23, 0.24);
 }
 
+[data-theme='dark'] .admin-observation-page .analysis-form-section {
+  background: transparent;
+}
+
+[data-theme='dark'] .performance-overall-card {
+  background: var(--surface-card-solid);
+  border-color: var(--border);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
