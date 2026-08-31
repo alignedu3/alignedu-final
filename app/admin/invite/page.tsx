@@ -72,11 +72,11 @@ export default function InvitePage() {
       <div style={container}>
         <header style={hero}>
           <div>
+            <Link href="/admin" style={backLink}>← Administrator Dashboard</Link>
             <div style={eyebrow}>Team Management</div>
             <h1 style={heading}>Add a User</h1>
             <p style={subheading}>Invite a teacher or administrator and place them into the right workflow from day one.</p>
           </div>
-          <Link href="/admin" style={backButton}>Back to Administrator Dashboard</Link>
         </header>
 
         <form style={card} onSubmit={(event) => { event.preventDefault(); void handleInvite(); }}>
@@ -177,7 +177,7 @@ const container: React.CSSProperties = { maxWidth: 820, margin: '0 auto' };
 
 const hero: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', marginBottom: 20, padding: 'clamp(24px, 4vw, 38px)', borderRadius: 28, border: '1px solid var(--border)', background: 'linear-gradient(135deg, var(--surface-card-solid) 0%, var(--bg-tertiary) 100%)', boxShadow: 'var(--shadow-card)' };
 const eyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 800, marginBottom: 8 };
-const backButton: React.CSSProperties = { color: 'var(--text-primary)', background: 'var(--surface-card-solid)', border: '1px solid var(--border-strong)', borderRadius: 12, padding: '11px 16px', textDecoration: 'none', fontSize: 13, fontWeight: 700 };
+const backLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', marginBottom: 10, color: '#ea580c', textDecoration: 'none', fontSize: 13, fontWeight: 700 };
 
 const heading: React.CSSProperties = { fontSize: 'clamp(2rem, 4vw, 2.8rem)', lineHeight: 1.05, color: 'var(--text-primary)', margin: '0 0 8px', fontWeight: 800 };
 

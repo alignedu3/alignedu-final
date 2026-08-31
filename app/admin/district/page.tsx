@@ -246,15 +246,15 @@ export default function DistrictDashboard() {
       <div style={container}>
         <div style={hero}>
           <div>
+            <button type="button" onClick={() => router.push('/admin')} style={backLink}>
+              ← Administrator Dashboard
+            </button>
             <div style={eyebrow}>District View</div>
             <h1 style={heading}>{districtName}</h1>
             <p style={subheading}>
               A secure system-wide view of teacher lesson quality, trend movement, and support priorities across your visible campuses.
             </p>
           </div>
-          <button onClick={() => router.push('/admin')} style={btn}>
-            Back to Administrator Dashboard
-          </button>
         </div>
 
         {loadError ? (
@@ -569,16 +569,7 @@ const subheading: React.CSSProperties = {
   lineHeight: 1.6,
 };
 
-const btn: React.CSSProperties = {
-  border: '1px solid var(--border-strong)',
-  background: 'var(--surface-card)',
-  color: 'var(--text-primary)',
-  padding: '12px 16px',
-  borderRadius: 14,
-  cursor: 'pointer',
-  fontWeight: 700,
-  boxShadow: 'var(--shadow-sm)',
-};
+const backLink: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', marginBottom: 10, padding: 0, border: 'none', background: 'transparent', color: '#0f766e', cursor: 'pointer', fontSize: 13, fontWeight: 700 };
 
 const statsGrid: React.CSSProperties = {
   display: 'grid',
@@ -813,10 +804,14 @@ const pillBase: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
+  textAlign: 'center',
   padding: '8px 12px',
   borderRadius: 999,
   fontSize: 12,
   fontWeight: 800,
+  lineHeight: 1,
+  whiteSpace: 'nowrap',
+  flexShrink: 0,
   border: '1px solid transparent',
   minWidth: 70,
 };
