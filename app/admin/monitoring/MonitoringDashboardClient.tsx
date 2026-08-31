@@ -442,6 +442,9 @@ export default function MonitoringDashboard() {
       <div style={container} className="dashboard-container">
         <div style={header}>
           <div>
+            <button type="button" onClick={() => router.push('/admin')} style={headerBackLink}>
+              ← Back to Dashboard
+            </button>
             <div style={eyebrow}>Platform Monitoring</div>
             <h1 style={heading}>{callerName}</h1>
             <p style={subheading}>
@@ -481,9 +484,6 @@ export default function MonitoringDashboard() {
               disabled={isRefreshing}
             >
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
-            </button>
-            <button type="button" onClick={() => router.push('/admin')} style={backBtn}>
-              ← Back to Dashboard
             </button>
             <div>
               <div style={updatedText}>
@@ -1526,6 +1526,18 @@ const header: React.CSSProperties = {
   gap: 20,
   flexWrap: 'wrap',
   marginBottom: 24,
+};
+
+const headerBackLink: React.CSSProperties = {
+  display: 'inline-flex',
+  margin: '0 0 12px',
+  padding: 0,
+  border: 'none',
+  background: 'transparent',
+  color: '#f97316',
+  fontSize: 12,
+  fontWeight: 650,
+  cursor: 'pointer',
 };
 
 const eyebrow: React.CSSProperties = {

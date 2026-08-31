@@ -1799,6 +1799,9 @@ export default function AnalysisPage() {
       <div className="analysis-container">
         <div className="analysis-header">
           <div>
+            <button type="button" className="analysis-back-button" onClick={() => router.push(dashboardHref)}>
+              ← Back to Dashboard
+            </button>
             <span className="analysis-badge">{isAdminObservationMode ? 'Instructional Leadership' : 'Lesson Review'}</span>
             <h1 className="analysis-title">{isAdminObservationMode ? 'Observe a Lesson' : 'Instructional Review'}</h1>
             <p className="analysis-subtitle">
@@ -1807,9 +1810,6 @@ export default function AnalysisPage() {
                 : 'Generate a clean coaching report with clear strengths, priority moves, and standards-aligned feedback teachers can act on quickly.'}
             </p>
           </div>
-          <button type="button" className="analysis-back-button" onClick={() => router.push(dashboardHref)}>
-            ← Back to Dashboard
-          </button>
         </div>
 
         {isAdminObservationMode && (

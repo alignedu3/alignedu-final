@@ -632,13 +632,14 @@ button:disabled {
 }
 
 .analysis-back-button {
-  flex-shrink: 0;
-  padding: 11px 16px;
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  background: var(--surface-card-solid);
-  color: var(--text-primary);
-  font-weight: 700;
+  display: block;
+  margin: 0 0 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f97316;
+  font-size: 12px;
+  font-weight: 650;
   cursor: pointer;
 }
 
@@ -819,10 +820,6 @@ button:disabled {
 @media (max-width: 760px) {
   .admin-observation-page .analysis-header {
     flex-direction: column;
-  }
-
-  .analysis-back-button {
-    width: 100%;
   }
 
   .observation-step-grid {
