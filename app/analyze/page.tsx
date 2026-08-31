@@ -1147,9 +1147,11 @@ export default function AnalysisPage() {
     color: '#fff',
     border: 'none',
     borderRadius: 12,
-    padding: '11px 18px',
+    padding: '10px 14px',
+    minHeight: 40,
+    width: 124,
+    fontSize: 13,
     fontWeight: 800,
-    minWidth: 132,
     cursor: 'pointer',
     boxShadow: '0 8px 18px rgba(15, 23, 42, 0.14)',
   };

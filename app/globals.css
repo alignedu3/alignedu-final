@@ -1753,7 +1753,8 @@ p {
 .analyze-btn {
   padding: 11px 18px !important;
   min-height: 44px !important;
-  font-size: 14px !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
   border-radius: 12px !important;
 }
 
