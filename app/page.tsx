@@ -287,7 +287,8 @@ export default function HomePage() {
                   maxWidth: '780px',
                 }}
               >
-                See What Was Taught—and What to Do Next
+                Know What Was Taught.
+                <span style={heroTitleAccent}>Strengthen What Comes Next.</span>
               </h1>
 
               <p
@@ -299,8 +300,7 @@ export default function HomePage() {
                   color: theme.heroSubtext,
                 }}
               >
-                Record live in the app or upload an audio recording, including a phone voice memo, and receive curriculum alignment, instructional insight,
-                and actionable feedback in minutes.
+                Record or upload a lesson—even a phone voice memo—and receive standards-alignment evidence, instructional insights, and focused next steps in minutes.
               </p>
 
               <div
@@ -319,26 +319,23 @@ export default function HomePage() {
                   style={primaryBtn}
                   className="hero-cta hero-cta-unified"
                 >
-                  Try It Now
+                  Analyze a Lesson <span aria-hidden="true" style={ctaArrow}>→</span>
                 </button>
                 <button
                   onClick={handleBookDemo}
                   style={heroSecondaryBtn}
                   className="hero-cta hero-cta-unified"
                 >
-                  Request Demo
+                  Book a Demo
                 </button>
 
               </div>
 
               <p
-                style={{
-                  fontSize: '14px',
-                  color: 'rgba(255,255,255,0.72)',
-                  margin: 0,
-                }}
+                style={heroProofLine}
               >
-                Built to help schools verify instruction, strengthen coaching, and scale insight.
+                <span aria-hidden="true" style={heroProofMark}>✓</span>
+                Built for schools and districts seeking clearer instructional visibility, stronger coaching, and scalable insight.
               </p>
             </div>
 
@@ -1399,6 +1396,48 @@ const eyebrowDark: React.CSSProperties = {
   fontSize: '12px',
   letterSpacing: '0.08em',
   textTransform: 'uppercase',
+};
+
+const heroTitleAccent: React.CSSProperties = {
+  display: 'block',
+  marginTop: 6,
+  color: '#a7f3d0',
+  textShadow: '0 8px 32px rgba(16,185,129,0.18)',
+};
+
+const ctaArrow: React.CSSProperties = {
+  marginLeft: 9,
+  fontSize: 18,
+  lineHeight: 1,
+};
+
+const heroProofLine: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  maxWidth: 680,
+  margin: 0,
+  padding: '8px 11px',
+  borderRadius: 999,
+  border: '1px solid rgba(255,255,255,0.12)',
+  background: 'rgba(255,255,255,0.055)',
+  color: 'rgba(255,255,255,0.76)',
+  fontSize: 13,
+  lineHeight: 1.45,
+  backdropFilter: 'blur(8px)',
+};
+
+const heroProofMark: React.CSSProperties = {
+  display: 'grid',
+  placeItems: 'center',
+  width: 20,
+  height: 20,
+  borderRadius: 999,
+  flexShrink: 0,
+  color: '#a7f3d0',
+  background: 'rgba(16,185,129,0.14)',
+  fontSize: 11,
+  fontWeight: 900,
 };
 
 const primaryBtn: React.CSSProperties = {
