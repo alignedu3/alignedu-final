@@ -985,6 +985,31 @@ button:disabled {
   box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.10);
 }
 
+.analysis-form-card select,
+.analysis-form-card textarea,
+.analysis-form-card input[type="text"] {
+  background: var(--surface-card-solid);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.analysis-form-card select:hover,
+.analysis-form-card textarea:hover,
+.analysis-form-card input[type="text"]:hover {
+  border-color: rgba(249, 115, 22, 0.52);
+}
+
+.analysis-form-card select option {
+  background: var(--surface-card-solid);
+  color: var(--text-primary);
+}
+
+.analysis-form-card textarea::placeholder,
+.analysis-form-card input[type="text"]::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.78;
+}
+
 .analysis-evidence-divider {
   display: flex;
   align-items: center;
