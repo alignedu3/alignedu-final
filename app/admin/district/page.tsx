@@ -434,7 +434,6 @@ export default function DistrictDashboard() {
                     <span><small style={mobileMetricLabel}>Overall score</small><strong>{teacher.avgScore ? `${teacher.avgScore}/100` : '—'}</strong></span>
                     <span><small style={mobileMetricLabel}>Lessons</small><strong>{teacher.lessons}</strong></span>
                     <span><small style={mobileMetricLabel}>Trend</small><strong>{getLessonTrendDisplay(teacher.trend).label}</strong></span>
-                    <span><small style={mobileMetricLabel}>Gaps</small><strong>{teacher.gaps}</strong></span>
                   </div>
                 </button>
               ))}
@@ -448,7 +447,6 @@ export default function DistrictDashboard() {
                   <th style={th}>Lessons</th>
                   <th style={th}>Overall Score</th>
                   <th style={th}>Trend</th>
-                  <th style={th}>Gaps</th>
                   <th style={th}>Support Level</th>
                 </tr>
               </thead>
@@ -461,7 +459,6 @@ export default function DistrictDashboard() {
                     <td style={td}>
                       {getLessonTrendDisplay(teacher.trend).label}
                     </td>
-                    <td style={td}>{teacher.gaps}</td>
                     <td style={td}>
                       <span
                         style={
@@ -627,7 +624,7 @@ const mobileRosterList: React.CSSProperties = { display: 'grid', gap: 12 };
 const mobileTeacherCard: React.CSSProperties = { width: '100%', padding: 16, borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface-card)', color: 'var(--text-primary)', textAlign: 'left', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' };
 const mobileTeacherHeader: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 };
 const mobileTeacherName: React.CSSProperties = { minWidth: 0, fontSize: 16, fontWeight: 800, overflowWrap: 'anywhere' };
-const mobileMetricGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px 16px', fontSize: 13 };
+const mobileMetricGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10, fontSize: 13 };
 const mobileMetricLabel: React.CSSProperties = { display: 'block', color: 'var(--text-secondary)', fontSize: 10, fontWeight: 800, letterSpacing: 0.55, textTransform: 'uppercase', marginBottom: 4 };
 const rosterEmpty: React.CSSProperties = { padding: 24, border: '1px dashed var(--border)', borderRadius: 14, color: 'var(--text-secondary)', textAlign: 'center', fontSize: 14 };
 

@@ -331,12 +331,6 @@ export default function HomePage() {
 
               </div>
 
-              <p
-                style={heroProofLine}
-              >
-                <span aria-hidden="true" style={heroProofMark}>✓</span>
-                Built for schools and districts seeking clearer instructional visibility, stronger coaching, and scalable insight.
-              </p>
             </div>
 
             <div>
@@ -1409,35 +1403,6 @@ const ctaArrow: React.CSSProperties = {
   marginLeft: 9,
   fontSize: 18,
   lineHeight: 1,
-};
-
-const heroProofLine: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 8,
-  maxWidth: 680,
-  margin: 0,
-  padding: '8px 11px',
-  borderRadius: 999,
-  border: '1px solid rgba(255,255,255,0.12)',
-  background: 'rgba(255,255,255,0.055)',
-  color: 'rgba(255,255,255,0.76)',
-  fontSize: 13,
-  lineHeight: 1.45,
-  backdropFilter: 'blur(8px)',
-};
-
-const heroProofMark: React.CSSProperties = {
-  display: 'grid',
-  placeItems: 'center',
-  width: 20,
-  height: 20,
-  borderRadius: 999,
-  flexShrink: 0,
-  color: '#a7f3d0',
-  background: 'rgba(16,185,129,0.14)',
-  fontSize: 11,
-  fontWeight: 900,
 };
 
 const primaryBtn: React.CSSProperties = {
