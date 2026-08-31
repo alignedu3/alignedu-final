@@ -1117,10 +1117,11 @@ export default function AnalysisPage() {
   const recorderCardStyle: React.CSSProperties = {
     marginBottom: 16,
     background: 'linear-gradient(180deg, var(--surface-card-solid) 0%, var(--surface-chip) 100%)',
-    border: '1px solid var(--border)',
+    border: '1px solid var(--border-strong)',
     borderRadius: 18,
     padding: '18px',
-    boxShadow: '0 12px 28px rgba(15, 23, 42, 0.07)',
+    overflow: 'hidden',
+    boxShadow: '0 12px 28px rgba(15, 23, 42, 0.07), inset 0 -1px 0 rgba(148, 163, 184, 0.10)',
   };
 
   const recorderTitleStyle: React.CSSProperties = {
