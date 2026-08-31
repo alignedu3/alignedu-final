@@ -416,7 +416,7 @@ export default function Header() {
                   Login
                 </Link>
                 <a href="mailto:support@alignedu.net?subject=AlignEDU Demo Request&body=I would like to schedule a demo." className="mobile-nav-link mobile-nav-link-accent" onClick={() => setMobileOpen(false)}>
-                  Book Demo
+                  Request Demo
                 </a>
               </>
             )}
