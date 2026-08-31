@@ -1813,22 +1813,6 @@ export default function AnalysisPage() {
           </div>
         </div>
 
-        {isAdminObservationMode && (
-          <div className="observation-step-grid" aria-label="Observation workflow">
-            <div className="observation-step-card">
-              <span className="observation-step-number">1</span>
-              <div><strong>Select context</strong><p>Choose the teacher, grade, subject, and instructional target.</p></div>
-            </div>
-            <div className="observation-step-card">
-              <span className="observation-step-number">2</span>
-              <div><strong>Capture evidence</strong><p>Record live, upload audio, or enter observation notes.</p></div>
-            </div>
-            <div className="observation-step-card">
-              <span className="observation-step-number">3</span>
-              <div><strong>Coach forward</strong><p>Review grounded findings, action steps, and next look-fors.</p></div>
-            </div>
-          </div>
-        )}
         {!isAdminObservationMode && draftNotice && !result && <div className="analysis-draft-notice">{draftNotice}</div>}
 
         <div className="analysis-shell">
@@ -2158,11 +2142,6 @@ export default function AnalysisPage() {
                       )}
                     </div>
                   </div>
-                )}
-                {audioDuration !== null && (
-                  <p style={{ marginTop: 8, color: "#94a3b8", fontSize: 14 }}>
-                    Audio duration: {Math.round(audioDuration)} seconds
-                  </p>
                 )}
               </div>
 

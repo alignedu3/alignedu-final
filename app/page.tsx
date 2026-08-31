@@ -135,8 +135,8 @@ export default function HomePage() {
   const process = [
     {
       step: '01',
-      title: 'Upload a lesson',
-      desc: 'Record live in the app or upload an audio recording, including a phone voice memo.',
+      title: 'Add lesson evidence',
+      desc: 'Record live, upload audio or a document, or add lesson notes and transcript excerpts.',
     },
     {
       step: '02',

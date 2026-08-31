@@ -653,48 +653,6 @@ button:disabled {
   cursor: pointer;
 }
 
-.observation-step-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin: 18px 0;
-}
-
-.observation-step-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--surface-card-solid);
-  box-shadow: var(--shadow-soft);
-}
-
-.observation-step-number {
-  display: grid;
-  place-items: center;
-  flex: 0 0 32px;
-  width: 32px;
-  height: 32px;
-  border-radius: 11px;
-  background: rgba(249, 115, 22, 0.14);
-  color: #ea580c;
-  font-weight: 800;
-}
-
-.observation-step-card strong {
-  color: var(--text-primary);
-  font-size: 14px;
-}
-
-.observation-step-card p {
-  margin: 4px 0 0;
-  color: var(--text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
 .analysis-draft-notice {
   margin: 12px 0;
   padding: 10px 14px;
@@ -781,7 +739,6 @@ button:disabled {
 
 @media print {
   .analysis-wrapper .analysis-header,
-  .analysis-wrapper .observation-step-grid,
   .analysis-wrapper .analysis-draft-notice,
   .analysis-wrapper .analysis-panel-grid,
   .analysis-wrapper .analysis-print-button {
@@ -825,16 +782,6 @@ button:disabled {
 .admin-observation-page .analysis-side-card {
   border-radius: 22px;
   box-shadow: var(--shadow-card);
-}
-
-@media (max-width: 760px) {
-  .admin-observation-page .analysis-header {
-    flex-direction: column;
-  }
-
-  .observation-step-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .analysis-container {
