@@ -380,13 +380,13 @@ export default function HomePage() {
 
                   <div className="preview-inner-body" style={{ padding: '18px' }}>
                     <div className="preview-kpi-row" style={previewTopRow}>
-                      <div className="preview-card-up" style={previewKpiPrimary}>
+                      <div className="preview-card-up preview-kpi-card" style={previewKpiPrimary}>
                         <div style={previewKpiLabel}>Overall Score</div>
                         <div className="preview-kpi-value" style={previewKpiValue}>86/100</div>
                         <div style={previewKpiDelta}>Based on 128 analyzed lessons</div>
                       </div>
 
-                      <div className="preview-card-up preview-delay-2" style={previewKpiSecondary}>
+                      <div className="preview-card-up preview-delay-2 preview-kpi-card" style={previewKpiSecondary}>
                         <div style={previewKpiLabel}>Teachers Tracked</div>
                         <div className="preview-kpi-value" style={{ ...previewKpiValue, color: '#0f172a' }}>24</div>
                         <div style={{ ...previewKpiDelta, color: '#0369a1' }}>Across 3 campuses</div>
@@ -1322,6 +1322,16 @@ export default function HomePage() {
             gap: 6px !important;
           }
 
+          .preview-kpi-row {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            gap: 7px !important;
+            margin-bottom: 8px !important;
+          }
+
+          .preview-kpi-card {
+            padding: 9px 10px !important;
+          }
+
           .preview-school-card:last-child {
             grid-column: auto !important;
           }
@@ -1488,7 +1498,7 @@ const heroMetricDot: React.CSSProperties = {
 
 const previewTopRow: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: '1.35fr 1fr',
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
   gap: '10px',
   marginBottom: '12px',
 };

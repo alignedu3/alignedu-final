@@ -270,26 +270,26 @@ export default function DistrictDashboard() {
             gap: isNarrowScreen ? 12 : statsGrid.gap,
           }}
         >
-          <button type="button" onClick={() => setModalType('quality')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
+          <button type="button" aria-haspopup="dialog" aria-label="View system average lesson details" title="View lesson details" onClick={() => setModalType('quality')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
             <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>System Average</div>
-            <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize, color: summary.systemAverage >= 80 ? '#15803d' : '#c2410c' }}>
+            <div style={{ ...statValue, ...clickableStatValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize, color: summary.systemAverage >= 80 ? '#15803d' : '#c2410c' }}>
               {summary.systemAverage}/100
             </div>
             <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Average score across teachers with lesson data</div>
           </button>
-          <button type="button" onClick={() => setModalType('teachers')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
+          <button type="button" aria-haspopup="dialog" aria-label="View all teachers tracked" title="View teachers tracked" onClick={() => setModalType('teachers')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
             <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>Teachers Tracked</div>
-            <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize }}>{summary.teachersTracked}</div>
+            <div style={{ ...statValue, ...clickableStatValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize }}>{summary.teachersTracked}</div>
             <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Teachers currently in district scope</div>
           </button>
-          <button type="button" onClick={() => setModalType('lessons')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
+          <button type="button" aria-haspopup="dialog" aria-label="View all lessons analyzed" title="View lessons analyzed" onClick={() => setModalType('lessons')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
             <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>Lessons Analyzed</div>
-            <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize }}>{summary.lessonsAnalyzed}</div>
+            <div style={{ ...statValue, ...clickableStatValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize }}>{summary.lessonsAnalyzed}</div>
             <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Based on recent submissions</div>
           </button>
-          <button type="button" onClick={() => setModalType('priority')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
+          <button type="button" aria-haspopup="dialog" aria-label="View priority teachers" title="View priority teachers" onClick={() => setModalType('priority')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
             <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>Priority Teachers</div>
-            <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize, color: priorityTeacherStats.length > 0 ? '#b91c1c' : 'var(--text-primary)' }}>
+            <div style={{ ...statValue, ...clickableStatValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize, color: priorityTeacherStats.length > 0 ? '#b91c1c' : 'var(--text-primary)' }}>
               {priorityTeacherStats.length}
             </div>
             <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Teachers crossing support thresholds</div>
@@ -609,6 +609,12 @@ const statCardButton: React.CSSProperties = {
   color: 'inherit',
   font: 'inherit',
   cursor: 'pointer',
+};
+
+const clickableStatValue: React.CSSProperties = {
+  textDecoration: 'underline dotted',
+  textUnderlineOffset: 4,
+  textDecorationThickness: 2,
 };
 
 const modalBackdrop: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 9999, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' };

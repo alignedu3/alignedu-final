@@ -766,50 +766,46 @@ export default function AdminDashboard() {
             alignItems: 'stretch',
           }}
         >
-          <div style={cardSmall}>
+          <button type="button" aria-haspopup="dialog" aria-label="View instructional quality score details" onClick={() => setModalType('quality')} style={{ ...cardSmall, ...cardSmallButton }}>
             <div style={statLabel}>Instructional Quality Score</div>
-            <button
+            <div
               style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, color: adminQualityScore >= 75 ? '#22c55e' : '#ef4444', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'center' }}
-              onClick={() => setModalType('quality')}
             >
               {adminQualityScore}/100
-            </button>
+            </div>
             <div style={statSub}>
               {adminQualityScore >= 75 ? 'System performance is strong' : 'Below target — improvement needed'}
             </div>
-          </div>
+          </button>
 
-          <div style={cardSmall}>
+          <button type="button" aria-haspopup="dialog" aria-label="View lessons analyzed" onClick={() => setModalType('lessons')} style={{ ...cardSmall, ...cardSmallButton }}>
             <div style={statLabel}>Lessons Analyzed</div>
-            <button
+            <div
               style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'center' }}
-              onClick={() => setModalType('lessons')}
             >
               {dashboardReports.length}
-            </button>
+            </div>
             <div style={statSub}>Based on recent submissions</div>
-          </div>
+          </button>
 
-          <div style={cardSmall}>
+          <button type="button" aria-haspopup="dialog" aria-label="View strong teachers" onClick={() => setModalType('strong')} style={{ ...cardSmall, ...cardSmallButton }}>
             <div style={statLabel}>Strong Teachers</div>
-            <button
+            <div
               style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'center' }}
-              onClick={() => setModalType('strong')}
             >
               {strongCount}
-            </button>
+            </div>
             <div style={statSub}>Meeting expectations</div>
-          </div>
-          <div style={cardSmall}>
+          </button>
+          <button type="button" aria-haspopup="dialog" aria-label="View at-risk teachers" onClick={() => setModalType('atrisk')} style={{ ...cardSmall, ...cardSmallButton }}>
             <div style={statLabel}>At-Risk Teachers</div>
-            <button
+            <div
               style={{ ...big, fontSize: isNarrowScreen ? 22 : big.fontSize, background: 'none', border: 'none', padding: 0, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, textAlign: 'center' }}
-              onClick={() => setModalType('atrisk')}
             >
               {supportCount}
-            </button>
+            </div>
             <div style={statSub}>Require support</div>
-          </div>
+          </button>
         </div>
 
         {/* ACTION */}
@@ -1521,6 +1517,7 @@ const cardSmall: React.CSSProperties = {
   gap: 6,
   boxShadow: 'var(--shadow-soft)',
 };
+const cardSmallButton: React.CSSProperties = { width: '100%', color: 'inherit', font: 'inherit', cursor: 'pointer' };
 const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 28 };
 const title: React.CSSProperties = { color: 'var(--text-primary)', marginTop: 0, marginBottom: 10, fontSize: 22 };
 const text: React.CSSProperties = { color: 'var(--text-secondary)' };
