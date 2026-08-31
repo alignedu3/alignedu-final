@@ -31,6 +31,15 @@ type DistrictPayload = {
   analyses?: AnalysisReport[];
 };
 
+function getAcademicPeriod(report: AnalysisReport) {
+  const raw = report.date || report.created_at || '';
+  const date = new Date(raw);
+  if (!Number.isFinite(date.getTime())) return null;
+  const month = date.getMonth();
+  const startYear = month >= 7 ? date.getFullYear() : date.getFullYear() - 1;
+  return { schoolYear: String(startYear), label: `${startYear}–${startYear + 1}`, semester: month >= 7 ? 'fall' : 'spring' } as const;
+}
+
 export default function DistrictDashboard() {
   const [profiles, setProfiles] = useState<ProfileRecord[]>([]);
   const [reports, setReports] = useState<AnalysisReport[]>([]);
@@ -41,6 +50,8 @@ export default function DistrictDashboard() {
   const [rosterSearch, setRosterSearch] = useState('');
   const [supportFilter, setSupportFilter] = useState<'All' | 'Priority' | 'Monitor' | 'Stable' | 'No Data'>('All');
   const [modalType, setModalType] = useState<null | 'quality' | 'teachers' | 'lessons' | 'priority'>(null);
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState('');
+  const [selectedSemester, setSelectedSemester] = useState<'all' | 'fall' | 'spring'>('all');
   const router = useRouter();
 
   useEffect(() => {
@@ -93,9 +104,26 @@ export default function DistrictDashboard() {
     [profiles]
   );
 
+  const schoolYearOptions = useMemo(() => {
+    const years = new Map<string, string>();
+    reports.forEach((report) => {
+      const period = getAcademicPeriod(report);
+      if (period) years.set(period.schoolYear, period.label);
+    });
+    return [...years.entries()].sort((a, b) => Number(b[0]) - Number(a[0]));
+  }, [reports]);
+
+  const activeSchoolYear = selectedSchoolYear || schoolYearOptions[0]?.[0] || '';
+
+  const filteredReports = useMemo(() => reports.filter((report) => {
+    const period = getAcademicPeriod(report);
+    if (!period) return false;
+    return (!activeSchoolYear || period.schoolYear === activeSchoolYear) && (selectedSemester === 'all' || period.semester === selectedSemester);
+  }), [activeSchoolYear, reports, selectedSemester]);
+
   const teacherStats = useMemo(() => {
     const reportsByTeacher = new Map<string, AnalysisReport[]>();
-    reports.forEach((report) => {
+    filteredReports.forEach((report) => {
       if (!report.user_id) return;
       const existing = reportsByTeacher.get(report.user_id) || [];
       existing.push(report);
@@ -147,7 +175,7 @@ export default function DistrictDashboard() {
         }
         return a.avgScore - b.avgScore;
       });
-  }, [reports, teacherProfiles]);
+  }, [filteredReports, teacherProfiles]);
 
   const summary = useMemo(() => {
     const analyzedTeachers = teacherStats.filter((teacher) => teacher.lessons > 0);
@@ -158,15 +186,15 @@ export default function DistrictDashboard() {
     return {
       systemAverage,
       teachersTracked: teacherProfiles.length,
-      lessonsAnalyzed: reports.length,
+      lessonsAnalyzed: filteredReports.length,
       priorityTeachers: teacherStats.filter((teacher) => teacher.lessons > 0 && teacher.supportLevel === 'Priority').length,
       stableTeachers: teacherStats.filter((teacher) => teacher.lessons > 0 && teacher.supportLevel === 'Stable').length,
     };
-  }, [reports.length, teacherProfiles.length, teacherStats]);
+  }, [filteredReports.length, teacherProfiles.length, teacherStats]);
 
   const lessonRows = useMemo(() => {
     const profileById = new Map(teacherProfiles.map((teacher) => [teacher.id, teacher]));
-    return [...reports]
+    return [...filteredReports]
       .map((report) => ({
         id: report.id ?? null,
         teacherId: report.user_id ?? null,
@@ -175,7 +203,7 @@ export default function DistrictDashboard() {
         score: calculateLessonScore(report),
       }))
       .sort((a, b) => b.date.localeCompare(a.date));
-  }, [reports, teacherProfiles]);
+  }, [filteredReports, teacherProfiles]);
 
   const analyzedTeacherStats = teacherStats.filter((teacher) => teacher.lessons > 0);
   const priorityTeacherStats = analyzedTeacherStats.filter((teacher) => teacher.supportLevel === 'Priority');
@@ -183,7 +211,7 @@ export default function DistrictDashboard() {
   const districtTrend = useMemo(() => {
     const buckets = new Map<string, { label: string; sortKey: number; scores: number[]; gaps: number }>();
 
-    reports.forEach((report) => {
+    filteredReports.forEach((report) => {
       const rawDate = report.date || report.created_at;
       if (!rawDate) return;
       const date = new Date(rawDate);
@@ -211,7 +239,7 @@ export default function DistrictDashboard() {
         lessons: bucket.scores.length,
         gaps: bucket.gaps,
       }));
-  }, [reports]);
+  }, [filteredReports]);
 
   const trendChange = districtTrend.length > 1
     ? districtTrend[districtTrend.length - 1].average - districtTrend[0].average
@@ -262,6 +290,29 @@ export default function DistrictDashboard() {
             <p style={text}>{loadError}</p>
           </section>
         ) : null}
+
+        <section style={periodFilterBar} aria-label="District reporting period">
+          <div>
+            <div style={sectionEyebrow}>Reporting Period</div>
+            <div style={periodFilterTitle}>View district performance by school year and semester</div>
+          </div>
+          <div style={periodFilterControls}>
+            <label style={periodFilterField}>
+              <span style={periodFilterLabel}>School Year</span>
+              <select value={activeSchoolYear} onChange={(event) => setSelectedSchoolYear(event.target.value)} style={periodSelect}>
+                {schoolYearOptions.length === 0 ? <option value="">No dated lessons</option> : schoolYearOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label style={periodFilterField}>
+              <span style={periodFilterLabel}>Semester</span>
+              <select value={selectedSemester} onChange={(event) => setSelectedSemester(event.target.value as typeof selectedSemester)} style={periodSelect}>
+                <option value="all">Full School Year</option>
+                <option value="fall">Fall Semester</option>
+                <option value="spring">Spring Semester</option>
+              </select>
+            </label>
+          </div>
+        </section>
 
         <div
           style={{
@@ -577,6 +628,13 @@ const statsGrid: React.CSSProperties = {
   gap: 16,
   marginBottom: 18,
 };
+
+const periodFilterBar: React.CSSProperties = { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 18, padding: '16px 18px', borderRadius: 18, border: '1px solid var(--border)', background: 'var(--surface-card)', boxShadow: 'var(--shadow-sm)' };
+const periodFilterTitle: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 15, fontWeight: 700 };
+const periodFilterControls: React.CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap' };
+const periodFilterField: React.CSSProperties = { display: 'grid', gap: 5, minWidth: 160 };
+const periodFilterLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase' };
+const periodSelect: React.CSSProperties = { minHeight: 40, padding: '8px 11px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 700 };
 
 const statCard: React.CSSProperties = {
   borderRadius: 22,

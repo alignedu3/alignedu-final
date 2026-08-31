@@ -2116,9 +2116,9 @@ h1, h2, h3 {
 .performance-overall-card {
   min-height: 158px;
   padding: 22px;
-  border: 1px solid rgba(249, 115, 22, 0.22);
+  border: 1px solid var(--border);
   border-radius: 20px;
-  background: linear-gradient(145deg, rgba(249, 115, 22, 0.13), rgba(249, 115, 22, 0.035));
+  background: var(--surface-card-solid);
   box-shadow: var(--shadow-soft);
   display: flex;
   flex-direction: column;
