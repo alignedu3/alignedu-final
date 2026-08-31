@@ -109,6 +109,10 @@ export default function HomePage() {
     heroBg:
       'radial-gradient(circle at top left, rgba(59,130,246,0.45), transparent 30%), radial-gradient(circle at top right, rgba(16,185,129,0.28), transparent 28%), linear-gradient(135deg, #06101f 0%, #0b1730 45%, #0e7490 100%)',
   };
+  const informationalAccent = {
+    color: isDarkMode ? '#5eead4' : '#0f766e',
+    background: isDarkMode ? 'rgba(45, 212, 191, 0.12)' : 'rgba(20, 184, 166, 0.10)',
+  };
 
   const features = [
     {
@@ -509,7 +513,7 @@ export default function HomePage() {
       >
         <div style={container}>
           <div style={sectionHeader}>
-            <div style={eyebrowLight}>Why AlignEDU</div>
+            <div style={{ ...eyebrowLight, ...informationalAccent }}>Why AlignEDU</div>
             <h2 style={{ ...sectionTitle, color: theme.text }}>
               Built to make classroom insight faster, clearer, and more scalable
             </h2>
@@ -528,7 +532,7 @@ export default function HomePage() {
                   border: `1px solid ${theme.cardBorder}`,
                 }}
               >
-                <div style={featureIconWrap}>✦</div>
+                <div style={{ ...featureIconWrap, ...informationalAccent }}>✦</div>
                 <h3 style={{ fontSize: '22px', margin: '0 0 12px', color: theme.text }}>
                   {feature.title}
                 </h3>
@@ -559,7 +563,7 @@ export default function HomePage() {
       >
         <div style={container}>
           <div style={sectionHeader}>
-            <div style={eyebrowLight}>Standards Coverage</div>
+            <div style={{ ...eyebrowLight, ...informationalAccent }}>Standards Coverage</div>
             <h2 style={{ ...sectionTitle, color: theme.text }}>
               TEKS coverage across STAAR-tested subjects
             </h2>
@@ -687,7 +691,7 @@ export default function HomePage() {
               }}
             >
               <div>
-                <div style={eyebrowLight}>TEKS Details</div>
+                <div style={{ ...eyebrowLight, ...informationalAccent }}>TEKS Details</div>
                 <h3 style={{ margin: '0 0 8px', color: theme.text, fontSize: 'clamp(1.5rem, 2.6vw, 2rem)' }}>
                   {selectedTeksItem.label}
                 </h3>
@@ -788,7 +792,7 @@ export default function HomePage() {
       >
         <div style={container}>
           <div style={sectionHeader}>
-            <div style={eyebrowLight}>Why it matters</div>
+            <div style={{ ...eyebrowLight, ...informationalAccent }}>Why it matters</div>
             <h2 style={{ ...sectionTitle, color: theme.text }}>
               Move from inconsistent observation to measurable instructional visibility
             </h2>
@@ -846,7 +850,7 @@ export default function HomePage() {
       >
         <div style={container}>
           <div style={sectionHeader}>
-            <div style={eyebrowLight}>How it works</div>
+            <div style={{ ...eyebrowLight, ...informationalAccent }}>How it works</div>
             <h2 style={{ ...sectionTitle, color: theme.text }}>
               A simple workflow built for real classrooms
             </h2>
@@ -862,7 +866,7 @@ export default function HomePage() {
                   border: `1px solid ${theme.cardBorder}`,
                 }}
               >
-                <div style={stepBadge}>{item.step}</div>
+                <div style={{ ...stepBadge, ...informationalAccent }}>{item.step}</div>
                 <h3 style={{ fontSize: '22px', margin: '0 0 12px', color: theme.text }}>
                   {item.title}
                 </h3>
@@ -887,7 +891,7 @@ export default function HomePage() {
       >
         <div style={container}>
           <div style={sectionHeader}>
-            <div style={eyebrowLight}>Who it’s for</div>
+            <div style={{ ...eyebrowLight, ...informationalAccent }}>Who it’s for</div>
             <h2 style={{ ...sectionTitle, color: theme.text }}>
               Designed for teachers, school leaders, and district decision-makers
             </h2>
@@ -1371,8 +1375,8 @@ const eyebrowLight: React.CSSProperties = {
   marginBottom: '14px',
   padding: '7px 12px',
   borderRadius: '999px',
-  background: 'rgba(37, 99, 235, 0.08)',
-  color: '#2563eb',
+  background: 'rgba(20, 184, 166, 0.10)',
+  color: '#0f766e',
   fontWeight: 700,
   fontSize: '12px',
   letterSpacing: '0.08em',
@@ -1472,8 +1476,8 @@ const featureIconWrap: React.CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   marginBottom: '18px',
-  background: 'linear-gradient(135deg, rgba(37,99,235,0.12), rgba(16,185,129,0.12))',
-  color: '#2563eb',
+  background: 'linear-gradient(135deg, rgba(20,184,166,0.13), rgba(16,185,129,0.10))',
+  color: '#0f766e',
   fontSize: '22px',
   fontWeight: 700,
 };
@@ -1739,8 +1743,8 @@ const stepBadge: React.CSSProperties = {
   minWidth: '48px',
   height: '48px',
   borderRadius: '14px',
-  background: 'linear-gradient(135deg, rgba(37,99,235,0.12), rgba(16,185,129,0.12))',
-  color: '#2563eb',
+  background: 'linear-gradient(135deg, rgba(20,184,166,0.13), rgba(16,185,129,0.10))',
+  color: '#0f766e',
   fontSize: '15px',
   fontWeight: 800,
   marginBottom: '18px',
