@@ -449,7 +449,7 @@ export default function TeacherDashboard() {
         <div style={hero}>
           <div>
             {(viewerRole === 'admin' || viewerRole === 'super_admin') && (
-              <Link href="/admin" style={backLink}>← Administrator Dashboard</Link>
+              <Link href="/admin" style={backLink}>← Back to Dashboard</Link>
             )}
             <div style={eyebrow}>Your Instructional Growth</div>
             <h1 style={heading}>

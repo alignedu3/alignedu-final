@@ -72,7 +72,7 @@ export default function InvitePage() {
       <div style={container}>
         <header style={hero}>
           <div>
-            <Link href="/admin" style={backLink}>← Administrator Dashboard</Link>
+            <Link href="/admin" style={backLink}>← Back to Dashboard</Link>
             <div style={eyebrow}>Team Management</div>
             <h1 style={heading}>Add a User</h1>
             <p style={subheading}>Invite a teacher or administrator and place them into the right workflow from day one.</p>

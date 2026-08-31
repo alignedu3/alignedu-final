@@ -140,7 +140,7 @@ export default function LessonReportPage() {
         title="Unable to load lesson report"
         message={loadError}
         actionHref={teacherId ? `/admin/teacher/${teacherId}` : '/admin'}
-        actionLabel={teacherId ? 'Back to Teacher' : 'Back to Administrator Dashboard'}
+        actionLabel={teacherId ? 'Back to Teacher' : 'Back to Dashboard'}
       />
     );
   }
@@ -151,7 +151,7 @@ export default function LessonReportPage() {
         title="Lesson not found"
         message="This lesson may have been removed or is no longer available in your current admin scope."
         actionHref={teacherId ? `/admin/teacher/${teacherId}` : '/admin'}
-        actionLabel={teacherId ? 'Back to Teacher' : 'Back to Administrator Dashboard'}
+        actionLabel={teacherId ? 'Back to Teacher' : 'Back to Dashboard'}
       />
     );
   }

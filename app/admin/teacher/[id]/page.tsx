@@ -201,7 +201,7 @@ export default function AdminTeacherPage() {
         title="Unable to load teacher details"
         message={loadError}
         actionHref={backHref}
-        actionLabel="Back to Administrator Dashboard"
+        actionLabel="Back to Dashboard"
       />
     );
   }
@@ -213,7 +213,7 @@ export default function AdminTeacherPage() {
         <div style={header} className="admin-teacher-header">
           <div>
             <Link href={backHref} style={backLink}>
-              ← Administrator Dashboard
+              ← Back to Dashboard
             </Link>
             <div style={eyebrow}>Teacher Performance</div>
             <h1 style={heading}>{name}</h1>

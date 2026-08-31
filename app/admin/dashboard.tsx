@@ -688,7 +688,7 @@ export default function AdminDashboard() {
           <div>
             {isViewingAnotherAdmin && (
               <button onClick={handleBackToAdminDashboard} style={backToAdminBtn}>
-                ← Back to Admin Dashboard
+                ← Back to Dashboard
               </button>
             )}
             <div style={eyebrow}>Instructional Leadership</div>

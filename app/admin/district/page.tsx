@@ -276,7 +276,7 @@ export default function DistrictDashboard() {
         <div style={hero}>
           <div>
             <Link href="/admin" style={backLink}>
-              ← Administrator Dashboard
+              ← Back to Dashboard
             </Link>
             <div style={eyebrow}>District View</div>
             <h1 style={heading}>{districtName}</h1>
