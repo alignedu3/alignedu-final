@@ -356,7 +356,7 @@ export default function DistrictDashboard() {
                   <div>
                     <div style={rowTitle}>{teacher.name}</div>
                     <div style={rowMeta}>
-                      Overall score {teacher.avgScore}/100, trend {getLessonTrendDisplay(teacher.trend).label.toLowerCase()}, gaps {teacher.gaps}
+                      Overall score {teacher.avgScore}/100, trend {getLessonTrendDisplay(teacher.trend).label.toLowerCase()}
                     </div>
                   </div>
                   <div style={
