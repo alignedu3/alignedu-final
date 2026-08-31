@@ -40,6 +40,7 @@ export default function DistrictDashboard() {
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [rosterSearch, setRosterSearch] = useState('');
   const [supportFilter, setSupportFilter] = useState<'All' | 'Priority' | 'Monitor' | 'Stable' | 'No Data'>('All');
+  const [modalType, setModalType] = useState<null | 'quality' | 'teachers' | 'lessons' | 'priority'>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -163,6 +164,22 @@ export default function DistrictDashboard() {
     };
   }, [reports.length, teacherProfiles.length, teacherStats]);
 
+  const lessonRows = useMemo(() => {
+    const profileById = new Map(teacherProfiles.map((teacher) => [teacher.id, teacher]));
+    return [...reports]
+      .map((report) => ({
+        id: report.id ?? null,
+        teacherId: report.user_id ?? null,
+        teacher: (report.user_id ? profileById.get(report.user_id)?.name : null) || report.teacher_name || report.name || 'Unknown Teacher',
+        date: report.date || report.created_at?.slice(0, 10) || '—',
+        score: calculateLessonScore(report),
+      }))
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [reports, teacherProfiles]);
+
+  const analyzedTeacherStats = teacherStats.filter((teacher) => teacher.lessons > 0);
+  const priorityTeacherStats = analyzedTeacherStats.filter((teacher) => teacher.supportLevel === 'Priority');
+
   const districtTrend = useMemo(() => {
     const buckets = new Map<string, { label: string; sortKey: number; scores: number[]; gaps: number }>();
 
@@ -253,30 +270,30 @@ export default function DistrictDashboard() {
             gap: isNarrowScreen ? 12 : statsGrid.gap,
           }}
         >
-          <div style={{ ...statCard, padding: isNarrowScreen ? 16 : statCard.padding }}>
+          <button type="button" onClick={() => setModalType('quality')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
             <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>System Average</div>
             <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize, color: summary.systemAverage >= 80 ? '#15803d' : '#c2410c' }}>
               {summary.systemAverage}/100
             </div>
-            <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Average teacher score across visible lesson data</div>
-          </div>
-          <div style={{ ...statCard, padding: isNarrowScreen ? 16 : statCard.padding }}>
+            <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Average score across teachers with lesson data</div>
+          </button>
+          <button type="button" onClick={() => setModalType('teachers')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
             <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>Teachers Tracked</div>
             <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize }}>{summary.teachersTracked}</div>
             <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Teachers currently in district scope</div>
-          </div>
-          <div style={{ ...statCard, padding: isNarrowScreen ? 16 : statCard.padding }}>
+          </button>
+          <button type="button" onClick={() => setModalType('lessons')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
             <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>Lessons Analyzed</div>
             <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize }}>{summary.lessonsAnalyzed}</div>
-            <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Saved submissions contributing to the district view</div>
-          </div>
-          <div style={{ ...statCard, padding: isNarrowScreen ? 16 : statCard.padding }}>
+            <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Based on recent submissions</div>
+          </button>
+          <button type="button" onClick={() => setModalType('priority')} style={{ ...statCard, ...statCardButton, padding: isNarrowScreen ? 16 : statCard.padding }}>
             <div style={{ ...statLabel, fontSize: isNarrowScreen ? 11 : statLabel.fontSize }}>Priority Teachers</div>
-            <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize, color: summary.priorityTeachers > 0 ? '#b91c1c' : 'var(--text-primary)' }}>
-              {summary.priorityTeachers}
+            <div style={{ ...statValue, fontSize: isNarrowScreen ? 28 : statValue.fontSize, color: priorityTeacherStats.length > 0 ? '#b91c1c' : 'var(--text-primary)' }}>
+              {priorityTeacherStats.length}
             </div>
-            <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Teachers currently crossing support thresholds</div>
-          </div>
+            <div style={{ ...statSub, fontSize: isNarrowScreen ? 12 : statSub.fontSize, maxWidth: isNarrowScreen ? 160 : statSub.maxWidth }}>Teachers crossing support thresholds</div>
+          </button>
         </div>
 
         <section style={{ ...card, ...trendCard }}>
@@ -397,14 +414,33 @@ export default function DistrictDashboard() {
         <section style={card}>
           <div style={{ ...chartHeader, marginBottom: 14 }}>
             <div><div style={sectionEyebrow}>District Roster</div><h2 style={title}>Teacher Performance Snapshot</h2></div>
-            <div style={filterRow}>
-              <input value={rosterSearch} onChange={(event) => setRosterSearch(event.target.value)} placeholder="Search teachers" aria-label="Search district teachers" style={filterInput} />
-              <select value={supportFilter} onChange={(event) => setSupportFilter(event.target.value as typeof supportFilter)} aria-label="Filter by support level" style={filterInput}>
+            <div style={{ ...filterRow, width: isNarrowScreen ? '100%' : undefined }}>
+              <input value={rosterSearch} onChange={(event) => setRosterSearch(event.target.value)} placeholder="Search teachers" aria-label="Search district teachers" style={{ ...filterInput, flex: isNarrowScreen ? '1 1 100%' : undefined }} />
+              <select value={supportFilter} onChange={(event) => setSupportFilter(event.target.value as typeof supportFilter)} aria-label="Filter by support level" style={{ ...filterInput, flex: isNarrowScreen ? '1 1 100%' : undefined }}>
                 {['All', 'Priority', 'Monitor', 'Stable', 'No Data'].map((option) => <option key={option}>{option}</option>)}
               </select>
             </div>
           </div>
-          <div style={tableWrap} className="premium-table-panel">
+          <div style={rosterSummary}>{filteredTeacherStats.length} of {teacherStats.length} teachers shown</div>
+          {isNarrowScreen ? (
+            <div style={mobileRosterList}>
+              {filteredTeacherStats.map((teacher) => (
+                <button key={teacher.id} type="button" onClick={() => router.push(`/admin/teacher/${teacher.id}`)} style={mobileTeacherCard}>
+                  <div style={mobileTeacherHeader}>
+                    <span style={mobileTeacherName}>{teacher.name}</span>
+                    <span style={teacher.supportLevel === 'Priority' ? pillDanger : teacher.supportLevel === 'Monitor' ? pillWarn : teacher.supportLevel === 'No Data' ? pillNeutral : pillSuccess}>{teacher.supportLevel}</span>
+                  </div>
+                  <div style={mobileMetricGrid}>
+                    <span><small style={mobileMetricLabel}>Overall score</small><strong>{teacher.avgScore ? `${teacher.avgScore}/100` : '—'}</strong></span>
+                    <span><small style={mobileMetricLabel}>Lessons</small><strong>{teacher.lessons}</strong></span>
+                    <span><small style={mobileMetricLabel}>Trend</small><strong>{getLessonTrendDisplay(teacher.trend).label}</strong></span>
+                    <span><small style={mobileMetricLabel}>Gaps</small><strong>{teacher.gaps}</strong></span>
+                  </div>
+                </button>
+              ))}
+              {filteredTeacherStats.length === 0 && <div style={rosterEmpty}>No teachers match the current search and filter.</div>}
+            </div>
+          ) : <div style={tableWrap} className="premium-table-panel">
             <table style={table} className="dashboard-data-table">
               <thead>
                 <tr>
@@ -418,7 +454,7 @@ export default function DistrictDashboard() {
               </thead>
               <tbody>
                 {filteredTeacherStats.map((teacher) => (
-                  <tr key={teacher.id}>
+                  <tr key={teacher.id} onClick={() => router.push(`/admin/teacher/${teacher.id}`)} style={{ cursor: 'pointer' }}>
                     <td style={tdStrong}>{teacher.name}</td>
                     <td style={td}>{teacher.lessons}</td>
                     <td style={td}>{teacher.avgScore ? `${teacher.avgScore}/100` : '—'}</td>
@@ -433,7 +469,9 @@ export default function DistrictDashboard() {
                             ? pillDanger
                             : teacher.supportLevel === 'Monitor'
                               ? pillWarn
-                              : pillSuccess
+                              : teacher.supportLevel === 'No Data'
+                                ? pillNeutral
+                                : pillSuccess
                         }
                       >
                         {teacher.supportLevel}
@@ -443,9 +481,44 @@ export default function DistrictDashboard() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </div>}
         </section>
       </div>
+
+      {modalType && (() => {
+        const teacherRows = modalType === 'priority' ? priorityTeacherStats : teacherStats;
+        const rows = modalType === 'quality' ? [...lessonRows].sort((a, b) => b.score - a.score) : lessonRows;
+        const showTeachers = modalType === 'teachers' || modalType === 'priority';
+        const titles = { quality: 'System Average — All Lessons', teachers: 'All Teachers Tracked', lessons: 'All Lessons Analyzed', priority: 'Priority Teachers' };
+        return (
+          <div role="presentation" style={modalBackdrop} onClick={() => setModalType(null)}>
+            <section role="dialog" aria-modal="true" aria-labelledby="district-stat-modal-title" style={modalPanel} onClick={(event) => event.stopPropagation()}>
+              <div style={modalHeader}>
+                <h2 id="district-stat-modal-title" style={{ ...title, marginBottom: 0 }}>{titles[modalType]}</h2>
+                <button type="button" aria-label="Close metric details" onClick={() => setModalType(null)} style={modalClose}>✕</button>
+              </div>
+              {(showTeachers ? teacherRows.length : rows.length) === 0 ? <p style={text}>No data to display.</p> : (
+                <div style={tableWrap}>
+                  <table style={{ ...table, minWidth: showTeachers ? 520 : 480 }}>
+                    <thead><tr><th style={th}>Teacher</th>{showTeachers ? <><th style={th}>Average Score</th><th style={th}>Lessons</th><th style={th}>Trend</th></> : <><th style={th}>Date</th><th style={th}>Score</th></>}</tr></thead>
+                    <tbody>
+                      {showTeachers ? teacherRows.map((teacher) => (
+                        <tr key={teacher.id} onClick={() => router.push(`/admin/teacher/${teacher.id}`)} style={{ cursor: 'pointer' }}>
+                          <td style={tdStrong}>{teacher.name}</td><td style={td}>{teacher.avgScore}/100</td><td style={td}>{teacher.lessons}</td><td style={td}>{getLessonTrendDisplay(teacher.trend).label}</td>
+                        </tr>
+                      )) : rows.map((lesson, index) => (
+                        <tr key={`${lesson.id || 'lesson'}-${index}`} onClick={() => lesson.teacherId && lesson.id && router.push(`/admin/teacher/${lesson.teacherId}/lesson/${lesson.id}`)} style={{ cursor: lesson.teacherId && lesson.id ? 'pointer' : 'default' }}>
+                          <td style={tdStrong}>{lesson.teacher}</td><td style={td}>{lesson.date}</td><td style={td}>{lesson.score}/100</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          </div>
+        );
+      })()}
     </main>
   );
 }
@@ -530,6 +603,27 @@ const statCard: React.CSSProperties = {
   textAlign: 'center',
   gap: 6,
 };
+
+const statCardButton: React.CSSProperties = {
+  width: '100%',
+  color: 'inherit',
+  font: 'inherit',
+  cursor: 'pointer',
+};
+
+const modalBackdrop: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 9999, padding: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)' };
+const modalPanel: React.CSSProperties = { width: 'min(660px, 100%)', maxHeight: '80vh', overflowY: 'auto', padding: 24, borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface-card-solid)', boxShadow: 'var(--shadow-md)' };
+const modalHeader: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16 };
+const modalClose: React.CSSProperties = { border: 'none', background: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 20, lineHeight: 1 };
+
+const rosterSummary: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 12, fontWeight: 700, marginBottom: 10 };
+const mobileRosterList: React.CSSProperties = { display: 'grid', gap: 12 };
+const mobileTeacherCard: React.CSSProperties = { width: '100%', padding: 16, borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface-card)', color: 'var(--text-primary)', textAlign: 'left', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' };
+const mobileTeacherHeader: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 };
+const mobileTeacherName: React.CSSProperties = { minWidth: 0, fontSize: 16, fontWeight: 800, overflowWrap: 'anywhere' };
+const mobileMetricGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '12px 16px', fontSize: 13 };
+const mobileMetricLabel: React.CSSProperties = { display: 'block', color: 'var(--text-secondary)', fontSize: 10, fontWeight: 800, letterSpacing: 0.55, textTransform: 'uppercase', marginBottom: 4 };
+const rosterEmpty: React.CSSProperties = { padding: 24, border: '1px dashed var(--border)', borderRadius: 14, color: 'var(--text-secondary)', textAlign: 'center', fontSize: 14 };
 
 const statLabel: React.CSSProperties = {
   color: 'var(--text-secondary)',

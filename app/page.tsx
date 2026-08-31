@@ -396,28 +396,8 @@ export default function HomePage() {
                     <div className="preview-card-up preview-delay-2" style={previewChartCard}>
                       <div style={previewSectionHeader}>
                         <span>Subject Coverage by School</span>
-                        <span style={{ color: '#0369a1' }}>Q2 Benchmark</span>
+                        <span style={{ color: '#0369a1' }}>Current School Year</span>
                       </div>
-                      <div className="preview-legend-row" style={previewSchoolLegend}>
-                        {[
-                          { name: 'Math', color: '#0ea5e9' },
-                          { name: 'Science', color: '#2563eb' },
-                          { name: 'Reading', color: '#14b8a6' },
-                          { name: 'RLA', color: '#22c55e' },
-                          { name: 'Social Studies', color: '#f59e0b' },
-                          { name: 'Algebra I', color: '#0284c7' },
-                          { name: 'English I', color: '#10b981' },
-                          { name: 'English II', color: '#059669' },
-                          { name: 'Biology', color: '#4f46e5' },
-                          { name: 'U.S. History', color: '#d97706' },
-                        ].map((subject) => (
-                          <div key={subject.name} className="preview-legend-item" style={previewLegendItem}>
-                            <span className="preview-legend-dot" style={{ ...previewLegendDot, background: subject.color }} />
-                            <span>{subject.name}</span>
-                          </div>
-                        ))}
-                      </div>
-
                       <div className="preview-subject-row" style={previewSubjectCardsRow}>
                         <HeroCoverageCharts schoolGroups={heroPreviewSchoolGroups} />
                       </div>
@@ -1192,13 +1172,6 @@ export default function HomePage() {
             grid-template-columns: 1fr !important;
           }
 
-          /* Keep legend as two rows on tablet */
-          .preview-legend-row {
-            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-            gap: 6px !important;
-            padding: 8px 10px !important;
-          }
-
           /* School charts: 2 per row on tablet; high school spans full width */
           .preview-subject-row {
             display: grid !important;
@@ -1225,24 +1198,6 @@ export default function HomePage() {
 
           .preview-bottom-grid {
             grid-template-columns: 1fr !important;
-          }
-
-          .preview-legend-row {
-            display: grid !important;
-            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-            gap: 4px !important;
-            padding: 7px 8px !important;
-          }
-
-          .preview-legend-item {
-            font-size: 8px !important;
-            padding: 2px 5px !important;
-            min-height: 22px !important;
-          }
-
-          .preview-legend-dot {
-            width: 6px !important;
-            height: 6px !important;
           }
 
           /* School charts: 2 per row; high school spans full width */
@@ -1308,24 +1263,6 @@ export default function HomePage() {
             font-size: 18px !important;
           }
 
-          .preview-legend-row {
-            display: grid !important;
-            grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
-            gap: 4px !important;
-            padding: 6px 7px !important;
-          }
-
-          .preview-legend-item {
-            font-size: 8px !important;
-            padding: 2px 4px !important;
-            min-height: 20px !important;
-          }
-
-          .preview-legend-dot {
-            width: 5px !important;
-            height: 5px !important;
-          }
-
           /* Keep compact 2-up cards so the demo does not become too tall */
           .preview-subject-row {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -1368,10 +1305,6 @@ export default function HomePage() {
         @media (max-width: 560px) {
           .hero-dashboard-frame {
             max-height: 560px;
-          }
-
-          .preview-legend-row {
-            display: none !important;
           }
 
           .hero-cta-row {
@@ -1616,46 +1549,6 @@ const previewSectionHeader: React.CSSProperties = {
   color: '#0f172a',
   fontWeight: 700,
   marginBottom: '9px',
-};
-
-const previewSchoolLegend: React.CSSProperties = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
-  columnGap: '8px',
-  rowGap: '8px',
-  alignItems: 'stretch',
-  marginBottom: '10px',
-  padding: '10px 12px',
-  borderRadius: '12px',
-  background: 'rgba(248,250,252,0.9)',
-  border: '1px solid rgba(148,163,184,0.18)',
-  fontSize: '11px',
-  color: '#334155',
-  fontWeight: 700,
-};
-
-const previewLegendItem: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: '7px',
-  justifyContent: 'center',
-  minWidth: 0,
-  padding: '4px 6px',
-  borderRadius: '999px',
-  border: '1px solid rgba(148,163,184,0.2)',
-  background: 'rgba(255,255,255,0.75)',
-  fontSize: '10px',
-  lineHeight: 1.1,
-  whiteSpace: 'normal',
-  textAlign: 'center',
-  minHeight: '24px',
-};
-
-const previewLegendDot: React.CSSProperties = {
-  width: '8px',
-  height: '8px',
-  borderRadius: '999px',
-  flexShrink: 0,
 };
 
 const previewCoverageChartWrap: React.CSSProperties = {
