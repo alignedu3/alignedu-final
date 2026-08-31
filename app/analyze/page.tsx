@@ -2162,7 +2162,7 @@ export default function AnalysisPage() {
                     <div className="upload-icon">🎙️</div>
                     <p>Drag and drop an audio recording here, or click to browse.</p>
                     <p style={{ fontSize: 13, color: "#94a3b8" }}>
-                      Voice memos work too. Max 90 minutes. Longer files are split automatically.
+                      Max 90 minutes. Longer files are split automatically.
                     </p>
                   </div>
                 </div>
