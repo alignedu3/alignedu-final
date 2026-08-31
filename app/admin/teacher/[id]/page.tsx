@@ -151,13 +151,13 @@ export default function AdminTeacherPage() {
 
     const recentMetrics = reports.slice(0, 3).map(getLessonMetrics);
     const domains = [
-      { label: 'standards alignment', values: recentMetrics.map((metric) => metric.coverage), focus: 'Tighten standards alignment from the lesson objective through modeling, practice, and closure.' },
-      { label: 'instructional clarity', values: recentMetrics.map((metric) => metric.clarity), focus: 'Strengthen modeling, directions, and success criteria before students work independently.' },
-      { label: 'student engagement', values: recentMetrics.map((metric) => metric.engagement), focus: 'Increase visible student response opportunities and require students to explain their thinking.' },
-      { label: 'checks for understanding', values: recentMetrics.map((metric) => metric.assessment), focus: 'Use a clear mastery check before closure and respond to misconceptions before moving on.' },
+      { label: 'standards alignment', values: recentMetrics.map((metric) => metric.coverage) },
+      { label: 'instructional clarity', values: recentMetrics.map((metric) => metric.clarity) },
+      { label: 'student engagement', values: recentMetrics.map((metric) => metric.engagement) },
+      { label: 'checks for understanding', values: recentMetrics.map((metric) => metric.assessment) },
     ].map((domain) => ({ ...domain, average: Math.round(domain.values.reduce((sum, value) => sum + value, 0) / domain.values.length) }));
     const weakestDomain = [...domains].sort((a, b) => a.average - b.average)[0];
-    const focus = `${weakestDomain.focus} Recent ${weakestDomain.label} average: ${weakestDomain.average}/100.`;
+    const focus = `Primary need: ${weakestDomain.label} · ${weakestDomain.average}/100 recent average`;
 
     return { avg, trend: Math.round(trend), status, readout, focus };
   }, [reports, summary.averageScore]);
@@ -278,7 +278,6 @@ export default function AdminTeacherPage() {
               </div>
               <div style={supportChip}>{adminSupportPlan.followUpTimeline}</div>
             </div>
-            <p style={text}>{adminSupportPlan.summary}</p>
             <div style={{ ...text, marginTop: 10 }}>
               <strong>Administrator action:</strong> {adminSupportPlan.adminAction}
             </div>
