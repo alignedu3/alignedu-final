@@ -1714,9 +1714,10 @@ p {
 
 /* Make analyze button the same visual size as the Invite Users button (compact) */
 .analyze-btn {
-  padding: 10px 14px !important;
-  min-height: 40px !important;
+  padding: 11px 18px !important;
+  min-height: 44px !important;
   font-size: 14px !important;
+  border-radius: 12px !important;
 }
 
 /* Compact primary / secondary button utilities for consistent sizing */

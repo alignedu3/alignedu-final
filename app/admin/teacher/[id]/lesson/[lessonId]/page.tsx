@@ -258,7 +258,7 @@ export default function LessonReportPage() {
               <h1 style={heading}>{titleText}</h1>
               <p style={subheading}>{teacher?.name || 'Unknown'} · {lessonDate}</p>
             </div>
-            <Link href={`/admin/teacher/${teacherId}`} style={backLink}>Back to Teacher</Link>
+            <Link href={`/admin/teacher/${teacherId}`} style={backLink}>← Back to Teacher</Link>
           </div>
 
           <div style={summaryBanner} className="lesson-report-summary-banner">
@@ -769,7 +769,8 @@ const subheading: React.CSSProperties = {
 const backLink: React.CSSProperties = {
   color: '#f97316',
   textDecoration: 'none',
-  fontWeight: 600,
+  fontSize: 12,
+  fontWeight: 650,
   whiteSpace: 'nowrap',
 };
 

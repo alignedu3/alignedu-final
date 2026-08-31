@@ -1042,9 +1042,12 @@ export default function AnalysisPage() {
 
   const analyzeButtonIdleStyle: React.CSSProperties = {
     width: '100%',
-    maxWidth: 360,
+    maxWidth: 220,
     alignSelf: 'center',
     marginInline: 'auto',
+    background: 'linear-gradient(135deg, #f97316, #ea580c)',
+    boxShadow: '0 8px 18px rgba(15, 23, 42, 0.14)',
+    fontWeight: 800,
   };
 
   const buttonStatusStackStyle: React.CSSProperties = {
