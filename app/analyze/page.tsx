@@ -450,6 +450,8 @@ export default function AnalysisPage() {
   const [rubricPilotEnabled, setRubricPilotEnabled] = useState(false);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [draftNotice, setDraftNotice] = useState("");
+  const [viewerRole, setViewerRole] = useState("");
+  const lastSavedDraftRef = useRef("");
   const dragCounterRef = useRef(0);
 
   const gradeOptions = [
@@ -503,6 +505,7 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     if (isAdminObservationMode) {
+      lastSavedDraftRef.current = "";
       setDraftHydrated(true);
       setDraftNotice("");
       return;
@@ -520,11 +523,24 @@ export default function AnalysisPage() {
         setBook(draft.book || "");
         setChapter(draft.chapter || "");
         setLessonNotes(draft.lessonNotes || "");
+        setObservedTeacherId(draft.observedTeacherId || "");
         setRubricId(draft.rubricId || "");
+        lastSavedDraftRef.current = JSON.stringify({
+          grade: draft.grade || "",
+          subject: draft.subject || "",
+          book: draft.book || "",
+          chapter: draft.chapter || "",
+          lessonNotes: draft.lessonNotes || "",
+          observedTeacherId: draft.observedTeacherId || "",
+          rubricId: draft.rubricId || "",
+        });
         if (draft.grade || draft.subject || draft.lessonNotes) setDraftNotice("Your saved draft was restored on this device.");
+      } else {
+        lastSavedDraftRef.current = JSON.stringify({ grade: "", subject: "", book: "", chapter: "", lessonNotes: "", observedTeacherId: "", rubricId: "" });
       }
     } catch {
       window.localStorage.removeItem(key);
+      lastSavedDraftRef.current = JSON.stringify({ grade: "", subject: "", book: "", chapter: "", lessonNotes: "", observedTeacherId: "", rubricId: "" });
     } finally {
       setDraftHydrated(true);
     }
@@ -533,13 +549,19 @@ export default function AnalysisPage() {
   useEffect(() => {
     if (isAdminObservationMode || !draftHydrated || result) return;
     const key = TEACHER_DRAFT_KEY;
+    const draftPayload = { grade, subject, book, chapter, lessonNotes, observedTeacherId, rubricId };
+    const serializedDraft = JSON.stringify(draftPayload);
+    if (serializedDraft === lastSavedDraftRef.current) return;
     const timer = window.setTimeout(() => {
       const hasDraft = Boolean(grade || subject || book || chapter || lessonNotes || observedTeacherId);
       if (!hasDraft) {
         window.localStorage.removeItem(key);
+        lastSavedDraftRef.current = serializedDraft;
+        setDraftNotice("");
         return;
       }
-      window.localStorage.setItem(key, JSON.stringify({ grade, subject, book, chapter, lessonNotes, observedTeacherId, rubricId }));
+      window.localStorage.setItem(key, serializedDraft);
+      lastSavedDraftRef.current = serializedDraft;
       setDraftNotice("Draft saved on this device.");
     }, 500);
     return () => window.clearTimeout(timer);
@@ -556,7 +578,15 @@ export default function AnalysisPage() {
 
     const loadViewerRole = async () => {
       try {
+        const { data } = await fetchJsonWithTimeout<{
+          profile?: { role?: string | null } | null;
+        }>("/api/auth/me", {
+          credentials: "include",
+          cache: "no-store",
+          timeoutMs: 5000,
+        });
         if (!isMounted) return;
+        setViewerRole((data?.profile?.role || "").toLowerCase());
       } catch {
         // Allow analysis flow to continue even if the role prefetch fails.
       }
@@ -568,6 +598,10 @@ export default function AnalysisPage() {
       isMounted = false;
     };
   }, [isAdminObservationMode, router]);
+
+  const viewerIsAdmin = isAdminObservationMode || viewerRole === "admin" || viewerRole === "super_admin";
+  const dashboardHref = viewerIsAdmin ? "/admin" : "/dashboard";
+  const dashboardLabel = viewerIsAdmin ? "Back to Admin Dashboard" : "Back to Teacher Dashboard";
 
   useEffect(() => {
     const updateScreen = () => setIsNarrowScreen(window.innerWidth <= 768);
@@ -1774,11 +1808,9 @@ export default function AnalysisPage() {
                 : 'Generate a clean coaching report with clear strengths, priority moves, and standards-aligned feedback teachers can act on quickly.'}
             </p>
           </div>
-          {isAdminObservationMode && (
-            <button type="button" className="analysis-back-button" onClick={() => router.push('/admin')}>
-              Back to Administrator Dashboard
-            </button>
-          )}
+          <button type="button" className="analysis-back-button" onClick={() => router.push(dashboardHref)}>
+            ← {dashboardLabel}
+          </button>
         </div>
 
         {isAdminObservationMode && (
@@ -1797,7 +1829,7 @@ export default function AnalysisPage() {
             </div>
           </div>
         )}
-        {draftNotice && !result && <div className="analysis-draft-notice">{draftNotice}</div>}
+        {!isAdminObservationMode && draftNotice && !result && <div className="analysis-draft-notice">{draftNotice}</div>}
 
         <div className="analysis-shell">
           <div className="analysis-panel-grid">

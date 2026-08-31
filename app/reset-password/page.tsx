@@ -45,6 +45,7 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [viewerRole, setViewerRole] = useState('');
 
   // Verify session is valid before showing the form
   useEffect(() => {
@@ -108,6 +109,22 @@ export default function ResetPassword() {
 
     checkSession();
   }, [router, supabase]);
+
+  useEffect(() => {
+    if (!sessionReady || isRecoverySession) return;
+
+    void fetchJsonWithTimeout<{
+      profile?: { role?: string | null } | null;
+    }>('/api/auth/me', {
+      credentials: 'include',
+      cache: 'no-store',
+      timeoutMs: 5000,
+    }).then(({ data }) => {
+      setViewerRole((data?.profile?.role || '').toLowerCase());
+    }).catch(() => {
+      // Keep the teacher dashboard fallback if the role lookup is unavailable.
+    });
+  }, [isRecoverySession, sessionReady]);
 
   const isRefreshTokenError = (message: string) => {
     const text = message.toLowerCase();
@@ -236,6 +253,9 @@ export default function ResetPassword() {
   return (
     <main style={mainContainer}>
       <section style={card}>
+        <a href={isRecoverySession ? '/login' : ['admin', 'super_admin'].includes(viewerRole) ? '/admin' : '/dashboard'} style={topBackLink}>
+          {isRecoverySession ? '← Back to Login' : ['admin', 'super_admin'].includes(viewerRole) ? '← Back to Admin Dashboard' : '← Back to Teacher Dashboard'}
+        </a>
         <h1 style={heading}>Set Your Password</h1>
         <p style={subheading}>
           {isRecoverySession ? 'Create a secure password for your account.' : 'Choose a new password for your signed-in account.'}
@@ -335,9 +355,6 @@ export default function ResetPassword() {
           {loading ? 'Saving…' : 'Set New Password'}
         </button>
 
-        <a href={isRecoverySession ? '/login' : '/dashboard'} style={backLink}>
-          {isRecoverySession ? 'Back to Login' : 'Back to Dashboard'}
-        </a>
       </section>
     </main>
   );
@@ -443,3 +460,4 @@ const successText: React.CSSProperties = {
   borderRadius: '8px', border: '1px solid rgba(34,197,94,0.2)',
 };
 const backLink: React.CSSProperties = { display: 'block', textAlign: 'center', color: '#7dd3fc', fontSize: '14px' };
+const topBackLink: React.CSSProperties = { display: 'inline-flex', marginBottom: '16px', color: '#f97316', fontSize: '12px', fontWeight: 650, textDecoration: 'none' };
