@@ -824,6 +824,17 @@ export default function AdminDashboard() {
           <div style={{ ...text, marginTop: 10 }}>
             <strong>Administrator action:</strong> {recommendedSupportPlan.adminAction}
           </div>
+          {(recommendedSupportPlan.lessonSpecificNextMove || recommendedSupportPlan.priorityContentGap) && (
+            <details style={supportDetails}>
+              <summary style={supportDetailsSummary}>View lesson-specific coaching details</summary>
+              {recommendedSupportPlan.lessonSpecificNextMove && (
+                <p style={{ ...text, margin: '10px 0 0' }}><strong>Suggested next move:</strong> {recommendedSupportPlan.lessonSpecificNextMove}</p>
+              )}
+              {recommendedSupportPlan.priorityContentGap && (
+                <p style={{ ...text, margin: '10px 0 0' }}><strong>Priority content gap:</strong> {recommendedSupportPlan.priorityContentGap}</p>
+              )}
+            </details>
+          )}
           <div style={{ ...supportPlanLabel, marginTop: 14, marginBottom: 8 }}>Look-fors in the next observation</div>
           <ul style={actionList}>
             {recommendedSupportPlan.lookFors.map((action, idx) => (
@@ -1518,6 +1529,8 @@ const cardSmall: React.CSSProperties = {
   boxShadow: 'var(--shadow-soft)',
 };
 const cardSmallButton: React.CSSProperties = { width: '100%', color: 'inherit', font: 'inherit', cursor: 'pointer' };
+const supportDetails: React.CSSProperties = { marginTop: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface-chip)' };
+const supportDetailsSummary: React.CSSProperties = { color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13, fontWeight: 700 };
 const grid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 28 };
 const title: React.CSSProperties = { color: 'var(--text-primary)', marginTop: 0, marginBottom: 10, fontSize: 22 };
 const text: React.CSSProperties = { color: 'var(--text-secondary)' };

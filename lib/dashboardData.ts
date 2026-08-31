@@ -66,6 +66,8 @@ export type AdminSupportPlan = {
   followUpTimeline: string;
   supportPriorityScore?: number;
   requiresPrioritySupport?: boolean;
+  lessonSpecificNextMove?: string;
+  priorityContentGap?: string;
 };
 
 export const SAMPLE_PREVIEW_TEACHER_ID = 'sample-teacher-1';
@@ -1080,7 +1082,7 @@ export function buildAdminSupportPlanForTeacher(
     Math.max(0, 78 - recentAverageScore) +
     Math.max(0, 76 - weakestDomain.value) +
     weakestDomain.belowTargetCount * 5 +
-    openGapSummary.total * 4 +
+    Math.min(12, openGapSummary.total * 4) +
     latestMetrics.gaps * 6 +
     (trend <= -5 ? Math.min(12, trendMagnitude * 2) : 0) +
     (overallTrend < 0 ? Math.min(16, overallTrendMagnitude) : 0);
@@ -1091,7 +1093,7 @@ export function buildAdminSupportPlanForTeacher(
     weakestDomain.value < 72 ||
     weakestDomain.belowTargetCount >= 2 ||
     latestMetrics.gaps >= 2 ||
-    openGapSummary.total >= 2 ||
+    openGapSummary.topicsWithOpenGaps >= 2 ||
     trend <= -5 ||
     overallTrend <= -8 ||
     (latestMetrics.score < 78 && latestMetrics.gaps > 0 && weakestDomain.value < 74);
@@ -1107,16 +1109,7 @@ export function buildAdminSupportPlanForTeacher(
   ].filter(Boolean);
   const priorityReason = `${priorityReasonParts.join(', ')}.`;
 
-  const adminActionParts = [
-    `Use the next planning touchpoint to coach ${teacherName} on ${weakestDomain.label}.`,
-    reportSections.recommendedNextStep
-      ? `Anchor the follow-up observation to this next move: ${cleanSentenceFragment(reportSections.recommendedNextStep)}.`
-      : `Preview one concrete teacher move that should be visible in the next lesson.`,
-    topOpenGap
-      ? `Make sure the plan explicitly addresses this still-open content need: ${topOpenGap}.`
-      : null,
-  ].filter(Boolean);
-  const adminAction = adminActionParts.join(' ');
+  const adminAction = `Use the next planning touchpoint to coach ${teacherName} on ${weakestDomain.label}. Agree on one concrete instructional move and identify the student evidence that will show whether it worked.`;
 
   const lookFors = [
     weakestDomain.key === 'coverage'
@@ -1127,7 +1120,7 @@ export function buildAdminSupportPlanForTeacher(
           ? 'Students have visible response opportunities and are asked to explain their thinking during instruction.'
           : 'The teacher uses a clear mastery check before closure and responds to misconceptions before moving on.',
     topOpenGap
-      ? `The lesson revisits this priority content gap with explicit reteach and mastery evidence: ${topOpenGap}`
+      ? 'The priority content gap is explicitly retaught and reassessed.'
       : 'Students can demonstrate understanding before the lesson ends.',
     overallTrend <= -8 || trend <= -5
       ? 'The teacher follows the agreed coaching move consistently from the start of the lesson.'
@@ -1137,7 +1130,7 @@ export function buildAdminSupportPlanForTeacher(
   ];
 
   const followUpTimeline =
-    latestMetrics.score < 70 || recentAverageScore < 72 || latestMetrics.gaps >= 3 || openGapSummary.total >= 3
+    latestMetrics.score < 70 || recentAverageScore < 72 || weakestDomain.value < 65 || latestMetrics.gaps >= 3 || trend <= -8 || overallTrend <= -10
       ? 'Follow up within 5 instructional days.'
       : 'Follow up within 7 to 10 instructional days.';
 
@@ -1145,10 +1138,7 @@ export function buildAdminSupportPlanForTeacher(
     `${teacherName} needs targeted support in ${weakestDomain.label}.`,
     `The latest lesson scored ${latestMetrics.score}/100, with ${weakestDomain.label} at ${weakestDomain.value}/100.`,
     recentReports.length > 1
-      ? `Across the last ${recentReports.length} lessons, the average score is ${recentAverageScore}/100 and ${weakestDomain.label} averaged ${weakestDomain.average}/100.`
-      : null,
-    openGapSummary.total > 0
-      ? `${openGapSummary.total} open gap${openGapSummary.total === 1 ? '' : 's'} remain across current lesson topics${topOpenGap ? `. A leading open gap is: ${topOpenGap}` : ''}.`
+      ? `Across the last ${recentReports.length} lessons, the average score is ${recentAverageScore}/100.`
       : null,
     `${trendText}.`,
   ].filter(Boolean);
@@ -1164,6 +1154,10 @@ export function buildAdminSupportPlanForTeacher(
     followUpTimeline,
     supportPriorityScore,
     requiresPrioritySupport,
+    lessonSpecificNextMove: reportSections.recommendedNextStep
+      ? `${cleanSentenceFragment(reportSections.recommendedNextStep)}.`
+      : undefined,
+    priorityContentGap: topOpenGap ? `${topOpenGap}.` : undefined,
   };
 }
 

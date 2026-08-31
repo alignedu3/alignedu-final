@@ -277,6 +277,17 @@ export default function AdminTeacherPage() {
             <div style={{ ...text, marginTop: 10 }}>
               <strong>Administrator action:</strong> {adminSupportPlan.adminAction}
             </div>
+            {(adminSupportPlan.lessonSpecificNextMove || adminSupportPlan.priorityContentGap) && (
+              <details style={supportDetails}>
+                <summary style={supportDetailsSummary}>View lesson-specific coaching details</summary>
+                {adminSupportPlan.lessonSpecificNextMove && (
+                  <p style={{ ...text, margin: '10px 0 0' }}><strong>Suggested next move:</strong> {adminSupportPlan.lessonSpecificNextMove}</p>
+                )}
+                {adminSupportPlan.priorityContentGap && (
+                  <p style={{ ...text, margin: '10px 0 0' }}><strong>Priority content gap:</strong> {adminSupportPlan.priorityContentGap}</p>
+                )}
+              </details>
+            )}
             <div style={{ ...label, marginTop: 14, marginBottom: 8 }}>Look-fors in the next observation</div>
             <ul style={findingsList}>
               {adminSupportPlan.lookFors.map((item, index) => (
@@ -591,6 +602,21 @@ const supportChip: React.CSSProperties = {
   border: '1px solid rgba(249,115,22,0.18)',
   color: '#fdba74',
   fontSize: 12,
+  fontWeight: 700
+};
+
+const supportDetails: React.CSSProperties = {
+  marginTop: 12,
+  padding: '10px 12px',
+  border: '1px solid var(--border)',
+  borderRadius: 10,
+  background: 'var(--surface-chip)'
+};
+
+const supportDetailsSummary: React.CSSProperties = {
+  color: 'var(--text-primary)',
+  cursor: 'pointer',
+  fontSize: 13,
   fontWeight: 700
 };
 
