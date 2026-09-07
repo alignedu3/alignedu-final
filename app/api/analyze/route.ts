@@ -1125,11 +1125,31 @@ function fingerprintTranscript(transcript: string) {
 function notesIndicateLessonContinuation(text: string) {
   const normalized = String(text || "").toLowerCase().replace(/\s+/g, " ");
   return [
-    /\bpart\s*(?:2|two)\s*(?:of\s*(?:2|two))?\b/,
-    /\b(?:second|2nd)\s+(?:video|recording|upload|part)\b/,
+    /\bpart\s*(?:[2-9]|two|three|four|five|six|seven|eight|nine)\s*(?:of\s*(?:[2-9]|two|three|four|five|six|seven|eight|nine))?\b/,
+    /\b(?:second|third|fourth|fifth|sixth|seventh|eighth|ninth|2nd|3rd|4th|5th|6th|7th|8th|9th)\s+(?:video|recording|upload|part)\b/,
+    /\b(?:final|last)\s+(?:video|recording|upload|part)\b/,
     /\b(?:same|continuing|continued)\s+(?:day'?s\s+)?(?:lesson|chapter)\b/,
     /\bcontinuation\s+(?:of|from)\b/,
   ].some((pattern) => pattern.test(normalized));
+}
+
+function extractClassPeriod(text: string) {
+  const normalized = String(text || "").toLowerCase().replace(/\s+/g, " ");
+  const periodAfterLabel = normalized.match(/\b(?:class\s+)?period\s*#?\s*(1st|2nd|3rd|4th|5th|6th|7th|8th|9th|[1-9]|one|two|three|four|five|six|seven|eight|nine)\b/);
+  const periodBeforeLabel = normalized.match(/\b(first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|1st|2nd|3rd|4th|5th|6th|7th|8th|9th)\s+(?:class\s+)?period\b/);
+  const rawValue = periodAfterLabel?.[1] || periodBeforeLabel?.[1] || "";
+  const periodNumbers: Record<string, string> = {
+    one: "1", first: "1", "1st": "1",
+    two: "2", second: "2", "2nd": "2",
+    three: "3", third: "3", "3rd": "3",
+    four: "4", fourth: "4", "4th": "4",
+    five: "5", fifth: "5", "5th": "5",
+    six: "6", sixth: "6", "6th": "6",
+    seven: "7", seventh: "7", "7th": "7",
+    eight: "8", eighth: "8", "8th": "8",
+    nine: "9", ninth: "9", "9th": "9",
+  };
+  return periodNumbers[rawValue] || rawValue || null;
 }
 
 async function findPreviousLessonPart(params: {
@@ -1137,6 +1157,7 @@ async function findPreviousLessonPart(params: {
   grade: string;
   subject: string;
   lessonContextTitle: string;
+  classPeriod: string | null;
 }) {
   const serviceSupabase = createServiceSupabaseClient();
   let query = serviceSupabase
@@ -1146,7 +1167,7 @@ async function findPreviousLessonPart(params: {
     .eq("grade", params.grade)
     .eq("subject", params.subject)
     .order("created_at", { ascending: false })
-    .limit(1);
+    .limit(params.classPeriod ? 10 : 1);
 
   if (params.lessonContextTitle) {
     query = query
@@ -1156,15 +1177,24 @@ async function findPreviousLessonPart(params: {
     query = query.gte("created_at", new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString());
   }
 
-  const { data, error } = await query.maybeSingle();
+  const { data, error } = await query;
   if (error) {
     console.error("MULTI-PART LESSON LOOKUP ERROR:", error);
     return null;
   }
 
-  const transcript = typeof data?.transcript === "string" ? data.transcript.trim() : "";
-  if (!data?.id || !transcript) return null;
-  return { id: String(data.id), transcript };
+  const periodMatch = params.classPeriod
+    ? (data || []).find((analysis) => extractClassPeriod(String(analysis.transcript || "")) === params.classPeriod)
+    : null;
+  const untaggedMatches = params.classPeriod
+    ? (data || []).filter((analysis) => !extractClassPeriod(String(analysis.transcript || "")))
+    : [];
+  const match = params.classPeriod
+    ? periodMatch || (untaggedMatches.length === 1 ? untaggedMatches[0] : null)
+    : data?.[0];
+  const transcript = typeof match?.transcript === "string" ? match.transcript.trim() : "";
+  if (!match?.id || !transcript) return null;
+  return { id: String(match.id), transcript };
 }
 
 function stripSubmissionContextSection(result: string) {
@@ -1447,8 +1477,9 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
         : chapter
     : '';
   const shouldCombineWithPrevious = combineWithPrevious || notesIndicateLessonContinuation(lectureText);
+  const classPeriod = extractClassPeriod(lectureText);
   const previousLessonPart = shouldCombineWithPrevious
-    ? await findPreviousLessonPart({ targetUserId, grade, subject, lessonContextTitle })
+    ? await findPreviousLessonPart({ targetUserId, grade, subject, lessonContextTitle, classPeriod })
     : null;
   const existingAnalysisId = previousLessonPart?.id ?? null;
 

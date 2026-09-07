@@ -1950,7 +1950,7 @@ export default function AnalysisPage() {
                 />
                 <span>
                   <strong>Continue a multi-part lesson</strong>
-                  <small>Combine this submission with the most recent matching lesson part. Clear notes such as “part 2” or “same lesson” are also detected automatically.</small>
+                  <small>Combine this submission with the most recent matching lesson part. Notes such as “part 3 of 4,” “final part,” or “same lesson” are detected automatically. Adding the class period helps match the correct lesson.</small>
                 </span>
               </label>
 
