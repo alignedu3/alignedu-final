@@ -1342,7 +1342,7 @@ export function getLessonTrendDisplay(trend: number) {
   const roundedTrend = Math.round(trend);
   if (Math.abs(roundedTrend) < 5) {
     const signedChange = roundedTrend > 0 ? `+${roundedTrend}` : `${roundedTrend}`;
-    return { direction: 'stable' as const, label: `Stable range (${signedChange})`, change: roundedTrend };
+    return { direction: 'stable' as const, label: `Holding steady (${signedChange})`, change: roundedTrend };
   }
   if (roundedTrend > 0) {
     return { direction: 'improving' as const, label: `Improving (+${roundedTrend})`, change: roundedTrend };

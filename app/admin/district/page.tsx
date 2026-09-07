@@ -415,10 +415,10 @@ export default function DistrictDashboard() {
 
         <div style={twoColumn}>
           <section style={card}>
-            <div style={sectionEyebrow}>District Focus</div>
-            <h2 style={title}>Teachers Needing the Closest Support</h2>
+            <div style={sectionEyebrow}>Coaching Priority</div>
+            <h2 style={title}>Current Coaching Priorities</h2>
             {priorityTeachers.length === 0 ? (
-              <p style={text}>No teachers currently cross the district priority threshold. Continue monitoring trends and reinforcing strong practice.</p>
+              <p style={text}>No teachers currently meet the district coaching-priority criteria. Continue monitoring trends and reinforcing strong practice.</p>
             ) : (
               priorityTeachers.map((teacher) => (
                 <div key={teacher.id} style={row}>

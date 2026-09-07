@@ -748,10 +748,10 @@ export default function AdminDashboard() {
 
         {/* AT RISK */}
         <div id="performance" style={{ ...card, ...priorityCard }}>
-          <div style={sectionEyebrow}>Immediate Focus</div>
-          <h2 style={title}>Teachers Needing the Closest Support</h2>
+          <div style={sectionEyebrow}>Coaching Priority</div>
+          <h2 style={title}>Current Coaching Priorities</h2>
           {atRiskTeachers.length === 0 ? (
-            <p style={text}>No teachers currently need intervention.</p>
+            <p style={text}>No teachers currently meet the coaching-priority criteria.</p>
           ) : (
             atRiskTeachers.map((t, i) => (
               <div key={i} style={priorityRow}>
