@@ -244,6 +244,7 @@ type AnalysisWorkflowInput = {
   book: string;
   chapter: string;
   rubricId: string;
+  combineWithPrevious: boolean;
   lectureText: string;
   waitTimeEvidence: string;
   audioDuration?: number;
@@ -333,12 +334,13 @@ function buildCoverageCalibrationContext(params: {
   } = params;
 
   const rubric = `Coverage scoring rubric:
-- 95-100: Nearly all priority lesson targets for this chapter/objective set or TEKS set were taught accurately and with strong completeness.
-- 80-94: The core lesson target was taught well, with generally solid alignment and only limited omissions, thin spots, or deferred details.
-- 70-79: The lesson addressed part of the target effectively, but multiple important subtopics, distinctions, or standard elements remained partial or uneven.
-- 50-69: Only part of the intended target set was covered; several key concepts or required elements were not developed enough.
-- 30-49: Limited coverage of what was supposed to be taught.
-- 0-29: The lesson was largely off-target from the intended chapter/objective or standards set.`;
+- Score the stated or clearly inferable target of this submitted lesson, not every concept in an entire chapter, unit, or standards cluster unless the submission explicitly represents the full chapter or unit.
+- Treat clearly deferred content as outside this lesson's target. Do not lower Coverage merely because a reasonable multi-day sequence continues beyond this recording.
+- 90-100: Nearly all priority elements of the intended lesson target were taught accurately and with strong completeness.
+- 80-89: The core lesson target was taught well, with generally solid alignment and only limited omissions or thin spots.
+- 70-79: The lesson addressed the target meaningfully, but multiple important elements or distinctions remained partial or uneven.
+- 60-69: Only part of the intended lesson target was developed; several key elements needed more attention.
+- Below 60: Coverage was limited or substantially off-target from the intended lesson objective.`;
 
   if (isHigherEdBiology) {
     return `${rubric}
@@ -383,25 +385,35 @@ function buildMetricCalibrationContext(params: {
 
 Additional metric calibration:
 - Clarity:
+  - Judge how understandable, precise, and coherent the explanations, modeling, examples, and transitions were. Keep content accuracy concerns separate unless an inaccuracy directly made the explanation confusing.
+  - Do not penalize normal speech disfluencies, transcription errors, missing punctuation, or audio artifacts unless they reflect a genuine instructional clarity problem.
   - 90-100: Explanations, modeling, and distinctions were consistently precise and easy to follow.
   - 80-89: Clear, coherent instruction with only minor rushed, thin, or less precise moments.
   - 70-79: Generally understandable, but multiple explanations or distinctions were incomplete, rushed, or uneven.
   - 60-69: Understandable in parts, but several explanations or distinctions were incomplete or confusing.
   - Below 60: Students would likely struggle to follow the lesson due to major imprecision or confusion.
 - Engagement:
-  - 90-100: Students were consistently prompted to think, respond, discuss, or demonstrate understanding.
-  - 80-89: Good participation and interaction were clearly visible through much of the lesson.
-  - 70-79: Some engagement was present, but participation was inconsistent or too teacher-led for parts of the lesson.
-  - 60-69: Limited engagement was visible, and much of the lesson was passive or uneven.
-  - Below 60: Little evidence of active student participation.
+  - Judge meaningful cognitive and behavioral participation, not entertainment, noise level, or the raw number of teacher questions.
+  - Credit substantive listening, wait time, writing, problem solving, discussion, questioning, explanation, and application when the lesson record provides evidence of them. Quiet independent thinking can be meaningful engagement.
+  - Do not assume disengagement merely because an audio transcript omits nonverbal participation. Also do not award strong engagement for opportunities the teacher offered when the record shows little student uptake.
+  - 90-100: Students consistently engaged in meaningful thinking, response, discussion, or application across the lesson.
+  - 80-89: Clear, sustained participation and cognitive involvement were visible through much of the lesson.
+  - 70-79: Meaningful engagement was present but inconsistent, concentrated among some students, or teacher-led for substantial portions.
+  - 60-69: Limited student uptake was visible and much of the lesson appeared passive or uneven.
+  - Below 60: Little reliable evidence of meaningful student participation.
 - Assessment Quality:
-  - 90-100: Checks for understanding gave strong evidence of actual mastery.
-  - 80-89: Useful checks were present and gave reasonable evidence of understanding, even if not deeply diagnostic throughout.
-  - 70-79: Checks for understanding were present but inconsistent, surface-level, or only moderately informative.
-  - 60-69: Limited or mostly surface-level checks for understanding.
-  - Below 60: Little reliable evidence that student understanding was checked.
+  - Judge the quality of evidence gathered about student understanding, not whether the lesson used a particular assessment format.
+  - Purposeful oral questioning can earn a strong score when students have time to answer and their responses reveal reasoning, application, explanation, or misconceptions. A written exit ticket is not required for an 80+ score.
+  - Credit follow-up questions, requests for justification, student-to-student responses, teacher responses to misconceptions, and adjustments based on answers. Whole-class oral assessment is valid evidence when multiple students respond substantively.
+  - Do not reward question quantity alone. Brief recall prompts, rhetorical questions, “everybody good?” checks, or answers supplied primarily by the teacher provide less diagnostic evidence.
+  - Do not lower the score merely because every student was not individually documented in an audio transcript. Treat an all-student check as evidence that can strengthen a score, not as a prerequisite for a solid score.
+  - 90-100: Multiple strong checks reveal student reasoning or mastery, and the teacher uses the evidence to probe, clarify, correct, or adjust instruction.
+  - 80-89: Sustained oral or written checks provide clear, useful evidence of understanding through substantive student responses and appropriate follow-up, even without a formal exit ticket.
+  - 70-79: Recurring checks provide some useful evidence, but responses are often brief, volunteer-based, recall-heavy, or inconsistently followed up.
+  - 60-69: Checks are sporadic, mostly superficial, rhetorical, or produce little usable evidence of student understanding.
+  - Below 60: Little reliable evidence that student understanding was elicited or examined.
 - Instructional Score:
-  - This should reflect the weighted quality of the lesson as a whole, based on Coverage, Clarity, Engagement, and Assessment Quality.
+  - Calculate this transparently as Coverage 30%, Clarity 25%, Engagement 20%, and Assessment Quality 25%, rounded to the nearest whole number. Do not add a balance bonus or any other hidden adjustment.
   - Effective, on-target teaching with solid execution will usually land in the 80-88 range.
   - Use the 70s for lessons that show clear strengths but also notable inconsistency, thin spots, or multiple refinement areas.
   - Reserve 90+ for truly exceptional execution and reserve below 65 for clearly weak lessons.
@@ -763,27 +775,10 @@ function calculateOverallScoreFromMetrics(metrics: {
   const weighted =
     metrics.coverage_score * 0.30 +
     metrics.clarity_rating * 0.25 +
-    metrics.engagement_level * 0.25 +
-    metrics.assessment_quality * 0.20;
-  const weakestMetric = Math.min(
-    metrics.coverage_score,
-    metrics.clarity_rating,
-    metrics.engagement_level,
-    metrics.assessment_quality
-  );
+    metrics.engagement_level * 0.20 +
+    metrics.assessment_quality * 0.25;
 
-  let adjustment = 0;
-  if (weakestMetric >= 75 && weighted >= 78) {
-    adjustment = 6;
-  } else if (weakestMetric >= 70 && weighted >= 72) {
-    adjustment = 5;
-  } else if (weakestMetric >= 65 && weighted >= 68) {
-    adjustment = 3;
-  } else if (weakestMetric >= 60 && weighted >= 64) {
-    adjustment = 1;
-  }
-
-  return Math.max(0, Math.min(100, Math.round(weighted + adjustment)));
+  return Math.max(0, Math.min(100, Math.round(weighted)));
 }
 
 function shouldNormalizeReportedScore(metrics: {
@@ -1127,6 +1122,51 @@ function fingerprintTranscript(transcript: string) {
   return createHash("sha256").update(normalized).digest("hex");
 }
 
+function notesIndicateLessonContinuation(text: string) {
+  const normalized = String(text || "").toLowerCase().replace(/\s+/g, " ");
+  return [
+    /\bpart\s*(?:2|two)\s*(?:of\s*(?:2|two))?\b/,
+    /\b(?:second|2nd)\s+(?:video|recording|upload|part)\b/,
+    /\b(?:same|continuing|continued)\s+(?:day'?s\s+)?(?:lesson|chapter)\b/,
+    /\bcontinuation\s+(?:of|from)\b/,
+  ].some((pattern) => pattern.test(normalized));
+}
+
+async function findPreviousLessonPart(params: {
+  targetUserId: string;
+  grade: string;
+  subject: string;
+  lessonContextTitle: string;
+}) {
+  const serviceSupabase = createServiceSupabaseClient();
+  let query = serviceSupabase
+    .from("analyses")
+    .select("id, transcript")
+    .eq("user_id", params.targetUserId)
+    .eq("grade", params.grade)
+    .eq("subject", params.subject)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (params.lessonContextTitle) {
+    query = query
+      .eq("title", params.lessonContextTitle)
+      .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+  } else {
+    query = query.gte("created_at", new Date(Date.now() - 36 * 60 * 60 * 1000).toISOString());
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) {
+    console.error("MULTI-PART LESSON LOOKUP ERROR:", error);
+    return null;
+  }
+
+  const transcript = typeof data?.transcript === "string" ? data.transcript.trim() : "";
+  if (!data?.id || !transcript) return null;
+  return { id: String(data.id), transcript };
+}
+
 function stripSubmissionContextSection(result: string) {
   return normalizeStructuredReportText(
     result.replace(/\n*===\s*SUBMISSION CONTEXT\s*===[\s\S]*$/i, "").trim()
@@ -1232,8 +1272,9 @@ async function saveAnalysisRecord(params: {
   transcript: string;
   finalResult: string;
   rubricId: string;
+  existingAnalysisId?: string | null;
 }) {
-  const { targetUserId, lessonContextTitle, grade, subject, transcript, finalResult, rubricId } = params;
+  const { targetUserId, lessonContextTitle, grade, subject, transcript, finalResult, rubricId, existingAnalysisId } = params;
   const metrics = extractMetricsFromResult(finalResult);
   const serviceSupabase = createServiceSupabaseClient();
 
@@ -1256,21 +1297,26 @@ async function saveAnalysisRecord(params: {
     created_at: new Date().toISOString(),
   };
 
-  let { data: insertedData, error: dbError } = await serviceSupabase
-    .from("analyses")
-    .insert([analysisRecord])
-    .select()
-    .single();
+  const saveRecord = async (record: Record<string, unknown>) => {
+    if (existingAnalysisId) {
+      return serviceSupabase
+        .from("analyses")
+        .update(record)
+        .eq("id", existingAnalysisId)
+        .eq("user_id", targetUserId)
+        .select()
+        .single();
+    }
+    return serviceSupabase.from("analyses").insert([record]).select().single();
+  };
+
+  let { data: insertedData, error: dbError } = await saveRecord(analysisRecord);
 
   if (dbError && /(assessment_quality|rubric_id)/i.test(dbError.message || "")) {
     const legacyRecord = Object.fromEntries(
       Object.entries(analysisRecord).filter(([key]) => !["assessment_quality", "rubric_id"].includes(key))
     );
-    ({ data: insertedData, error: dbError } = await serviceSupabase
-      .from("analyses")
-      .insert([legacyRecord])
-      .select()
-      .single());
+    ({ data: insertedData, error: dbError } = await saveRecord(legacyRecord));
   }
 
   if (dbError) {
@@ -1348,6 +1394,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
     book,
     chapter,
     rubricId,
+    combineWithPrevious,
     lectureText,
     waitTimeEvidence,
     audioDuration,
@@ -1390,6 +1437,27 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
 
   if (!transcript || transcript.trim().length < 10) {
     throw new Error("Please provide lesson notes or upload an audio file for transcription.");
+  }
+
+  const lessonContextTitle = chapter
+    ? grade.trim().toLowerCase() === 'higher ed' && subject.trim().toLowerCase() === 'biology'
+      ? `Campbell Biology ${chapter}`
+      : book
+        ? `${book} ${chapter}`
+        : chapter
+    : '';
+  const shouldCombineWithPrevious = combineWithPrevious || notesIndicateLessonContinuation(lectureText);
+  const previousLessonPart = shouldCombineWithPrevious
+    ? await findPreviousLessonPart({ targetUserId, grade, subject, lessonContextTitle })
+    : null;
+  const existingAnalysisId = previousLessonPart?.id ?? null;
+
+  if (previousLessonPart) {
+    const previousFingerprint = fingerprintTranscript(previousLessonPart.transcript);
+    const currentFingerprint = fingerprintTranscript(transcript);
+    transcript = previousFingerprint && currentFingerprint && previousFingerprint === currentFingerprint
+      ? previousLessonPart.transcript
+      : `[Earlier lesson evidence]\n${previousLessonPart.transcript}\n\n[Additional lesson evidence]\n${transcript}`;
   }
 
   await reportProgress(46, "Matching standards and lesson context...");
@@ -1437,13 +1505,6 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
   const metricCalibrationContext = buildMetricCalibrationContext({
     coverageCalibrationContext,
   });
-  const lessonContextTitle = chapter
-    ? isHigherEdBiology
-      ? `Campbell Biology ${chapter}`
-      : book
-        ? `${book} ${chapter}`
-        : chapter
-      : '';
   const analysisFeedbackContext = await getAnalysisFeedbackContext({
     targetUserId,
     grade,
@@ -1476,6 +1537,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
       transcript,
       finalResult,
       rubricId,
+      existingAnalysisId,
     });
 
     await reportProgress(100, "Analysis complete.");
@@ -2251,6 +2313,7 @@ ${transcript}`;
     transcript,
     finalResult,
     rubricId,
+    existingAnalysisId,
   });
 
   await reportProgress(100, "Analysis complete.");
@@ -2426,6 +2489,7 @@ export async function POST(req: Request) {
     const book = String(formData.get("book") || "").trim();
     const chapter = String(formData.get("chapter") || "").trim();
     const requestedRubricId = String(formData.get("rubricId") || "").trim();
+    const combineWithPrevious = String(formData.get("combineWithPrevious") || "") === "true";
     const rubricId = canUseDallasRubricPilot(user?.id, callerRole) && requestedRubricId === DALLAS_ISD_RUBRIC_ID && isElementaryRubricGrade(grade)
       ? requestedRubricId
       : "";
@@ -2508,6 +2572,7 @@ export async function POST(req: Request) {
         book,
         chapter,
         rubricId,
+        combineWithPrevious,
         lectureText,
         waitTimeEvidence,
         audioDuration,
@@ -2541,6 +2606,7 @@ export async function POST(req: Request) {
         book,
         chapter,
         rubricId,
+        combineWithPrevious,
         lectureText,
         waitTimeEvidence,
         audioDuration,

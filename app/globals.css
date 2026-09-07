@@ -987,6 +987,45 @@ button:disabled {
   letter-spacing: 0.04em;
 }
 
+.analysis-continuation-option {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin: 0;
+  padding: 13px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface-card-solid);
+  cursor: pointer;
+}
+
+.analysis-continuation-option input {
+  width: 17px;
+  height: 17px;
+  padding: 0 !important;
+  margin-top: 2px;
+  accent-color: #f97316;
+  flex: 0 0 17px;
+}
+
+.analysis-continuation-option span {
+  display: grid;
+  gap: 3px;
+}
+
+.analysis-continuation-option strong {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.analysis-continuation-option small {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
 .analysis-form-card select:focus,
 .analysis-form-card input:focus,
 .analysis-form-card textarea:focus {

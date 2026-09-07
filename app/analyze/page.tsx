@@ -421,6 +421,7 @@ export default function AnalysisPage() {
   const [chapter, setChapter] = useState("");
   const [lessonNotes, setLessonNotes] = useState("");
   const [rubricId, setRubricId] = useState("");
+  const [continuePreviousLesson, setContinuePreviousLesson] = useState(false);
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [selectedFileUrl, setSelectedFileUrl] = useState<string | null>(null);
@@ -1732,6 +1733,7 @@ export default function AnalysisPage() {
       analysisForm.append("subject", subject);
       analysisForm.append("book", book.trim());
       analysisForm.append("chapter", chapter.trim());
+      analysisForm.append("combineWithPrevious", continuePreviousLesson ? "true" : "false");
       if (combinedTranscriptText) {
         analysisForm.append("lecture", combinedTranscriptText);
       }
@@ -1939,6 +1941,18 @@ export default function AnalysisPage() {
                   </p>
                 </div>
               )}
+
+              <label className="analysis-continuation-option">
+                <input
+                  type="checkbox"
+                  checked={continuePreviousLesson}
+                  onChange={(event) => setContinuePreviousLesson(event.target.checked)}
+                />
+                <span>
+                  <strong>Continue a multi-part lesson</strong>
+                  <small>Combine this submission with the most recent matching lesson part. Clear notes such as “part 2” or “same lesson” are also detected automatically.</small>
+                </span>
+              </label>
 
               {isHigherEd && (
                 <>

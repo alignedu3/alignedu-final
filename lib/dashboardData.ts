@@ -452,10 +452,10 @@ function buildSampleStandardsAlignment(report: LessonReport, improvements: strin
 
 function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: string) {
   const score =
-    report.coverage * 0.35 +
-    report.clarity * 0.3 +
+    report.coverage * 0.30 +
+    report.clarity * 0.25 +
     report.engagement * 0.2 +
-    report.assessment * 0.15;
+    report.assessment * 0.25;
 
   const strengths: string[] = [];
   const improvements: string[] = [];
@@ -478,10 +478,13 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     improvements.push('Build in more visible checks for understanding and student response moments during instruction.');
   }
 
-  if (report.assessment >= 78) {
-    strengths.push('The lesson included useful evidence of learning before students moved on.');
+  if (report.assessment >= 80) {
+    strengths.push('Purposeful oral or written checks elicited substantive student thinking and gave the teacher useful evidence before moving on.');
+  } else if (report.assessment >= 70) {
+    strengths.push('Recurring questions provided some useful evidence of student understanding during the lesson.');
+    improvements.push('Deepen follow-up questions so more responses require explanation, application, or justification.');
   } else {
-    improvements.push('Add a stronger formative check before independent work or closure to confirm mastery.');
+    improvements.push('Use purposeful oral or written checks that elicit student reasoning and provide usable evidence of understanding.');
   }
 
   if (report.gaps >= 3) {
@@ -493,23 +496,31 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
       ? [
           `Students need a clearer explanation of how ${report.title.toLowerCase()} connects to the unit’s core biology concepts and vocabulary.`,
           'The lesson needs a stronger bridge from teacher modeling to independent student explanation or application.',
-          'A more explicit mastery check is needed so misconceptions are identified before the lesson closes.',
+          'Assessment evidence should more clearly reveal student reasoning so misconceptions can be identified and addressed.',
           'Students should revisit the prerequisite concept knowledge needed to fully understand the day’s content.',
           'The lesson should more clearly connect the observed task to the assessed biology standard or course expectation.',
         ].slice(0, report.gaps)
       : ['No major content gaps identified.'];
 
   const standardsAlignment = buildSampleStandardsAlignment(report, improvements);
+  const assessmentSummary =
+    report.assessment >= 80
+      ? 'Substantive student responses gave the teacher useful evidence of understanding and supported appropriate follow-up.'
+      : report.assessment >= 70
+        ? 'Recurring questions surfaced some understanding, though more responses should require explanation or application.'
+        : 'Student participation was visible, but the checks produced limited diagnostic evidence of what students understood.';
   const executiveSummary =
     score >= 88
-      ? `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson was strong overall, with clear alignment to the target and solid evidence of student participation. The next step is tightening mastery checks so the lesson closes with clearer proof of understanding.`
+      ? `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson was strong overall, with clear alignment, precise instruction, and meaningful participation. ${assessmentSummary}`
       : score >= 78
-        ? `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson showed solid instruction with clear strengths in content focus and student participation. The biggest opportunity is strengthening precision, pacing, and final mastery evidence so students leave with firmer understanding.`
-        : `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson showed effort and visible student participation, but it needs stronger clarity, pacing, and mastery checks to secure understanding by the end of the lesson. The most important improvement is making the lesson objective and evidence of learning more explicit throughout instruction.`;
+        ? `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson showed solid instruction with clear strengths in content focus and student participation. ${assessmentSummary}`
+        : `${teacherDisplayName}'s ${report.title.toLowerCase()} lesson showed effort and visible student participation, but it needs stronger clarity and instructional consistency. ${assessmentSummary}`;
   const recommendedNextStep =
-    report.gaps > 0
-      ? `${teacherDisplayName} should reteach the most important unfinished concept from this lesson, then end with a brief written or verbal check that shows whether students can explain it independently. This will tighten closure and make the next instructional move easier to plan.`
-      : `${teacherDisplayName} should keep the strongest instructional move from this lesson and add one sharper mastery check before closure so students have to explain, apply, or justify their understanding before moving on.`;
+    report.assessment >= 80
+      ? `${teacherDisplayName} should build on the strongest check from this lesson by using the responses to select a targeted follow-up prompt or immediate clarification. This will make the connection between assessment evidence and the next instructional move more visible.`
+      : report.assessment >= 70
+        ? `${teacherDisplayName} should deepen one recurring oral check by asking students to explain, apply, or justify their thinking, then use the responses to address the most common misconception before moving on.`
+        : `${teacherDisplayName} should plan one purposeful oral or written check that requires students to explain the lesson’s central concept, then respond directly to the evidence it produces.`;
   const topic = report.title.toLowerCase();
   const learningTarget = `Students will explain ${topic} using accurate biology vocabulary and justify their thinking with evidence from a new example.`;
   const instructionalMove = `Begin with one contrasting example and think aloud through how the evidence connects to ${topic}. Then have pairs annotate a second example before each student writes an independent explanation.`;
@@ -548,9 +559,9 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
     '',
     '=== ADMINISTRATOR COACHING PLAN ===',
     `- Celebrate: ${teacherDisplayName} created a clear entry point into ${topic} and invited students to make their thinking visible.`,
-    `- Ask: Where in this lesson did you get the clearest evidence of what every student understood, and what did that evidence lead you to do next?`,
-    `- Commit: Before the next observation, plan one all-student mastery check with two explicit success criteria and use the responses to choose the next instructional move.`,
-    `- Look For Next Time: The teacher names the success criteria, every student produces visible evidence, and the lesson response changes when that evidence shows a misconception.`,
+    `- Ask: Which student responses gave you the clearest evidence of understanding, and what did that evidence lead you to do next?`,
+    `- Commit: Before the next observation, plan one diagnostic oral or written check with clear success criteria and use the responses to choose the next instructional move.`,
+    `- Look For Next Time: Students explain or apply their thinking, the teacher probes their responses, and instruction changes when the evidence reveals a misconception.`,
     '',
     '=== TEXAS TEKS STANDARDS ALIGNMENT ===',
     '- Covered in the Lesson:',
@@ -565,11 +576,33 @@ function getSampleAnalysisNarrative(report: LessonReport, teacherDisplayName: st
 }
 
 function getSampleTranscript(report: LessonReport, teacherDisplayName: string) {
+  const topic = report.title.toLowerCase();
+
+  if (report.assessment >= 80) {
+    return [
+      `${teacherDisplayName}: Today we're focusing on ${topic}. Take a moment to decide which evidence best supports your explanation and why.`,
+      `Student: I chose the second example because the pattern shows how the parts interact, not just what each part is called.`,
+      `${teacherDisplayName}: What in the example supports that conclusion? Explain the connection in your own words.`,
+      `Student: The change in one part affects the outcome, so the evidence connects the structure to its function.`,
+      `${teacherDisplayName}: That reasoning is on the right track. Several responses are naming the pattern without explaining it, so let's revise one together before moving on.`,
+    ].join('\n');
+  }
+
+  if (report.assessment >= 70) {
+    return [
+      `${teacherDisplayName}: Today we're focusing on ${topic}. What do you notice about this example?`,
+      `Student: It shows the main pattern we discussed.`,
+      `${teacherDisplayName}: Good. Who can add one reason that pattern matters?`,
+      `Student: It helps explain what happens next.`,
+      `${teacherDisplayName}: Keep that idea in mind as we move to the next example.`,
+    ].join('\n');
+  }
+
   return [
-    `${teacherDisplayName}: Today we're focusing on ${report.title.toLowerCase()}.`,
-    `${teacherDisplayName}: Turn and talk with your partner about what you already know before we build the new concept together.`,
-    'Student response period omitted for sample preview.',
-    `${teacherDisplayName}: Now show me your thinking before we move to the next example.`,
+    `${teacherDisplayName}: Today we're focusing on ${topic}. Everybody with me?`,
+    'Several students respond briefly.',
+    `${teacherDisplayName}: This example follows the pattern we just discussed, so the answer is the second option.`,
+    `${teacherDisplayName}: Any questions before we move on?`,
   ].join('\n');
 }
 
@@ -790,27 +823,10 @@ export function calculateLessonScoreFromMetrics(metrics: {
   const weighted =
     metrics.coverage * 0.30 +
     metrics.clarity * 0.25 +
-    metrics.engagement * 0.25 +
-    metrics.assessment * 0.20;
-  const weakestMetric = Math.min(
-    metrics.coverage,
-    metrics.clarity,
-    metrics.engagement,
-    metrics.assessment
-  );
+    metrics.engagement * 0.20 +
+    metrics.assessment * 0.25;
 
-  let adjustment = 0;
-  if (weakestMetric >= 75 && weighted >= 78) {
-    adjustment = 6;
-  } else if (weakestMetric >= 70 && weighted >= 72) {
-    adjustment = 5;
-  } else if (weakestMetric >= 65 && weighted >= 68) {
-    adjustment = 3;
-  } else if (weakestMetric >= 60 && weighted >= 64) {
-    adjustment = 1;
-  }
-
-  const finalScore = Math.max(0, Math.min(100, Math.round(weighted + adjustment)));
+  const finalScore = Math.max(0, Math.min(100, Math.round(weighted)));
 
   return finalScore;
 }

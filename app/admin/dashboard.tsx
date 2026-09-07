@@ -759,7 +759,16 @@ export default function AdminDashboard() {
                   <div style={priorityTeacherName}>{t.name}</div>
                   <div style={priorityMeta}>Current average {t.avgScore}/100</div>
                 </div>
-                <span style={priorityTrend}>
+                <span
+                  style={{
+                    ...priorityTrend,
+                    ...(getLessonTrendDisplay(t.trend).direction === 'declining'
+                      ? priorityTrendDeclining
+                      : getLessonTrendDisplay(t.trend).direction === 'improving'
+                        ? priorityTrendImproving
+                        : {}),
+                  }}
+                >
                   {getLessonTrendDisplay(t.trend).label}
                 </span>
               </div>
@@ -1559,6 +1568,8 @@ const priorityRow: React.CSSProperties = { display: 'flex', alignItems: 'center'
 const priorityTeacherName: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 16, fontWeight: 800, marginBottom: 3 };
 const priorityMeta: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 13 };
 const priorityTrend: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 66, padding: '7px 10px', borderRadius: 999, color: 'var(--text-secondary)', background: 'var(--surface-chip)', border: '1px solid var(--border)', fontSize: 12, fontWeight: 800 };
+const priorityTrendDeclining: React.CSSProperties = { color: '#b91c1c', background: 'rgba(239,68,68,0.10)', borderColor: 'rgba(239,68,68,0.20)' };
+const priorityTrendImproving: React.CSSProperties = { color: '#166534', background: 'rgba(34,197,94,0.10)', borderColor: 'rgba(34,197,94,0.20)' };
 const trendCard: React.CSSProperties = { overflow: 'hidden' };
 const teamAverageLegend: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 7, padding: '5px 10px', borderRadius: 999, background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.20)' };
 const dashboardSearchInput: React.CSSProperties = { minWidth: 220, padding: '10px 12px', borderRadius: 11, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 13 };
