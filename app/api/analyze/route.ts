@@ -390,6 +390,8 @@ Additional metric calibration:
 - Solid, effective instruction that meets the lesson's intended purpose should generally score 80-89. A lesson can have actionable next steps and still be effective.
 - Use 70-79 when meaningful strengths are present but notable inconsistencies materially limit learning. Use 60-69 only for clear, recurring weaknesses with substantial instructional impact. Reserve scores below 60 for seriously limited or ineffective evidence.
 - Do not treat evidence omitted by an audio transcript as evidence that a practice did not occur. Score what is observable and lower a metric only when the record contains affirmative evidence of weakness. However, a teacher asking a question or pausing is only an opportunity for participation—not evidence that a student responded.
+- Lesson duration, transcript length, word count, and raw question count must not directly raise or lower any metric. A short, focused lesson can earn an exceptional score when it fully accomplishes its intended target, and a long lesson earns no advantage merely for containing more words or activities.
+- Judge the quality and sufficiency of evidence relative to the scope of the lesson target. Do not confuse brevity with weak instruction or length with rigor.
 - Do not cluster metrics automatically. Score each category independently and cite the distinct evidence supporting its band.
 - Clarity:
   - Judge how understandable, precise, and coherent the explanations, modeling, examples, and transitions were. Keep content accuracy concerns separate unless an inaccuracy directly made the explanation confusing.
@@ -1648,7 +1650,7 @@ Important writing rules:
 - Before scoring, complete the internal evidenceAudit. Classify delivery context, affirmative student participation evidence, diagnostic assessment evidence, and whether the transcript appears complete. This audit controls calibration but must not be mentioned as a visible report section.
 - For evidenceAudit, teacher questions, pauses, and teacher-supplied answers are not student participation. Use actual conversational turns, student answers or questions, submitted work, discussion, writing, board work, or application as affirmative evidence even when speaker labels are absent.
 - Mark assessmentEvidence as clear or strong only when actual student responses or work reveal understanding and support probing, correction, or an instructional decision. Question quantity alone is not assessment evidence.
-- Mark transcriptCompleteness as incomplete when the record clearly begins or ends mid-thought, has an abrupt cutoff, or otherwise captures only part of the stated lesson. Do not treat uncaptured content as omitted instruction.
+- Mark transcriptCompleteness as incomplete only when there is affirmative structural evidence that the record begins or ends mid-thought, has an abrupt cutoff, or captures only part of the stated lesson. A short recording by itself is not incomplete. Do not treat uncaptured content as omitted instruction.
 - Make every major section lesson-specific, not generic.
 - In each bullet, point to a concrete observed move, student behavior, question type, task design choice, or missed opportunity from this lesson.
 - Avoid repeating the same praise or critique in multiple sections.

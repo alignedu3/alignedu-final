@@ -82,7 +82,11 @@ const STRUCTURED_ANALYSIS_SCHEMA = {
         deliveryContext: { type: "string", enum: ["live_with_students", "prerecorded_or_no_students", "uncertain"] },
         studentEvidence: { type: "string", enum: ["none", "limited", "clear", "strong"] },
         assessmentEvidence: { type: "string", enum: ["none", "limited", "clear", "strong"] },
-        transcriptCompleteness: { type: "string", enum: ["complete", "incomplete", "uncertain"] },
+        transcriptCompleteness: {
+          type: "string",
+          enum: ["complete", "incomplete", "uncertain"],
+          description: "Use incomplete only for an affirmative cutoff or missing segment; lesson or transcript brevity alone is not evidence of incompleteness.",
+        },
         rationale: { type: "string" },
       },
     },
