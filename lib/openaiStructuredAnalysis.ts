@@ -7,6 +7,13 @@ type LabeledSection = {
 };
 
 type StructuredAnalysis = {
+  evidenceAudit: {
+    deliveryContext: "live_with_students" | "prerecorded_or_no_students" | "uncertain";
+    studentEvidence: "none" | "limited" | "clear" | "strong";
+    assessmentEvidence: "none" | "limited" | "clear" | "strong";
+    transcriptCompleteness: "complete" | "incomplete" | "uncertain";
+    rationale: string;
+  };
   metrics: {
     instructionalScore: number;
     coverage: number;
@@ -51,6 +58,7 @@ const STRUCTURED_ANALYSIS_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: [
+    "evidenceAudit",
     "metrics",
     "executiveSummary",
     "whatWentWell",
@@ -66,6 +74,18 @@ const STRUCTURED_ANALYSIS_SCHEMA = {
     "rubricEvaluation",
   ],
   properties: {
+    evidenceAudit: {
+      type: "object",
+      additionalProperties: false,
+      required: ["deliveryContext", "studentEvidence", "assessmentEvidence", "transcriptCompleteness", "rationale"],
+      properties: {
+        deliveryContext: { type: "string", enum: ["live_with_students", "prerecorded_or_no_students", "uncertain"] },
+        studentEvidence: { type: "string", enum: ["none", "limited", "clear", "strong"] },
+        assessmentEvidence: { type: "string", enum: ["none", "limited", "clear", "strong"] },
+        transcriptCompleteness: { type: "string", enum: ["complete", "incomplete", "uncertain"] },
+        rationale: { type: "string" },
+      },
+    },
     metrics: {
       type: "object",
       additionalProperties: false,
@@ -291,6 +311,10 @@ function cleanLabeledSections(value: unknown, maxItems = 6) {
 
 export function normalizeStructuredAnalysisPayload(payload: unknown): StructuredAnalysis {
   const typed = payload as Partial<StructuredAnalysis> | null;
+  const deliveryContext = typed?.evidenceAudit?.deliveryContext || "uncertain";
+  const studentEvidence = typed?.evidenceAudit?.studentEvidence || "none";
+  const assessmentEvidence = typed?.evidenceAudit?.assessmentEvidence || "none";
+  const transcriptCompleteness = typed?.evidenceAudit?.transcriptCompleteness || "uncertain";
   const contentGaps = cleanBullets(typed?.contentGapsToReinforce, 8);
   const noGapPlaceholder = contentGaps.length === 0 ? ["No major content gaps identified."] : contentGaps;
   const computedGapCount =
@@ -298,13 +322,39 @@ export function normalizeStructuredAnalysisPayload(payload: unknown): Structured
       ? 0
       : noGapPlaceholder.length;
 
+  const assessmentQuality = clampScore(typed?.metrics?.assessmentQuality, 75);
+  const engagement = clampScore(typed?.metrics?.engagement, 75);
+  const hasConfirmedNoStudentEvidence =
+    deliveryContext === "prerecorded_or_no_students" && studentEvidence === "none";
+  const calibratedEngagement = hasConfirmedNoStudentEvidence
+    ? Math.min(59, engagement)
+    : studentEvidence === "strong"
+      ? Math.max(80, engagement)
+      : studentEvidence === "clear"
+        ? Math.max(75, engagement)
+        : engagement;
+  const calibratedAssessment = hasConfirmedNoStudentEvidence
+    ? Math.min(59, assessmentQuality)
+    : assessmentEvidence === "strong"
+      ? Math.max(80, assessmentQuality)
+      : assessmentEvidence === "clear"
+        ? Math.max(75, assessmentQuality)
+        : assessmentQuality;
+
   return {
+    evidenceAudit: {
+      deliveryContext,
+      studentEvidence,
+      assessmentEvidence,
+      transcriptCompleteness,
+      rationale: cleanText(typed?.evidenceAudit?.rationale),
+    },
     metrics: {
       instructionalScore: clampScore(typed?.metrics?.instructionalScore, 75),
       coverage: clampScore(typed?.metrics?.coverage, 75),
       clarity: clampScore(typed?.metrics?.clarity, 75),
-      engagement: clampScore(typed?.metrics?.engagement, 75),
-      assessmentQuality: clampScore(typed?.metrics?.assessmentQuality, 75),
+      engagement: calibratedEngagement,
+      assessmentQuality: calibratedAssessment,
       gapsFlagged: clampScore(typed?.metrics?.gapsFlagged, computedGapCount),
     },
     executiveSummary: cleanText(typed?.executiveSummary),

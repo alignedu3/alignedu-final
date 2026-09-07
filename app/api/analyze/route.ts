@@ -337,6 +337,7 @@ function buildCoverageCalibrationContext(params: {
 - Score the stated or clearly inferable target of this submitted lesson, not every concept in an entire chapter, unit, or standards cluster unless the submission explicitly represents the full chapter or unit.
 - When no formal objective is supplied, infer the narrowest coherent target the teacher actually announces and develops; do not substitute the full textbook chapter as the target.
 - Treat clearly deferred content as outside this lesson's target. Do not lower Coverage merely because a reasonable multi-day sequence continues beyond this recording.
+- If the saved transcript clearly begins or ends mid-thought and appears incomplete, do not treat uncaptured chapter content as omitted instruction. Score the coherent lesson segment that is actually available and identify the evidence limitation in the narrative.
 - 90-100: Nearly all priority elements of the intended lesson target were taught accurately and with strong completeness.
 - 80-89: The core lesson target was taught well, with generally solid alignment and only limited omissions or thin spots.
 - 70-79: The lesson addressed the target meaningfully, but multiple important elements or distinctions remained partial or uneven.
@@ -388,7 +389,7 @@ Additional metric calibration:
 - Apply an evidence-based, non-deficit calibration. Do not begin at 100 and subtract for every possible improvement; place the lesson in the performance band best supported by the observed evidence.
 - Solid, effective instruction that meets the lesson's intended purpose should generally score 80-89. A lesson can have actionable next steps and still be effective.
 - Use 70-79 when meaningful strengths are present but notable inconsistencies materially limit learning. Use 60-69 only for clear, recurring weaknesses with substantial instructional impact. Reserve scores below 60 for seriously limited or ineffective evidence.
-- Do not treat evidence omitted by an audio transcript as evidence that a practice did not occur. Score what is observable and lower a metric only when the record contains affirmative evidence of weakness.
+- Do not treat evidence omitted by an audio transcript as evidence that a practice did not occur. Score what is observable and lower a metric only when the record contains affirmative evidence of weakness. However, a teacher asking a question or pausing is only an opportunity for participation—not evidence that a student responded.
 - Do not cluster metrics automatically. Score each category independently and cite the distinct evidence supporting its band.
 - Clarity:
   - Judge how understandable, precise, and coherent the explanations, modeling, examples, and transitions were. Keep content accuracy concerns separate unless an inaccuracy directly made the explanation confusing.
@@ -399,9 +400,11 @@ Additional metric calibration:
   - 60-69: Understandable in parts, but several explanations or distinctions were incomplete or confusing.
   - Below 60: Students would likely struggle to follow the lesson due to major imprecision or confusion.
 - Engagement:
+  - First determine from the full transcript whether students were actually present and participating. Use conversational content and turn patterns even when speaker labels are absent.
   - Judge meaningful cognitive and behavioral participation, not entertainment, noise level, or the raw number of teacher questions.
   - Credit substantive listening, wait time, writing, problem solving, discussion, questioning, explanation, and application when the lesson record provides evidence of them. Quiet independent thinking can be meaningful engagement.
   - Do not assume disengagement merely because an audio transcript omits nonverbal participation. Also do not award strong engagement for opportunities the teacher offered when the record shows little student uptake.
+  - Questions immediately answered by the teacher, rhetorical prompts, and narrated pauses are not student engagement. If the lesson is clearly prerecorded or has no students present, and no student work is submitted, Engagement should generally be below 60. A score of 80 or higher requires clear affirmative evidence of sustained student participation or work.
   - 90-100: Students consistently engaged in meaningful thinking, response, discussion, or application across the lesson.
   - 80-89: Clear, sustained participation and cognitive involvement were visible through much of the lesson.
   - 70-79: Meaningful engagement was present but inconsistent, concentrated among some students, or teacher-led for substantial portions.
@@ -413,6 +416,7 @@ Additional metric calibration:
   - Credit follow-up questions, requests for justification, student-to-student responses, teacher responses to misconceptions, and adjustments based on answers. Whole-class oral assessment is valid evidence when multiple students respond substantively.
   - Do not reward question quantity alone. Brief recall prompts, rhetorical questions, “everybody good?” checks, or answers supplied primarily by the teacher provide less diagnostic evidence.
   - Do not lower the score merely because every student was not individually documented in an audio transcript. Treat an all-student check as evidence that can strengthen a score, not as a prerequisite for a solid score.
+  - Distinguish teacher narration from actual student responses even when speaker labels are missing. If the teacher asks and then answers the questions in a prerecorded lesson, no student understanding was actually assessed. Without submitted student work, Assessment Quality should generally be below 60. A score of 80 or higher requires clear affirmative evidence that student responses or work revealed understanding.
   - 90-100: Multiple strong checks reveal student reasoning or mastery, and the teacher uses the evidence to probe, clarify, correct, or adjust instruction.
   - 80-89: Sustained oral or written checks provide clear, useful evidence of understanding through substantive student responses and appropriate follow-up, even without a formal exit ticket.
   - 70-79: Recurring checks provide some useful evidence, but responses are often brief, volunteer-based, recall-heavy, or inconsistently followed up.
@@ -1641,6 +1645,10 @@ Score the lesson with professional calibration. The scores do not need to match 
   const reportFormat = `Analyze this lesson transcript and provide feedback in the following structured format. Use these exact section headers and keep the feedback evidence-based, specific, and unbiased.
 
 Important writing rules:
+- Before scoring, complete the internal evidenceAudit. Classify delivery context, affirmative student participation evidence, diagnostic assessment evidence, and whether the transcript appears complete. This audit controls calibration but must not be mentioned as a visible report section.
+- For evidenceAudit, teacher questions, pauses, and teacher-supplied answers are not student participation. Use actual conversational turns, student answers or questions, submitted work, discussion, writing, board work, or application as affirmative evidence even when speaker labels are absent.
+- Mark assessmentEvidence as clear or strong only when actual student responses or work reveal understanding and support probing, correction, or an instructional decision. Question quantity alone is not assessment evidence.
+- Mark transcriptCompleteness as incomplete when the record clearly begins or ends mid-thought, has an abrupt cutoff, or otherwise captures only part of the stated lesson. Do not treat uncaptured content as omitted instruction.
 - Make every major section lesson-specific, not generic.
 - In each bullet, point to a concrete observed move, student behavior, question type, task design choice, or missed opportunity from this lesson.
 - Avoid repeating the same praise or critique in multiple sections.
