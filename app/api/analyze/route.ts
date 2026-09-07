@@ -335,6 +335,7 @@ function buildCoverageCalibrationContext(params: {
 
   const rubric = `Coverage scoring rubric:
 - Score the stated or clearly inferable target of this submitted lesson, not every concept in an entire chapter, unit, or standards cluster unless the submission explicitly represents the full chapter or unit.
+- When no formal objective is supplied, infer the narrowest coherent target the teacher actually announces and develops; do not substitute the full textbook chapter as the target.
 - Treat clearly deferred content as outside this lesson's target. Do not lower Coverage merely because a reasonable multi-day sequence continues beyond this recording.
 - 90-100: Nearly all priority elements of the intended lesson target were taught accurately and with strong completeness.
 - 80-89: The core lesson target was taught well, with generally solid alignment and only limited omissions or thin spots.
@@ -384,6 +385,11 @@ function buildMetricCalibrationContext(params: {
   return `${params.coverageCalibrationContext}
 
 Additional metric calibration:
+- Apply an evidence-based, non-deficit calibration. Do not begin at 100 and subtract for every possible improvement; place the lesson in the performance band best supported by the observed evidence.
+- Solid, effective instruction that meets the lesson's intended purpose should generally score 80-89. A lesson can have actionable next steps and still be effective.
+- Use 70-79 when meaningful strengths are present but notable inconsistencies materially limit learning. Use 60-69 only for clear, recurring weaknesses with substantial instructional impact. Reserve scores below 60 for seriously limited or ineffective evidence.
+- Do not treat evidence omitted by an audio transcript as evidence that a practice did not occur. Score what is observable and lower a metric only when the record contains affirmative evidence of weakness.
+- Do not cluster metrics automatically. Score each category independently and cite the distinct evidence supporting its band.
 - Clarity:
   - Judge how understandable, precise, and coherent the explanations, modeling, examples, and transitions were. Keep content accuracy concerns separate unless an inaccuracy directly made the explanation confusing.
   - Do not penalize normal speech disfluencies, transcription errors, missing punctuation, or audio artifacts unless they reflect a genuine instructional clarity problem.
@@ -414,7 +420,7 @@ Additional metric calibration:
   - Below 60: Little reliable evidence that student understanding was elicited or examined.
 - Instructional Score:
   - Calculate this transparently as Coverage 30%, Clarity 25%, Engagement 20%, and Assessment Quality 25%, rounded to the nearest whole number. Do not add a balance bonus or any other hidden adjustment.
-  - Effective, on-target teaching with solid execution will usually land in the 80-88 range.
+  - Effective, on-target teaching with solid execution will usually land in the 80-89 range.
   - Use the 70s for lessons that show clear strengths but also notable inconsistency, thin spots, or multiple refinement areas.
   - Reserve 90+ for truly exceptional execution and reserve below 65 for clearly weak lessons.
   - Do not anchor Instructional Score or Coverage to the number of gap bullets alone.
