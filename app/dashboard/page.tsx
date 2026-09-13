@@ -162,6 +162,7 @@ export default function TeacherDashboard() {
   }, [lessonsPage, lessonsPageCount]);
 
   useEffect(() => {
+    if (!ready) return;
     if (!semesterOptions.length) return;
     if (!selectedSemester) {
       setSelectedSemester(activeSemester);
@@ -170,7 +171,7 @@ export default function TeacherDashboard() {
     if (selectedSemester !== 'all' && !semesterOptions.some((option) => option.value === selectedSemester)) {
       setSelectedSemester(semesterOptions[0].value);
     }
-  }, [activeSemester, selectedSemester, semesterOptions]);
+  }, [activeSemester, ready, selectedSemester, semesterOptions]);
 
   useEffect(() => {
     setLessonsPage(1);
@@ -259,7 +260,7 @@ export default function TeacherDashboard() {
     scoreDiff > 0
       ? "Your instructional quality is improving."
       : scoreDiff < 0
-      ? "Performance dipped — review recent lesson gaps."
+      ? "Performance dipped — review the latest lesson feedback."
       : "Performance is stable across lessons.";
 
   const latestReportSections = useMemo(
@@ -288,7 +289,7 @@ export default function TeacherDashboard() {
       const lowerFocus = focusLabel.toLowerCase();
       const lowerDetail = detail.toLowerCase();
 
-      if (/^(add|use|plan|reteach|model|review|check|clarify|have|ask|revisit|anchor|include|tighten|connect|provide|incorporate|focus|build|end|start)\b/i.test(cleaned)) {
+      if (/^(add|use|plan|reteach|model|review|check|clarify|have|ask|revisit|replace|reinforce|distinguish|require|reduce|explain|correct|compare|develop|anchor|include|tighten|connect|provide|incorporate|focus|build|end|start)\b/i.test(cleaned)) {
         return cleaned.replace(/\.$/, '') + '.';
       }
 
