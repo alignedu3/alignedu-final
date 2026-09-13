@@ -4,6 +4,7 @@ import { createClient as createServerClient } from '@/lib/supabase/server';
 import { getErrorMessage } from '@/lib/errorHandling';
 import { captureRouteException } from '@/lib/sentryRoute';
 import { canUseDallasRubricPilot, hidePilotRubricFields } from '@/lib/evaluationRubrics';
+import { getUserWithRetry, isInvalidSessionError } from '@/lib/supabase/authUser';
 
 function getServiceSupabase() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -24,10 +25,11 @@ export async function GET() {
     const {
       data: { user },
       error: authError,
-    } = await serverSupabase.auth.getUser();
+    } = await getUserWithRetry(serverSupabase);
 
     if (authError) {
-      return NextResponse.json({ success: false, error: authError.message }, { status: 401 });
+      const status = isInvalidSessionError(authError) ? 401 : 503;
+      return NextResponse.json({ success: false, error: status === 401 ? 'Not authenticated' : 'Session verification is temporarily unavailable. Please retry.' }, { status });
     }
 
     if (!user) {

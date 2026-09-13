@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextRequest, NextResponse } from 'next/server';
 import { captureRouteException } from '@/lib/sentryRoute';
+import { getUserWithRetry, isInvalidSessionError } from '@/lib/supabase/authUser';
 
 export async function GET(request: NextRequest) {
   const response = NextResponse.json({ user: null, profile: null }, { status: 200 });
@@ -39,7 +40,16 @@ export async function GET(request: NextRequest) {
 
     const {
       data: { user },
-    } = await supabase.auth.getUser();
+      error: authError,
+    } = await getUserWithRetry(supabase);
+
+    if (authError) {
+      const status = isInvalidSessionError(authError) ? 401 : 503;
+      return NextResponse.json(
+        { user: null, profile: null, error: status === 401 ? 'Not authenticated' : 'Session verification is temporarily unavailable.' },
+        { status, headers: response.headers }
+      );
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -85,9 +95,9 @@ export async function GET(request: NextRequest) {
       user: sentryUser,
     });
     return NextResponse.json(
-      { user: null, profile: null },
+      { user: null, profile: null, error: 'Session verification is temporarily unavailable.' },
       {
-        status: 200,
+        status: 503,
         headers: response.headers,
       }
     );

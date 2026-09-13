@@ -52,7 +52,7 @@ export default function Header() {
       }
 
       try {
-        const { data } = await fetchJsonWithTimeout<{
+        const { response, data } = await fetchJsonWithTimeout<{
           user?: AuthUser | null;
           profile?: ProfileRecord | null;
         }>('/api/auth/me', {
@@ -60,6 +60,10 @@ export default function Header() {
           cache: 'no-store',
           timeoutMs: 5000,
         });
+
+        if (!response.ok) {
+          throw new Error(response.status === 401 ? 'Session expired.' : 'Session verification is temporarily unavailable.');
+        }
 
         if (!isMounted) return;
 
@@ -85,11 +89,13 @@ export default function Header() {
       } catch (error) {
         if (!isMounted) return;
         console.error('Header auth sync failed:', error);
-        Sentry.setUser(null);
-        Sentry.setTag('app_role', 'guest');
-        setUser(null);
-        setProfile(null);
-        setOpen(false);
+        if (error instanceof Error && error.message === 'Session expired.') {
+          Sentry.setUser(null);
+          Sentry.setTag('app_role', 'guest');
+          setUser(null);
+          setProfile(null);
+          setOpen(false);
+        }
       }
     };
 
@@ -108,7 +114,15 @@ export default function Header() {
     const supabase = createClient();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      async () => {
+      async (event) => {
+        if (event === 'INITIAL_SESSION') return;
+        if (event === 'SIGNED_OUT') {
+          if (!isMounted) return;
+          setUser(null);
+          setProfile(null);
+          setOpen(false);
+          return;
+        }
         await syncUserAndProfile();
       }
     );
@@ -117,7 +131,7 @@ export default function Header() {
       isMounted = false;
       listener.subscription.unsubscribe();
     };
-  }, [pathname]);
+  }, []);
 
   // ✅ close dropdown on outside click
   useEffect(() => {
