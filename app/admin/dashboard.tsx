@@ -593,11 +593,13 @@ export default function AdminDashboard() {
     () =>
       teacherStatsBase.map((teacher) => {
         const linkedPlan = supportPlanByTeacherId.get(teacher.id);
-        const needsAttention = Boolean(linkedPlan?.requiresPrioritySupport || teacher.avgScore < 75);
+        const needsAttention = Boolean(linkedPlan?.requiresPrioritySupport || teacher.avgScore < 70);
+        const supportLevel = needsAttention ? 'At-Risk' : teacher.avgScore >= 80 ? 'Strong' : 'Monitor';
 
         return {
           ...teacher,
           needsAttention,
+          supportLevel,
           supportPriorityScore: linkedPlan?.supportPriorityScore ?? 0,
         };
       }),
@@ -613,7 +615,7 @@ export default function AdminDashboard() {
     })
     .slice(0, 3);
 
-  const strongCount = teacherStats.filter(t => !t.needsAttention).length;
+  const strongCount = teacherStats.filter(t => t.supportLevel === 'Strong').length;
   const supportCount = teacherStats.filter(t => t.needsAttention).length;
   const visibleTeacherStats = teacherStats.filter((teacher) =>
     teacher.name.toLowerCase().includes(performanceSearch.trim().toLowerCase())
@@ -630,7 +632,7 @@ export default function AdminDashboard() {
       return {
         teacherName: 'Instructional Team',
         summary: 'No individual teacher currently meets the threshold for priority support.',
-        priorityReason: 'Current lesson data does not show a teacher with a significant decline, multiple content gaps, or a low enough recent score to justify naming one priority teacher.',
+        priorityReason: 'Current lesson data does not show a teacher with a sufficiently low or declining performance pattern to justify naming one priority teacher.',
         adminAction: 'Continue regular walkthroughs, monitor emerging trends, and use PLC or coaching touchpoints to reinforce strong practice across the team.',
         lookFors: [
           'High-leverage teacher moves stay visible across lessons.',
@@ -1238,7 +1240,7 @@ export default function AdminDashboard() {
         const isTeacherList = modalType === 'strong' || modalType === 'atrisk';
         const rows = isTeacherList
           ? teacherStats
-              .filter(t => modalType === 'strong' ? !t.needsAttention : t.needsAttention)
+              .filter(t => modalType === 'strong' ? t.supportLevel === 'Strong' : t.supportLevel === 'At-Risk')
               .sort((a, b) => modalType === 'strong' ? b.avgScore - a.avgScore : a.avgScore - b.avgScore)
           : modalType === 'quality'
             ? [...lessonRows].sort((a, b) => b.score - a.score)
@@ -1253,8 +1255,8 @@ export default function AdminDashboard() {
         const modalSubs: Record<string, string> = {
           quality: 'Sorted by score (high to low). Score is weighted across coverage, clarity, engagement, and gap impact.',
           lessons: 'Sorted by date (most recent first).',
-          strong: 'Teachers with an average lesson score ≥ 75.',
-          atrisk: 'Teachers with an average lesson score below 75.',
+          strong: 'Teachers with an average lesson score of 80 or higher.',
+          atrisk: 'Teachers with scores below 70, repeated low performance, or a below-target score paired with a meaningful decline.',
         };
 
         return (

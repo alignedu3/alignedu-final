@@ -1093,33 +1093,23 @@ export function buildAdminSupportPlanForTeacher(
             : 'The latest lesson held steady compared with the previous lesson';
 
   const supportPriorityScore =
-    Math.max(0, 78 - latestMetrics.score) +
-    Math.max(0, 78 - recentAverageScore) +
-    Math.max(0, 76 - weakestDomain.value) +
-    weakestDomain.belowTargetCount * 5 +
-    Math.min(12, openGapSummary.total * 4) +
-    latestMetrics.gaps * 6 +
+    Math.max(0, 75 - latestMetrics.score) * 2 +
+    Math.max(0, 75 - recentAverageScore) * 2 +
+    Math.max(0, 70 - weakestDomain.value) +
     (trend <= -5 ? Math.min(12, trendMagnitude * 2) : 0) +
     (overallTrend < 0 ? Math.min(16, overallTrendMagnitude) : 0);
 
+  const recentLowScoreCount = recentMetrics.filter((metric) => metric.score < 70).length;
   const requiresPrioritySupport =
-    latestMetrics.score < 75 ||
-    recentAverageScore < 76 ||
-    weakestDomain.value < 72 ||
-    weakestDomain.belowTargetCount >= 2 ||
-    latestMetrics.gaps >= 2 ||
-    openGapSummary.topicsWithOpenGaps >= 2 ||
-    trend <= -5 ||
-    overallTrend <= -8 ||
-    (latestMetrics.score < 78 && latestMetrics.gaps > 0 && weakestDomain.value < 74);
+    latestMetrics.score < 70 ||
+    recentAverageScore < 70 ||
+    recentLowScoreCount >= 2 ||
+    ((latestMetrics.score < 75 || recentAverageScore < 75) && (trend <= -5 || overallTrend <= -8));
 
   const priorityReasonParts = [
     `${teacherName} is the priority because ${weakestDomain.label} remains the clearest support need`,
     weakestDomain.belowTargetCount >= 2
       ? `it has been below target in ${weakestDomain.belowTargetCount} of the last ${recentReports.length} lesson${recentReports.length === 1 ? '' : 's'}`
-      : null,
-    openGapSummary.total > 0
-      ? `${openGapSummary.total} open gap${openGapSummary.total === 1 ? '' : 's'} still remain across current lesson topics`
       : null,
   ].filter(Boolean);
   const priorityReason = `${priorityReasonParts.join(', ')}.`;

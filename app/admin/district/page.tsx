@@ -144,6 +144,12 @@ export default function DistrictDashboard() {
         );
         const latestReport = teacherReports[0];
         const latestMetrics = latestReport ? getLessonMetrics(latestReport) : null;
+        const trend = getLatestLessonTrend(teacherReports);
+        const recentScores = teacherReports.slice(0, 3).map(calculateLessonScore);
+        const recentAverageScore = recentScores.length
+          ? Math.round(recentScores.reduce((sum, score) => sum + score, 0) / recentScores.length)
+          : 0;
+        const recentLowScoreCount = recentScores.filter((score) => score < 70).length;
         const averageScore = teacherReports.length
           ? Math.round(
               teacherReports.reduce((sum, report) => sum + calculateLessonScore(report), 0) / teacherReports.length
@@ -158,13 +164,16 @@ export default function DistrictDashboard() {
           latestScore: latestMetrics?.score ?? 0,
           latestCoverage: latestMetrics?.coverage ?? 0,
           gaps: latestMetrics?.gaps ?? 0,
-          trend: getLatestLessonTrend(teacherReports),
+          trend,
           supportLevel:
             teacherReports.length === 0
               ? 'No Data'
-              : averageScore < 75 || (latestMetrics?.gaps ?? 0) >= 2
+              : (latestMetrics?.score ?? 0) < 70 ||
+                  recentAverageScore < 70 ||
+                  recentLowScoreCount >= 2 ||
+                  (((latestMetrics?.score ?? 0) < 75 || recentAverageScore < 75) && trend <= -5)
               ? 'Priority'
-              : averageScore < 82
+              : averageScore < 80
                 ? 'Monitor'
                 : 'Stable',
         };
