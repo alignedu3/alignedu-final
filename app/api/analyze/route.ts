@@ -393,6 +393,8 @@ Additional metric calibration:
 - Lesson duration, transcript length, word count, and raw question count must not directly raise or lower any metric. A short, focused lesson can earn an exceptional score when it fully accomplishes its intended target, and a long lesson earns no advantage merely for containing more words or activities.
 - Judge the quality and sufficiency of evidence relative to the scope of the lesson target. Do not confuse brevity with weak instruction or length with rigor.
 - Do not cluster metrics automatically. Score each category independently and cite the distinct evidence supporting its band.
+- Before assigning each number, select the rubric band supported by the evidence, then choose an integer within that band. Confirm that the report's own description of the evidence matches the selected band.
+- Run a final consistency check before returning the metrics: do not place recurring useful checks in the 60s, do not place mostly brief or teacher-directed participation in the 80s, and do not reduce Coverage because a chapter or multi-day sequence intentionally continues after this submitted lesson.
 - Clarity:
   - Judge how understandable, precise, and coherent the explanations, modeling, examples, and transitions were. Keep content accuracy concerns separate unless an inaccuracy directly made the explanation confusing.
   - Do not penalize normal speech disfluencies, transcription errors, missing punctuation, or audio artifacts unless they reflect a genuine instructional clarity problem.
@@ -1163,15 +1165,43 @@ function transcriptShingleSimilarity(firstTranscript: string, secondTranscript: 
   return union > 0 ? intersection / union : 0;
 }
 
-function notesIndicateLessonContinuation(text: string) {
+type LessonRelationship = "same_session_part" | "separate_session" | "unspecified";
+
+function inferLessonRelationshipFromNotes(text: string): LessonRelationship {
   const normalized = String(text || "").toLowerCase().replace(/\s+/g, " ");
-  return [
+  const differentCohortPatterns = [
+    /\b(?:another|different|next)\s+(?:class\s+)?period\b/,
+    /\b(?:same|this)\s+(?:lesson|material|chapter|content)\s+(?:(?:is|was|being)\s+)?(?:taught|delivered|presented)\s+(?:again|to another|to a different)\b/,
+    /\b(?:reteach|reteach(?:ing)?|taught again|repeat(?:ing|ed)? the lesson)\b/,
+  ];
+  if (differentCohortPatterns.some((pattern) => pattern.test(normalized))) {
+    return "separate_session";
+  }
+
+  const sameSessionPatterns = [
     /\bpart\s*(?:[2-9]|two|three|four|five|six|seven|eight|nine)\s*(?:of\s*(?:[2-9]|two|three|four|five|six|seven|eight|nine))?\b/,
     /\b(?:second|third|fourth|fifth|sixth|seventh|eighth|ninth|2nd|3rd|4th|5th|6th|7th|8th|9th)\s+(?:video|recording|upload|part)\b/,
     /\b(?:final|last)\s+(?:video|recording|upload|part)\b/,
-    /\b(?:same|continuing|continued)\s+(?:day'?s\s+)?(?:lesson|chapter)\b/,
-    /\bcontinuation\s+(?:of|from)\b/,
-  ].some((pattern) => pattern.test(normalized));
+    /\b(?:same|current)\s+(?:day'?s\s+)?(?:class|lesson|session|period)\b/,
+    /\b(?:same|continuing|continued)\s+(?:audio|recording|video|upload)\b/,
+    /\b(?:recording|audio|video)\s+(?:stopped|cut off|was interrupted|continued|continues)\b/,
+    /\b(?:rest|remainder|continuation)\s+of\s+(?:the\s+)?(?:same\s+)?(?:recording|audio|video|upload)\b/,
+    /\b(?:continuing|continued|continuation)\s+(?:from\s+)?(?:yesterday|last class|the previous class|a previous day|last week|the previous week)\b/,
+    /\b(?:continuing|continued|continuation\s+of)\s+(?:the\s+)?(?:previous|prior|last)\s+(?:class|lesson|session|chapter)\b/,
+    /\b(?:continue|continuing|finish|finishing|complete|completing)\s+(?:the\s+)?(?:same\s+)?(?:chapter|unit|previous lesson)\b/,
+    /\b(?:remaining|rest of the)\s+(?:chapter|unit|lesson content)\b/,
+  ];
+  if (sameSessionPatterns.some((pattern) => pattern.test(normalized))) {
+    return "same_session_part";
+  }
+
+  const separateSessionPatterns = [
+    /\b(?:new|different|another)\s+(?:instructional\s+)?(?:class|session|lesson|unit)\b/,
+    /\b(?:unrelated|different)\s+(?:chapter|topic|content)\b/,
+  ];
+  return separateSessionPatterns.some((pattern) => pattern.test(normalized))
+    ? "separate_session"
+    : "unspecified";
 }
 
 function extractClassPeriod(text: string) {
@@ -1250,8 +1280,9 @@ async function findReusableAnalysis(params: {
   subject: string;
   lessonContextTitle: string;
   transcript: string;
+  classPeriod: string | null;
 }) {
-  const { targetUserId, grade, subject, lessonContextTitle, transcript } = params;
+  const { targetUserId, grade, subject, lessonContextTitle, transcript, classPeriod } = params;
   const fingerprint = fingerprintTranscript(transcript);
 
   if (!lessonContextTitle || !fingerprint) {
@@ -1276,6 +1307,8 @@ async function findReusableAnalysis(params: {
 
   const match = (data || []).find((analysis) => {
     const candidateTranscript = typeof analysis.transcript === "string" ? analysis.transcript : "";
+    const candidateClassPeriod = extractClassPeriod(candidateTranscript);
+    if (classPeriod && candidateClassPeriod !== classPeriod) return false;
     return fingerprintTranscript(candidateTranscript) === fingerprint ||
       transcriptShingleSimilarity(candidateTranscript, transcript) >= 0.985;
   });
@@ -1520,7 +1553,8 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
         ? `${book} ${chapter}`
         : chapter
     : '';
-  const shouldCombineWithPrevious = combineWithPrevious || notesIndicateLessonContinuation(lectureText);
+  const inferredLessonRelationship = inferLessonRelationshipFromNotes(lectureText);
+  const shouldCombineWithPrevious = combineWithPrevious || inferredLessonRelationship === "same_session_part";
   const classPeriod = extractClassPeriod(lectureText);
   const previousLessonPart = shouldCombineWithPrevious
     ? await findPreviousLessonPart({ targetUserId, grade, subject, lessonContextTitle, classPeriod })
@@ -1586,7 +1620,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
     subject,
   });
 
-  const reusableAnalysis = rubricId
+  const reusableAnalysis = rubricId || inferredLessonRelationship === "separate_session"
     ? null
     : await findReusableAnalysis({
         targetUserId,
@@ -1594,6 +1628,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
         subject,
         lessonContextTitle,
         transcript,
+        classPeriod,
       });
 
   if (reusableAnalysis) {
