@@ -1235,6 +1235,20 @@ export default function AnalysisPage() {
     }
   };
 
+  const readableRequestError = (value: unknown, fallback: string) => {
+    if (typeof value === "string" && value.trim()) {
+      if (value.includes("/auth/v1/user")) {
+        return "We couldn't verify your session. Please refresh and try again. If it continues, sign in again.";
+      }
+      return value;
+    }
+    if (value && typeof value === "object" && "message" in value) {
+      const message = (value as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim()) return message;
+    }
+    return fallback;
+  };
+
   const buildCombinedWaitTimeEvidence = (responses: Array<{
     responseWaitEvidence?: string;
     promptPauseCount?: number;
@@ -1319,7 +1333,7 @@ export default function AnalysisPage() {
 
         const data = await parseJsonOrText(response);
         if (!response.ok) {
-          throw new Error(data?.error || "Audio transcription failed.");
+          throw new Error(readableRequestError(data?.error, "Audio transcription failed."));
         }
 
         responses[currentIndex] = data;
@@ -1759,7 +1773,10 @@ export default function AnalysisPage() {
 
       if (!res.ok) {
         setError(
-          data?.error || data?.details || data?.result || "Analysis failed, but system recovered."
+          readableRequestError(
+            data?.error || data?.details || data?.result,
+            "Analysis could not be completed. Please try again."
+          )
         );
         setResult(data?.result || "");
         setLoading(false);

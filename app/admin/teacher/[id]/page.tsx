@@ -139,9 +139,7 @@ export default function AdminTeacherPage() {
       return { avg: 0, trend: 0, status: 'Unknown', readout: 'No results available yet.', focus: 'Analyze a lesson to establish an instructional baseline.' };
     }
 
-    const avg = summary.averageScore;
     const trend = getLatestLessonTrend(reports);
-    const status = avg >= 85 ? 'Strong' : avg >= 75 ? 'Developing' : 'Priority Support';
     const trendText = trend >= 5
       ? `The latest lesson improved ${Math.round(trend)} points from the previous lesson.`
       : trend <= -5
@@ -150,6 +148,10 @@ export default function AdminTeacherPage() {
     const readout = trendText;
 
     const recentMetrics = reports.slice(0, 3).map(getLessonMetrics);
+    const recentAverage = Math.round(
+      recentMetrics.reduce((sum, metric) => sum + metric.score, 0) / recentMetrics.length
+    );
+    const status = recentAverage >= 85 ? 'Strong' : recentAverage >= 70 ? 'Developing' : 'Coaching Priority';
     const domains = [
       { label: 'standards alignment', values: recentMetrics.map((metric) => metric.coverage) },
       { label: 'instructional clarity', values: recentMetrics.map((metric) => metric.clarity) },
@@ -271,10 +273,9 @@ export default function AdminTeacherPage() {
             <h2 style={title}>Administrator Support Plan</h2>
             <div style={supportHeader}>
               <div>
-                <div style={label}>Priority Focus</div>
+                <div style={label}>Coaching Focus</div>
                 <div style={findingsTitle}>{adminSupportPlan.teacherName}</div>
               </div>
-              <div style={supportChip}>{adminSupportPlan.followUpTimeline}</div>
             </div>
             <div style={{ ...text, marginTop: 10 }}>
               <strong>Administrator action:</strong> {adminSupportPlan.adminAction}
@@ -597,18 +598,6 @@ const supportHeader: React.CSSProperties = {
   gap: 12,
   flexWrap: 'wrap',
   marginBottom: 8
-};
-
-const supportChip: React.CSSProperties = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  padding: '8px 12px',
-  borderRadius: 999,
-  background: 'rgba(249,115,22,0.12)',
-  border: '1px solid rgba(249,115,22,0.18)',
-  color: '#fdba74',
-  fontSize: 12,
-  fontWeight: 700
 };
 
 const supportDetails: React.CSSProperties = {

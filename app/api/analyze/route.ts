@@ -2467,7 +2467,23 @@ export async function POST(req: Request) {
     await cookies();
     const anonSupabase = await createServerClient();
 
-    const { data: { user } } = await anonSupabase.auth.getUser();
+    let authLookup = await anonSupabase.auth.getUser();
+    if (authLookup.error) {
+      // Supabase auth lookups can fail transiently at /auth/v1/user. Retry once
+      // before asking the user to refresh or sign in again.
+      authLookup = await anonSupabase.auth.getUser();
+    }
+    if (authLookup.error) {
+      console.error("ANALYZE AUTH LOOKUP FAILED:", authLookup.error);
+      return safeJson(
+        {
+          result: null,
+          error: "We couldn't verify your session. Please refresh and try again. If it continues, sign in again.",
+        },
+        503
+      );
+    }
+    const { user } = authLookup.data;
     let callerProfile: { role?: string | null; name?: string | null } | null = null;
     let callerRole: string | null = null;
     const observedTeacherValue = formData.get("observedTeacherId");
@@ -2673,16 +2689,19 @@ export async function POST(req: Request) {
     console.error("ANALYZE ERROR:", err);
 
     const message = getErrorMessage(err, "Analysis failed");
-    const userError = message.includes("longer than")
-      ? "Audio is too long for transcription. Please upload a file under 90 minutes."
-      : message;
+    const authLookupFailed = message.includes("/auth/v1/user");
+    const userError = authLookupFailed
+      ? "We couldn't verify your session. Please refresh and try again. If it continues, sign in again."
+      : message.includes("longer than")
+        ? "Audio is too long for transcription. Please upload a file under 90 minutes."
+        : message;
 
     return safeJson(
       {
         result: null,
         error: userError,
       },
-      400
+      authLookupFailed ? 503 : 400
     );
   }
 }

@@ -107,7 +107,21 @@ export async function POST(req: Request) {
   try {
     const supabase = await createServerClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
+    let authLookup = await supabase.auth.getUser();
+    if (authLookup.error) {
+      authLookup = await supabase.auth.getUser();
+    }
+    if (authLookup.error) {
+      console.error("TRANSCRIBE AUTH LOOKUP FAILED:", authLookup.error);
+      return safeJson(
+        {
+          transcript: "",
+          error: "We couldn't verify your session. Please refresh and try again. If it continues, sign in again.",
+        },
+        503
+      );
+    }
+    const { user } = authLookup.data;
     if (!user) {
       return safeJson({ transcript: "", error: "Not authenticated" }, 401);
     }
@@ -135,12 +149,16 @@ export async function POST(req: Request) {
     return safeJson({ transcript, error: null, ...waitTimeEvidence });
   } catch (err) {
     console.error("TRANSCRIBE ERROR:", err);
+    const message = getErrorMessage(err, "Error transcribing audio chunk. Please try again.");
+    const authLookupFailed = message.includes("/auth/v1/user");
     return safeJson(
       {
         transcript: "",
-        error: getErrorMessage(err, "Error transcribing audio chunk. Please try again."),
+        error: authLookupFailed
+          ? "We couldn't verify your session. Please refresh and try again. If it continues, sign in again."
+          : message,
       },
-      400
+      authLookupFailed ? 503 : 400
     );
   }
 }

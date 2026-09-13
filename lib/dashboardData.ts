@@ -63,7 +63,6 @@ export type AdminSupportPlan = {
   priorityReason: string;
   adminAction: string;
   lookFors: string[];
-  followUpTimeline: string;
   supportPriorityScore?: number;
   requiresPrioritySupport?: boolean;
   lessonSpecificNextMove?: string;
@@ -1145,11 +1144,6 @@ export function buildAdminSupportPlanForTeacher(
         : 'The targeted support move is visible and strengthens overall lesson coherence.',
   ];
 
-  const followUpTimeline =
-    latestMetrics.score < 70 || recentAverageScore < 72 || weakestDomain.value < 65 || latestMetrics.gaps >= 3 || trend <= -8 || overallTrend <= -10
-      ? 'Follow up within 5 instructional days.'
-      : 'Follow up within 7 to 10 instructional days.';
-
   const summaryParts = [
     `${teacherName} needs targeted support in ${weakestDomain.label}.`,
     `The latest lesson scored ${latestMetrics.score}/100, with ${weakestDomain.label} at ${weakestDomain.value}/100.`,
@@ -1167,7 +1161,6 @@ export function buildAdminSupportPlanForTeacher(
     priorityReason,
     adminAction,
     lookFors,
-    followUpTimeline,
     supportPriorityScore,
     requiresPrioritySupport,
     lessonSpecificNextMove: reportSections.recommendedNextStep

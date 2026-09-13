@@ -624,11 +624,6 @@ export default function AdminDashboard() {
     ? Math.round(teacherStats.reduce((sum, t) => sum + t.avgScore, 0) / teacherStats.length)
     : summary.averageScore;
 
-  const systemInsight =
-    adminQualityScore < 75
-      ? "System performance is declining due to gaps in lesson closure and concept reinforcement."
-      : "Instructional quality is strong with consistent standards alignment.";
-
   const recommendedSupportPlan = useMemo<AdminSupportPlan>(() => {
     const primary = adminSupportPlans.find((plan) => plan.requiresPrioritySupport);
     if (!primary) {
@@ -641,7 +636,6 @@ export default function AdminDashboard() {
           'High-leverage teacher moves stay visible across lessons.',
           'Strong practice is shared with the broader team.',
         ],
-        followUpTimeline: 'Review again during the next monthly leadership cycle.',
       };
     }
 
@@ -837,7 +831,6 @@ export default function AdminDashboard() {
               </div>
               <div style={supportPlanTeacher}>{recommendedSupportPlan.teacherName}</div>
             </div>
-            <div style={supportPlanChip}>{recommendedSupportPlan.followUpTimeline}</div>
           </div>
           <p style={text}>{recommendedSupportPlan.summary}</p>
           <div style={{ ...text, marginTop: 10 }}>
@@ -867,8 +860,7 @@ export default function AdminDashboard() {
           <div style={trendHeader}>
             <div>
               <div style={sectionEyebrow}>Team Momentum</div>
-              <h2 style={{ ...title, marginBottom: 6 }}>Instructional Performance Over Time</h2>
-              <p style={{ ...text, margin: 0 }}>{systemInsight}</p>
+              <h2 style={{ ...title, marginBottom: 0 }}>Instructional Performance Over Time</h2>
             </div>
             <div style={trendControls}>
               <label style={trendFilterField}>
@@ -1600,7 +1592,6 @@ const menuItemDanger: React.CSSProperties = { color: '#dc2626' };
 const supportPlanHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 8 };
 const supportPlanLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: 700, marginBottom: 4 };
 const supportPlanTeacher: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 20, fontWeight: 800 };
-const supportPlanChip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', padding: '8px 12px', borderRadius: 999, background: 'rgba(249,115,22,0.10)', color: '#c2410c', border: '1px solid rgba(249,115,22,0.18)', fontSize: 12, fontWeight: 700 };
 const actionList: React.CSSProperties = { margin: '10px 0 0 18px', color: 'var(--text-primary)', padding: 0 };
 const actionItem: React.CSSProperties = { marginBottom: 8, lineHeight: 1.4 };
 const modalCancelBtn: React.CSSProperties = { border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', borderRadius: 8, padding: '8px 12px', fontSize: 13, cursor: 'pointer' };
