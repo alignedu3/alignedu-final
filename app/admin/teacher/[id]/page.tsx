@@ -136,7 +136,7 @@ export default function AdminTeacherPage() {
 
   const overview = useMemo(() => {
     if (!reports.length) {
-      return { avg: 0, trend: 0, status: 'Unknown', readout: 'No results available yet.', focus: 'Analyze a lesson to establish an instructional baseline.' };
+      return { trend: 0, status: 'Unknown', readout: 'No results available yet.', focus: 'Analyze a lesson to establish an instructional baseline.' };
     }
 
     const trend = getLatestLessonTrend(reports);
@@ -161,8 +161,8 @@ export default function AdminTeacherPage() {
     const weakestDomain = [...domains].sort((a, b) => a.average - b.average)[0];
     const focus = weakestDomain.label.charAt(0).toUpperCase() + weakestDomain.label.slice(1);
 
-    return { avg, trend: Math.round(trend), status, readout, focus };
-  }, [reports, summary.averageScore]);
+    return { trend: Math.round(trend), status, readout, focus };
+  }, [reports]);
 
   const chartData = useMemo(() => getTrendData(reports), [reports]);
 
