@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { createClient, hasSupabaseBrowserEnv } from '@/lib/supabase/client';
 import { useTheme } from '@/app/context/ThemeContext';
@@ -22,7 +22,6 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const router = useRouter();
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
 
@@ -162,6 +161,17 @@ export default function Header() {
     Sentry.setTag('app_role', 'guest');
 
     try {
+      await fetchJsonWithTimeout('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        timeoutMs: 5000,
+      });
+    } catch (error) {
+      // A local reset still signs the user out of this browser if revocation is unavailable.
+      console.warn('Server logout was unavailable; completing local logout.', error);
+    }
+
+    try {
       document.cookie
         .split(';')
         .map((cookie) => cookie.trim())
@@ -183,29 +193,9 @@ export default function Header() {
       } catch {
         // Ignore storage access issues in restricted browser contexts.
       }
-
-      if (hasSupabaseBrowserEnv()) {
-        const supabase = createClient();
-        void Promise.allSettled([
-          supabase.auth.signOut({ scope: 'local' }),
-          fetchJsonWithTimeout('/api/auth/logout', {
-            method: 'POST',
-            credentials: 'include',
-            timeoutMs: 4000,
-          }),
-        ]);
-      } else {
-        void fetchJsonWithTimeout('/api/auth/logout', {
-          method: 'POST',
-          credentials: 'include',
-          timeoutMs: 4000,
-        });
-      }
     } catch (error) {
       console.error('Logout failed, forcing local reset:', error);
     } finally {
-      router.replace('/login');
-      router.refresh();
       window.location.replace('/login');
     }
   };

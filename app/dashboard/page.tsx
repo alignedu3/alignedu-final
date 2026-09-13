@@ -515,12 +515,8 @@ export default function TeacherDashboard() {
         {dbReports.length === 0 && <GettingStartedChecklist role="teacher" />}
 
         <section style={periodFilterBar} className="teacher-period-filter" aria-label="Teacher reporting period">
-          <div>
-            <div style={{ ...sectionEyebrow, marginBottom: 3 }}>Reporting Period</div>
-            <div style={periodFilterTitle}>View your instructional performance by semester</div>
-          </div>
           <label style={periodFilterField}>
-            <span style={periodFilterLabel}>Semester</span>
+            <span style={periodFilterLabel}>Reporting period</span>
             <select
               value={activeSemester}
               onChange={(event) => setSelectedSemester(event.target.value)}
@@ -676,9 +672,9 @@ export default function TeacherDashboard() {
                 Showing findings for: {getReportDisplayLabel(activeKeyFindingsReport)}
                 {activeKeyFindingsReport.created_at ? ` · ${new Date(activeKeyFindingsReport.created_at).toLocaleDateString()}` : ''}
               </p>
-              <ul style={text}>
+              <ul style={keyFindingsList}>
                 {keyFindings.map((f, i) => (
-                  <li key={i}>{f}</li>
+                  <li key={i} style={keyFindingItem}>{f}</li>
                 ))}
               </ul>
 
@@ -1229,11 +1225,12 @@ const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', 
 const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 22, borderRadius: 22, marginBottom: 20, minWidth: 0, boxShadow: 'var(--shadow-card)' };
 const cardTitle: React.CSSProperties = { color: 'var(--text-primary)', marginTop: 0, marginBottom: 10, fontSize: 22 };
 const sectionEyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 800, marginBottom: 7 };
-const periodFilterBar: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 16, padding: '11px 14px', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface-card)', boxShadow: 'var(--shadow-sm)' };
-const periodFilterTitle: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 14, lineHeight: 1.35, fontWeight: 700 };
-const periodFilterField: React.CSSProperties = { display: 'grid', gap: 3, minWidth: 230 };
+const periodFilterBar: React.CSSProperties = { display: 'flex', width: 'fit-content', maxWidth: '100%', alignItems: 'center', margin: '0 0 14px auto', padding: '7px 9px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface-card)' };
+const periodFilterField: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, maxWidth: '100%' };
 const periodFilterLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase' };
-const periodSelect: React.CSSProperties = { minHeight: 36, padding: '6px 10px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 700 };
+const periodSelect: React.CSSProperties = { minHeight: 32, maxWidth: 'min(310px, 68vw)', padding: '4px 9px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 700 };
+const keyFindingsList: React.CSSProperties = { color: 'var(--text-secondary)', margin: '12px 0 0', padding: '0 8px 0 22px', boxSizing: 'border-box', overflowWrap: 'anywhere' };
+const keyFindingItem: React.CSSProperties = { paddingLeft: 3, marginBottom: 9, lineHeight: 1.6 };
 const actionCard: React.CSSProperties = { background: 'var(--surface-card-solid)' };
 const trendCard: React.CSSProperties = { overflow: 'hidden' };
 const trendHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' };
