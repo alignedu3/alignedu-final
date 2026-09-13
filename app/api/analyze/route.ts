@@ -1134,6 +1134,35 @@ function fingerprintTranscript(transcript: string) {
   return createHash("sha256").update(normalized).digest("hex");
 }
 
+function transcriptShingleSimilarity(firstTranscript: string, secondTranscript: string) {
+  const first = normalizeTranscriptForConsistency(firstTranscript);
+  const second = normalizeTranscriptForConsistency(secondTranscript);
+  if (first.length < 1000 || second.length < 1000) return 0;
+
+  const lengthRatio = Math.min(first.length, second.length) / Math.max(first.length, second.length);
+  if (lengthRatio < 0.97) return 0;
+
+  const toShingles = (value: string) => {
+    const words = value.split(" ").filter(Boolean);
+    const shingles = new Set<string>();
+    for (let index = 0; index <= words.length - 5; index += 1) {
+      shingles.add(words.slice(index, index + 5).join(" "));
+    }
+    return shingles;
+  };
+
+  const firstShingles = toShingles(first);
+  const secondShingles = toShingles(second);
+  if (!firstShingles.size || !secondShingles.size) return 0;
+
+  let intersection = 0;
+  for (const shingle of firstShingles) {
+    if (secondShingles.has(shingle)) intersection += 1;
+  }
+  const union = firstShingles.size + secondShingles.size - intersection;
+  return union > 0 ? intersection / union : 0;
+}
+
 function notesIndicateLessonContinuation(text: string) {
   const normalized = String(text || "").toLowerCase().replace(/\s+/g, " ");
   return [
@@ -1216,12 +1245,13 @@ function stripSubmissionContextSection(result: string) {
 }
 
 async function findReusableAnalysis(params: {
+  targetUserId: string;
   grade: string;
   subject: string;
   lessonContextTitle: string;
   transcript: string;
 }) {
-  const { grade, subject, lessonContextTitle, transcript } = params;
+  const { targetUserId, grade, subject, lessonContextTitle, transcript } = params;
   const fingerprint = fingerprintTranscript(transcript);
 
   if (!lessonContextTitle || !fingerprint) {
@@ -1232,6 +1262,7 @@ async function findReusableAnalysis(params: {
   const { data, error } = await serviceSupabase
     .from("analyses")
     .select("id, result, transcript")
+    .eq("user_id", targetUserId)
     .eq("grade", grade)
     .eq("subject", subject)
     .eq("title", lessonContextTitle)
@@ -1245,7 +1276,8 @@ async function findReusableAnalysis(params: {
 
   const match = (data || []).find((analysis) => {
     const candidateTranscript = typeof analysis.transcript === "string" ? analysis.transcript : "";
-    return fingerprintTranscript(candidateTranscript) === fingerprint;
+    return fingerprintTranscript(candidateTranscript) === fingerprint ||
+      transcriptShingleSimilarity(candidateTranscript, transcript) >= 0.985;
   });
 
   if (!match || typeof match.result !== "string" || !match.result.trim()) {
@@ -1557,6 +1589,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
   const reusableAnalysis = rubricId
     ? null
     : await findReusableAnalysis({
+        targetUserId,
         grade,
         subject,
         lessonContextTitle,
@@ -1580,7 +1613,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
       transcript,
       finalResult,
       rubricId,
-      existingAnalysisId,
+      existingAnalysisId: existingAnalysisId || reusableAnalysis.id,
     });
 
     await reportProgress(100, "Analysis complete.");
