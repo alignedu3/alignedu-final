@@ -43,6 +43,8 @@ export default function TeacherDashboard() {
   const [teacherFeedbackDraft, setTeacherFeedbackDraft] = useState('');
   const [teacherFeedbackRating, setTeacherFeedbackRating] = useState<number>(5);
   const [savingTeacherFeedbackId, setSavingTeacherFeedbackId] = useState<string | null>(null);
+  const [deletingLessonId, setDeletingLessonId] = useState<string | null>(null);
+  const [lessonPendingDelete, setLessonPendingDelete] = useState<AnalysisReport | null>(null);
   const [lessonSearch, setLessonSearch] = useState('');
   const [selectedSemester, setSelectedSemester] = useState('');
   const selectedLessonRef = useRef<HTMLDivElement | null>(null);
@@ -226,6 +228,40 @@ export default function TeacherDashboard() {
       }
       return report;
     });
+  };
+
+  const handleDeleteLesson = async () => {
+    const report = lessonPendingDelete;
+    if (!report) return;
+    if (!report.id || report.id.startsWith('sample-report-') || deletingLessonId) return;
+
+    setDeletingLessonId(report.id);
+    try {
+      const { response, data } = await fetchJsonWithTimeout<{ success?: boolean; error?: string }>(`/api/analyses/${report.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        timeoutMs: 12000,
+      });
+
+      if (response.status === 401) {
+        window.location.replace('/login');
+        return;
+      }
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.error || 'Unable to delete this lesson.');
+      }
+
+      setDbReports((current) => current.filter((lesson) => lesson.id !== report.id));
+      setSelectedReport((current) => current?.id === report.id ? null : current);
+      setKeyFindingsReportId((current) => current === report.id ? null : current);
+      setLessonPendingDelete(null);
+      pushToast('Lesson deleted.', 'success');
+    } catch (error) {
+      pushToast(error instanceof Error ? error.message : 'Unable to delete this lesson.', 'error');
+    } finally {
+      setDeletingLessonId(null);
+    }
   };
 
   const handleSaveTeacherFeedback = async () => {
@@ -488,6 +524,25 @@ export default function TeacherDashboard() {
         toasts={toasts}
         onDismiss={(id) => setToasts((current) => current.filter((toast) => toast.id !== id))}
       />
+      {lessonPendingDelete && (
+        <div style={deleteDialogBackdrop} role="presentation" onClick={() => !deletingLessonId && setLessonPendingDelete(null)}>
+          <div style={deleteDialog} role="dialog" aria-modal="true" aria-labelledby="delete-lesson-title" onClick={(event) => event.stopPropagation()}>
+            <div style={deleteDialogEyebrow}>Delete lesson</div>
+            <h2 id="delete-lesson-title" style={deleteDialogTitle}>Remove this lesson?</h2>
+            <p style={deleteDialogText}>
+              {getReportDisplayLabel(lessonPendingDelete) || 'This lesson'} and its analysis will be permanently removed.
+            </p>
+            <div style={deleteDialogActions}>
+              <button type="button" style={deleteDialogCancel} onClick={() => setLessonPendingDelete(null)} disabled={Boolean(deletingLessonId)}>
+                Keep Lesson
+              </button>
+              <button type="button" style={deleteDialogConfirm} onClick={handleDeleteLesson} disabled={Boolean(deletingLessonId)}>
+                {deletingLessonId ? 'Deleting…' : 'Delete Lesson'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={glow1} />
       <div style={glow2} />
 
@@ -513,24 +568,6 @@ export default function TeacherDashboard() {
         </div>
 
         {dbReports.length === 0 && <GettingStartedChecklist role="teacher" />}
-
-        <section style={periodFilterBar} className="teacher-period-filter" aria-label="Teacher reporting period">
-          <label style={periodFilterField}>
-            <span style={periodFilterLabel}>Reporting period</span>
-            <select
-              value={activeSemester}
-              onChange={(event) => setSelectedSemester(event.target.value)}
-              style={periodSelect}
-            >
-              <option value="all">All History · {allReports.length} lesson{allReports.length === 1 ? '' : 's'}</option>
-              {semesterOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label} ({option.range}) · {option.count} lesson{option.count === 1 ? '' : 's'}
-                </option>
-              ))}
-            </select>
-          </label>
-        </section>
 
         {loadError && (
           <div style={{ ...card, marginBottom: 12, border: '1px solid rgba(248,113,113,0.28)' }}>
@@ -570,7 +607,22 @@ export default function TeacherDashboard() {
         )}
 
         <div style={card}>
-          <h2 style={cardTitle}>Overall Lesson Analysis</h2>
+          <div style={overallAnalysisHeader}>
+            <h2 style={{ ...cardTitle, marginBottom: 0 }}>Overall Lesson Analysis</h2>
+            <select
+              value={activeSemester}
+              onChange={(event) => setSelectedSemester(event.target.value)}
+              style={periodSelect}
+              aria-label="Reporting period"
+            >
+              <option value="all">All History · {allReports.length} lesson{allReports.length === 1 ? '' : 's'}</option>
+              {semesterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label} ({option.range}) · {option.count} lesson{option.count === 1 ? '' : 's'}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <PerformanceMetricSummary
             overallScore={overallScore}
@@ -734,10 +786,10 @@ export default function TeacherDashboard() {
                 <table style={{ ...table, minWidth: '100%' }}>
                   <thead>
                     <tr>
-                      <th style={{ ...th, width: '40%', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Lesson</th>
+                      <th style={{ ...th, width: isNarrowScreen ? '36%' : '40%', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Lesson</th>
                       <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Score</th>
                       <th style={{ ...th, width: '18%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Trend</th>
-                      <th style={{ ...th, width: '24%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Action</th>
+                      <th style={{ ...th, width: isNarrowScreen ? '28%' : '24%', textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : th.padding, fontSize: isNarrowScreen ? 12 : th.fontSize }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -764,13 +816,24 @@ export default function TeacherDashboard() {
                                   : '→ 0'}
                           </td>
                           <td style={{ ...td, textAlign: 'center', whiteSpace: 'normal', padding: isNarrowScreen ? '4px 3px' : td.padding }}>
-                            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                            <div style={lessonActionGroup}>
                               <button
-                                style={{ ...actionButton, padding: isNarrowScreen ? '3px 7px' : actionButton.padding, fontSize: isNarrowScreen ? 11 : undefined }}
+                                style={{ ...lessonActionButton, ...(isNarrowScreen ? lessonActionButtonMobile : {}) }}
                                 onClick={() => handleViewReport(r)}
                               >
                                 View
                               </button>
+                              {!isSampleMode && (
+                                <button
+                                  type="button"
+                                  style={{ ...lessonActionButton, ...deleteLessonButton, ...(isNarrowScreen ? lessonActionButtonMobile : {}) }}
+                                  onClick={() => setLessonPendingDelete(r)}
+                                  disabled={deletingLessonId === r.id}
+                                  aria-label={`Delete ${lessonLabel}`}
+                                >
+                                  {deletingLessonId === r.id ? 'Deleting…' : 'Delete'}
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1225,10 +1288,8 @@ const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', 
 const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 22, borderRadius: 22, marginBottom: 20, minWidth: 0, boxShadow: 'var(--shadow-card)' };
 const cardTitle: React.CSSProperties = { color: 'var(--text-primary)', marginTop: 0, marginBottom: 10, fontSize: 22 };
 const sectionEyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 800, marginBottom: 7 };
-const periodFilterBar: React.CSSProperties = { display: 'flex', width: 'fit-content', maxWidth: '100%', alignItems: 'center', margin: '0 0 14px auto', padding: '7px 9px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface-card)' };
-const periodFilterField: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, maxWidth: '100%' };
-const periodFilterLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase' };
-const periodSelect: React.CSSProperties = { minHeight: 32, maxWidth: 'min(310px, 68vw)', padding: '4px 9px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 700 };
+const overallAnalysisHeader: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 };
+const periodSelect: React.CSSProperties = { minHeight: 34, maxWidth: 'min(310px, 100%)', marginLeft: 'auto', padding: '5px 30px 5px 10px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 12, fontWeight: 700, cursor: 'pointer' };
 const keyFindingsList: React.CSSProperties = { color: 'var(--text-secondary)', margin: '12px 0 0', padding: '0 8px 0 22px', boxSizing: 'border-box', overflowWrap: 'anywhere' };
 const keyFindingItem: React.CSSProperties = { paddingLeft: 3, marginBottom: 9, lineHeight: 1.6 };
 const actionCard: React.CSSProperties = { background: 'var(--surface-card-solid)' };
@@ -1257,6 +1318,18 @@ const actionButton: React.CSSProperties = {
   cursor: 'pointer',
   whiteSpace: 'nowrap',
 };
+const lessonActionGroup: React.CSSProperties = { display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, flexWrap: 'nowrap', width: '100%' };
+const lessonActionButton: React.CSSProperties = { minHeight: 30, padding: '5px 9px', borderRadius: 9, border: '1px solid rgba(249,115,22,0.32)', background: 'rgba(249,115,22,0.10)', color: '#f97316', cursor: 'pointer', fontSize: 12, lineHeight: 1, fontWeight: 750, whiteSpace: 'nowrap' };
+const lessonActionButtonMobile: React.CSSProperties = { minHeight: 27, padding: '4px 5px', borderRadius: 8, fontSize: 10 };
+const deleteLessonButton: React.CSSProperties = { border: '1px solid rgba(239,68,68,0.30)', background: 'rgba(239,68,68,0.08)', color: '#ef4444' };
+const deleteDialogBackdrop: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18, background: 'rgba(2,6,23,0.68)', backdropFilter: 'blur(5px)' };
+const deleteDialog: React.CSSProperties = { width: 'min(100%, 430px)', padding: 24, borderRadius: 20, border: '1px solid var(--border)', background: 'var(--surface-card-solid)', boxShadow: '0 24px 70px rgba(2,6,23,0.34)' };
+const deleteDialogEyebrow: React.CSSProperties = { marginBottom: 7, color: '#ef4444', fontSize: 11, fontWeight: 800, letterSpacing: 0.8, textTransform: 'uppercase' };
+const deleteDialogTitle: React.CSSProperties = { margin: '0 0 8px', color: 'var(--text-primary)', fontSize: 22, lineHeight: 1.2 };
+const deleteDialogText: React.CSSProperties = { margin: 0, color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 };
+const deleteDialogActions: React.CSSProperties = { display: 'flex', justifyContent: 'flex-end', gap: 9, marginTop: 20, flexWrap: 'wrap' };
+const deleteDialogCancel: React.CSSProperties = { minHeight: 38, padding: '8px 13px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-chip)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 750, cursor: 'pointer' };
+const deleteDialogConfirm: React.CSSProperties = { minHeight: 38, padding: '8px 14px', borderRadius: 10, border: '1px solid #dc2626', background: '#dc2626', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', boxShadow: '0 8px 20px rgba(220,38,38,0.20)' };
 const secondaryButton: React.CSSProperties = {
   background: 'transparent',
   color: '#f97316',
