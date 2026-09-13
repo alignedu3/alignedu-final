@@ -626,23 +626,10 @@ export default function AdminDashboard() {
     ? Math.round(teacherStats.reduce((sum, t) => sum + t.avgScore, 0) / teacherStats.length)
     : summary.averageScore;
 
-  const recommendedSupportPlan = useMemo<AdminSupportPlan>(() => {
-    const primary = adminSupportPlans.find((plan) => plan.requiresPrioritySupport);
-    if (!primary) {
-      return {
-        teacherName: 'Instructional Team',
-        summary: 'No individual teacher currently meets the threshold for priority support.',
-        priorityReason: 'Current lesson data does not show a teacher with a sufficiently low or declining performance pattern to justify naming one priority teacher.',
-        adminAction: 'Continue regular walkthroughs, monitor emerging trends, and use PLC or coaching touchpoints to reinforce strong practice across the team.',
-        lookFors: [
-          'High-leverage teacher moves stay visible across lessons.',
-          'Strong practice is shared with the broader team.',
-        ],
-      };
-    }
-
-    return primary;
-  }, [adminSupportPlans]);
+  const recommendedSupportPlan = useMemo<AdminSupportPlan | null>(
+    () => adminSupportPlans.find((plan) => plan.requiresPrioritySupport) ?? null,
+    [adminSupportPlans]
+  );
 
   const handleRemoveUser = async (userId: string) => {
     setDeletingUserId(userId);
@@ -826,13 +813,11 @@ export default function AdminDashboard() {
         </div>
 
         {/* ACTION */}
-        <div style={card}>
+        {recommendedSupportPlan && <div style={card}>
           <h2 style={title}>Administrator Support Plan</h2>
           <div style={supportPlanHeader}>
             <div>
-              <div style={supportPlanLabel}>
-                {recommendedSupportPlan.teacherName === 'Instructional Team' ? 'Current Focus' : 'Priority Teacher'}
-              </div>
+              <div style={supportPlanLabel}>Priority Teacher</div>
               <div style={supportPlanTeacher}>{recommendedSupportPlan.teacherName}</div>
             </div>
           </div>
@@ -857,7 +842,7 @@ export default function AdminDashboard() {
               <li key={idx} style={actionItem}>{action}</li>
             ))}
           </ul>
-        </div>
+        </div>}
 
         {/* TREND */}
         <div style={{ ...card, ...trendCard, marginTop: 8 }}>
