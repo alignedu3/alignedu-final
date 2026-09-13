@@ -11,6 +11,23 @@ import ProtectedPageState from '@/components/ProtectedPageState';
 import GettingStartedChecklist from '@/components/GettingStartedChecklist';
 import PerformanceMetricSummary from '@/components/dashboard/PerformanceMetricSummary';
 
+function parseReportDate(report: AnalysisReport) {
+  const raw = report.created_at ?? report.date;
+  if (!raw) return null;
+  const parsed = new Date(raw.includes('T') ? raw : `${raw}T12:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getSemesterPeriod(date: Date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const term = month >= 7 ? 'fall' : month >= 5 ? 'summer' : 'spring';
+  const label = `${term.charAt(0).toUpperCase()}${term.slice(1)} ${year}`;
+  const range = term === 'fall' ? 'Aug–Dec' : term === 'summer' ? 'Jun–Jul' : 'Jan–May';
+  const termRank = term === 'fall' ? 3 : term === 'summer' ? 2 : 1;
+  return { value: `${term}-${year}`, label, range, rank: year * 10 + termRank };
+}
+
 export default function TeacherDashboard() {
   const [isNarrowScreen, setIsNarrowScreen] = useState(false);
   const [chartReady, setChartReady] = useState(false);
@@ -27,6 +44,7 @@ export default function TeacherDashboard() {
   const [teacherFeedbackRating, setTeacherFeedbackRating] = useState<number>(5);
   const [savingTeacherFeedbackId, setSavingTeacherFeedbackId] = useState<string | null>(null);
   const [lessonSearch, setLessonSearch] = useState('');
+  const [selectedSemester, setSelectedSemester] = useState('');
   const selectedLessonRef = useRef<HTMLDivElement | null>(null);
 
   const pushToast = useCallback((message: string, tone: ToastItem['tone'] = 'info') => {
@@ -96,7 +114,29 @@ export default function TeacherDashboard() {
   );
 
   const isSampleMode = dbReports.length === 0;
-  const reports = isSampleMode ? sampleTeacherReports : dbReports;
+  const allReports = isSampleMode ? sampleTeacherReports : dbReports;
+  const semesterOptions = useMemo(() => {
+    const periods = new Map<string, { value: string; label: string; range: string; rank: number; count: number }>();
+    allReports.forEach((report) => {
+      const parsed = parseReportDate(report);
+      if (!parsed) return;
+      const period = getSemesterPeriod(parsed);
+      const existing = periods.get(period.value);
+      periods.set(period.value, { ...period, count: (existing?.count || 0) + 1 });
+    });
+    return Array.from(periods.values()).sort((a, b) => b.rank - a.rank);
+  }, [allReports]);
+  const currentSemesterValue = getSemesterPeriod(new Date()).value;
+  const activeSemester = selectedSemester || (
+    semesterOptions.some((option) => option.value === currentSemesterValue)
+      ? currentSemesterValue
+      : semesterOptions[0]?.value || 'all'
+  );
+  const reports = useMemo(() => allReports.filter((report) => {
+    if (activeSemester === 'all') return true;
+    const parsed = parseReportDate(report);
+    return parsed ? getSemesterPeriod(parsed).value === activeSemester : false;
+  }), [activeSemester, allReports]);
   const lessonsPerPage = isNarrowScreen ? 4 : 6;
   const lessonsPageCount = Math.max(1, Math.ceil(reports.length / lessonsPerPage));
   const pagedReports = useMemo(() => {
@@ -120,6 +160,22 @@ export default function TeacherDashboard() {
 
     return [1, lessonsPage - 1, lessonsPage, lessonsPage + 1, lessonsPageCount];
   }, [lessonsPage, lessonsPageCount]);
+
+  useEffect(() => {
+    if (!semesterOptions.length) return;
+    if (!selectedSemester) {
+      setSelectedSemester(activeSemester);
+      return;
+    }
+    if (selectedSemester !== 'all' && !semesterOptions.some((option) => option.value === selectedSemester)) {
+      setSelectedSemester(semesterOptions[0].value);
+    }
+  }, [activeSemester, selectedSemester, semesterOptions]);
+
+  useEffect(() => {
+    setLessonsPage(1);
+    setSelectedReport(null);
+  }, [activeSemester]);
 
   useEffect(() => {
     if (!reports.length) {
@@ -456,6 +512,28 @@ export default function TeacherDashboard() {
         </div>
 
         {dbReports.length === 0 && <GettingStartedChecklist role="teacher" />}
+
+        <section style={periodFilterBar} aria-label="Teacher reporting period">
+          <div>
+            <div style={sectionEyebrow}>Reporting Period</div>
+            <div style={periodFilterTitle}>View your instructional performance by semester</div>
+          </div>
+          <label style={periodFilterField}>
+            <span style={periodFilterLabel}>Semester</span>
+            <select
+              value={activeSemester}
+              onChange={(event) => setSelectedSemester(event.target.value)}
+              style={periodSelect}
+            >
+              <option value="all">All History · {allReports.length} lesson{allReports.length === 1 ? '' : 's'}</option>
+              {semesterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label} ({option.range}) · {option.count} lesson{option.count === 1 ? '' : 's'}
+                </option>
+              ))}
+            </select>
+          </label>
+        </section>
 
         {loadError && (
           <div style={{ ...card, marginBottom: 12, border: '1px solid rgba(248,113,113,0.28)' }}>
@@ -1150,6 +1228,11 @@ const primaryBtn: React.CSSProperties = { background: '#f97316', color: '#fff', 
 const card: React.CSSProperties = { background: 'var(--surface-card-solid)', border: '1px solid var(--border)', padding: 22, borderRadius: 22, marginBottom: 20, minWidth: 0, boxShadow: 'var(--shadow-card)' };
 const cardTitle: React.CSSProperties = { color: 'var(--text-primary)', marginTop: 0, marginBottom: 10, fontSize: 22 };
 const sectionEyebrow: React.CSSProperties = { color: '#ea580c', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, fontWeight: 800, marginBottom: 7 };
+const periodFilterBar: React.CSSProperties = { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 18, padding: '16px 18px', borderRadius: 18, border: '1px solid var(--border)', background: 'var(--surface-card)', boxShadow: 'var(--shadow-sm)' };
+const periodFilterTitle: React.CSSProperties = { color: 'var(--text-primary)', fontSize: 15, fontWeight: 700 };
+const periodFilterField: React.CSSProperties = { display: 'grid', gap: 5, minWidth: 230 };
+const periodFilterLabel: React.CSSProperties = { color: 'var(--text-secondary)', fontSize: 10, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase' };
+const periodSelect: React.CSSProperties = { minHeight: 40, padding: '8px 11px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: 13, fontWeight: 700 };
 const actionCard: React.CSSProperties = { background: 'var(--surface-card-solid)' };
 const trendCard: React.CSSProperties = { overflow: 'hidden' };
 const trendHeader: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' };
