@@ -338,16 +338,6 @@ export default function TeacherDashboard() {
     () => (selectedReport ? getLessonReportSections(selectedReport) : null),
     [selectedReport]
   );
-  const selectedRelatedPriorGaps = useMemo(
-    () => (selectedReport ? getRelatedPriorLessonGaps(selectedReport, reports) : null),
-    [reports, selectedReport]
-  );
-  const selectedReportIsHigherEdBiology = useMemo(
-    () =>
-      String(selectedReport?.grade || '').trim().toLowerCase() === 'higher ed' &&
-      String(selectedReport?.subject || '').trim().toLowerCase() === 'biology',
-    [selectedReport]
-  );
   const selectedSubmissionContext = useMemo(() => {
     if (!selectedLessonSections) return '';
     return selectedLessonSections.submissionContext
@@ -465,7 +455,7 @@ export default function TeacherDashboard() {
           </div>
         </div>
 
-        <GettingStartedChecklist role="teacher" />
+        {dbReports.length === 0 && <GettingStartedChecklist role="teacher" />}
 
         {loadError && (
           <div style={{ ...card, marginBottom: 12, border: '1px solid rgba(248,113,113,0.28)' }}>
@@ -1053,36 +1043,6 @@ export default function TeacherDashboard() {
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-
-                {selectedLessonSections.contentGaps.length > 0 && (
-                  <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
-                    <div style={reportSectionTitle}>Content Gaps To Reinforce</div>
-                    <ul style={reportList}>
-                      {selectedLessonSections.contentGaps.map((item, index) => (
-                        <li key={`content-gap-${index}`} style={reportListItem}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {selectedRelatedPriorGaps && (
-                  <div style={{ ...reportSectionCard, ...analysisSectionCard }}>
-                    <div style={reportSectionTitle}>Related Prior Lesson Gaps</div>
-                    <p style={reportBodyText}>
-                      {selectedReportIsHigherEdBiology
-                        ? `Showing gaps from ${selectedRelatedPriorGaps.matchedLessonCount} earlier lesson${selectedRelatedPriorGaps.matchedLessonCount === 1 ? '' : 's'} only when the same Campbell Biology chapter was selected.`
-                        : `Showing gaps from ${selectedRelatedPriorGaps.matchedLessonCount} earlier related lesson${selectedRelatedPriorGaps.matchedLessonCount === 1 ? '' : 's'} only when the topic or standards overlap with this lesson.`}
-                    </p>
-                    <ul style={reportList}>
-                      {selectedRelatedPriorGaps.items.map((item, index) => (
-                        <li key={`${item.reportId}-${index}`} style={reportListItem}>
-                          <strong>{item.lessonLabel}</strong>
-                          {item.createdAt ? ` · ${new Date(item.createdAt).toLocaleDateString()}` : ''}: {item.gap}
-                        </li>
-                      ))}
-                    </ul>
                   </div>
                 )}
 

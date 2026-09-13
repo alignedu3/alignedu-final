@@ -476,17 +476,6 @@ export default function LessonReportPage() {
           </div>
         )}
 
-        {reportSections.contentGaps.length > 0 && (
-          <div style={{ ...sectionCard, ...analysisSectionCard }}>
-            <h2 style={sectionTitle}>Content Gaps To Reinforce</h2>
-            <ul style={findingsList}>
-              {reportSections.contentGaps.map((gap, index) => (
-                <li key={`content-gap-${index}`} style={findingItem}>{gap}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
         <div style={{ ...sectionCard, ...nextStepSectionCard }}>
           <h2 style={sectionTitle}>Recommended Next Step</h2>
           <p style={bodyText}>{reportSections.recommendedNextStep}</p>

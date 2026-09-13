@@ -713,7 +713,9 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {!isViewingAnotherAdmin && <GettingStartedChecklist role="admin" />}
+        {!isViewingAnotherAdmin && managedTeachers.length === 0 && (
+          <GettingStartedChecklist role="admin" />
+        )}
 
         {loadError && (
           <div style={{ ...card, marginBottom: 12, border: '1px solid rgba(248,113,113,0.28)' }}>

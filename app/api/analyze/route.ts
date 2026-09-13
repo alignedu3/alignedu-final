@@ -1638,10 +1638,10 @@ Score the lesson with professional calibration. The scores do not need to match 
   let userPrompt = '';
 
   const higherEdBiologyFormat = isHigherEdBiology
-    ? `\n\n=== HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT ===\nCompare this lesson to the expectations of an introductory college biology course using Campbell Biology as the benchmark. Use only these three labeled items:\n- Textbook Alignment: summarize the chapter concepts and course objectives addressed in 2-3 concise sentences. Do not insert inline dash bullets into the paragraph.\n- Alignment Priorities: identify no more than three textbook-level concepts or reasoning demands that need greater depth.\n- Terminology Precision: identify no more than two terminology corrections that materially affect college-level accuracy.\nDo not add a recommendation here; concrete actions belong in the next-lesson and administrator coaching plans.`
+    ? `\n\n=== HIGHER ED BIOLOGY TEXTBOOK ALIGNMENT ===\nCompare this lesson to the expectations of an introductory college biology course using Campbell Biology as the benchmark. Use only these three labeled items:\n- Textbook Alignment: summarize the chapter concepts and course objectives addressed in 2-3 concise sentences. Do not insert inline dash bullets into the paragraph.\n- Alignment Priorities: list no more than three textbook-level concepts or reasoning demands that need greater depth. Give the facts directly without a count-based introduction.\n- Terminology Precision: list no more than two terminology corrections that materially affect college-level accuracy. Give the corrections directly without a count-based introduction.\nDo not add a recommendation here; concrete actions belong in the next-lesson and administrator coaching plans.`
     : '';
   const higherEdCustomTextFormat = isHigherEdCustomText && book
-    ? `\n\n=== HIGHER ED TEXTBOOK ALIGNMENT ===\nCompare this lesson to ${book}${chapter ? `, ${chapter},` : ''} as the benchmark. Use only these three labeled items:\n- Textbook Alignment: summarize the chapter concepts and course objectives addressed in 2-3 concise sentences. Do not insert inline dash bullets into the paragraph.\n- Alignment Priorities: identify no more than three textbook-level concepts or reasoning demands that need greater depth.\n- Terminology Precision: identify no more than two terminology corrections that materially affect course accuracy.\nDo not add a recommendation here; concrete actions belong in the next-lesson and administrator coaching plans.`
+    ? `\n\n=== HIGHER ED TEXTBOOK ALIGNMENT ===\nCompare this lesson to ${book}${chapter ? `, ${chapter},` : ''} as the benchmark. Use only these three labeled items:\n- Textbook Alignment: summarize the chapter concepts and course objectives addressed in 2-3 concise sentences. Do not insert inline dash bullets into the paragraph.\n- Alignment Priorities: list no more than three textbook-level concepts or reasoning demands that need greater depth. Give the facts directly without a count-based introduction.\n- Terminology Precision: list no more than two terminology corrections that materially affect course accuracy. Give the corrections directly without a count-based introduction.\nDo not add a recommendation here; concrete actions belong in the next-lesson and administrator coaching plans.`
     : '';
 
   const reportFormat = `Analyze this lesson transcript and provide feedback in the following structured format. Use these exact section headers and keep the feedback evidence-based, specific, and unbiased.
@@ -2034,6 +2034,7 @@ Requirements:
   - Alignment Priorities:
   - Terminology Precision:
 - Keep each field concise and specific to this lesson.
+- For Alignment Priorities and Terminology Precision, give the facts directly without a count-based introduction such as "three areas" or "two corrections."
 - Do not repeat the report's recommended next step or action plans.
 - Ground the response in the selected ${isHigherEdBiology ? 'Campbell Biology chapter' : 'textbook and chapter'}.
 - Do not include a heading outside of the labeled bullets.

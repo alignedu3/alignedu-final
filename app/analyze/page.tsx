@@ -1430,15 +1430,6 @@ export default function AnalysisPage() {
   const roleActionPlanTitle = isAdminObservationMode
     ? "Administrator Coaching Plan"
     : "Your Next-Lesson Plan";
-  const contentGapItems = feedbackSections.contentGaps.flatMap((section) => {
-    if (section.bullets.length > 0) return section.bullets;
-    return section.content
-      ? section.content
-          .split(/\n+/)
-          .map((line) => line.replace(/^[0-9]+\.\s*/, '').trim())
-          .filter(Boolean)
-      : [];
-  });
   const recommendedNextStepText =
     suggestedNextStepsSection?.content ||
     (suggestedNextStepsSection?.bullets.length ? suggestedNextStepsSection.bullets.join(' ') : '') ||
@@ -1474,7 +1465,6 @@ export default function AnalysisPage() {
   registerRenderedText(recommendedNextStepText);
   feedbackSections.whatWentWell.forEach(registerRenderedText);
   feedbackSections.whatCanImprove.forEach(registerRenderedText);
-  contentGapItems.forEach(registerRenderedText);
 
   const handleAudioChange = (file: File | null) => {
     if (!file) {
@@ -2535,19 +2525,6 @@ export default function AnalysisPage() {
                             </div>
                           ))}
                         </div>
-                      </div>
-                    </>
-                  )}
-
-                  {contentGapItems.length > 0 && (
-                    <>
-                      <div style={reportSectionHeadingStyle}>Content Gaps To Reinforce</div>
-                      <div style={reportPanelStyle}>
-                        <ul style={reportPanelListStyle}>
-                          {contentGapItems.map((item, index) => (
-                            <li key={`content-gap-${index}`}>{item}</li>
-                          ))}
-                        </ul>
                       </div>
                     </>
                   )}

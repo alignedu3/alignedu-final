@@ -103,22 +103,50 @@ export function parseLabeledSection(content: string): ReportSection[] {
   if (!content.trim()) return [];
 
   const matches = Array.from(
-    content.matchAll(/(?:^|\n)\s*[-•*]\s*([^:\n]+):\s*([\s\S]*?)(?=(?:\n\s*[-•*]\s*[^:\n]+:\s*)|$)/g)
+    content.matchAll(/(?:^|\n)[-•*]\s*([^:\n]+):\s*([\s\S]*?)(?=(?:\n[-•*]\s*[^:\n]+:\s*)|$)/g)
   );
 
   if (matches.length > 0) {
     return matches
       .map((match) => {
         const body = cleanDisplayText(match[2] || "");
-        const bullets = body
-          .split(/\n+/)
+        const lines = body.split(/\n+/).map((line) => line.trim()).filter(Boolean);
+        const contentText = lines
+          .filter((line) => !/^[-•*]\s+/.test(line))
+          .join("\n")
+          .trim();
+        let bullets = lines
+          .filter((line) => /^[-•*]\s+/.test(line))
           .map((line) => cleanBulletText(line))
           .filter(Boolean);
 
+        // Structured reports occasionally repeat every nested step inside the
+        // parent content. Prefer the separated steps when that happens so the
+        // same plan is not rendered as both a paragraph and a list.
+        const comparable = (value: string) => value
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, " ")
+          .trim();
+        const comparableContent = comparable(contentText);
+        const repeatedBullets = bullets.filter((bullet) => {
+          const comparableBullet = comparable(bullet);
+          return comparableBullet.length > 0 && comparableContent.includes(comparableBullet);
+        });
+        const contentIsMostlyRepeated = bullets.length > 0 && repeatedBullets.length / bullets.length >= 0.7;
+        const displayContent = contentIsMostlyRepeated
+          ? ""
+          : contentText;
+        if (displayContent) {
+          bullets = bullets.filter((bullet) => !comparableContent.includes(comparable(bullet)));
+        }
+
+        const title = normalizeTitle(match[1] || "Summary");
+        const factsOnlySection = ["Alignment Priorities", "Terminology Precision"].includes(title);
+
         return {
-          title: normalizeTitle(match[1] || "Summary"),
-          content: body,
-          bullets: bullets.length > 1 ? bullets : [],
+          title,
+          content: factsOnlySection && bullets.length > 0 ? "" : displayContent,
+          bullets,
         };
       })
       .filter((section) => section.content || section.bullets.length);
