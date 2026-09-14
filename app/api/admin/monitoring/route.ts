@@ -47,6 +47,7 @@ type MonitoringLessonLedgerRow = {
   createdAt: string | null;
   score: number;
   executiveSummary: string;
+  deleted: boolean;
 };
 
 type MonitoringUserRosterRow = {
@@ -308,9 +309,19 @@ type MonitoringAlert = {
 };
 
 type AnalysisJobTelemetryRow = {
+  id?: string | null;
   analysis_id?: string | null;
+  submitted_by_user_id?: string | null;
+  target_user_id?: string | null;
+  observed_teacher_id?: string | null;
   created_at?: string | null;
   status?: string | null;
+  grade?: string | null;
+  subject?: string | null;
+  book?: string | null;
+  chapter?: string | null;
+  result?: string | null;
+  score?: number | null;
   openai_api_path?: string | null;
   openai_model?: string | null;
   openai_fallback_used?: boolean | null;
@@ -2484,7 +2495,7 @@ export async function GET(request: NextRequest) {
           .select('id, name, email, role'),
         serviceSupabase
           .from('analyses')
-          .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result, teacher_feedback_rating, admin_feedback_rating')
+          .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, result, analysis_result, teacher_feedback_rating, admin_feedback_rating, deleted_at')
           .order('created_at', { ascending: false }),
         listAllAuthUsers(serviceSupabase).catch((error) => {
           authDirectoryError = getAuthDirectoryErrorDetail(error);
@@ -2632,8 +2643,40 @@ export async function GET(request: NextRequest) {
           createdAt: report.created_at || null,
           score: calculateLessonScore(report),
           executiveSummary: buildMonitoringLessonSummary(report),
+          deleted: Boolean(report.deleted_at),
         };
       });
+
+      const savedAnalysisIds = new Set(reportList.map((report) => report.id));
+      const retainedJobLessons: MonitoringLessonLedgerRow[] = ((analysisJobs || []) as AnalysisJobTelemetryRow[])
+        .filter((job) => job.status === 'completed' && Boolean(job.result) && (!job.analysis_id || !savedAnalysisIds.has(job.analysis_id)))
+        .map((job) => {
+          const targetProfile = job.target_user_id ? profileById.get(job.target_user_id) : null;
+          const submitterProfile = job.submitted_by_user_id ? profileById.get(job.submitted_by_user_id) : null;
+          const isGuest = !job.submitted_by_user_id;
+          const context = [job.grade, job.subject, job.book, job.chapter].filter(Boolean).join(' · ');
+
+          return {
+            id: `job-${job.id || job.created_at || Math.random()}`,
+            title: String(job.chapter || job.subject || 'Untitled Lesson'),
+            context: context || 'Lesson context was not saved.',
+            submittedBy: isGuest ? 'Guest User' : submitterProfile?.name || submitterProfile?.email || targetProfile?.name || 'User',
+            submitterRole: isGuest ? 'guest' : submitterProfile?.role || targetProfile?.role || 'teacher',
+            source: isGuest
+              ? 'Try It Now · Deleted'
+              : job.observed_teacher_id
+                ? 'Administrator Observation · Deleted'
+                : 'Logged-in Lesson · Deleted',
+            createdAt: job.created_at || null,
+            score: Number(job.score || 0),
+            executiveSummary: 'Retained in the monitoring audit ledger after deletion from instructional dashboards.',
+            deleted: true,
+          };
+        });
+
+      lessonUploads = [...lessonUploads, ...retainedJobLessons]
+        .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      totalLessons = lessonUploads.length;
 
       userRoster = profileList
         .map((profile) => {

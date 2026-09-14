@@ -1237,6 +1237,7 @@ async function findPreviousLessonPart(params: {
     .eq("user_id", params.targetUserId)
     .eq("grade", params.grade)
     .eq("subject", params.subject)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(params.classPeriod ? 10 : 1);
 
@@ -1297,6 +1298,7 @@ async function findReusableAnalysis(params: {
     .eq("grade", grade)
     .eq("subject", subject)
     .eq("title", lessonContextTitle)
+    .is("deleted_at", null)
     .order("created_at", { ascending: false })
     .limit(25);
 
@@ -1341,6 +1343,7 @@ async function getAnalysisFeedbackContext(params: {
     .eq("user_id", params.targetUserId)
     .eq("grade", params.grade)
     .eq("subject", params.subject)
+    .is("deleted_at", null)
     .or("teacher_feedback.not.is.null,admin_feedback.not.is.null")
     .order("created_at", { ascending: false })
     .limit(4);

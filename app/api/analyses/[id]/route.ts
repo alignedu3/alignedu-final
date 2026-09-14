@@ -6,6 +6,7 @@ import { normalizeStructuredReportText, parseAnalysisMetrics } from '@/lib/analy
 import { calculateLessonScoreFromMetrics } from '@/lib/dashboardData';
 import { getErrorMessage } from '@/lib/errorHandling';
 import { canUseDallasRubricPilot, DALLAS_ISD_OBSERVATION_INDICATORS, DALLAS_ISD_RUBRIC_ID } from '@/lib/evaluationRubrics';
+import { getUserWithRetry, isInvalidSessionError } from '@/lib/supabase/authUser';
 
 function getServiceSupabase() {
   return createServiceClient(
@@ -75,10 +76,14 @@ export async function PATCH(
     const {
       data: { user },
       error: authError,
-    } = await serverSupabase.auth.getUser();
+    } = await getUserWithRetry(serverSupabase);
 
     if (authError) {
-      return NextResponse.json({ success: false, error: authError.message }, { status: 401 });
+      const status = isInvalidSessionError(authError) ? 401 : 503;
+      return NextResponse.json(
+        { success: false, error: status === 401 ? 'Not authenticated' : 'Session verification is temporarily unavailable. Please retry.' },
+        { status }
+      );
     }
 
     if (!user) {
@@ -112,6 +117,10 @@ export async function PATCH(
         { success: false, error: analysisError?.message || 'Analysis not found' },
         { status: 404 }
       );
+    }
+
+    if (analysis.deleted_at) {
+      return NextResponse.json({ success: false, error: 'Analysis not found' }, { status: 404 });
     }
 
     const isOwner = analysis.user_id === user.id;
@@ -280,10 +289,14 @@ export async function DELETE(
     const {
       data: { user },
       error: authError,
-    } = await serverSupabase.auth.getUser();
+    } = await getUserWithRetry(serverSupabase);
 
     if (authError) {
-      return NextResponse.json({ success: false, error: authError.message }, { status: 401 });
+      const status = isInvalidSessionError(authError) ? 401 : 503;
+      return NextResponse.json(
+        { success: false, error: status === 401 ? 'Not authenticated' : 'Session verification is temporarily unavailable. Please retry.' },
+        { status }
+      );
     }
 
     if (!user) {
@@ -304,7 +317,7 @@ export async function DELETE(
 
     const { data: analysis, error: analysisError } = await serviceSupabase
       .from('analyses')
-      .select('user_id')
+      .select('user_id, deleted_at')
       .eq('id', id)
       .single();
 
@@ -313,6 +326,11 @@ export async function DELETE(
         { success: false, error: analysisError?.message || 'Analysis not found' },
         { status: 404 }
       );
+    }
+
+
+    if (analysis.deleted_at) {
+      return NextResponse.json({ success: true });
     }
 
     const isOwner = analysis.user_id === user.id;
@@ -329,8 +347,12 @@ export async function DELETE(
 
     const { error: deleteError } = await serviceSupabase
       .from('analyses')
-      .delete()
-      .eq('id', id);
+      .update({
+        deleted_at: new Date().toISOString(),
+        deleted_by_user_id: user.id,
+      })
+      .eq('id', id)
+      .is('deleted_at', null);
 
     if (deleteError) {
       return NextResponse.json({ success: false, error: deleteError.message }, { status: 500 });

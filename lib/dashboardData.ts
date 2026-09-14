@@ -43,6 +43,8 @@ export type AnalysisReport = Partial<LessonReport> & {
   rubric_id?: string | null;
   rubric_review?: unknown;
   score?: number | string | null;
+  deleted_at?: string | null;
+  deleted_by_user_id?: string | null;
 };
 
 export function getReportNarrative(report: AnalysisReport) {

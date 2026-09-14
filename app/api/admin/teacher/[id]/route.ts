@@ -66,6 +66,7 @@ export async function GET(
         .from('analyses')
         .select('*')
         .eq('user_id', id)
+        .is('deleted_at', null)
         .order('created_at', { ascending: false }),
     ]);
 

@@ -113,6 +113,7 @@ export async function GET(request: NextRequest) {
             .from('analyses')
             .select('id, user_id, created_at, title, subject, grade, coverage_score, clarity_rating, engagement_level, gaps_detected, transcript, result, analysis_result')
             .in('user_id', visibility.visibleUserIds)
+            .is('deleted_at', null)
             .order('created_at', { ascending: false })
         : Promise.resolve({ data: [], error: null }),
     ]);

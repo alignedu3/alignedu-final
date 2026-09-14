@@ -52,6 +52,7 @@ type MonitoringLessonLedgerRow = {
   createdAt: string | null;
   score: number;
   executiveSummary: string;
+  deleted: boolean;
 };
 
 type MonitoringUserRosterRow = {
@@ -1200,7 +1201,10 @@ export default function MonitoringDashboard() {
                 {lessonUploads.map((lesson) => (
                   <div key={lesson.id} style={issueRow} className="monitoring-issue-row">
                     <div style={{ minWidth: 0 }}>
-                      <div style={issueTitle}>{lesson.title}</div>
+                      <div style={issueTitle}>
+                        {lesson.title}
+                        {lesson.deleted ? <span style={deletedLessonBadge}>Deleted</span> : null}
+                      </div>
                       <div style={issueMeta}>
                         {lesson.context} | {lesson.submittedBy} | {lesson.source}
                       </div>
@@ -1874,6 +1878,22 @@ const issueTitle: React.CSSProperties = {
   color: 'var(--text-primary)',
   fontWeight: 700,
   fontSize: 14,
+};
+
+const deletedLessonBadge: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  marginLeft: 8,
+  padding: '3px 7px',
+  borderRadius: 999,
+  border: '1px solid rgba(239,68,68,0.24)',
+  background: 'rgba(239,68,68,0.09)',
+  color: '#ef4444',
+  fontSize: 10,
+  fontWeight: 800,
+  letterSpacing: '0.04em',
+  textTransform: 'uppercase',
+  verticalAlign: 'middle',
 };
 
 const issueMeta: React.CSSProperties = {

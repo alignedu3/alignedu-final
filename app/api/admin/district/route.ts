@@ -70,6 +70,7 @@ export async function GET() {
               .from('analyses')
               .select('*')
               .in('user_id', visibility.teacherIds)
+              .is('deleted_at', null)
               .order('created_at', { ascending: false })
           : Promise.resolve({ data: [], error: null }),
       ]);

@@ -269,15 +269,25 @@ export default function TeacherDashboard() {
 
     setSavingTeacherFeedbackId(selectedReport.id);
     try {
-      const response = await fetch(`/api/analyses/${selectedReport.id}`, {
+      const { response, data } = await fetchJsonWithTimeout<{
+        success?: boolean;
+        error?: string;
+        analysis?: AnalysisReport;
+      }>(`/api/analyses/${selectedReport.id}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ teacherFeedback: teacherFeedbackDraft, teacherFeedbackRating }),
+        timeoutMs: 12000,
       });
-      const data = await response.json();
 
-      if (!response.ok || !data.success || !data.analysis) {
-        pushToast(data.error || 'Unable to save your feedback right now.', 'error');
+      if (response.status === 401) {
+        window.location.replace('/login');
+        return;
+      }
+
+      if (!response.ok || !data?.success || !data.analysis) {
+        pushToast(data?.error || 'Unable to save your feedback right now.', 'error');
         return;
       }
 

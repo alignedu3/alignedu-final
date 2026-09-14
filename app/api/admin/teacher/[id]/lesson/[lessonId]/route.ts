@@ -62,6 +62,7 @@ export async function GET(
         .from('analyses')
         .select('*')
         .eq('id', lessonId)
+        .is('deleted_at', null)
         .maybeSingle(),
       serviceSupabase
         .from('profiles')
