@@ -2946,12 +2946,24 @@ a[role="button"],
     min-width: 0 !important;
   }
 
-  .coaching-reminder-note-field,
-  .coaching-reminder-date-field,
-  .coaching-reminder-save-button {
+  .coaching-reminder-note-field {
     width: 100% !important;
     max-width: 100% !important;
     min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .coaching-reminder-date-field {
+    width: min(100%, 210px) !important;
+    max-width: 210px !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  .coaching-reminder-save-button {
+    width: auto !important;
+    min-width: 132px !important;
+    justify-self: start !important;
     box-sizing: border-box !important;
   }
 
@@ -2961,5 +2973,10 @@ a[role="button"],
     max-width: 100% !important;
     min-width: 0 !important;
     box-sizing: border-box !important;
+  }
+
+  .coaching-reminder-date-input {
+    min-height: 42px !important;
+    padding-block: 7px !important;
   }
 }
