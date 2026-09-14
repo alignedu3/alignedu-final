@@ -2338,6 +2338,42 @@ h1, h2, h3 {
   text-align: center;
 }
 
+.performance-metric-summary--compact {
+  grid-template-columns: minmax(190px, 0.8fr) minmax(300px, 1.2fr);
+  align-items: stretch;
+}
+
+.performance-metric-summary--compact .performance-overall-card {
+  min-height: 0;
+  align-self: stretch;
+  padding: 20px;
+}
+
+.performance-metric-summary--compact .performance-secondary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.performance-metric-summary--compact .performance-secondary-card {
+  min-height: 106px;
+  padding: 13px 14px;
+  gap: 7px;
+  background: var(--surface-card-solid);
+  box-shadow: none;
+}
+
+.performance-metric-summary--compact .performance-secondary-value {
+  font-size: 1.8rem;
+}
+
+.performance-metric-summary--compact .performance-progress-track {
+  height: 5px;
+}
+
+.performance-metric-summary--compact .performance-metric-helper {
+  font-size: 11px;
+}
+
 .performance-secondary-value {
   color: var(--text-primary);
   font-size: clamp(1.9rem, 3vw, 2.45rem);
@@ -2411,6 +2447,19 @@ h1, h2, h3 {
   .performance-secondary-card {
     min-height: 132px;
     padding: 18px 14px 16px;
+  }
+
+  .performance-metric-summary--compact {
+    grid-template-columns: 1fr;
+  }
+
+  .performance-metric-summary--compact .performance-overall-card {
+    min-height: 132px;
+  }
+
+  .performance-metric-summary--compact .performance-secondary-card {
+    min-height: 102px;
+    padding: 12px 10px;
   }
 
   .dashboard-page {
@@ -2537,7 +2586,13 @@ h1, h2, h3 {
   }
 
   .lesson-report-metric-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  .lesson-report-metric-grid > div {
+    min-height: 116px !important;
+    padding: 14px 10px !important;
   }
 
   .admin-lesson-metric-editor-grid {

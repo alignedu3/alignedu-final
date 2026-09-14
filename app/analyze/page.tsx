@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   cleanDisplayText,
@@ -2332,11 +2332,6 @@ export default function AnalysisPage() {
                   <div style={metricLabelStyle}>Assessment</div>
                   <div style={metricValueStyle}>{resultMetrics.assessment ?? '—'}</div>
                   <div style={metricSubtextStyle}>Checks for understanding</div>
-                </div>
-                <div style={{ ...metricCardStyle, minHeight: isNarrowScreen ? 122 : metricCardStyle.minHeight, padding: isNarrowScreen ? '14px 12px' : metricCardStyle.padding }}>
-                  <div style={metricLabelStyle}>Gaps</div>
-                  <div style={metricValueStyle}>{resultMetrics.gaps ?? '—'}</div>
-                  <div style={metricSubtextStyle}>Priority issues to address</div>
                 </div>
               </div>
 

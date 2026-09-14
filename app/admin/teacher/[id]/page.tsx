@@ -234,6 +234,7 @@ export default function AdminTeacherPage() {
             overallScore={summary.averageScore}
             lessonsAnalyzed={summary.lessonsAnalyzed}
             metricHelper="Lesson average"
+            compact
             metrics={[
               { label: 'Coverage', value: summary.lessonsAnalyzed ? summary.averageCoverage : null, color: '#3b82f6' },
               { label: 'Clarity', value: summary.lessonsAnalyzed ? summary.averageClarity : null, color: '#8b5cf6' },
@@ -569,11 +570,6 @@ const sectionEyebrow: React.CSSProperties = {
 
 const text: React.CSSProperties = {
   color: 'var(--text-secondary)'
-};
-
-const muted: React.CSSProperties = {
-  color: 'var(--text-secondary)',
-  fontSize: 12
 };
 
 const overviewRow: React.CSSProperties = {

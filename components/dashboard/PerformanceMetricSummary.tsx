@@ -13,6 +13,7 @@ type PerformanceMetricSummaryProps = {
   overallHelper?: string;
   metricHelper?: string;
   metrics: Metric[];
+  compact?: boolean;
 };
 
 export default function PerformanceMetricSummary({
@@ -22,11 +23,12 @@ export default function PerformanceMetricSummary({
   overallHelper,
   metricHelper,
   metrics,
+  compact = false,
 }: PerformanceMetricSummaryProps) {
   const lessonLabel = `${lessonsAnalyzed} analyzed lesson${lessonsAnalyzed === 1 ? '' : 's'}`;
 
   return (
-    <div className="performance-metric-summary">
+    <div className={`performance-metric-summary${compact ? ' performance-metric-summary--compact' : ''}`}>
       <div className="performance-overall-card">
         <div className="performance-overall-label">{overallLabel}</div>
         <div className="performance-overall-value">

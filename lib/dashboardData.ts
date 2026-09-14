@@ -950,14 +950,6 @@ export function getLessonInsights(report: AnalysisReport) {
     improvements.push('Add stronger formative checks before independent work or closure to confirm mastery.');
   }
 
-  if (metrics.gaps > 0) {
-    findings.push(`Detected ${metrics.gaps} gap${metrics.gaps === 1 ? '' : 's'} that should be revisited for mastery.`);
-    improvements.push(`Address the ${metrics.gaps} identified gap${metrics.gaps === 1 ? '' : 's'} with reteach and a quick mastery check.`);
-  } else {
-    findings.push('No major concept gaps were detected in this lesson evidence.');
-    strengths.push('No major concept gaps were detected in the available lesson evidence.');
-  }
-
   const nextAction =
     cleanInsightText(parsed.recommendedNextStep) ||
     coachingSuggestedNextSteps[0] ||
