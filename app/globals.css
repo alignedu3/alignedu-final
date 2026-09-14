@@ -2935,14 +2935,8 @@ a[role="button"],
     }
   }
 @media (max-width: 640px) {
-  .coaching-reminder-card {
-    gap: 14px !important;
-    padding: 14px !important;
-  }
-
   .coaching-reminder-controls {
     grid-template-columns: minmax(0, 1fr) !important;
-    gap: 12px !important;
     min-width: 0 !important;
   }
 
