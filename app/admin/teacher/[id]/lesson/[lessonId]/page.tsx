@@ -477,8 +477,9 @@ export default function LessonReportPage() {
         <div style={{ ...sectionCard, ...nextStepSectionCard }}>
           <h2 style={sectionTitle}>Recommended Next Step</h2>
           <p style={bodyText}>{reportSections.recommendedNextStep}</p>
-          <CoachingReminder lessonId={String(lesson.id)} ownerId={viewerId || 'sample-root-admin'} teacherId={teacherId} teacherName={teacher?.name || 'Teacher'} lessonTitle={lesson.title || 'Lesson'} />
         </div>
+
+        <CoachingReminder lessonId={String(lesson.id)} ownerId={viewerId || 'sample-root-admin'} teacherId={teacherId} teacherName={teacher?.name || 'Teacher'} lessonTitle={lesson.title || 'Lesson'} />
 
         {lesson.teacher_feedback && (
           <div style={{ ...sectionCard, ...analysisSectionCard }}>
