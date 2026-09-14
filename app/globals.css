@@ -2591,7 +2591,7 @@ h1, h2, h3 {
   }
 
   .lesson-report-metric-grid > div {
-    min-height: 116px !important;
+    min-height: 96px !important;
     padding: 14px 10px !important;
   }
 

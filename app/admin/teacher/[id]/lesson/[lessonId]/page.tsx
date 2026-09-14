@@ -272,34 +272,30 @@ export default function LessonReportPage() {
             </div>
           </div>
 
+          <div style={metricGrid} className="lesson-report-metric-grid">
+            <div style={{ ...metricCard, ...coverageMetricCard }}>
+              <div style={metricLabel}>Coverage</div>
+              <div style={metricValue}>{insights.coverage}%</div>
+            </div>
+            <div style={{ ...metricCard, ...clarityMetricCard }}>
+              <div style={metricLabel}>Clarity</div>
+              <div style={metricValue}>{insights.clarity}%</div>
+            </div>
+            <div style={{ ...metricCard, ...engagementMetricCard }}>
+              <div style={metricLabel}>Engagement</div>
+              <div style={metricValue}>{insights.engagement}%</div>
+            </div>
+            <div style={{ ...metricCard, ...assessmentMetricCard }}>
+              <div style={metricLabel}>Assessment</div>
+              <div style={metricValue}>{insights.assessment}%</div>
+            </div>
+          </div>
+
           {submissionContextText && (
             <div style={submissionNote}>
               {submissionContextText}
             </div>
           )}
-        </div>
-
-        <div style={metricGrid} className="lesson-report-metric-grid">
-          <div style={{ ...metricCard, ...coverageMetricCard }}>
-            <div style={metricLabel}>Coverage</div>
-            <div style={metricValue}>{insights.coverage}%</div>
-            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.coverage}%` }} /></div>
-          </div>
-          <div style={{ ...metricCard, ...clarityMetricCard }}>
-            <div style={metricLabel}>Clarity</div>
-            <div style={metricValue}>{insights.clarity}%</div>
-            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.clarity}%` }} /></div>
-          </div>
-          <div style={{ ...metricCard, ...engagementMetricCard }}>
-            <div style={metricLabel}>Engagement</div>
-            <div style={metricValue}>{insights.engagement}%</div>
-            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.engagement}%` }} /></div>
-          </div>
-          <div style={{ ...metricCard, ...assessmentMetricCard }}>
-            <div style={metricLabel}>Assessment</div>
-            <div style={metricValue}>{insights.assessment}%</div>
-            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.assessment}%` }} /></div>
-          </div>
         </div>
 
         <div style={{ ...sectionCard, ...contextSectionCard }}>
@@ -828,7 +824,7 @@ const metricGrid: React.CSSProperties = {
   display: 'grid',
   gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
   gap: 10,
-  marginBottom: 22,
+  marginTop: 12,
 };
 
 const metricCard: React.CSSProperties = {
@@ -838,7 +834,7 @@ const metricCard: React.CSSProperties = {
   justifyContent: 'center',
   gap: 11,
   textAlign: 'center',
-  minHeight: 112,
+  minHeight: 96,
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
   borderRadius: 18,
@@ -859,21 +855,6 @@ const metricValue: React.CSSProperties = {
   fontWeight: 800,
   lineHeight: 1,
   whiteSpace: 'nowrap',
-};
-
-const metricProgressTrack: React.CSSProperties = {
-  width: '100%',
-  maxWidth: 132,
-  height: 6,
-  overflow: 'hidden',
-  borderRadius: 999,
-  background: 'rgba(148,163,184,0.18)',
-};
-
-const metricProgressFill: React.CSSProperties = {
-  height: '100%',
-  borderRadius: 999,
-  background: '#f97316',
 };
 
 const sectionCard: React.CSSProperties = {
