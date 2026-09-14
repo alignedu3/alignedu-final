@@ -39,6 +39,7 @@ export default function NotificationCenter({ triggerStyle }: { triggerStyle?: Re
                       <strong style={name}>{item.teacherName}</strong>
                       <div style={meta}>{item.lessonTitle}</div>
                       <time style={date}>{new Date(`${item.dueDate}T12:00:00`).toLocaleDateString()}</time>
+                      {item.note ? <div style={reminderNote}>{item.note}</div> : null}
                     </div>
                     <div style={rowActions}>
                       {item.teacherId ? (
@@ -72,6 +73,7 @@ const reminderMain: React.CSSProperties = { display: "grid", gap: 10 };
 const name: React.CSSProperties = { color: "var(--text-primary)", fontSize: 12 };
 const meta: React.CSSProperties = { color: "var(--text-secondary)", fontSize: 11, marginTop: 2 };
 const date: React.CSSProperties = { display: "block", color: "#ea580c", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", marginTop: 5 };
+const reminderNote: React.CSSProperties = { marginTop: 8, padding: "9px 10px", borderLeft: "2px solid rgba(249,115,22,0.55)", borderRadius: "0 9px 9px 0", background: "var(--surface-chip)", color: "var(--text-secondary)", fontSize: 11, lineHeight: 1.5, overflowWrap: "anywhere" };
 const rowActions: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" };
 const openButton: React.CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 34, padding: "7px 11px", borderRadius: 10, border: "1px solid rgba(249,115,22,0.28)", background: "rgba(249,115,22,0.09)", color: "#ea580c", textDecoration: "none", fontSize: 11, fontWeight: 800 };
 const completeButton: React.CSSProperties = { minHeight: 34, padding: "7px 11px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-chip)", color: "var(--text-primary)", cursor: "pointer", fontSize: 11, fontWeight: 800 };
