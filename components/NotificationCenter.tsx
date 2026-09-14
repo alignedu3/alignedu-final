@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { readCoachingReminders } from "@/components/CoachingReminder";
+import Link from "next/link";
+import { completeCoachingReminder, readCoachingReminders } from "@/components/CoachingReminder";
 
 export default function NotificationCenter({ triggerStyle }: { triggerStyle?: React.CSSProperties }) {
   const [open, setOpen] = useState(false);
   const [reminders, setReminders] = useState<ReturnType<typeof readCoachingReminders>>([]);
   useEffect(() => {
-    const refresh = () => setReminders(readCoachingReminders().sort((a, b) => a.dueDate.localeCompare(b.dueDate)));
+    const refresh = () => setReminders(readCoachingReminders().filter((item) => !item.completedAt).sort((a, b) => a.dueDate.localeCompare(b.dueDate)));
     refresh(); window.addEventListener("alignedu-reminders-updated", refresh); return () => window.removeEventListener("alignedu-reminders-updated", refresh);
   }, []);
   useEffect(() => {
@@ -31,9 +32,25 @@ export default function NotificationCenter({ triggerStyle }: { triggerStyle?: Re
               <button type="button" style={closeButton} onClick={() => setOpen(false)} aria-label="Close follow-ups">×</button>
             </div>
             <div style={list}>
-              {reminders.length ? reminders.slice(0, 8).map((item) => <div key={item.id} style={row}><div><strong style={name}>{item.teacherName}</strong><div style={meta}>{item.lessonTitle}</div></div><time style={date}>{new Date(`${item.dueDate}T12:00:00`).toLocaleDateString()}</time></div>) : <p style={empty}>No follow-ups scheduled. Open a teacher lesson report to add one.</p>}
+              {reminders.length ? reminders.slice(0, 8).map((item) => (
+                <div key={item.id} style={row}>
+                  <div style={reminderMain}>
+                    <div>
+                      <strong style={name}>{item.teacherName}</strong>
+                      <div style={meta}>{item.lessonTitle}</div>
+                      <time style={date}>{new Date(`${item.dueDate}T12:00:00`).toLocaleDateString()}</time>
+                    </div>
+                    <div style={rowActions}>
+                      {item.teacherId ? (
+                        <Link href={`/admin/teacher/${item.teacherId}/lesson/${item.id}`} onClick={() => setOpen(false)} style={openButton}>Open Lesson</Link>
+                      ) : null}
+                      <button type="button" style={completeButton} onClick={() => completeCoachingReminder(item.id)}>Mark Complete</button>
+                    </div>
+                  </div>
+                </div>
+              )) : <p style={empty}>No active follow-ups. Open a teacher lesson report to schedule one.</p>}
             </div>
-            <button type="button" onClick={() => setOpen(false)} style={doneButton}>Done</button>
+            <button type="button" onClick={() => setOpen(false)} style={doneButton}>Close</button>
           </div>
         </div>
       )}
@@ -50,9 +67,13 @@ const eyebrow: React.CSSProperties = { color: "#ea580c", fontSize: 10, fontWeigh
 const heading: React.CSSProperties = { color: "var(--text-primary)", fontSize: 19, margin: 0 };
 const closeButton: React.CSSProperties = { display: "grid", placeItems: "center", flex: "0 0 36px", width: 36, height: 36, border: "1px solid var(--border)", borderRadius: 11, background: "var(--surface-chip)", color: "var(--text-primary)", cursor: "pointer", fontSize: 24, lineHeight: 1 };
 const list: React.CSSProperties = { overflowY: "auto", paddingRight: 3 };
-const row: React.CSSProperties = { display: "flex", justifyContent: "space-between", gap: 12, padding: "11px 0", borderBottom: "1px solid var(--border)" };
+const row: React.CSSProperties = { padding: "13px 0", borderBottom: "1px solid var(--border)" };
+const reminderMain: React.CSSProperties = { display: "grid", gap: 10 };
 const name: React.CSSProperties = { color: "var(--text-primary)", fontSize: 12 };
 const meta: React.CSSProperties = { color: "var(--text-secondary)", fontSize: 11, marginTop: 2 };
-const date: React.CSSProperties = { color: "#ea580c", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap" };
+const date: React.CSSProperties = { display: "block", color: "#ea580c", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", marginTop: 5 };
+const rowActions: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" };
+const openButton: React.CSSProperties = { display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: 34, padding: "7px 11px", borderRadius: 10, border: "1px solid rgba(249,115,22,0.28)", background: "rgba(249,115,22,0.09)", color: "#ea580c", textDecoration: "none", fontSize: 11, fontWeight: 800 };
+const completeButton: React.CSSProperties = { minHeight: 34, padding: "7px 11px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-chip)", color: "var(--text-primary)", cursor: "pointer", fontSize: 11, fontWeight: 800 };
 const empty: React.CSSProperties = { color: "var(--text-secondary)", fontSize: 12, marginBottom: 0 };
 const doneButton: React.CSSProperties = { marginTop: 14, width: "100%", padding: "11px 14px", border: 0, borderRadius: 12, background: "#f97316", color: "#fff", fontWeight: 800, cursor: "pointer" };
