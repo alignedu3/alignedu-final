@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { NextRequest } from 'next/server'
 import { captureRouteException } from '@/lib/sentryRoute'
+import { getUserWithRetry, isInvalidSessionError } from '@/lib/supabase/authUser'
 
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname
@@ -40,17 +41,17 @@ export async function proxy(req: NextRequest) {
     const {
       data: { user },
       error: authError,
-    } = await supabase.auth.getUser()
+    } = await getUserWithRetry(supabase)
 
     if (authError) {
-      const message = authError.message.toLowerCase()
-      if (message.includes('invalid refresh token') || message.includes('refresh token not found')) {
+      if (isInvalidSessionError(authError)) {
         req.cookies
           .getAll()
           .filter((cookie) => cookie.name.startsWith('sb-'))
           .forEach((cookie) => {
             res.cookies.set(cookie.name, '', { maxAge: 0, path: '/' })
           })
+        return NextResponse.redirect(new URL('/login', req.url))
       } else {
         captureRouteException(authError, {
           route: 'proxy',
@@ -60,6 +61,7 @@ export async function proxy(req: NextRequest) {
           },
           level: 'warning',
         })
+        return res
       }
     }
 

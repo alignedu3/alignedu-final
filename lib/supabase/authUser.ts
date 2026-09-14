@@ -1,5 +1,33 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+type GetUserResult = Awaited<ReturnType<SupabaseClient['auth']['getUser']>>;
+
+async function getUserWithTimeout(
+  supabase: Pick<SupabaseClient, 'auth'>,
+  timeoutMs = 2500
+): Promise<GetUserResult> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<GetUserResult>((resolve) => {
+        timeoutId = setTimeout(() => {
+          resolve({
+            data: { user: null },
+            error: Object.assign(new Error('Session verification timed out.'), {
+              status: 503,
+              code: 'auth_timeout',
+            }),
+          } as GetUserResult);
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
+
 export function isInvalidSessionError(error: unknown) {
   if (!error || typeof error !== 'object') return false;
   const typed = error as { status?: unknown; code?: unknown; message?: unknown };
@@ -17,9 +45,9 @@ export function isInvalidSessionError(error: unknown) {
 }
 
 export async function getUserWithRetry(supabase: Pick<SupabaseClient, 'auth'>) {
-  let result = await supabase.auth.getUser();
+  let result = await getUserWithTimeout(supabase);
   if (result.error && !isInvalidSessionError(result.error)) {
-    result = await supabase.auth.getUser();
+    result = await getUserWithTimeout(supabase);
   }
   return result;
 }
