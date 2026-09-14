@@ -684,7 +684,7 @@ export default function AdminDashboard() {
           </div>
           <div style={actions}>
             <div style={actionColumn}>
-              <NotificationCenter triggerStyle={headerActionBtnAlt} />
+              <NotificationCenter triggerStyle={headerActionBtnAlt} sampleMode={isSampleMode} />
               <button onClick={handleObserveLesson} style={headerActionBtn}>
                 Observe Lesson
               </button>

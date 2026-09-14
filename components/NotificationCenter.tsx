@@ -2,11 +2,31 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { completeCoachingReminder, readCoachingReminders } from "@/components/CoachingReminder";
+import { completeCoachingReminder, readCoachingReminders, type CoachingReminderItem } from "@/components/CoachingReminder";
 
-export default function NotificationCenter({ triggerStyle }: { triggerStyle?: React.CSSProperties }) {
+const SAMPLE_COMPLETED_KEY = "alignedu-sample-follow-up-completed-v1";
+
+export default function NotificationCenter({ triggerStyle, sampleMode = false }: { triggerStyle?: React.CSSProperties; sampleMode?: boolean }) {
   const [open, setOpen] = useState(false);
   const [reminders, setReminders] = useState<ReturnType<typeof readCoachingReminders>>([]);
+  const [sampleCompleted, setSampleCompleted] = useState(() =>
+    typeof window !== "undefined" && window.localStorage.getItem(SAMPLE_COMPLETED_KEY) === "true"
+  );
+  const [sampleDueDate] = useState(() => {
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + 5);
+    return dueDate.toISOString().slice(0, 10);
+  });
+  const sampleReminder: CoachingReminderItem = {
+    id: "sample-report-41",
+    teacherId: "sample-teacher-1",
+    teacherName: "Ms. Carter",
+    lessonTitle: "Scientific Investigation and Evidence",
+    dueDate: sampleDueDate,
+    note: "Review whether students independently justify claims with evidence during the closing check.",
+    createdAt: new Date().toISOString(),
+  };
+  const visibleReminders = sampleMode && !sampleCompleted ? [sampleReminder, ...reminders] : reminders;
   useEffect(() => {
     const refresh = () => setReminders(readCoachingReminders().filter((item) => !item.completedAt).sort((a, b) => a.dueDate.localeCompare(b.dueDate)));
     refresh(); window.addEventListener("alignedu-reminders-updated", refresh); return () => window.removeEventListener("alignedu-reminders-updated", refresh);
@@ -19,10 +39,18 @@ export default function NotificationCenter({ triggerStyle }: { triggerStyle?: Re
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [open]);
+  const markComplete = (item: CoachingReminderItem) => {
+    if (sampleMode && item.id === sampleReminder.id) {
+      window.localStorage.setItem(SAMPLE_COMPLETED_KEY, "true");
+      setSampleCompleted(true);
+      return;
+    }
+    completeCoachingReminder(item.id);
+  };
   return (
     <div style={wrap}>
-      <button type="button" onClick={() => setOpen((value) => !value)} style={{ ...trigger, ...triggerStyle }} aria-expanded={open} aria-haspopup="dialog" aria-label={`Follow-ups, ${reminders.length} reminders`}>
-        Follow-ups {reminders.length > 0 && <span style={count}>{reminders.length}</span>}
+      <button type="button" onClick={() => setOpen((value) => !value)} style={{ ...trigger, ...triggerStyle }} aria-expanded={open} aria-haspopup="dialog" aria-label={`Follow-ups, ${visibleReminders.length} reminders`}>
+        Follow-ups {visibleReminders.length > 0 && <span style={count}>{visibleReminders.length}</span>}
       </button>
       {open && (
         <div style={overlay} onMouseDown={() => setOpen(false)} role="presentation">
@@ -32,11 +60,12 @@ export default function NotificationCenter({ triggerStyle }: { triggerStyle?: Re
               <button type="button" style={closeButton} onClick={() => setOpen(false)} aria-label="Close follow-ups">×</button>
             </div>
             <div style={list}>
-              {reminders.length ? reminders.slice(0, 8).map((item) => (
+              {visibleReminders.length ? visibleReminders.slice(0, 8).map((item) => (
                 <div key={item.id} style={row}>
                   <div style={reminderMain}>
                     <div>
                       <strong style={name}>{item.teacherName}</strong>
+                      {item.id.startsWith("sample-report-") ? <span style={sampleBadge}>Sample</span> : null}
                       <div style={meta}>{item.lessonTitle}</div>
                       <time style={date}>{new Date(`${item.dueDate}T12:00:00`).toLocaleDateString()}</time>
                       {item.note ? <div style={reminderNote}>{item.note}</div> : null}
@@ -45,7 +74,7 @@ export default function NotificationCenter({ triggerStyle }: { triggerStyle?: Re
                       {item.teacherId ? (
                         <Link href={`/admin/teacher/${item.teacherId}/lesson/${item.id}`} onClick={() => setOpen(false)} style={openButton}>Open Lesson</Link>
                       ) : null}
-                      <button type="button" style={completeButton} onClick={() => completeCoachingReminder(item.id)}>Mark Complete</button>
+                      <button type="button" style={completeButton} onClick={() => markComplete(item)}>Mark Complete</button>
                     </div>
                   </div>
                 </div>
@@ -71,6 +100,7 @@ const list: React.CSSProperties = { overflowY: "auto", paddingRight: 3 };
 const row: React.CSSProperties = { padding: "13px 0", borderBottom: "1px solid var(--border)" };
 const reminderMain: React.CSSProperties = { display: "grid", gap: 10 };
 const name: React.CSSProperties = { color: "var(--text-primary)", fontSize: 12 };
+const sampleBadge: React.CSSProperties = { display: "inline-flex", marginLeft: 7, padding: "2px 6px", borderRadius: 999, border: "1px solid rgba(249,115,22,0.24)", background: "rgba(249,115,22,0.08)", color: "#ea580c", fontSize: 9, fontWeight: 800, letterSpacing: 0.45, textTransform: "uppercase", verticalAlign: "middle" };
 const meta: React.CSSProperties = { color: "var(--text-secondary)", fontSize: 11, marginTop: 2 };
 const date: React.CSSProperties = { display: "block", color: "#ea580c", fontSize: 11, fontWeight: 800, whiteSpace: "nowrap", marginTop: 5 };
 const reminderNote: React.CSSProperties = { marginTop: 8, padding: "9px 10px", borderLeft: "2px solid rgba(249,115,22,0.55)", borderRadius: "0 9px 9px 0", background: "var(--surface-chip)", color: "var(--text-secondary)", fontSize: 11, lineHeight: 1.5, overflowWrap: "anywhere" };

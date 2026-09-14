@@ -672,6 +672,22 @@ export const sampleReports: LessonReport[] = [
   buildSampleReport('38', 'Ms. Ramirez', 'Food Webs and Energy Flow', '2026-04-20', { coverage: 68, clarity: 64, engagement: 62, assessment: 59, gaps: 4 }),
   buildSampleReport('39', 'Ms. Ramirez', 'Adaptation and Survival', '2026-05-04', { coverage: 66, clarity: 62, engagement: 60, assessment: 57, gaps: 4 }),
   buildSampleReport('40', 'Ms. Ramirez', 'Scientific Argumentation', '2026-05-18', { coverage: 64, clarity: 60, engagement: 58, assessment: 55, gaps: 5 }),
+  buildSampleReport('41', 'Ms. Carter', 'Scientific Investigation and Evidence', '2026-08-21', { coverage: 86, clarity: 83, engagement: 79, assessment: 76, gaps: 1 }),
+  buildSampleReport('42', 'Ms. Carter', 'Cell Transport and Homeostasis', '2026-08-28', { coverage: 88, clarity: 85, engagement: 81, assessment: 79, gaps: 1 }),
+  buildSampleReport('43', 'Ms. Carter', 'Enzyme Function and Regulation', '2026-09-04', { coverage: 89, clarity: 87, engagement: 84, assessment: 82, gaps: 1 }),
+  buildSampleReport('44', 'Ms. Carter', 'Photosynthesis and Energy Transfer', '2026-09-11', { coverage: 91, clarity: 88, engagement: 86, assessment: 84, gaps: 0 }),
+  buildSampleReport('45', 'Mr. Evans', 'Scientific Investigation and Evidence', '2026-08-20', { coverage: 72, clarity: 69, engagement: 66, assessment: 63, gaps: 3 }),
+  buildSampleReport('46', 'Mr. Evans', 'Cell Transport and Homeostasis', '2026-08-27', { coverage: 71, clarity: 68, engagement: 65, assessment: 62, gaps: 3 }),
+  buildSampleReport('47', 'Mr. Evans', 'Enzyme Function and Regulation', '2026-09-03', { coverage: 73, clarity: 70, engagement: 67, assessment: 64, gaps: 2 }),
+  buildSampleReport('48', 'Mr. Evans', 'Photosynthesis and Energy Transfer', '2026-09-10', { coverage: 74, clarity: 71, engagement: 68, assessment: 66, gaps: 2 }),
+  buildSampleReport('49', 'Dr. Lee', 'Scientific Investigation and Evidence', '2026-08-22', { coverage: 92, clarity: 90, engagement: 88, assessment: 86, gaps: 0 }),
+  buildSampleReport('50', 'Dr. Lee', 'Cell Transport and Homeostasis', '2026-08-29', { coverage: 93, clarity: 91, engagement: 89, assessment: 87, gaps: 0 }),
+  buildSampleReport('51', 'Dr. Lee', 'Enzyme Function and Regulation', '2026-09-05', { coverage: 94, clarity: 92, engagement: 90, assessment: 88, gaps: 0 }),
+  buildSampleReport('52', 'Dr. Lee', 'Photosynthesis and Energy Transfer', '2026-09-12', { coverage: 95, clarity: 93, engagement: 91, assessment: 89, gaps: 0 }),
+  buildSampleReport('53', 'Ms. Ramirez', 'Scientific Investigation and Evidence', '2026-08-19', { coverage: 76, clarity: 73, engagement: 71, assessment: 68, gaps: 2 }),
+  buildSampleReport('54', 'Ms. Ramirez', 'Cell Transport and Homeostasis', '2026-08-26', { coverage: 78, clarity: 75, engagement: 72, assessment: 70, gaps: 2 }),
+  buildSampleReport('55', 'Ms. Ramirez', 'Enzyme Function and Regulation', '2026-09-02', { coverage: 80, clarity: 77, engagement: 74, assessment: 72, gaps: 2 }),
+  buildSampleReport('56', 'Ms. Ramirez', 'Photosynthesis and Energy Transfer', '2026-09-09', { coverage: 82, clarity: 79, engagement: 76, assessment: 74, gaps: 1 }),
 ];
 
 export function buildSampleAnalysisReports() {
@@ -696,7 +712,7 @@ export function buildSampleAnalysisReports() {
 }
 
 export function buildTeacherDashboardSampleReports(teacherDisplayName: string) {
-  return sampleReports.slice(0, 10).map((report) => ({
+  return sampleReports.filter((report) => report.teacher === 'Ms. Carter').map((report) => ({
     ...report,
     id: `sample-report-${report.id}`,
     user_id: SAMPLE_PREVIEW_TEACHER_ID,
