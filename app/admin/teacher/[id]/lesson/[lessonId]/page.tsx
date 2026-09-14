@@ -283,22 +283,22 @@ export default function LessonReportPage() {
           <div style={{ ...metricCard, ...coverageMetricCard }}>
             <div style={metricLabel}>Coverage</div>
             <div style={metricValue}>{insights.coverage}%</div>
-            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.coverage}%`, background: '#3b82f6' }} /></div>
+            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.coverage}%` }} /></div>
           </div>
           <div style={{ ...metricCard, ...clarityMetricCard }}>
             <div style={metricLabel}>Clarity</div>
             <div style={metricValue}>{insights.clarity}%</div>
-            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.clarity}%`, background: '#8b5cf6' }} /></div>
+            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.clarity}%` }} /></div>
           </div>
           <div style={{ ...metricCard, ...engagementMetricCard }}>
             <div style={metricLabel}>Engagement</div>
             <div style={metricValue}>{insights.engagement}%</div>
-            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.engagement}%`, background: '#10b981' }} /></div>
+            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.engagement}%` }} /></div>
           </div>
           <div style={{ ...metricCard, ...assessmentMetricCard }}>
             <div style={metricLabel}>Assessment</div>
             <div style={metricValue}>{insights.assessment}%</div>
-            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.assessment}%`, background: '#f59e0b' }} /></div>
+            <div style={metricProgressTrack} aria-hidden="true"><div style={{ ...metricProgressFill, width: `${insights.assessment}%` }} /></div>
           </div>
         </div>
 
@@ -826,8 +826,8 @@ const submissionNote: React.CSSProperties = {
 
 const metricGrid: React.CSSProperties = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-  gap: 14,
+  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+  gap: 10,
   marginBottom: 22,
 };
 
@@ -838,12 +838,11 @@ const metricCard: React.CSSProperties = {
   justifyContent: 'center',
   gap: 11,
   textAlign: 'center',
-  minHeight: 142,
+  minHeight: 112,
   background: 'var(--surface-card-solid)',
   border: '1px solid var(--border)',
   borderRadius: 18,
-  padding: '20px 16px 18px',
-  boxShadow: 'var(--shadow-soft)',
+  padding: '15px 14px',
 };
 
 const metricLabel: React.CSSProperties = {
@@ -874,6 +873,7 @@ const metricProgressTrack: React.CSSProperties = {
 const metricProgressFill: React.CSSProperties = {
   height: '100%',
   borderRadius: 999,
+  background: '#f97316',
 };
 
 const sectionCard: React.CSSProperties = {
@@ -1065,22 +1065,18 @@ const twoColumnGrid: React.CSSProperties = {
 
 const coverageMetricCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(59,130,246,0.16)',
 };
 
 const clarityMetricCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(14,165,233,0.16)',
 };
 
 const engagementMetricCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(16,185,129,0.16)',
 };
 
 const assessmentMetricCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(245,158,11,0.16)',
 };
 
 const contextSectionCard: React.CSSProperties = {
@@ -1089,37 +1085,32 @@ const contextSectionCard: React.CSSProperties = {
 
 const successSectionCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(16,185,129,0.18)',
 };
 
 const improvementSectionCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(245,158,11,0.18)',
 };
 
 const nextStepSectionCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(249,115,22,0.18)',
 };
 
 const teksSectionCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(59,130,246,0.18)',
 };
 
 const teksSectionStack: React.CSSProperties = {
   display: 'grid',
   gap: 0,
   marginTop: 8,
-  borderTop: '1px solid rgba(59,130,246,0.12)',
+  borderTop: '1px solid var(--border)',
 };
 
 const teksSectionRow: React.CSSProperties = {
   padding: '18px 0',
-  borderBottom: '1px solid rgba(59,130,246,0.12)',
+  borderBottom: '1px solid var(--border)',
 };
 
 const analysisSectionCard: React.CSSProperties = {
   background: 'var(--surface-card-solid)',
-  borderColor: 'rgba(99,102,241,0.16)',
 };
