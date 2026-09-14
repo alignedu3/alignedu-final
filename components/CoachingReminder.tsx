@@ -68,7 +68,7 @@ export default function CoachingReminder({ lessonId, ownerId, teacherId, teacher
   return (
     <div style={wrap}>
       <div><strong style={title}>Coaching follow-up</strong><p style={text}>Schedule when you want to revisit this instructional action.</p></div>
-      <div style={controls}>
+      <div style={controls} className="coaching-reminder-controls">
         <label style={noteField}>
           <span style={fieldLabel}>Follow-up note <span style={optionalLabel}>Optional</span></span>
           <textarea
@@ -79,24 +79,39 @@ export default function CoachingReminder({ lessonId, ownerId, teacherId, teacher
             rows={2}
           />
         </label>
-        <label style={dateField}>
+        <label style={dateField} className="coaching-reminder-date-field">
           <span style={fieldLabel}>Follow-up date</span>
-          <input type="date" value={dueDate} onChange={(event) => { setDueDate(event.target.value); setSaved(false); }} style={input} aria-label="Coaching follow-up date" />
+          <input
+            type="date"
+            value={dueDate}
+            onChange={(event) => { setDueDate(event.target.value); setSaved(false); }}
+            onClick={(event) => event.currentTarget.showPicker?.()}
+            style={input}
+            aria-label="Coaching follow-up date"
+          />
         </label>
-        <button type="button" onClick={save} disabled={!dueDate} style={button}>{saved ? "Saved" : "Set reminder"}</button>
+        <button
+          type="button"
+          onClick={save}
+          disabled={!dueDate}
+          className="coaching-reminder-save-button"
+          style={{ ...button, opacity: dueDate ? 1 : 0.56, cursor: dueDate ? "pointer" : "not-allowed" }}
+        >
+          {saved ? "Saved" : "Set reminder"}
+        </button>
       </div>
     </div>
   );
 }
 
-const wrap: React.CSSProperties = { display: "grid", gap: 14, padding: 16, border: "1px solid var(--border)", borderRadius: 16, background: "var(--surface-chip)" };
+const wrap: React.CSSProperties = { display: "grid", gap: 18, padding: 18, border: "1px solid var(--border)", borderRadius: 16, background: "var(--surface-chip)" };
 const title: React.CSSProperties = { color: "var(--text-primary)", fontSize: 14 };
 const text: React.CSSProperties = { color: "var(--text-secondary)", fontSize: 12, margin: "3px 0 0" };
-const controls: React.CSSProperties = { display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "end", gap: 10 };
-const noteField: React.CSSProperties = { display: "grid", gridColumn: "1 / -1", gap: 6 };
-const dateField: React.CSSProperties = { display: "grid", gap: 6, minWidth: 0 };
+const controls: React.CSSProperties = { display: "grid", gridTemplateColumns: "minmax(210px, 260px) auto", alignItems: "end", justifyContent: "start", columnGap: 12, rowGap: 16 };
+const noteField: React.CSSProperties = { display: "grid", gridColumn: "1 / -1", gap: 7, width: "100%" };
+const dateField: React.CSSProperties = { display: "grid", gap: 7, minWidth: 0 };
 const fieldLabel: React.CSSProperties = { color: "var(--text-secondary)", fontSize: 10, fontWeight: 800, letterSpacing: 0.55, textTransform: "uppercase" };
 const optionalLabel: React.CSSProperties = { marginLeft: 5, color: "var(--text-muted)", fontWeight: 650, letterSpacing: 0, textTransform: "none" };
 const noteInput: React.CSSProperties = { width: "100%", minHeight: 66, padding: "10px 11px", borderRadius: 11, border: "1px solid var(--border)", background: "var(--surface-input)", color: "var(--text-primary)", font: "inherit", fontSize: 12, lineHeight: 1.5, resize: "vertical", boxSizing: "border-box" };
-const input: React.CSSProperties = { width: "100%", minHeight: 40, padding: "8px 11px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface-input)", color: "var(--text-primary)", boxSizing: "border-box" };
-const button: React.CSSProperties = { minHeight: 40, padding: "9px 14px", borderRadius: 10, border: 0, background: "#f97316", color: "#fff", fontWeight: 800, cursor: "pointer", whiteSpace: "nowrap", boxShadow: "0 8px 18px rgba(249,115,22,0.18)" };
+const input: React.CSSProperties = { width: "100%", minHeight: 46, padding: "10px 12px", borderRadius: 11, border: "1px solid var(--border)", background: "var(--surface-input)", color: "var(--text-primary)", font: "inherit", fontSize: 14, cursor: "pointer", colorScheme: "light dark", boxSizing: "border-box" };
+const button: React.CSSProperties = { minHeight: 46, padding: "10px 18px", borderRadius: 11, border: 0, background: "#f97316", color: "#fff", fontWeight: 800, whiteSpace: "nowrap", boxShadow: "0 8px 18px rgba(249,115,22,0.18)", transition: "opacity 160ms ease, transform 160ms ease" };

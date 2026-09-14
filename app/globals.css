@@ -2934,3 +2934,13 @@ a[role="button"],
       border-radius: 24px;
     }
   }
+@media (max-width: 640px) {
+  .coaching-reminder-controls {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .coaching-reminder-date-field,
+  .coaching-reminder-save-button {
+    width: 100% !important;
+  }
+}
