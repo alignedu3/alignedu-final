@@ -31,6 +31,23 @@ function formatStableDate(value: string | null | undefined) {
   return stableDateFormatter.format(parsed);
 }
 
+function parseReportDate(report: AnalysisReport) {
+  const raw = report.created_at ?? report.date;
+  if (!raw) return null;
+  const parsed = new Date(raw.includes('T') ? raw : `${raw}T12:00:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getSemesterPeriod(date: Date) {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const term = month >= 7 ? 'fall' : month >= 5 ? 'summer' : 'spring';
+  const label = `${term.charAt(0).toUpperCase()}${term.slice(1)} ${year}`;
+  const range = term === 'fall' ? 'Aug–Dec' : term === 'summer' ? 'Jun–Jul' : 'Jan–May';
+  const rank = year * 10 + (term === 'fall' ? 3 : term === 'summer' ? 2 : 1);
+  return { value: `${term}-${year}`, label, range, rank };
+}
+
 function getChapterLabel(report: AnalysisReport) {
   const title = String(report.title || '').trim();
   const chapterMatch = title.match(/\bchapter\s+(?:\d+[a-z]?|[ivxlcdm]+)\b/i);
@@ -56,6 +73,7 @@ export default function AdminTeacherPage() {
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [backHref, setBackHref] = useState('/admin');
+  const [selectedSemester, setSelectedSemester] = useState('');
 
   useEffect(() => {
     setChartReady(true);
@@ -132,7 +150,30 @@ export default function AdminTeacherPage() {
     return reports.some((report) => report.id === activeReportId) ? activeReportId : reports[0].id;
   }, [reports, activeReportId]);
 
-  const summary = useMemo(() => getDashboardSummary(reports), [reports]);
+  const semesterOptions = useMemo(() => {
+    const periods = new Map<string, { value: string; label: string; range: string; rank: number; count: number }>();
+    reports.forEach((report) => {
+      const parsed = parseReportDate(report);
+      if (!parsed) return;
+      const period = getSemesterPeriod(parsed);
+      const existing = periods.get(period.value);
+      periods.set(period.value, { ...period, count: (existing?.count || 0) + 1 });
+    });
+    return Array.from(periods.values()).sort((a, b) => b.rank - a.rank);
+  }, [reports]);
+  const currentSemesterValue = getSemesterPeriod(new Date()).value;
+  const hasSelectedSemester = selectedSemester === 'all' || semesterOptions.some((option) => option.value === selectedSemester);
+  const activeSemester = (selectedSemester && hasSelectedSemester) ? selectedSemester : (
+    semesterOptions.some((option) => option.value === currentSemesterValue)
+      ? currentSemesterValue
+      : semesterOptions[0]?.value || 'all'
+  );
+  const summaryReports = useMemo(() => reports.filter((report) => {
+    if (activeSemester === 'all') return true;
+    const parsed = parseReportDate(report);
+    return parsed ? getSemesterPeriod(parsed).value === activeSemester : false;
+  }), [activeSemester, reports]);
+  const summary = useMemo(() => getDashboardSummary(summaryReports), [summaryReports]);
 
   const overview = useMemo(() => {
     if (!reports.length) {
@@ -228,13 +269,21 @@ export default function AdminTeacherPage() {
         </div>
 
         <div style={cardFull}>
-          <div style={sectionEyebrow}>Performance Summary</div>
-          <h2 style={title}>Teacher Performance</h2>
+          <div style={performanceSummaryHeader}>
+            <h2 style={{ ...title, marginBottom: 0 }}>Overall Lesson Analysis</h2>
+            <select value={activeSemester} onChange={(event) => setSelectedSemester(event.target.value)} style={periodSelect} aria-label="Reporting period">
+              <option value="all">All History · {reports.length} lesson{reports.length === 1 ? '' : 's'}</option>
+              {semesterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label} ({option.range}) · {option.count} lesson{option.count === 1 ? '' : 's'}
+                </option>
+              ))}
+            </select>
+          </div>
           <PerformanceMetricSummary
             overallScore={summary.averageScore}
             lessonsAnalyzed={summary.lessonsAnalyzed}
             metricHelper="Lesson average"
-            compact
             metrics={[
               { label: 'Coverage', value: summary.lessonsAnalyzed ? summary.averageCoverage : null, color: '#3b82f6' },
               { label: 'Clarity', value: summary.lessonsAnalyzed ? summary.averageClarity : null, color: '#8b5cf6' },
@@ -540,6 +589,28 @@ const cardFull: React.CSSProperties = {
   boxShadow: 'var(--shadow-card)',
 };
 
+const performanceSummaryHeader: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 12,
+  flexWrap: 'wrap',
+};
+
+const periodSelect: React.CSSProperties = {
+  minHeight: 40,
+  maxWidth: 'min(330px, 100%)',
+  marginLeft: 'auto',
+  padding: '7px 34px 7px 12px',
+  borderRadius: 11,
+  border: '1px solid var(--border)',
+  background: 'var(--surface-input)',
+  color: 'var(--text-primary)',
+  fontSize: 13,
+  fontWeight: 700,
+  cursor: 'pointer',
+};
+
 const label: React.CSSProperties = {
   color: 'var(--text-secondary)',
   fontSize: 13
@@ -557,15 +628,6 @@ const title: React.CSSProperties = {
   marginTop: 0,
   marginBottom: 10,
   fontSize: 22,
-};
-
-const sectionEyebrow: React.CSSProperties = {
-  color: '#ea580c',
-  fontSize: 11,
-  textTransform: 'uppercase',
-  letterSpacing: 0.8,
-  fontWeight: 800,
-  marginBottom: 7,
 };
 
 const text: React.CSSProperties = {
