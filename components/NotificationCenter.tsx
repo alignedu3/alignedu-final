@@ -6,7 +6,7 @@ import { completeCoachingReminder, readCoachingReminders, type CoachingReminderI
 
 const SAMPLE_COMPLETED_KEY = "alignedu-sample-follow-up-completed-v1";
 
-export default function NotificationCenter({ triggerStyle, sampleMode = false }: { triggerStyle?: React.CSSProperties; sampleMode?: boolean }) {
+export default function NotificationCenter({ triggerStyle, sampleMode = false, ownerId }: { triggerStyle?: React.CSSProperties; sampleMode?: boolean; ownerId?: string | null }) {
   const [open, setOpen] = useState(false);
   const [reminders, setReminders] = useState<ReturnType<typeof readCoachingReminders>>([]);
   const [sampleCompleted, setSampleCompleted] = useState(() =>
@@ -28,9 +28,13 @@ export default function NotificationCenter({ triggerStyle, sampleMode = false }:
   };
   const visibleReminders = sampleMode && !sampleCompleted ? [sampleReminder, ...reminders] : reminders;
   useEffect(() => {
-    const refresh = () => setReminders(readCoachingReminders().filter((item) => !item.completedAt).sort((a, b) => a.dueDate.localeCompare(b.dueDate)));
+    const refresh = () => setReminders(
+      readCoachingReminders()
+        .filter((item) => !item.completedAt && Boolean(item.ownerId) && item.ownerId === ownerId)
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+    );
     refresh(); window.addEventListener("alignedu-reminders-updated", refresh); return () => window.removeEventListener("alignedu-reminders-updated", refresh);
-  }, []);
+  }, [ownerId]);
   useEffect(() => {
     if (!open) return;
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -45,7 +49,7 @@ export default function NotificationCenter({ triggerStyle, sampleMode = false }:
       setSampleCompleted(true);
       return;
     }
-    completeCoachingReminder(item.id);
+    completeCoachingReminder(item.id, item.ownerId);
   };
   return (
     <div style={wrap}>
@@ -61,7 +65,7 @@ export default function NotificationCenter({ triggerStyle, sampleMode = false }:
             </div>
             <div style={list}>
               {visibleReminders.length ? visibleReminders.slice(0, 8).map((item) => (
-                <div key={item.id} style={row}>
+                <div key={`${item.ownerId || 'sample'}-${item.id}`} style={row}>
                   <div style={reminderMain}>
                     <div>
                       <strong style={name}>{item.teacherName}</strong>

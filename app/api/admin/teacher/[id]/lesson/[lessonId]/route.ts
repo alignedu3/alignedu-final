@@ -91,6 +91,7 @@ export async function GET(
       success: true,
       lesson: canUseDallasRubricPilot(user.id, callerProfile.role) ? lesson : hidePilotRubricFields(lesson),
       viewerRole: callerProfile.role,
+      viewerId: user.id,
       rubricPilotEnabled: canUseDallasRubricPilot(user.id, callerProfile.role),
       teacher: teacher || { id, name: 'Teacher' },
     });

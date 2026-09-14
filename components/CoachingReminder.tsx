@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 export type CoachingReminderItem = {
   id: string;
+  ownerId?: string;
   teacherId?: string;
   teacherName: string;
   lessonTitle: string;
@@ -24,42 +25,42 @@ function writeCoachingReminders(reminders: CoachingReminderItem[]) {
   window.dispatchEvent(new Event("alignedu-reminders-updated"));
 }
 
-export function completeCoachingReminder(id: string) {
+export function completeCoachingReminder(id: string, ownerId?: string) {
   writeCoachingReminders(
     readCoachingReminders().map((item) =>
-      item.id === id ? { ...item, completedAt: new Date().toISOString() } : item
+      item.id === id && (!ownerId || item.ownerId === ownerId) ? { ...item, completedAt: new Date().toISOString() } : item
     )
   );
 }
 
-export default function CoachingReminder({ lessonId, teacherId, teacherName, lessonTitle }: { lessonId: string; teacherId: string; teacherName: string; lessonTitle: string }) {
+export default function CoachingReminder({ lessonId, ownerId, teacherId, teacherName, lessonTitle }: { lessonId: string; ownerId: string; teacherId: string; teacherName: string; lessonTitle: string }) {
   const [dueDate, setDueDate] = useState(() => {
-    const existing = readCoachingReminders().find((item) => item.id === lessonId && !item.completedAt);
+    const existing = readCoachingReminders().find((item) => item.id === lessonId && (!item.ownerId || item.ownerId === ownerId) && !item.completedAt);
     return existing?.dueDate || "";
   });
   const [saved, setSaved] = useState(() =>
-    readCoachingReminders().some((item) => item.id === lessonId && !item.completedAt)
+    readCoachingReminders().some((item) => item.id === lessonId && (!item.ownerId || item.ownerId === ownerId) && !item.completedAt)
   );
   const [note, setNote] = useState(() => {
-    const existing = readCoachingReminders().find((item) => item.id === lessonId && !item.completedAt);
+    const existing = readCoachingReminders().find((item) => item.id === lessonId && (!item.ownerId || item.ownerId === ownerId) && !item.completedAt);
     return existing?.note || "";
   });
 
   useEffect(() => {
-    const existing = readCoachingReminders().find((item) => item.id === lessonId);
+    const existing = readCoachingReminders().find((item) => item.id === lessonId && (!item.ownerId || item.ownerId === ownerId));
     if (existing && !existing.completedAt) {
-      if (!existing.teacherId) {
+      if (!existing.teacherId || !existing.ownerId) {
         writeCoachingReminders(
-          readCoachingReminders().map((item) => item.id === lessonId ? { ...item, teacherId } : item)
+          readCoachingReminders().map((item) => item.id === lessonId && (!item.ownerId || item.ownerId === ownerId) ? { ...item, teacherId, ownerId: item.ownerId || ownerId } : item)
         );
       }
     }
-  }, [lessonId, teacherId]);
+  }, [lessonId, ownerId, teacherId]);
 
   const save = () => {
     if (!dueDate) return;
-    const next = readCoachingReminders().filter((item) => item.id !== lessonId);
-    next.push({ id: lessonId, teacherId, teacherName, lessonTitle, dueDate, note: note.trim() || undefined, createdAt: new Date().toISOString() });
+    const next = readCoachingReminders().filter((item) => !(item.id === lessonId && item.ownerId === ownerId));
+    next.push({ id: lessonId, ownerId, teacherId, teacherName, lessonTitle, dueDate, note: note.trim() || undefined, createdAt: new Date().toISOString() });
     writeCoachingReminders(next);
     setSaved(true);
   };
