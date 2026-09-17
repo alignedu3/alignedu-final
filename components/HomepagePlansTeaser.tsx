@@ -9,7 +9,7 @@ const plans = [
   { name: 'Free', price: '$0', note: '2 analyses / month', cta: 'Get started free' },
   { name: 'Teacher', price: '$14.99', cadence: '/month', annual: '$149/year', effective: '$12.42/mo', savings: 'Save $30.88/year', note: '10 analyses / month', cta: 'Choose Teacher' },
   { name: 'Teacher Pro', price: '$24.99', cadence: '/month', annual: '$249/year', effective: '$20.75/mo', savings: 'Save $50.88/year', note: '30 analyses / month', cta: 'Choose Teacher Pro', featured: true },
-  { name: 'School / District', price: 'Custom', note: 'Team access + admin tools', cta: 'Request School / District' },
+  { name: 'School / District', price: 'Custom', note: 'Team access + district dashboard + monitoring dashboard', cta: 'Request School / District' },
 ];
 
 export default function HomepagePlansTeaser() {
