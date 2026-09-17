@@ -4,10 +4,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 const plans = [
-  { key: 'free', name: 'Free', price: '$0', annual: '', limit: '2 lesson analyses / month', copy: 'Explore AlignEDU before upgrading.', features: ['AI lesson intelligence', 'Coverage, clarity, engagement & assessment', 'Personal dashboard'] },
-  { key: 'teacher', name: 'Teacher', price: '$14.99', annual: '$149/year', limit: '10 lesson analyses / month', copy: 'For individual educators using AlignEDU consistently.', features: ['Everything in Free', '10 completed analyses each month', 'Analysis history & instructional insights'] },
+  { key: 'free', name: 'Free', price: '$0', annual: '', limit: '2 lesson analyses / month', copy: 'Explore AlignEDU before upgrading.', features: ['AI lesson intelligence', 'Coverage, clarity, engagement & assessment', 'Personal dashboard'], featured: false },
+  { key: 'teacher', name: 'Teacher', price: '$14.99', annual: '$149/year', limit: '10 lesson analyses / month', copy: 'For individual educators using AlignEDU consistently.', features: ['Everything in Free', '10 completed analyses each month', 'Analysis history & instructional insights'], featured: false },
   { key: 'teacher_pro', name: 'Teacher Pro', price: '$24.99', annual: '$249/year', limit: '30 lesson analyses / month', copy: 'For educators who want deeper, more frequent classroom intelligence.', features: ['Everything in Teacher', '30 completed analyses each month', 'Higher-volume lesson reflection'], featured: true },
-  { key: 'school', name: 'School / District', price: 'Custom', annual: '', limit: 'Team access + pooled/custom usage', copy: 'For instructional leaders, campuses and districts.', features: ['Administrator dashboards', 'Invite & manage authorized users', 'Organization-level visibility'] },
+  { key: 'school', name: 'School / District', price: 'Custom', annual: '', limit: 'Team access + pooled/custom usage', copy: 'For instructional leaders, campuses and districts.', features: ['Administrator dashboards', 'Invite & manage authorized users', 'Organization-level visibility'], featured: false },
 ] as const;
 
 export default function PricingPage() {
