@@ -1,8 +1,7 @@
-const CACHE_NAME = "alignedu-pwa-v2";
+const CACHE_NAME = "alignedu-pwa-v3";
 const SHELL_CACHE = [
   "/",
   "/offline.html",
-  "/favicon.ico",
   "/logo.png",
   "/pwa-icon-192.png",
   "/pwa-icon-512.png",
