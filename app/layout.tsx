@@ -6,7 +6,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 
-const ICON_VERSION = "2026-06-28-c";
+const ICON_VERSION = "2026-09-17-a";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.alignedu.net'),
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "AlignEDU",
     description: "AI-powered lesson analysis for teachers",
-    url: "https://alignedu.net", // <-- replace this
+    url: "https://alignedu.net",
     siteName: "AlignEDU",
     images: [
       {
