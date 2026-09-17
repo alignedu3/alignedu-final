@@ -7,31 +7,38 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 
-const ICON_VERSION = "2026-09-17-a";
+const BRAND_VERSION = "2026-09-17-b";
+const SOCIAL_IMAGE = `https://alignedu.net/og-image.png?v=${BRAND_VERSION}`;
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://www.alignedu.net'),
-  title: "AlignEDU",
-  description: "AI-powered lesson analysis for teachers",
-  manifest: `/manifest.webmanifest?v=${ICON_VERSION}`,
+  metadataBase: new URL('https://alignedu.net'),
+  title: "AlignEDU — AI Classroom Intelligence",
+  description: "AI-powered classroom intelligence that helps educators understand lesson coverage, clarity, engagement, assessment, and learning gaps.",
+  manifest: `/manifest.webmanifest?v=${BRAND_VERSION}`,
   applicationName: "AlignEDU",
   icons: {
-    apple: `/apple-touch-icon.png?v=${ICON_VERSION}`,
+    apple: `/apple-touch-icon.png?v=${BRAND_VERSION}`,
     icon: [
-      { url: `/pwa-icon-192.png?v=${ICON_VERSION}`, type: "image/png", sizes: "192x192" },
-      { url: `/pwa-icon-512.png?v=${ICON_VERSION}`, type: "image/png", sizes: "512x512" },
+      { url: `/pwa-icon-192.png?v=${BRAND_VERSION}`, type: "image/png", sizes: "192x192" },
+      { url: `/pwa-icon-512.png?v=${BRAND_VERSION}`, type: "image/png", sizes: "512x512" },
     ],
-    shortcut: [`/pwa-icon-192.png?v=${ICON_VERSION}`],
+    shortcut: [`/pwa-icon-192.png?v=${BRAND_VERSION}`],
   },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "AlignEDU" },
   formatDetection: { telephone: false },
   openGraph: {
-    title: "AlignEDU",
-    description: "AI-powered lesson analysis for teachers",
+    title: "AlignEDU — AI Classroom Intelligence",
+    description: "See what happened in the classroom with AI-powered insight into coverage, clarity, engagement, assessment, and learning gaps.",
     url: "https://alignedu.net",
     siteName: "AlignEDU",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    images: [{ url: SOCIAL_IMAGE, width: 1200, height: 630, alt: "AlignEDU — AI Classroom Intelligence" }],
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AlignEDU — AI Classroom Intelligence",
+    description: "AI-powered insight into lesson coverage, clarity, engagement, assessment, and learning gaps.",
+    images: [SOCIAL_IMAGE],
   },
 };
 
