@@ -2,326 +2,64 @@ import { createClient } from '@supabase/supabase-js';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { sendInviteEmail } from '@/lib/email';
 import { createHash } from 'node:crypto';
+import { isOwnerEmail } from '@/lib/billing';
 
-function jsonResponse(body: Record<string, unknown>, status: number) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-}
+function jsonResponse(body: Record<string, unknown>, status: number) { return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }); }
+function isDuplicateUserError(message: string) { const normalized = message.toLowerCase(); return normalized.includes('already been registered') || normalized.includes('already registered'); }
+function isAcceptedUser(user: { email_confirmed_at?: string | null; confirmed_at?: string | null; last_sign_in_at?: string | null }) { return Boolean(user.email_confirmed_at || user.confirmed_at || user.last_sign_in_at); }
+function fp(value?: string) { return value ? createHash('sha256').update(value).digest('hex').slice(0, 10) : 'missing'; }
 
-function getInviteErrorMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : '';
-
-  if (message.includes('RESEND_API_KEY')) {
-    return 'Invite email delivery is not configured yet. Add RESEND_API_KEY to the deployment and redeploy.';
-  }
-
-  if (message.includes('SUPABASE_SERVICE_ROLE_KEY')) {
-    return 'Invite creation is not configured yet. Add SUPABASE_SERVICE_ROLE_KEY to the deployment and redeploy.';
-  }
-
-  return 'Something went wrong while sending the invite.';
-}
-
-function isDuplicateUserError(message: string) {
-  const normalized = message.toLowerCase();
-  return normalized.includes('already been registered') || normalized.includes('already registered');
-}
-
-function isAcceptedUser(user: { email_confirmed_at?: string | null; confirmed_at?: string | null; last_sign_in_at?: string | null }) {
-  return Boolean(user.email_confirmed_at || user.confirmed_at || user.last_sign_in_at);
-}
-
-function getMaskedEnvFingerprint(value: string | undefined) {
-  if (!value) {
-    return 'missing';
-  }
-
-  return createHash('sha256').update(value).digest('hex').slice(0, 10);
-}
-
-type InviteLinkCapableClient = {
-  auth: {
-    admin: {
-      generateLink(input: {
-        type: 'invite';
-        email: string;
-      }): Promise<{
-        data: {
-          properties?: {
-            action_link?: string | null;
-          } | null;
-        } | null;
-        error: {
-          message?: string | null;
-        } | null;
-      }>;
-    };
-  };
-};
-
-async function generateSupabaseInviteLink(supabase: InviteLinkCapableClient, email: string) {
-  const { data: inviteData, error: inviteError } = await supabase.auth.admin.generateLink({
-    type: 'invite',
-    email,
-  });
-
-  if (inviteError || !inviteData?.properties?.action_link) {
-    throw new Error(inviteError?.message || 'Unable to generate invite link.');
-  }
-
-  return inviteData.properties.action_link;
-}
+type InviteClient = { auth: { admin: { generateLink(input: { type: 'invite'; email: string }): Promise<{ data: { properties?: { action_link?: string | null } | null } | null; error: { message?: string | null } | null }> } } };
+async function inviteLink(client: InviteClient, email: string) { const { data, error } = await client.auth.admin.generateLink({ type: 'invite', email }); if (error || !data?.properties?.action_link) throw new Error(error?.message || 'Unable to generate invite link.'); return data.properties.action_link; }
 
 export async function POST(req: Request) {
   try {
     const { name, email, role } = await req.json();
-    const normalizedName = typeof name === 'string' ? name.trim() : '';
-    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
+    const normalizedName = String(name || '').trim(); const normalizedEmail = String(email || '').trim().toLowerCase();
+    if (!normalizedName || !normalizedEmail || !['teacher','admin'].includes(role)) return jsonResponse({ error: 'Valid name, email and role are required.' }, 400);
+    const server = await createServerClient();
+    const { data: { user: adminUser } } = await server.auth.getUser();
+    if (!adminUser) return jsonResponse({ error: 'Not authenticated' }, 401);
+    const { data: adminProfile } = await server.from('profiles').select('role,name,email').eq('id', adminUser.id).single();
+    if (!['admin','super_admin'].includes(adminProfile?.role)) return jsonResponse({ error: 'Individual plans cannot add users.' }, 403);
 
-    if (!normalizedName || !normalizedEmail || !role) {
-      return jsonResponse({ error: 'name, email, and role are required.' }, 400);
+    // Individual paid plans must never become inexpensive multi-user accounts. Only owner/super-admin
+    // accounts or admins attached to a School/District entitlement can invite users.
+    if (adminProfile?.role !== 'super_admin' && !isOwnerEmail(adminUser.email)) {
+      const { data: entitlement } = await server.from('subscriptions').select('plan,status').eq('user_id', adminUser.id).maybeSingle();
+      if (entitlement?.plan !== 'school' || !['active','trialing'].includes(entitlement.status)) return jsonResponse({ error: 'User invitations are available only to School/District administrators.' }, 403);
     }
 
-    if (!['teacher', 'admin'].includes(role)) {
-      return jsonResponse({ error: 'Invalid role.' }, 400);
-    }
-
-    const serverClient = await createServerClient();
-    const {
-      data: { user: adminUser },
-    } = await serverClient.auth.getUser();
-
-    if (!adminUser) {
-      return jsonResponse({ error: 'Not authenticated' }, 401);
-    }
-
-    const { data: adminProfile } = await serverClient
-      .from('profiles')
-      .select('role')
-      .eq('id', adminUser.id)
-      .single();
-
-    if (!['admin', 'super_admin'].includes(adminProfile?.role)) {
-      return jsonResponse({ error: 'Forbidden' }, 403);
-    }
-
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+    const service = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
     const safeRole = role === 'admin' ? 'admin' : 'teacher';
-
-    const sendInviteForExistingUser = async (existingRole: 'teacher' | 'admin', existingName: string) => {
-      const inviteLink = await generateSupabaseInviteLink(supabase, normalizedEmail);
-      const inviteEmail = await sendInviteEmail(normalizedEmail, existingName, existingRole, inviteLink);
-      console.log('Invite email re-sent via Resend', {
-        inviteEmailId: inviteEmail.id,
-        to: normalizedEmail,
-        role: existingRole,
-      });
-
-      return inviteEmail;
-    };
-
-    const { data: authData, error: createError } = await supabase.auth.admin.createUser({
-      email: normalizedEmail,
-      email_confirm: false,
-      user_metadata: { name: normalizedName },
-    });
-
+    let newUserId = '';
+    const { data: authData, error: createError } = await service.auth.admin.createUser({ email: normalizedEmail, email_confirm: false, user_metadata: { name: normalizedName } });
     if (createError && isDuplicateUserError(createError.message)) {
-      const { data: existingProfile, error: existingProfileError } = await supabase
-        .from('profiles')
-        .select('id, name, role')
-        .eq('email', normalizedEmail)
-        .maybeSingle();
+      const { data: existing } = await service.from('profiles').select('id').eq('email', normalizedEmail).maybeSingle();
+      if (!existing?.id) return jsonResponse({ error: 'This email is already registered.' }, 409);
+      const { data: existingAuth } = await service.auth.admin.getUserById(existing.id);
+      if (existingAuth?.user && isAcceptedUser(existingAuth.user)) return jsonResponse({ error: 'This user already has an active account.' }, 409);
+      newUserId = existing.id;
+    } else if (createError || !authData.user) return jsonResponse({ error: createError?.message || 'Failed to create user.' }, 400);
+    else newUserId = authData.user.id;
 
-      if (existingProfileError) {
-        console.error('Existing invite profile lookup error:', existingProfileError.message);
-        return jsonResponse({ error: 'This email is already registered, but the existing invite could not be looked up.' }, 500);
-      }
-
-      if (!existingProfile?.id) {
-        return jsonResponse(
-          { error: 'This email is already registered. Ask the user to log in or use password reset instead of sending a new invite.' },
-          409
-        );
-      }
-
-      const { data: existingUserResult, error: existingUserError } = await supabase.auth.admin.getUserById(existingProfile.id);
-
-      if (existingUserError || !existingUserResult.user) {
-        console.error('Existing invite auth lookup error:', existingUserError);
-        return jsonResponse({ error: 'This email is already registered, but the auth record could not be loaded.' }, 500);
-      }
-
-      if (isAcceptedUser(existingUserResult.user)) {
-        return jsonResponse(
-          { error: 'This user already has an active account. Ask them to log in or use password reset instead of re-inviting.' },
-          409
-        );
-      }
-
-      const existingName = String(normalizedName || existingProfile.name || normalizedEmail).trim();
-
-      try {
-        const { error: profileUpdateError } = await supabase
-          .from('profiles')
-          .update({ role: safeRole, name: existingName, email: normalizedEmail })
-          .eq('id', existingProfile.id);
-
-        if (profileUpdateError) {
-          throw new Error(`Failed to update existing invited user profile: ${profileUpdateError.message}`);
-        }
-
-        await supabase.from('managed_teachers').delete().eq('teacher_id', existingProfile.id);
-        await supabase.from('managed_teachers').delete().eq('admin_id', existingProfile.id);
-        await supabase.from('managed_admins').delete().eq('child_admin_id', existingProfile.id);
-        await supabase.from('managed_admins').delete().eq('parent_admin_id', existingProfile.id);
-
-        if (safeRole === 'teacher') {
-          const { error: linkError } = await supabase.from('managed_teachers').insert({
-            admin_id: adminUser.id,
-            teacher_id: existingProfile.id,
-          });
-
-          if (linkError) {
-            throw new Error(`Failed to link the invited teacher to this admin: ${linkError.message}`);
-          }
-        } else {
-          const { error: linkError } = await supabase.from('managed_admins').insert({
-            parent_admin_id: adminUser.id,
-            child_admin_id: existingProfile.id,
-          });
-
-          if (linkError) {
-            throw new Error(`Failed to link the invited admin to this hierarchy: ${linkError.message}`);
-          }
-        }
-
-        const resentInvite = await sendInviteForExistingUser(safeRole, existingName);
-        return jsonResponse({ success: true, inviteEmailId: resentInvite.id, resent: true }, 200);
-      } catch (emailError) {
-        console.error('Failed to re-send invite email via Resend:', emailError);
-        const detail = emailError instanceof Error ? emailError.message : 'Unknown email provider error';
-        return jsonResponse(
-          {
-            error: `Failed to send invite email: ${detail} [resend_key_fp:${getMaskedEnvFingerprint(process.env.RESEND_API_KEY)}]`,
-          },
-          500
-        );
-      }
-    }
-
-    if (createError || !authData.user) {
-      return jsonResponse({ error: createError?.message || 'Failed to create user' }, 400);
-    }
-
-    const newUserId = authData.user.id;
-
-    const rollbackInviteCreation = async () => {
-      await supabase.from('managed_teachers').delete().eq('teacher_id', newUserId);
-      await supabase.from('managed_teachers').delete().eq('admin_id', newUserId);
-      await supabase.from('managed_admins').delete().eq('child_admin_id', newUserId);
-      await supabase.from('managed_admins').delete().eq('parent_admin_id', newUserId);
-      await supabase.from('profiles').delete().eq('id', newUserId);
-      await supabase.auth.admin.deleteUser(newUserId);
-    };
-
-    const { error: upsertError } = await supabase.from('profiles').upsert(
-      { id: newUserId, name: normalizedName, email: normalizedEmail, role: safeRole },
-      { onConflict: 'id' }
-    );
-
-    if (upsertError) {
-      console.error('Profile upsert error:', upsertError.message);
-      await rollbackInviteCreation();
-      return jsonResponse({ error: 'Failed to create the invited user profile.' }, 500);
-    }
-
-    const { error: roleUpdateError } = await supabase
-      .from('profiles')
-      .update({ role: safeRole, name: normalizedName, email: normalizedEmail })
-      .eq('id', newUserId);
-
-    if (roleUpdateError) {
-      console.error('Profile role update error:', roleUpdateError.message);
-      await rollbackInviteCreation();
-      return jsonResponse({ error: 'Failed to finalize the invited user profile.' }, 500);
-    }
-
-    const { data: verifyProfile, error: verifyError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', newUserId)
-      .single();
-
-    if (verifyError) {
-      console.error('Profile verify error:', verifyError.message);
-      await rollbackInviteCreation();
-      return jsonResponse({ error: 'Failed to verify the invited user profile.' }, 500);
-    }
-
-    console.log('Profile role after invite:', { userId: newUserId, role: verifyProfile?.role, expected: safeRole });
-    if (verifyProfile?.role !== safeRole) {
-      console.warn(`Role mismatch! Got ${verifyProfile?.role}, expected ${safeRole}. Forcing again...`);
-      const { error: retryRoleError } = await supabase.from('profiles').update({ role: safeRole }).eq('id', newUserId);
-
-      if (retryRoleError) {
-        console.error('Profile role retry error:', retryRoleError.message);
-        await rollbackInviteCreation();
-        return jsonResponse({ error: 'Failed to finalize the invited user role.' }, 500);
-      }
-    }
-
-    if (safeRole === 'teacher') {
-      const { error: linkError } = await supabase.from('managed_teachers').insert({
-        admin_id: adminUser.id,
-        teacher_id: newUserId,
-      });
-
-      if (linkError) {
-        console.error('managed_teachers insert error:', linkError.message);
-        await rollbackInviteCreation();
-        return jsonResponse({ error: 'Failed to link the invited teacher to this admin.' }, 500);
-      }
-    } else {
-      const { error: linkError } = await supabase.from('managed_admins').insert({
-        parent_admin_id: adminUser.id,
-        child_admin_id: newUserId,
-      });
-
-      if (linkError) {
-        console.error('managed_admins insert error:', linkError.message);
-        await rollbackInviteCreation();
-        return jsonResponse({ error: 'Failed to link the invited admin to this hierarchy.' }, 500);
-      }
-    }
+    const { error: profileError } = await service.from('profiles').upsert({ id: newUserId, name: normalizedName, email: normalizedEmail, role: safeRole }, { onConflict: 'id' });
+    if (profileError) return jsonResponse({ error: 'Failed to create invited user profile.' }, 500);
+    await service.from('managed_teachers').delete().eq('teacher_id', newUserId);
+    await service.from('managed_admins').delete().eq('child_admin_id', newUserId);
+    const linkResult = safeRole === 'teacher'
+      ? await service.from('managed_teachers').insert({ admin_id: adminUser.id, teacher_id: newUserId })
+      : await service.from('managed_admins').insert({ parent_admin_id: adminUser.id, child_admin_id: newUserId });
+    if (linkResult.error) return jsonResponse({ error: 'Failed to link the invited user to this organization.' }, 500);
 
     try {
-      const inviteLink = await generateSupabaseInviteLink(supabase, normalizedEmail);
-      const inviteEmail = await sendInviteEmail(normalizedEmail, normalizedName, safeRole, inviteLink);
-      console.log('Invite email queued via Resend', {
-        inviteEmailId: inviteEmail.id,
-        to: normalizedEmail,
-        role: safeRole,
-      });
-
-      return jsonResponse({ success: true, inviteEmailId: inviteEmail.id }, 200);
-    } catch (emailError) {
-      console.error('Failed to send invite email via Resend:', emailError);
-      await rollbackInviteCreation();
-      const detail = emailError instanceof Error ? emailError.message : 'Unknown email provider error';
-      return jsonResponse(
-        {
-          error: `Failed to send invite email: ${detail} [resend_key_fp:${getMaskedEnvFingerprint(process.env.RESEND_API_KEY)}]`,
-        },
-        500
-      );
+      const link = await inviteLink(service as unknown as InviteClient, normalizedEmail);
+      const sent = await sendInviteEmail(normalizedEmail, normalizedName, safeRole, link);
+      await service.from('subscription_events').insert({ user_id: adminUser.id, event_type: 'user_invited', payload: { invited_user_id: newUserId, invited_email: normalizedEmail, invited_name: normalizedName, invited_role: safeRole, invited_by: adminProfile?.name || adminUser.email || 'Administrator', invited_by_email: adminUser.email } });
+      return jsonResponse({ success: true, inviteEmailId: sent.id }, 200);
+    } catch (error) {
+      console.error('Invite delivery error', error);
+      return jsonResponse({ error: `Failed to send invite email. [resend_key_fp:${fp(process.env.RESEND_API_KEY)}]` }, 500);
     }
-  } catch (error) {
-    console.error('Invite route error:', error);
-    return jsonResponse({ error: getInviteErrorMessage(error) }, 500);
-  }
+  } catch (error) { console.error('Invite route error:', error); return jsonResponse({ error: 'Something went wrong while sending the invite.' }, 500); }
 }
