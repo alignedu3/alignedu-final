@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const ICON_VERSION = "2026-09-17-c";
+const ICON_VERSION = "2026-09-18-orange";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -16,15 +16,9 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["education", "productivity", "business"],
     icons: [
       {
-        src: `/pwa-icon-192.png?v=${ICON_VERSION}`,
-        sizes: "192x192",
-        type: "image/png",
-        purpose: "maskable",
-      },
-      {
-        src: `/pwa-icon-512.png?v=${ICON_VERSION}`,
-        sizes: "512x512",
-        type: "image/png",
+        src: `/alignedu-icon.svg?v=${ICON_VERSION}`,
+        sizes: "any",
+        type: "image/svg+xml",
         purpose: "maskable",
       },
     ],
