@@ -1,4 +1,5 @@
 'use client';
+// Production deployment refresh: pricing and Stripe CTA updates.
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
