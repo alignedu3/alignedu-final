@@ -2,10 +2,14 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 
-export default function SignUpPage() {
+type SignUpPageProps = {
+  checkoutSessionId?: string | null;
+};
+
+export default function SignUpPage({ checkoutSessionId = null }: SignUpPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -14,8 +18,6 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
   const [activating, setActivating] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const checkoutSessionId = searchParams.get('checkout_session_id');
 
   const supabase = useMemo(() => createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
