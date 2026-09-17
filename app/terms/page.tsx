@@ -2,97 +2,21 @@ import Link from 'next/link';
 
 export default function TermsPage() {
   return (
-    <main className="legal-page">
-      <div className="legal-shell">
-        <article className="legal-card">
-          <h1 className="legal-title">Terms of Use</h1>
-          <p className="legal-meta">Effective date: April 11, 2026</p>
-
-          <section className="legal-section">
-            <h2>1. Agreement</h2>
-            <p>
-              By accessing or using AlignEDU, you agree to these Terms of Use. If you are using the
-              service on behalf of an organization, you represent that you have authority to bind that
-              organization.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>2. Service Description</h2>
-            <p>
-              AlignEDU is a premium SaaS platform that provides lesson analysis, instructional insights,
-              and related reporting features. We may improve, update, or change features over time.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>3. Accounts and Security</h2>
-            <ul>
-              <li>You are responsible for safeguarding account credentials.</li>
-              <li>You must provide accurate account information.</li>
-              <li>You must notify us promptly of unauthorized account activity.</li>
-            </ul>
-          </section>
-
-          <section className="legal-section">
-            <h2>4. Acceptable Use</h2>
-            <p>
-              You must use AlignEDU lawfully and professionally. You may not misuse the platform,
-              attempt unauthorized access, or interfere with service reliability.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>5. Customer Data</h2>
-            <p>
-              You retain ownership of your submitted content and data. You grant AlignEDU a limited
-              license to process that data solely to provide and improve the service.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>6. Subscription and Billing</h2>
-            <p>
-              Paid plans renew according to your subscription terms unless canceled. Fees are due as
-              invoiced and may be subject to applicable taxes.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>7. Intellectual Property</h2>
-            <p>
-              The platform, software, and branding are owned by AlignEDU and protected by intellectual
-              property laws. No rights are transferred except as explicitly stated in these terms.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>8. Disclaimer and Liability</h2>
-            <p>
-              AlignEDU provides instructional insights to support professional decision-making. Results
-              are informational and not guaranteed to be error-free. To the maximum extent allowed by
-              law, AlignEDU disclaims implied warranties and limits liability for indirect damages.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>9. Termination</h2>
-            <p>
-              We may suspend or terminate accounts for material violations of these terms. You may stop
-              using the service at any time.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>10. Contact</h2>
-            <p>
-              Questions about these terms: support@alignedu.net
-            </p>
-          </section>
-
-          <Link href="/" className="legal-back">Back to Home</Link>
-        </article>
-      </div>
-    </main>
+    <main className="legal-page"><div className="legal-shell"><article className="legal-card">
+      <h1 className="legal-title">Terms of Use</h1><p className="legal-meta">Effective date: September 17, 2026</p>
+      <section className="legal-section"><h2>1. Agreement</h2><p>By accessing or using AlignEDU, you agree to these Terms. If you use the service for an organization, you represent that you are authorized to act for that organization.</p></section>
+      <section className="legal-section"><h2>2. Service</h2><p>AlignEDU provides AI-assisted lesson analysis, standards-alignment evidence, instructional insights, dashboards, reporting, and related education tools. Features may evolve over time.</p></section>
+      <section className="legal-section"><h2>3. Accounts and Authorized Users</h2><ul><li>Keep credentials secure and account information accurate.</li><li>Individual subscriptions are for the subscribing user and do not include organization user-management rights.</li><li>School and district administrators may invite authorized users subject to their organization plan and permissions.</li></ul></section>
+      <section className="legal-section"><h2>4. Subscriptions, Usage and Billing</h2><p>Free and paid plans may include monthly lesson-analysis allowances or other usage limits shown on the pricing page. Paid individual subscriptions renew monthly or annually, depending on the interval selected, until canceled. Annual plans retain the stated monthly analysis allowance unless the plan description says otherwise. School and district plans may use custom pricing, pooled or negotiated usage, and separate order terms. Applicable taxes may be added.</p></section>
+      <section className="legal-section"><h2>5. Cancellation and Plan Changes</h2><p>You may cancel a self-service paid subscription through the available billing-management tools. Unless required by law or expressly stated otherwise, cancellation stops future renewal and access to paid features continues through the end of the paid billing period. Plan limits, prices, and features may change prospectively with appropriate notice where required.</p></section>
+      <section className="legal-section"><h2>6. Payments and Refunds</h2><p>Payments are processed by third-party payment providers. Except where required by law, fees already paid are generally non-refundable. If a billing error occurs, contact support@alignedu.net so it can be reviewed.</p></section>
+      <section className="legal-section"><h2>7. Customer and Education Data</h2><p>You retain ownership of content you are authorized to submit. You grant AlignEDU the limited rights necessary to host, process, secure, analyze, and return that content to provide the service. Schools and districts remain responsible for determining what education records may be submitted and for obtaining permissions or consents required by applicable law and policy.</p></section>
+      <section className="legal-section"><h2>8. AI-Assisted Results</h2><p>AlignEDU outputs support professional judgment and may contain errors or incomplete interpretations. They should not be treated as the sole basis for high-stakes employment, disciplinary, grading, special-education, or other consequential decisions.</p></section>
+      <section className="legal-section"><h2>9. Acceptable Use and Intellectual Property</h2><p>You must use AlignEDU lawfully and in accordance with the Acceptable Use Policy. AlignEDU software, design, branding, and platform materials remain the property of AlignEDU and its licensors.</p></section>
+      <section className="legal-section"><h2>10. Suspension and Termination</h2><p>We may suspend or terminate access for material violations, security threats, nonpayment, or unlawful use. You may stop using the service at any time, subject to subscription cancellation terms.</p></section>
+      <section className="legal-section"><h2>11. Disclaimer and Liability</h2><p>The service is provided on an as-available basis. To the maximum extent permitted by law, AlignEDU disclaims implied warranties and liability for indirect, incidental, special, consequential, or punitive damages.</p></section>
+      <section className="legal-section"><h2>12. Contact</h2><p>Questions about these terms or billing: support@alignedu.net</p></section>
+      <Link href="/pricing" className="legal-back">View Plans</Link> <Link href="/" className="legal-back">Back to Home</Link>
+    </article></div></main>
   );
 }
