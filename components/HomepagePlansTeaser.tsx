@@ -51,7 +51,7 @@ export default function HomepagePlansTeaser() {
               <div className="home-plan-price"><b>{plan.price}</b>{plan.cadence ? <small>{plan.cadence}</small> : null}</div>
               {plan.annual ? <div className="home-plan-annual"><strong>{plan.annual}</strong><span>{plan.effective} effective</span>{plan.savings ? <em>{plan.savings}</em> : null}</div> : <div className="home-plan-annual placeholder"><span>{plan.name === 'Free' ? 'No credit card required' : 'Contact us for organization pricing'}</span></div>}
               <span className="home-plan-note">{plan.note}</span>
-              <Link href={plan.name === 'Free' ? '/login' : plan.name === 'School / District' ? 'mailto:support@alignedu.net?subject=AlignEDU School / District Access' : '/pricing'} className={`home-plan-cta ${plan.featured ? 'primary' : ''}`}>{plan.cta}</Link>
+              <Link href={plan.name === 'Free' ? '/signup' : plan.name === 'School / District' ? 'mailto:support@alignedu.net?subject=AlignEDU School / District Access' : '/pricing'} className={`home-plan-cta ${plan.featured ? 'primary' : ''}`}>{plan.cta}</Link>
             </article>
           ))}
         </div>
