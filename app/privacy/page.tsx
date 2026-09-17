@@ -2,78 +2,19 @@ import Link from 'next/link';
 
 export default function PrivacyPage() {
   return (
-    <main className="legal-page">
-      <div className="legal-shell">
-        <article className="legal-card">
-          <h1 className="legal-title">Privacy Policy</h1>
-          <p className="legal-meta">Effective date: April 11, 2026</p>
-
-          <section className="legal-section">
-            <h2>1. Information We Collect</h2>
-            <ul>
-              <li>Account information such as name, email, and role.</li>
-              <li>Lesson-related content you submit, including notes and audio uploads.</li>
-              <li>Usage and device data for reliability, security, and product improvement.</li>
-            </ul>
-          </section>
-
-          <section className="legal-section">
-            <h2>2. How We Use Information</h2>
-            <ul>
-              <li>To provide lesson analysis and platform functionality.</li>
-              <li>To secure accounts, prevent abuse, and maintain service performance.</li>
-              <li>To communicate important product, billing, or support updates.</li>
-            </ul>
-          </section>
-
-          <section className="legal-section">
-            <h2>3. Data Sharing</h2>
-            <p>
-              We do not sell personal data. We may share data with trusted service providers that help
-              us operate AlignEDU, subject to confidentiality and security obligations.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>4. Data Retention</h2>
-            <p>
-              We retain information for as long as needed to provide services, meet contractual
-              obligations, resolve disputes, and comply with legal requirements.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>5. Security</h2>
-            <p>
-              We use administrative, technical, and organizational safeguards designed to protect your
-              information. No system can be guaranteed 100 percent secure.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>6. Your Choices</h2>
-            <p>
-              You may request access, correction, or deletion of personal information where applicable
-              by contacting support@alignedu.net.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>7. Children</h2>
-            <p>
-              AlignEDU is intended for schools and education professionals. We do not knowingly collect
-              personal information directly from children through self-service signup.
-            </p>
-          </section>
-
-          <section className="legal-section">
-            <h2>8. Contact</h2>
-            <p>Privacy questions: support@alignedu.net</p>
-          </section>
-
-          <Link href="/" className="legal-back">Back to Home</Link>
-        </article>
-      </div>
-    </main>
+    <main className="legal-page"><div className="legal-shell"><article className="legal-card">
+      <h1 className="legal-title">Privacy Policy</h1><p className="legal-meta">Effective date: September 17, 2026</p>
+      <section className="legal-section"><h2>1. Information We Collect</h2><ul><li>Account information such as name, email, organization, and role.</li><li>Lesson-related content you submit, including audio, transcripts, documents, notes, and analysis results.</li><li>Subscription, plan, and billing-status information. Payment-card details are handled by our payment processor rather than stored directly by AlignEDU.</li><li>Usage, device, security, and diagnostic data used to operate and protect the service.</li></ul></section>
+      <section className="legal-section"><h2>2. How We Use Information</h2><ul><li>Provide lesson analysis, dashboards, organization features, and support.</li><li>Manage subscriptions, entitlements, usage allowances, billing status, and account access.</li><li>Secure accounts, prevent abuse, troubleshoot problems, and improve reliability.</li><li>Send service, billing, security, and support communications.</li></ul></section>
+      <section className="legal-section"><h2>3. Schools, Districts and Education Records</h2><p>AlignEDU is designed for educators and education organizations. When a school or district uses AlignEDU, the organization controls which authorized users and lesson materials are submitted. Organizations are responsible for complying with applicable student-privacy requirements and for limiting submissions to information they are authorized to process. AlignEDU processes education-related data to provide the contracted service and does not sell personal data.</p></section>
+      <section className="legal-section"><h2>4. Service Providers and Sharing</h2><p>We may share information with service providers that support hosting, authentication, storage, analytics, security, communications, AI processing, and payment processing, subject to appropriate contractual and security obligations. We may also disclose information when required by law or to protect users, the service, or legal rights.</p></section>
+      <section className="legal-section"><h2>5. Data Retention</h2><p>We retain information for as long as reasonably needed to provide the service, maintain account and billing records, meet contractual or legal obligations, resolve disputes, and protect security. Retention periods may vary by data type and organization agreement.</p></section>
+      <section className="legal-section"><h2>6. Security</h2><p>We use administrative, technical, and organizational safeguards designed to protect information, including role-based access and security controls. No system can be guaranteed completely secure.</p></section>
+      <section className="legal-section"><h2>7. Your Choices</h2><p>Depending on applicable law and your relationship with a school or district, you may request access, correction, or deletion of personal information. Organization-managed users may need to direct education-record requests through their school or district. Contact support@alignedu.net for assistance.</p></section>
+      <section className="legal-section"><h2>8. Children</h2><p>AlignEDU is intended for use by education professionals and authorized organizations, not for independent self-service signup by children. If student information is processed through an organization account, it should be submitted only under the organization’s authority and applicable privacy requirements.</p></section>
+      <section className="legal-section"><h2>9. Changes</h2><p>We may update this policy as AlignEDU, its subscription offerings, or legal obligations change. Material updates will be reflected by a revised effective date and additional notice when appropriate.</p></section>
+      <section className="legal-section"><h2>10. Contact</h2><p>Privacy questions: support@alignedu.net</p></section>
+      <Link href="/" className="legal-back">Back to Home</Link>
+    </article></div></main>
   );
 }
