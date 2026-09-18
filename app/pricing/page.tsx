@@ -59,7 +59,7 @@ export default function PricingPage() {
         <div className="limit">{plan.limit}</div>
         <ul>{plan.features.map(feature => <li key={feature}>✓ {feature}</li>)}</ul>
         <div className="card-action">
-          {plan.key === 'free' && <Link className="cta primary" href="/signup">Get started free</Link>}
+          {plan.key === 'free' && <a className="cta primary" href="/signup">Get started free</a>}
           {plan.key === 'teacher' && <button type="button" className="cta primary" disabled={loadingPlan !== null} onClick={() => checkout('teacher')}>{loadingPlan === 'teacher' ? 'Opening checkout…' : annual ? 'Get Teacher annually' : 'Get Teacher'}</button>}
           {plan.key === 'teacher_pro' && <button type="button" className="cta primary" disabled={loadingPlan !== null} onClick={() => checkout('teacher_pro')}>{loadingPlan === 'teacher_pro' ? 'Opening checkout…' : annual ? 'Get Teacher Pro annually' : 'Get Teacher Pro'}</button>}
           {plan.key === 'school' && <a className="cta primary" href="mailto:support@alignedu.net?subject=AlignEDU School or District Plan&body=I would like to learn more about AlignEDU School / District pricing and access.">Contact AlignEDU</a>}
