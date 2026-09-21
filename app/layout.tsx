@@ -7,7 +7,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import type { Metadata, Viewport } from 'next';
 
-const BRAND_VERSION = "2026-09-17-b";
+const BRAND_VERSION = "2026-09-21-current-icon";
 const SOCIAL_IMAGE = `https://alignedu.net/og-image.png?v=${BRAND_VERSION}`;
 
 export const metadata: Metadata = {
