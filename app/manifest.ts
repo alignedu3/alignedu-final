@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const ICON_VERSION = "2026-09-18-orange-image-2";
+const ICON_VERSION = "2026-09-21-a-circle";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {

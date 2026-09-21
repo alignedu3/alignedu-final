@@ -14,6 +14,7 @@ import {
   type StructuredAnalysisGenerationDiagnostics,
 } from "@/lib/openaiStructuredAnalysis";
 import { createClient as createServerClient } from "@/lib/supabase/server";
+import { deduplicateTranscript, extractLessonPartNumber, mergeLessonEvidence } from "@/lib/multipartLesson";
 import { getErrorMessage } from "@/lib/errorHandling";
 import { evaluateAnalysisQuality } from "@/lib/analysisQuality";
 
@@ -245,6 +246,7 @@ type AnalysisWorkflowInput = {
   chapter: string;
   rubricId: string;
   combineWithPrevious: boolean;
+  sourceName: string;
   lectureText: string;
   waitTimeEvidence: string;
   audioDuration?: number;
@@ -1505,6 +1507,7 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
     chapter,
     rubricId,
     combineWithPrevious,
+    sourceName,
     lectureText,
     waitTimeEvidence,
     audioDuration,
@@ -1545,6 +1548,12 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
     }
   }
 
+  transcript = deduplicateTranscript(transcript);
+  const submittedPartNumber = extractLessonPartNumber(`${sourceName}\n${lectureText}`);
+  if (submittedPartNumber && !/\[Lesson part:\s*\d+\]/i.test(transcript)) {
+    transcript = `[Lesson part: ${submittedPartNumber}]\n${transcript}`;
+  }
+
   if (!transcript || transcript.trim().length < 10) {
     throw new Error("Please provide lesson notes or upload an audio file for transcription.");
   }
@@ -1565,11 +1574,11 @@ async function runAnalysisWorkflow(input: AnalysisWorkflowInput): Promise<Analys
   const existingAnalysisId = previousLessonPart?.id ?? null;
 
   if (previousLessonPart) {
-    const previousFingerprint = fingerprintTranscript(previousLessonPart.transcript);
-    const currentFingerprint = fingerprintTranscript(transcript);
-    transcript = previousFingerprint && currentFingerprint && previousFingerprint === currentFingerprint
-      ? previousLessonPart.transcript
-      : `[Earlier lesson evidence]\n${previousLessonPart.transcript}\n\n[Additional lesson evidence]\n${transcript}`;
+    const merged = mergeLessonEvidence(previousLessonPart.transcript, transcript, submittedPartNumber);
+    if (merged.duplicateOnly) {
+      throw new Error("This upload duplicates lesson evidence already saved for this chapter. The existing analysis was left unchanged.");
+    }
+    transcript = merged.transcript;
   }
 
   await reportProgress(46, "Matching standards and lesson context...");
@@ -2629,6 +2638,7 @@ export async function POST(req: Request) {
       ? requestedRubricId
       : "";
     const lectureText = String(formData.get("lecture") || "").trim();
+    const sourceName = String(formData.get("sourceName") || "").trim();
     const waitTimeEvidence = String(formData.get("waitTimeEvidence") || "").trim();
     const audioDurationValue = formData.get("audioDuration");
     const audioDuration = audioDurationValue
@@ -2708,6 +2718,7 @@ export async function POST(req: Request) {
         chapter,
         rubricId,
         combineWithPrevious,
+        sourceName,
         lectureText,
         waitTimeEvidence,
         audioDuration,
@@ -2742,6 +2753,7 @@ export async function POST(req: Request) {
         chapter,
         rubricId,
         combineWithPrevious,
+        sourceName,
         lectureText,
         waitTimeEvidence,
         audioDuration,

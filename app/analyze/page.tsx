@@ -1738,6 +1738,7 @@ export default function AnalysisPage() {
       analysisForm.append("book", book.trim());
       analysisForm.append("chapter", chapter.trim());
       analysisForm.append("combineWithPrevious", continuePreviousLesson ? "true" : "false");
+      analysisForm.append("sourceName", audioFile?.name || documentFile?.name || "");
       if (combinedTranscriptText) {
         analysisForm.append("lecture", combinedTranscriptText);
       }
