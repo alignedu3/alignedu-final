@@ -1,4 +1,4 @@
-const CACHE_NAME = "alignedu-pwa-v3";
+const CACHE_NAME = "alignedu-pwa-v4-current-icon";
 const SHELL_CACHE = [
   "/",
   "/offline.html",
