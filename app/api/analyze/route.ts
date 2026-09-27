@@ -1877,6 +1877,7 @@ Assessment Quality (0-100): [number]
 Gaps Flagged: [number]
 
 Calibrate each metric independently. Do not give all five instructional metrics the same number unless the evidence clearly supports that. Use the report draft and transcript together to infer the most defensible scores.
+For Engagement and Assessment Quality, identify observable evidence before choosing the number. Do not use 75 as a neutral/default/uncertain score. If evidence is missing, weak, or ambiguous, score according to the evidence bands in the calibration context rather than gravitating to the midpoint. Reserve 80+ for clear affirmative evidence and 90+ for sustained, strong evidence across the lesson.
 Coverage must be judged directly against the intended chapter/objective target or TEKS target, not simply from the count of listed gaps.
 ${strictCalibration ? 'Avoid a flat 75/75/75/75/75 block unless the transcript overwhelmingly supports identical middle-of-the-road performance across every category. When evidence differs by category, the numbers must differ.' : ''}
 
