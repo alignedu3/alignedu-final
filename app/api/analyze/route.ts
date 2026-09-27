@@ -2380,6 +2380,8 @@ Rules:
 - If the evidence differs by category, the numbers must differ.
 - Use the full scoring range when justified by the lesson evidence.
 - Coverage must be judged directly against the intended chapter/objective target or TEKS target, not simply from the count of listed gaps.
+- Coverage and Clarity must not use 75 as a neutral/default/uncertain score. Score each from observable lesson evidence and the calibration bands.
+- Clarity measures how understandable, organized, coherent, and usable the instruction is for learners. Do not automatically lower Clarity merely because a factual/content error exists; score the error under content accuracy, coverage/gaps, or recommendations unless it also made the explanation confusing, contradictory, or difficult to follow.
 
 ${metricCalibrationContext}
 
