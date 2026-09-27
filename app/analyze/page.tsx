@@ -34,6 +34,14 @@ const emptyAnalysisMetrics: AnalysisMetricsState = {
   gaps: null,
 };
 
+const AUDIO_FILE_ACCEPT = ".m4a,.mp3,.wav,.aac,.ogg,.oga,.webm,.mp4,audio/*,audio/mp4,audio/mpeg,audio/wav,audio/x-wav,audio/aac,audio/ogg,audio/webm,video/mp4";
+const SUPPORTED_AUDIO_EXTENSIONS = new Set(["m4a", "mp3", "wav", "aac", "ogg", "oga", "webm", "mp4"]);
+
+function isSupportedAudioFile(file: File) {
+  const extension = file.name.split(".").pop()?.toLowerCase() || "";
+  return file.type.startsWith("audio/") || (file.type === "video/mp4" && extension === "mp4") || SUPPORTED_AUDIO_EXTENSIONS.has(extension);
+}
+
 const ACTIVE_ANALYSIS_JOB_KEY = "active-analysis-job-id";
 const TEACHER_DRAFT_KEY = "alignedu-lesson-draft-v1";
 const MAX_ANALYSIS_JOB_AGE_MS = 30 * 60 * 1000;
@@ -1478,8 +1486,8 @@ export default function AnalysisPage() {
       return;
     }
 
-    if (!file.type.startsWith("audio/")) {
-      setError("Please drop or upload an audio file.");
+    if (!isSupportedAudioFile(file)) {
+      setError("Please upload a supported lesson recording (M4A, MP3, WAV, AAC, OGG, WebM, or MP4 audio).");
       return;
     }
 
@@ -2177,7 +2185,7 @@ export default function AnalysisPage() {
                     ref={uploadInputRef}
                     className="upload-input"
                     type="file"
-                    accept="audio/*"
+                    accept={AUDIO_FILE_ACCEPT}
                     onChange={(e) => handleAudioChange(e.target.files?.[0] || null)}
                   />
                   <div className="upload-zone-content">
