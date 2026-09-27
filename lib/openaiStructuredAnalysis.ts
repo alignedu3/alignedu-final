@@ -326,24 +326,43 @@ export function normalizeStructuredAnalysisPayload(payload: unknown): Structured
       ? 0
       : noGapPlaceholder.length;
 
-  const assessmentQuality = clampScore(typed?.metrics?.assessmentQuality, 75);
-  const engagement = clampScore(typed?.metrics?.engagement, 75);
+  // Never silently turn a missing engagement/assessment metric into a neutral-looking 75.
+  // Structured output normally requires both metrics; these evidence-based fallbacks only
+  // protect malformed/legacy payloads and preserve score discrimination.
+  const evidenceFallbackScore = (evidence: "none" | "limited" | "clear" | "strong") => {
+    if (evidence === "strong") return 88;
+    if (evidence === "clear") return 82;
+    if (evidence === "limited") return 66;
+    return 50;
+  };
+  const assessmentQuality = clampScore(
+    typed?.metrics?.assessmentQuality,
+    evidenceFallbackScore(assessmentEvidence)
+  );
+  const engagement = clampScore(
+    typed?.metrics?.engagement,
+    evidenceFallbackScore(studentEvidence)
+  );
   const hasConfirmedNoStudentEvidence =
     deliveryContext === "prerecorded_or_no_students" && studentEvidence === "none";
   const calibratedEngagement = hasConfirmedNoStudentEvidence
-    ? Math.min(59, engagement)
+    ? Math.min(55, engagement)
     : studentEvidence === "strong"
-      ? Math.max(80, engagement)
+      ? Math.max(85, engagement)
       : studentEvidence === "clear"
-        ? Math.max(75, engagement)
-        : engagement;
+        ? Math.max(78, engagement)
+        : studentEvidence === "limited"
+          ? Math.min(74, engagement)
+          : Math.min(59, engagement);
   const calibratedAssessment = hasConfirmedNoStudentEvidence
-    ? Math.min(59, assessmentQuality)
+    ? Math.min(55, assessmentQuality)
     : assessmentEvidence === "strong"
-      ? Math.max(80, assessmentQuality)
+      ? Math.max(85, assessmentQuality)
       : assessmentEvidence === "clear"
-        ? Math.max(75, assessmentQuality)
-        : assessmentQuality;
+        ? Math.max(78, assessmentQuality)
+        : assessmentEvidence === "limited"
+          ? Math.min(74, assessmentQuality)
+          : Math.min(59, assessmentQuality);
 
   return {
     evidenceAudit: {
