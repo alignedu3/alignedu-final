@@ -373,9 +373,12 @@ export function normalizeStructuredAnalysisPayload(payload: unknown): Structured
       rationale: cleanText(typed?.evidenceAudit?.rationale),
     },
     metrics: {
-      instructionalScore: clampScore(typed?.metrics?.instructionalScore, 75),
-      coverage: clampScore(typed?.metrics?.coverage, 75),
-      clarity: clampScore(typed?.metrics?.clarity, 75),
+      instructionalScore: clampScore(typed?.metrics?.instructionalScore, 70),
+      // Missing structured metrics should never masquerade as an evidence-based 75.
+      // These conservative fallbacks are only for malformed/legacy payloads; normal
+      // structured output requires explicit coverage and clarity scores.
+      coverage: clampScore(typed?.metrics?.coverage, 65),
+      clarity: clampScore(typed?.metrics?.clarity, 65),
       engagement: calibratedEngagement,
       assessmentQuality: calibratedAssessment,
       gapsFlagged: clampScore(typed?.metrics?.gapsFlagged, computedGapCount),
