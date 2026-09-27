@@ -396,6 +396,10 @@ Additional metric calibration:
 - Judge the quality and sufficiency of evidence relative to the scope of the lesson target. Do not confuse brevity with weak instruction or length with rigor.
 - Do not cluster metrics automatically. Score each category independently and cite the distinct evidence supporting its band.
 - Before assigning each number, select the rubric band supported by the evidence, then choose an integer within that band. Confirm that the report's own description of the evidence matches the selected band.
+- Within-band scoring must also be evidence-anchored rather than arbitrary: use the lower third of a band when evidence only barely clears that band, the middle third when evidence is representative of the band, and the upper third when evidence nearly meets the next band. Do not default to 75, 76, 77, or any other familiar midpoint.
+- Scores one or two points apart should reflect a real evidentiary distinction. If you cannot identify a meaningful distinction, use the same score; never manufacture variation merely to make a dashboard look diverse.
+- Use the full 0-100 continuum when justified. Repeated scores are allowed, but repeated 75-79 values across categories or lessons require genuinely similar evidence, not uncertainty or model habit.
+- For each metric, mentally identify at least two concrete supporting observations and the most important limiting observation before selecting the exact integer.
 - Run a final consistency check before returning the metrics: do not place recurring useful checks in the 60s, do not place mostly brief or teacher-directed participation in the 80s, and do not reduce Coverage because a chapter or multi-day sequence intentionally continues after this submitted lesson.
 - Clarity:
   - Judge how understandable, precise, and coherent the explanations, modeling, examples, and transitions were. Keep content accuracy concerns separate unless an inaccuracy directly made the explanation confusing.
