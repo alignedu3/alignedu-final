@@ -105,6 +105,10 @@ function buildWaitTimeEvidence(segments: TranscriptSegment[] | undefined) {
 
 export async function POST(req: Request) {
   try {
+    const contentType = (req.headers.get('content-type') || '').toLowerCase();
+    if (!contentType.includes('multipart/form-data')) return safeJson({ transcript: '', error: 'Audio upload required.' }, 415);
+    const contentLength = Number(req.headers.get('content-length') || 0);
+    if (contentLength > 30_000_000) return safeJson({ transcript: '', error: 'Audio file is too large.' }, 413);
     const supabase = await createServerClient();
 
     let authLookup = await supabase.auth.getUser();
@@ -137,7 +141,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const transcription: TranscriptionVerbose = await openai.audio.transcriptions.create({
+    if (file.size > 25_000_000) return safeJson({ transcript: "", error: "Audio file is too large." }, 413);
+    const allowedAudioTypes = new Set(["audio/mpeg","audio/mp3","audio/mp4","audio/x-m4a","audio/wav","audio/webm","video/mp4","video/webm"]);
+    if (file.type && !allowedAudioTypes.has(file.type.toLowerCase())) return safeJson({ transcript: "", error: "Unsupported audio format." }, 415);
+
+        const transcription: TranscriptionVerbose = await openai.audio.transcriptions.create({
       file,
       model: TRANSCRIPTION_MODEL,
       response_format: "verbose_json",
