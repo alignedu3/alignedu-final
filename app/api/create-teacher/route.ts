@@ -5,11 +5,14 @@ import { getErrorMessage } from '@/lib/errorHandling';
 
 export async function POST(req: Request) {
   try {
+    if (!(req.headers.get('content-type') || '').toLowerCase().includes('application/json')) return NextResponse.json({ success: false, error: 'JSON requests only.' }, { status: 415 });
+    const contentLength = Number(req.headers.get('content-length') || 0);
+    if (contentLength > 20_000) return NextResponse.json({ success: false, error: 'Request too large.' }, { status: 413 });
     const { email, name } = await req.json();
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     const normalizedName = typeof name === 'string' ? name.trim() : '';
 
-    if (!normalizedEmail || !normalizedName) {
+    if (!normalizedEmail || !normalizedName || normalizedEmail.length > 254 || normalizedName.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
       return NextResponse.json(
         { success: false, error: 'Missing email or name' },
         { status: 400 }
@@ -93,8 +96,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
           {
             success: false,
-            error: authError.message,
-            fullError: authError,
+            error: 'Could not create the teacher account.',
           },
           { status: 500 }
         );
@@ -104,8 +106,7 @@ export async function POST(req: Request) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Auth user created but ID is missing',
-            fullError: authUser,
+            error: 'Could not create the teacher account.',
           },
           { status: 500 }
         );
@@ -139,8 +140,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          error: error.message,
-          fullError: error,
+          error: 'Could not save the teacher account.',
         },
         { status: 500 }
       );
