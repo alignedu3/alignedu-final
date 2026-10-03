@@ -17,7 +17,8 @@ export async function proxy(req: NextRequest) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    return res
+    // Never expose privileged routes when authentication is misconfigured.
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 
   const supabase = createServerClient(
@@ -56,12 +57,10 @@ export async function proxy(req: NextRequest) {
         captureRouteException(authError, {
           route: 'proxy',
           stage: 'get_user',
-          extra: {
-            path,
-          },
+          extra: { path },
           level: 'warning',
         })
-        return res
+        return NextResponse.redirect(new URL('/login', req.url))
       }
     }
 
