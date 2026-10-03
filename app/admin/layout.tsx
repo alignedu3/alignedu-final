@@ -14,8 +14,10 @@ export default async function AdminLayout({
     error: authError,
   } = await getUserWithRetry(supabase);
 
-  if (authError && !isInvalidSessionError(authError)) {
-    return <div>{children}</div>;
+  if (authError) {
+    // Admin authorization must fail closed. A transient auth failure must never
+    // render privileged content without a verified session and role.
+    redirect('/login');
   }
 
   if (!user) {
